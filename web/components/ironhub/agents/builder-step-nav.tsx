@@ -54,7 +54,7 @@ export function BuilderStepNav({
   const activeIndex = steps.findIndex((step) => step.key === activeStep)
 
   return (
-    <nav className="grid gap-2 rounded-2xl border bg-card/80 p-2 sm:grid-cols-4">
+    <nav className="grid gap-2 rounded-2xl sm:grid-cols-4">
       {steps.map((step, index) => {
         const Icon = step.icon
         const selected = step.key === activeStep

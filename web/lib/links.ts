@@ -7,6 +7,7 @@ export const links = {
   contributing: `${REPO}/blob/main/CONTRIBUTING.md`,
   tracking: `${REPO}/blob/main/tracking.md`,
   ironclaw: "https://www.ironclaw.com/",
+  docs: "https://docs.ironclaw.com/",
 }
 
 export function sourceLink(path: string) {
