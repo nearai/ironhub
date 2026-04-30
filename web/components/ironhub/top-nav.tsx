@@ -1,14 +1,8 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group"
-import { Kbd } from "@/components/ui/kbd"
 import { links } from "@/lib/links"
-import { IconBrandGithub, IconCommand, IconSearch } from "@tabler/icons-react"
+import { IconBook, IconBrandGithub } from "@tabler/icons-react"
 import { BrandMark } from "./brand-mark"
 import { MobileNav } from "./mobile-nav"
 import { ThemeToggle } from "./theme-toggle"
@@ -33,6 +27,21 @@ export function TopNav() {
               aria-label="GitHub repository"
             >
               <IconBrandGithub />
+            </a>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            size="icon"
+            className="hidden sm:inline-flex"
+          >
+            <a
+              href={links.docs}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="IronClaw docs"
+            >
+              <IconBook />
             </a>
           </Button>
 

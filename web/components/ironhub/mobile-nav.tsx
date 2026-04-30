@@ -1,7 +1,12 @@
 "use client"
 
 import Link from "next/link"
-import { IconBrandGithub, IconMenu2, IconPlus } from "@tabler/icons-react"
+import {
+  IconBook,
+  IconBrandGithub,
+  IconMenu2,
+  IconPlus,
+} from "@tabler/icons-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -57,6 +62,14 @@ export function MobileNav() {
               <a href={links.newSkill} target="_blank" rel="noreferrer">
                 <IconPlus />
                 Create Skill
+              </a>
+            </Button>
+          </SheetClose>
+          <SheetClose asChild>
+            <Button asChild variant="outline">
+              <a href={links.docs} target="_blank" rel="noreferrer">
+                <IconBook />
+                Docs
               </a>
             </Button>
           </SheetClose>
