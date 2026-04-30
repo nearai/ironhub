@@ -6,10 +6,16 @@ import {
   modePresets,
   plannedTools,
 } from "@/lib/agent-builder-presets"
+import {
+  availableSlugs,
+  calculateStats,
+  toggleValue,
+} from "@/lib/agent-builder-utils"
 import type {
   AgentExportConfig,
   AgentMode,
   AppearanceConfig,
+  BuilderStep,
   LoadoutCatalog,
   SoulConfig,
 } from "@/lib/agent-builder-types"
@@ -17,6 +23,7 @@ import type {
 export function useAgentBuilder(catalog: LoadoutCatalog) {
   const initialPreset = getModePreset("developer-agent")
   const [generatedAt, setGeneratedAt] = useState("")
+  const [activeStep, setActiveStep] = useState<BuilderStep>("persona")
   const [mode, setModeState] = useState<AgentMode>(initialPreset.mode)
   const [soul, setSoul] = useState<SoulConfig>(initialPreset.defaultSoul)
   const [appearance, setAppearance] = useState<AppearanceConfig>(
@@ -138,6 +145,8 @@ export function useAgentBuilder(catalog: LoadoutCatalog) {
 
   return {
     mode,
+    activeStep,
+    setActiveStep,
     preset,
     presets: modePresets,
     soul,
@@ -159,64 +168,4 @@ export function useAgentBuilder(catalog: LoadoutCatalog) {
     exportConfig,
     exportJson: JSON.stringify(exportConfig, null, 2),
   }
-}
-
-function availableSlugs(items: { slug: string }[], slugs: string[]) {
-  const available = new Set(items.map((item) => item.slug))
-  return slugs.filter((slug) => available.has(slug))
-}
-
-function toggleValue(values: string[], value: string) {
-  return values.includes(value)
-    ? values.filter((item) => item !== value)
-    : [...values, value]
-}
-
-function calculateStats(input: {
-  autonomy: number
-  privacyMode: SoulConfig["privacyMode"]
-  memoryMode: SoulConfig["memoryMode"]
-  approvalPolicy: SoulConfig["approvalPolicy"]
-  skills: number
-  tools: number
-  planned: number
-  chain: boolean
-}) {
-  const approvalSecurity =
-    input.approvalPolicy === "manual"
-      ? 24
-      : input.approvalPolicy === "high-impact"
-        ? 14
-        : 4
-  const privacySecurity =
-    input.privacyMode === "strict"
-      ? 48
-      : input.privacyMode === "balanced"
-        ? 34
-        : 18
-  const memory =
-    input.memoryMode === "persistent"
-      ? 88
-      : input.memoryMode === "session"
-        ? 56
-        : 12
-
-  return {
-    autonomy: input.autonomy,
-    security: clamp(
-      privacySecurity + approvalSecurity + (100 - input.autonomy) / 5
-    ),
-    memory,
-    toolPower: clamp(
-      input.tools * 24 +
-        input.planned * 10 +
-        input.skills * 16 +
-        input.autonomy / 5
-    ),
-    chainAccess: input.chain ? 92 : input.planned > 0 ? 28 : 8,
-  }
-}
-
-function clamp(value: number) {
-  return Math.max(0, Math.min(100, Math.round(value)))
 }

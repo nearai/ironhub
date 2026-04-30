@@ -16,9 +16,9 @@ export default async function AgentsPage() {
     <HubLayout>
       <div className="mx-auto grid max-w-7xl gap-6">
         <PageHeader
-          eyebrow="Agent builder"
-          title="Build a private IronClaw agent like a tactical loadout"
-          description="Choose a mode, shape the soul, equip repo-backed skills and tools, then export a clean config for an IronClaw runtime."
+          eyebrow="Agents / New agent"
+          title="Choose a Persona"
+          description="Each persona comes with a preconfigured soul, default skills, and recommended tools."
         />
         <AgentBuilder catalog={catalog} />
       </div>

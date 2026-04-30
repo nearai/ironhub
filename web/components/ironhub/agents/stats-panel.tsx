@@ -1,48 +1,53 @@
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
 import type { AgentStats } from "@/lib/agent-builder-types"
+import { statRows } from "@/lib/agent-builder-utils"
 
 type StatsPanelProps = {
   stats: AgentStats
 }
 
 export function StatsPanel({ stats }: StatsPanelProps) {
-  const rows = [
-    ["Autonomy", stats.autonomy, "How far the agent can proceed before stopping."],
-    ["Security", stats.security, "Privacy and approval controls in the soul."],
-    ["Memory", stats.memory, "Configured continuity across work sessions."],
-    ["Tool Power", stats.toolPower, "Enabled skills, real tools, and planned surfaces."],
-    ["Chain Access", stats.chainAccess, "NEAR RPC and transaction-boundary readiness."],
-  ] as const
-
   return (
     <Card className="bg-card/75">
       <CardHeader>
         <CardTitle>Capability matrix</CardTitle>
+        <CardDescription>
+          A quick read on the agent's operating shape before export.
+        </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
-        {rows.map(([label, value, description]) => (
-          <div key={label} className="grid gap-2">
+        {statRows(stats).map((row) => (
+          <div key={row.label} className="grid gap-2">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="font-medium">{label}</div>
-                <div className="text-xs text-muted-foreground">{description}</div>
+                <div className="font-medium">{row.label}</div>
+                <div className="text-xs text-muted-foreground">
+                  {descriptions[row.label]}
+                </div>
               </div>
-              <div className="text-lg font-semibold text-primary">{value}</div>
+              <div className="text-lg font-semibold text-primary">
+                {row.value}
+              </div>
             </div>
-            <div className="h-1.5 rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-primary"
-                style={{ width: `${value}%` }}
-              />
-            </div>
+            <Progress value={row.value} />
           </div>
         ))}
       </CardContent>
     </Card>
   )
+}
+
+const descriptions: Record<string, string> = {
+  Autonomy: "How far the agent can proceed before stopping.",
+  Security: "Privacy and approval controls in the soul.",
+  Memory: "Configured continuity across work sessions.",
+  "Tool power": "Enabled skills, real tools, and planned surfaces.",
+  "Chain access": "NEAR RPC and transaction-boundary readiness.",
 }

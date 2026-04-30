@@ -5,13 +5,25 @@ export type AgentMode =
   | "developer-agent"
   | "research-agent"
   | "on-chain-agent"
+  | "security-agent"
+  | "data-analyst"
+  | "content-writer"
+  | "ops-agent"
+  | "trading-agent"
   | "custom"
 
+export type BuilderStep = "persona" | "soul" | "loadout" | "review"
 export type PrivacyMode = "strict" | "balanced" | "open"
 export type MemoryMode = "off" | "session" | "persistent"
 export type ApprovalPolicy = "manual" | "high-impact" | "autonomous"
 export type AvatarStyle = "paladin" | "sentinel" | "scholar" | "oracle"
 export type BuilderTheme = "iron" | "ember" | "arc" | "signal"
+
+export type AgentPersonaArtwork = {
+  src: string
+  alt: string
+  accent: string
+}
 
 export type SoulConfig = {
   name: string
@@ -48,6 +60,7 @@ export type AgentModePreset = {
   label: string
   description: string
   badge: string
+  artwork: AgentPersonaArtwork
   defaultSoul: SoulConfig
   appearance: AppearanceConfig
   skillSlugs: string[]

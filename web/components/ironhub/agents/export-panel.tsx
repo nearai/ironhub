@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { slugifyAgentName } from "@/lib/agent-builder-utils"
 import { IconCheck, IconCopy, IconDownload } from "@tabler/icons-react"
 
 type ExportPanelProps = {
@@ -29,7 +31,7 @@ export function ExportPanel({ agentName, exportJson }: ExportPanelProps) {
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement("a")
     anchor.href = url
-    anchor.download = `${slugify(agentName)}.ironclaw-agent.json`
+    anchor.download = `${slugifyAgentName(agentName)}.ironclaw-agent.json`
     anchor.click()
     URL.revokeObjectURL(url)
   }
@@ -38,6 +40,9 @@ export function ExportPanel({ agentName, exportJson }: ExportPanelProps) {
     <Card className="bg-card/80">
       <CardHeader>
         <CardTitle>Export config</CardTitle>
+        <CardDescription>
+          Copy or download the generated runtime-ready agent JSON.
+        </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
         <div className="flex flex-wrap gap-2">
@@ -55,15 +60,5 @@ export function ExportPanel({ agentName, exportJson }: ExportPanelProps) {
         </pre>
       </CardContent>
     </Card>
-  )
-}
-
-function slugify(value: string) {
-  return (
-    value
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "") || "ironclaw-agent"
   )
 }

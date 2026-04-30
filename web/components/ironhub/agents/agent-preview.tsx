@@ -1,25 +1,19 @@
 "use client"
 
+import { PersonaPortrait } from "@/components/ironhub/agents/persona-portrait"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type {
   AgentModePreset,
   AgentStats,
-  AppearanceConfig,
   SoulConfig,
 } from "@/lib/agent-builder-types"
 import { cn } from "@/lib/utils"
-import {
-  IconBrain,
-  IconShieldCheck,
-  IconSparkles,
-  IconSword,
-} from "@tabler/icons-react"
+import { IconBrain, IconShieldCheck, IconSparkles } from "@tabler/icons-react"
 
 type AgentPreviewProps = {
   preset: AgentModePreset
   soul: SoulConfig
-  appearance: AppearanceConfig
   stats: AgentStats
   skillsEnabled: number
   toolsConnected: number
@@ -28,7 +22,6 @@ type AgentPreviewProps = {
 export function AgentPreview({
   preset,
   soul,
-  appearance,
   stats,
   skillsEnabled,
   toolsConnected,
@@ -52,15 +45,12 @@ export function AgentPreview({
           <Badge variant="outline">{preset.badge}</Badge>
         </div>
         <div className="grid items-center gap-6 md:grid-cols-[220px_1fr]">
-          <div className="relative mx-auto grid aspect-square w-full max-w-56 place-items-center rounded-2xl border bg-background/50">
-            <div className="absolute inset-4 rounded-2xl border border-primary/30" />
-            <div className="grid size-28 place-items-center rounded-full border bg-card shadow-2xl shadow-primary/20">
-              <IconSword className="size-14 text-primary" />
-            </div>
-            <span className="absolute bottom-4 text-xs text-muted-foreground uppercase">
-              {appearance.avatar}
-            </span>
-          </div>
+          <PersonaPortrait
+            preset={preset}
+            className="mx-auto aspect-square w-full max-w-56"
+            imageClassName="scale-125"
+            sizes="220px"
+          />
           <div className="grid gap-4">
             {previewBars(stats).map((metric) => (
               <div key={metric.label} className="grid gap-2">
