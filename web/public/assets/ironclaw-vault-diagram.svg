@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" role="img" aria-labelledby="title desc">
+  <title id="title">IronClaw secure agent stack</title>
+  <desc id="desc">Diagram showing a model separated from an encrypted vault, Wasm sandbox, endpoint allowlist, and NEAR AI Cloud enclave.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#101713"/>
+      <stop offset=".55" stop-color="#17231c"/>
+      <stop offset="1" stop-color="#253323"/>
+    </linearGradient>
+    <linearGradient id="green" x1="0" x2="1">
+      <stop offset="0" stop-color="#9bd46a"/>
+      <stop offset="1" stop-color="#e7ffb7"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="960" height="640" fill="url(#bg)"/>
+  <path d="M0 520c170-64 276-23 416-78 190-74 250-222 544-214v412H0Z" fill="#9bd46a" opacity=".07"/>
+  <g fill="none" stroke="#ffffff" stroke-opacity=".08">
+    <path d="M88 100h784M88 220h784M88 340h784M88 460h784M160 52v536M320 52v536M480 52v536M640 52v536M800 52v536"/>
+  </g>
+  <g transform="translate(88 86)">
+    <rect width="250" height="150" rx="20" fill="#0d120f" stroke="#9bd46a" stroke-opacity=".55"/>
+    <text x="28" y="48" fill="#9bd46a" font-family="Aptos, Arial, sans-serif" font-size="20" font-weight="700">LLM session</text>
+    <text x="28" y="84" fill="#dce8d5" font-family="Aptos, Arial, sans-serif" font-size="16">receives context</text>
+    <text x="28" y="112" fill="#dce8d5" font-family="Aptos, Arial, sans-serif" font-size="16">never raw credentials</text>
+  </g>
+  <g transform="translate(354 62)" filter="url(#glow)">
+    <path d="M126 0 28 40v77c0 68 39 114 98 141 59-27 98-73 98-141V40L126 0Z" fill="url(#green)"/>
+    <path d="M83 64h88l-16 44h36l-76 102 15-63H71l12-83Z" fill="#101713"/>
+  </g>
+  <g transform="translate(626 86)">
+    <rect width="250" height="150" rx="20" fill="#0d120f" stroke="#e1a850" stroke-opacity=".6"/>
+    <text x="28" y="48" fill="#e1a850" font-family="Aptos, Arial, sans-serif" font-size="20" font-weight="700">Encrypted vault</text>
+    <text x="28" y="84" fill="#dce8d5" font-family="Aptos, Arial, sans-serif" font-size="16">seals tokens</text>
+    <text x="28" y="112" fill="#dce8d5" font-family="Aptos, Arial, sans-serif" font-size="16">injects at boundary</text>
+  </g>
+  <g transform="translate(126 356)">
+    <rect width="232" height="138" rx="18" fill="#17231c" stroke="#ffffff" stroke-opacity=".16"/>
+    <text x="24" y="46" fill="#f4f7ef" font-family="Aptos, Arial, sans-serif" font-size="19" font-weight="700">Wasm sandbox</text>
+    <text x="24" y="82" fill="#aebba9" font-family="Aptos, Arial, sans-serif" font-size="15">per-tool permissions</text>
+    <text x="24" y="108" fill="#aebba9" font-family="Aptos, Arial, sans-serif" font-size="15">strict resource limits</text>
+  </g>
+  <g transform="translate(602 356)">
+    <rect width="232" height="138" rx="18" fill="#17231c" stroke="#ffffff" stroke-opacity=".16"/>
+    <text x="24" y="46" fill="#f4f7ef" font-family="Aptos, Arial, sans-serif" font-size="19" font-weight="700">Endpoint allowlist</text>
+    <text x="24" y="82" fill="#aebba9" font-family="Aptos, Arial, sans-serif" font-size="15">approved hosts only</text>
+    <text x="24" y="108" fill="#aebba9" font-family="Aptos, Arial, sans-serif" font-size="15">blocks unknown egress</text>
+  </g>
+  <g fill="none" stroke="#9bd46a" stroke-width="4" stroke-linecap="round" stroke-dasharray="10 14" opacity=".9">
+    <path d="M338 162h70"/>
+    <path d="M552 162h74"/>
+    <path d="M480 320C430 340 378 362 342 392"/>
+    <path d="M480 320c50 20 102 42 138 72"/>
+  </g>
+  <text x="480" y="584" text-anchor="middle" fill="#e7ffb7" font-family="Aptos, Arial, sans-serif" font-size="18" font-weight="700">NEAR AI Cloud enclave boundary</text>
+</svg>

@@ -1,0 +1,14 @@
+const REPO = "https://github.com/neo-sky/ironclaw-skills"
+
+export const links = {
+  repo: REPO,
+  newSkill: `${REPO}/issues/new?template=new-skill.yml`,
+  newTool: `${REPO}/issues/new?template=new-tool.yml`,
+  contributing: `${REPO}/blob/main/CONTRIBUTING.md`,
+  tracking: `${REPO}/blob/main/tracking.md`,
+  ironclaw: "https://www.ironclaw.com/",
+}
+
+export function sourceLink(path: string) {
+  return `${REPO}/blob/main/${path}`
+}
