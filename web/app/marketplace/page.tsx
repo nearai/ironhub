@@ -1,3 +1,5 @@
+import { Suspense } from "react"
+
 import { CatalogBrowser } from "@/components/ironhub/catalog-browser"
 import { HubLayout } from "@/components/ironhub/hub-layout"
 import { MetricGrid } from "@/components/ironhub/metric-grid"
@@ -31,7 +33,9 @@ export default async function MarketplacePage() {
             ]}
           />
         </PageHeader>
-        <CatalogBrowser items={items} categories={getCategories(items)} />
+        <Suspense fallback={null}>
+          <CatalogBrowser items={items} categories={getCategories(items)} />
+        </Suspense>
       </div>
     </HubLayout>
   )

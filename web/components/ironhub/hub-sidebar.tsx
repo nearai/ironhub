@@ -1,3 +1,5 @@
+import { Suspense } from "react"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
@@ -23,12 +25,14 @@ export function HubSidebar({ items, categories }: HubSidebarProps) {
         <p className="text-xs font-semibold text-muted-foreground uppercase">
           Categories
         </p>
-        <HubSidebarCategories
-          categories={categories.map((category) => ({
-            name: category,
-            count: items.filter((item) => item.category === category).length,
-          }))}
-        />
+        <Suspense fallback={null}>
+          <HubSidebarCategories
+            categories={categories.map((category) => ({
+              name: category,
+              count: items.filter((item) => item.category === category).length,
+            }))}
+          />
+        </Suspense>
       </div>
       <div className="mt-auto pt-6">
         <Card size="sm">

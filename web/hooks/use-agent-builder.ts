@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   getModePreset,
   modePresets,
@@ -16,6 +16,7 @@ import type {
 
 export function useAgentBuilder(catalog: LoadoutCatalog) {
   const initialPreset = getModePreset("developer-agent")
+  const [generatedAt, setGeneratedAt] = useState("")
   const [mode, setModeState] = useState<AgentMode>(initialPreset.mode)
   const [soul, setSoul] = useState<SoulConfig>(initialPreset.defaultSoul)
   const [appearance, setAppearance] = useState<AppearanceConfig>(
@@ -53,7 +54,13 @@ export function useAgentBuilder(catalog: LoadoutCatalog) {
         planned: selectedPlannedTools.length,
         chain: enabledTools.includes("near-rpc"),
       }),
-    [soul, selectedSkills.length, selectedTools.length, selectedPlannedTools.length, enabledTools]
+    [
+      soul,
+      selectedSkills.length,
+      selectedTools.length,
+      selectedPlannedTools.length,
+      enabledTools,
+    ]
   )
   const exportConfig = useMemo<AgentExportConfig>(
     () => ({
@@ -84,10 +91,24 @@ export function useAgentBuilder(catalog: LoadoutCatalog) {
       },
       appearance,
       stats,
-      generatedAt: new Date().toISOString(),
+      generatedAt,
     }),
-    [appearance, mode, preset.label, selectedPlannedTools, selectedSkills, selectedTools, soul, stats]
+    [
+      appearance,
+      generatedAt,
+      mode,
+      preset.label,
+      selectedPlannedTools,
+      selectedSkills,
+      selectedTools,
+      soul,
+      stats,
+    ]
   )
+
+  useEffect(() => {
+    setGeneratedAt(new Date().toISOString())
+  }, [])
 
   function setMode(nextMode: AgentMode) {
     const nextPreset = getModePreset(nextMode)
@@ -168,15 +189,30 @@ function calculateStats(input: {
         ? 14
         : 4
   const privacySecurity =
-    input.privacyMode === "strict" ? 48 : input.privacyMode === "balanced" ? 34 : 18
+    input.privacyMode === "strict"
+      ? 48
+      : input.privacyMode === "balanced"
+        ? 34
+        : 18
   const memory =
-    input.memoryMode === "persistent" ? 88 : input.memoryMode === "session" ? 56 : 12
+    input.memoryMode === "persistent"
+      ? 88
+      : input.memoryMode === "session"
+        ? 56
+        : 12
 
   return {
     autonomy: input.autonomy,
-    security: clamp(privacySecurity + approvalSecurity + (100 - input.autonomy) / 5),
+    security: clamp(
+      privacySecurity + approvalSecurity + (100 - input.autonomy) / 5
+    ),
     memory,
-    toolPower: clamp(input.tools * 24 + input.planned * 10 + input.skills * 16 + input.autonomy / 5),
+    toolPower: clamp(
+      input.tools * 24 +
+        input.planned * 10 +
+        input.skills * 16 +
+        input.autonomy / 5
+    ),
     chainAccess: input.chain ? 92 : input.planned > 0 ? 28 : 8,
   }
 }

@@ -34,7 +34,7 @@ export function AgentPreview({
   toolsConnected,
 }: AgentPreviewProps) {
   return (
-    <Card className={cn("relative bg-card/90", themeClass(appearance.theme))}>
+    <Card className={cn("relative bg-card/90")}>
       <CardHeader>
         <div>
           <CardTitle className="text-xl">
@@ -123,15 +123,4 @@ function summaryMetrics(
       icon: IconShieldCheck,
     },
   ]
-}
-
-function themeClass(theme: AppearanceConfig["theme"]) {
-  const classes = {
-    iron: "shadow-[0_0_80px_rgba(70,111,150,0.16)]",
-    ember: "shadow-[0_0_80px_rgba(220,92,41,0.16)]",
-    arc: "shadow-[0_0_80px_rgba(28,180,150,0.16)]",
-    signal: "shadow-[0_0_80px_rgba(211,182,80,0.14)]",
-  }
-
-  return classes[theme]
 }

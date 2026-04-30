@@ -1,10 +1,10 @@
-import Image from "next/image"
 import {
   IconCloudLock,
   IconHexagonLetterW,
   IconLockSquareRounded,
   IconShieldCheck,
 } from "@tabler/icons-react"
+import Image from "next/image"
 
 import { ActionLink } from "@/components/ironhub/action-link"
 import { links } from "@/lib/links"
@@ -17,13 +17,9 @@ const proofPoints = [
 
 export function IronClawHero() {
   return (
-    <section className="relative isolate overflow-hidden rounded-xl border bg-card px-4 py-10 shadow-sm sm:px-6 lg:px-8">
+    <section className="relative isolate overflow-hidden rounded-xl  px-4 py-10 sm:px-0 lg:px-0">
       <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,1.02fr)_minmax(360px,0.98fr)] lg:items-center">
         <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-background/70 px-3 py-1 text-xs font-semibold text-primary shadow-sm backdrop-blur">
-            <IconCloudLock className="size-4" />
-            Now aligned with NEAR AI Cloud security
-          </div>
           <h1 className="mt-6 max-w-4xl font-heading text-5xl leading-[0.98] font-semibold sm:text-6xl lg:text-7xl">
             IronClaw skills that keep secrets outside the LLM.
           </h1>

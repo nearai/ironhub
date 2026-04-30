@@ -20,17 +20,6 @@ export function TopNav() {
         <BrandMark />
 
         <div className="ml-auto flex items-center gap-3">
-          <InputGroup className="hidden w-72 xl:flex">
-            <InputGroupAddon>
-              <IconSearch />
-            </InputGroupAddon>
-            <InputGroupInput placeholder="Search skills, tools, scopes..." />
-            <InputGroupAddon align="inline-end">
-              <Kbd>
-                <IconCommand />K
-              </Kbd>
-            </InputGroupAddon>
-          </InputGroup>
           <Button
             asChild
             variant="outline"

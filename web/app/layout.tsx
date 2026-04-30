@@ -15,11 +15,12 @@ export const metadata: Metadata = {
   manifest: "/site.webmanifest",
   icons: {
     icon: [
+      { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
       { url: "/favicon.ico", sizes: "any" },
       { url: "/favicon.svg", type: "image/svg+xml" },
     ],
-    apple: [{ url: "/icon.svg", type: "image/svg+xml" }],
-    other: [{ rel: "mask-icon", url: "/mask-icon.svg", color: "#2563eb" }],
+    shortcut: [{ url: "/favicon.ico" }],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
   openGraph: {
     title: "IronHub | Secure Skills for IronClaw",
