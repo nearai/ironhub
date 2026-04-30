@@ -1,0 +1,142 @@
+import type { AgentModePreset, PlannedTool } from "@/lib/agent-builder-types"
+
+export const plannedTools: PlannedTool[] = [
+  {
+    slug: "terminal",
+    name: "Terminal",
+    category: "Developer",
+    description: "Command execution surface for local build and debug loops.",
+  },
+  {
+    slug: "file-system",
+    name: "File System",
+    category: "Developer",
+    description: "Read and write workspace files inside explicit boundaries.",
+  },
+  {
+    slug: "github",
+    name: "GitHub",
+    category: "Developer",
+    description: "Issue, pull request, review, and repository automation.",
+  },
+  {
+    slug: "browser",
+    name: "Browser",
+    category: "Research",
+    description: "Web inspection and interaction for grounded research tasks.",
+  },
+  {
+    slug: "api-client",
+    name: "API Client",
+    category: "Research",
+    description: "Structured HTTP access for approved external APIs.",
+  },
+  {
+    slug: "wallet-signer",
+    name: "Wallet Signer",
+    category: "On-chain",
+    description: "Human-approved transaction signing boundary.",
+  },
+]
+
+export const modePresets: AgentModePreset[] = [
+  {
+    mode: "personal-assistant",
+    label: "Personal Assistant",
+    badge: "Daily Operator",
+    description: "Balanced private assistant for planning, drafting, and routine work.",
+    appearance: { avatar: "sentinel", theme: "iron" },
+    skillSlugs: ["microsoft-365-workflow"],
+    toolSlugs: ["microsoft-365"],
+    plannedToolSlugs: [],
+    defaultSoul: {
+      name: "House Sentinel",
+      mission: "Keep daily work organized, private, and ready for approval.",
+      personality: "Calm, concise, protective, and practical.",
+      autonomy: 45,
+      privacyMode: "strict",
+      memoryMode: "persistent",
+      approvalPolicy: "manual",
+    },
+  },
+  {
+    mode: "developer-agent",
+    label: "Developer Agent",
+    badge: "Developer Focused",
+    description: "Code-oriented builder for debugging, repo work, and release flow.",
+    appearance: { avatar: "paladin", theme: "ember" },
+    skillSlugs: [],
+    toolSlugs: [],
+    plannedToolSlugs: ["terminal", "file-system", "github", "browser"],
+    defaultSoul: {
+      name: "Dev Paladin",
+      mission: "Ship clear, reviewed code with strong local verification.",
+      personality: "Direct, exact, skeptical of weak assumptions, and implementation-focused.",
+      autonomy: 70,
+      privacyMode: "balanced",
+      memoryMode: "session",
+      approvalPolicy: "high-impact",
+    },
+  },
+  {
+    mode: "research-agent",
+    label: "Research Agent",
+    badge: "Evidence Mode",
+    description: "Lower-autonomy researcher for source-backed synthesis.",
+    appearance: { avatar: "scholar", theme: "signal" },
+    skillSlugs: [],
+    toolSlugs: [],
+    plannedToolSlugs: ["browser", "api-client"],
+    defaultSoul: {
+      name: "Signal Scholar",
+      mission: "Find reliable evidence, compare sources, and produce grounded briefs.",
+      personality: "Careful, citation-driven, neutral, and patient.",
+      autonomy: 35,
+      privacyMode: "strict",
+      memoryMode: "session",
+      approvalPolicy: "manual",
+    },
+  },
+  {
+    mode: "on-chain-agent",
+    label: "On-chain Agent",
+    badge: "Chain Aware",
+    description: "NEAR-aware operator with explicit approval around chain actions.",
+    appearance: { avatar: "oracle", theme: "arc" },
+    skillSlugs: [],
+    toolSlugs: ["near-rpc"],
+    plannedToolSlugs: ["wallet-signer"],
+    defaultSoul: {
+      name: "Chain Oracle",
+      mission: "Inspect chain state and prepare actions without crossing approval boundaries.",
+      personality: "Precise, defensive, transaction-aware, and transparent.",
+      autonomy: 60,
+      privacyMode: "strict",
+      memoryMode: "session",
+      approvalPolicy: "manual",
+    },
+  },
+  {
+    mode: "custom",
+    label: "Custom",
+    badge: "Manual Build",
+    description: "Blank loadout for assembling an agent from scratch.",
+    appearance: { avatar: "paladin", theme: "iron" },
+    skillSlugs: [],
+    toolSlugs: [],
+    plannedToolSlugs: [],
+    defaultSoul: {
+      name: "Custom IronClaw",
+      mission: "Define this agent's job before deployment.",
+      personality: "Clear, focused, and aligned with owner instructions.",
+      autonomy: 25,
+      privacyMode: "strict",
+      memoryMode: "off",
+      approvalPolicy: "manual",
+    },
+  },
+]
+
+export function getModePreset(mode: AgentModePreset["mode"]) {
+  return modePresets.find((preset) => preset.mode === mode) ?? modePresets[0]
+}
