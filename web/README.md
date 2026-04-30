@@ -1,21 +1,34 @@
-# Next.js template
+# IronClaw Skills Web
 
-This is a Next.js template with shadcn/ui.
+Next.js catalog UI for the skills and tools in this repository.
 
-## Adding components
+## Structure
 
-To add components to your app, run the following command:
+- `app/` contains route entry points only.
+- `components/ironhub/` contains product-specific UI.
+- `components/ironhub/agents/` contains the agent-builder flow sections.
+- `components/ui/` contains the shadcn primitives currently used by the app.
+- `hooks/` contains stateful client logic shared by components.
+- `lib/catalog*.ts` contains server-side catalog loading, parsing, and inference.
+- `lib/agent-*.ts` contains agent-builder types, presets, export formatting, and pure helpers.
+- `public/` contains favicons and catalog artwork.
+
+## Commands
 
 ```bash
-npx shadcn@latest add button
+pnpm install
+pnpm typecheck
+pnpm lint
+pnpm build
 ```
 
-This will place the ui components in the `components` directory.
+## Adding UI
 
-## Using components
+Use the project package runner for shadcn:
 
-To use the components in your app, import them as follows:
-
-```tsx
-import { Button } from "@/components/ui/button";
+```bash
+pnpm dlx shadcn@latest add button
 ```
+
+Keep generated primitives under `components/ui/`, and remove primitives again when
+no routed surface imports them.

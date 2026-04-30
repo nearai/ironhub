@@ -107,9 +107,6 @@ export function AgentBuilder({ catalog }: AgentBuilderProps) {
             preset={builder.preset}
             soul={builder.soul}
             stats={builder.stats}
-            skillsEnabled={builder.selectedSkills.length}
-            toolsConnected={builder.selectedTools.length}
-            plannedTools={builder.selectedPlannedTools.length}
           />
         ) : null}
       </div>

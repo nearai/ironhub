@@ -11,8 +11,8 @@ import {
   calculateStats,
   toggleValue,
 } from "@/lib/agent-builder-utils"
+import { buildAgentExportConfig } from "@/lib/agent-export-utils"
 import type {
-  AgentExportConfig,
   AgentMode,
   AppearanceConfig,
   BuilderStep,
@@ -69,37 +69,19 @@ export function useAgentBuilder(catalog: LoadoutCatalog) {
       enabledTools,
     ]
   )
-  const exportConfig = useMemo<AgentExportConfig>(
-    () => ({
-      version: "ironclaw.agent.v1",
-      agent: { mode, name: soul.name, type: preset.label },
-      soul,
-      skills: {
-        enabled: selectedSkills.map((skill) => ({
-          slug: skill.slug,
-          name: skill.name,
-          sourcePath: skill.sourcePath,
-        })),
-      },
-      tools: {
-        enabled: [
-          ...selectedTools.map((tool) => ({
-            slug: tool.slug,
-            name: tool.name,
-            status: "connected" as const,
-            sourcePath: tool.sourcePath,
-          })),
-          ...selectedPlannedTools.map((tool) => ({
-            slug: tool.slug,
-            name: tool.name,
-            status: "planned" as const,
-          })),
-        ],
-      },
-      appearance,
-      stats,
-      generatedAt,
-    }),
+  const exportConfig = useMemo(
+    () =>
+      buildAgentExportConfig({
+        mode,
+        presetLabel: preset.label,
+        soul,
+        selectedSkills,
+        selectedTools,
+        selectedPlannedTools,
+        appearance,
+        stats,
+        generatedAt,
+      }),
     [
       appearance,
       generatedAt,

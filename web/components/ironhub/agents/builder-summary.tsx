@@ -9,25 +9,14 @@ import type {
   SoulConfig,
 } from "@/lib/agent-builder-types"
 import { statRows } from "@/lib/agent-builder-utils"
-import { IconBrain } from "@tabler/icons-react"
 
 type BuilderSummaryProps = {
   preset: AgentModePreset
   soul: SoulConfig
   stats: AgentStats
-  skillsEnabled: number
-  toolsConnected: number
-  plannedTools: number
 }
 
-export function BuilderSummary({
-  preset,
-  soul,
-  stats,
-  skillsEnabled,
-  toolsConnected,
-  plannedTools,
-}: BuilderSummaryProps) {
+export function BuilderSummary({ preset, soul, stats }: BuilderSummaryProps) {
   const ready = soul.name.trim() && soul.mission.trim()
 
   return (
@@ -66,13 +55,4 @@ export function BuilderSummary({
       </div>
     </aside>
   )
-}
-
-function policyRows(soul: SoulConfig) {
-  return [
-    { label: "Privacy", value: soul.privacyMode },
-    { label: "Memory", value: soul.memoryMode },
-    { label: "Approval", value: soul.approvalPolicy.replace("-", " ") },
-    { label: "Autonomy", value: `${soul.autonomy}%` },
-  ]
 }
