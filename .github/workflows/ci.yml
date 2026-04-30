@@ -6,15 +6,26 @@ on:
   pull_request:
 
 jobs:
+  enumerate:
+    runs-on: ubuntu-latest
+    outputs:
+      tools: ${{ steps.list.outputs.tools }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: list
+        run: |
+          tools=$(find tools -mindepth 1 -maxdepth 1 -type d | sort | jq -R . | jq -s -c .)
+          echo "tools=$tools" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: enumerate
     name: ${{ matrix.crate }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      # When adding a new tool crate, append its path here.
       matrix:
-        crate:
-          - tools/microsoft-365
+        crate: ${{ fromJson(needs.enumerate.outputs.tools) }}
     steps:
       - uses: actions/checkout@v4
 
