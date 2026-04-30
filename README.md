@@ -5,6 +5,7 @@ WASM tools and SKILL.md skills for the IronClaw agent runtime.
 ## Currently shipped
 
 - `tools/microsoft-365`. Microsoft Graph integration covering Outlook, Excel, Teams, OneDrive, SharePoint, Calendar, plus Word and PowerPoint document generation. 14 actions, OAuth via Microsoft Entra ID.
+- `tools/near-rpc`. NEAR Protocol JSON-RPC integration. 27 actions covering account state, access keys, contract storage and code, view function calls, blocks, chunks, validators, transactions with finality control, state changes, network status, gas and protocol config, and light-client proofs. No credentials required for read actions.
 - `skills/microsoft-365-workflow`. Business workflow patterns for the agent when operating inside the Microsoft 365 surface.
 
 See `tracking.md` for the full status table.

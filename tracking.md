@@ -2,11 +2,11 @@
 
 Status of every tool and skill currently in this repository. Updated in the same commit that adds, modifies, or removes an entry.
 
-Last updated: 2026-04-26
+Last updated: 2026-04-29
 
 ## Summary
 
-- 1 tool live
+- 2 tools live
 - 1 skill live
 - 0 open bugs against shipped integrations
 
@@ -15,6 +15,7 @@ Last updated: 2026-04-26
 | Name | Status | Version | Description | Limits | Author |
 |---|---|---|---|---|---|
 | `microsoft-365` | live | 0.1.0 | Microsoft Graph integration. 14 actions across Outlook, Excel, Teams, OneDrive, SharePoint, Calendar, plus Word and PowerPoint document generation. OAuth via Microsoft Entra ID. | Teams actions return 403 on personal Microsoft accounts (Microsoft does not serve Teams business APIs to consumer MSAs). Simple upload capped at 4 MB; chunked upload session not yet implemented. | Brandon |
+| `near-rpc` | live | 0.1.0 | NEAR Protocol JSON-RPC integration. 27 actions covering account state, access keys, contract storage and code, view function calls, blocks, chunks, validators, transaction lifecycle with finality control, state changes, network status, gas and protocol config, and light-client proofs. No credentials required for read actions. | Public RPC endpoints rate-limit aggressively; production deployments should use FastNEAR, Pagoda, or another dedicated provider. Signed-write actions (`send_tx`, `broadcast_tx_async`, `broadcast_tx_commit`) accept a pre-signed base64-encoded `SignedTransaction`; the tool does not perform local signing. Validator-set, state-change, and contract-code responses can be megabytes in size on busy blocks. | Brandon |
 
 ## Skills
 

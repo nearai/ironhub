@@ -1,0 +1,66 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "NEAR Protocol JSON-RPC integration. Read account state, access keys, contract storage and code. Call view functions on smart contracts. Read blocks, chunks, validators, transactions, and state changes. Check gas prices and protocol config. Submit signed transactions with finality control. Query node status, health, and network info. Light-client proofs and next-block lookup. Supports mainnet, testnet, archival, and custom RPC endpoints.",
+  "http": {
+    "allowlist": [
+      {
+        "host": "rpc.mainnet.near.org",
+        "path_prefix": "/",
+        "methods": ["POST"]
+      },
+      {
+        "host": "rpc.testnet.near.org",
+        "path_prefix": "/",
+        "methods": ["POST"]
+      },
+      {
+        "host": "free.rpc.fastnear.com",
+        "path_prefix": "/",
+        "methods": ["POST"]
+      },
+      {
+        "host": "test.rpc.fastnear.com",
+        "path_prefix": "/",
+        "methods": ["POST"]
+      },
+      {
+        "host": "near.lava.build",
+        "path_prefix": "/",
+        "methods": ["POST"]
+      },
+      {
+        "host": "beta.rpc.mainnet.near.org",
+        "path_prefix": "/",
+        "methods": ["POST"]
+      },
+      {
+        "host": "beta.rpc.testnet.near.org",
+        "path_prefix": "/",
+        "methods": ["POST"]
+      },
+      {
+        "host": "archival-rpc.mainnet.near.org",
+        "path_prefix": "/",
+        "methods": ["POST"]
+      },
+      {
+        "host": "archival-rpc.testnet.near.org",
+        "path_prefix": "/",
+        "methods": ["POST"]
+      }
+    ],
+    "credentials": {},
+    "rate_limit": {
+      "requests_per_minute": 120,
+      "requests_per_hour": 3600
+    },
+    "timeout_secs": 30
+  },
+  "secrets": {
+    "allowed_names": []
+  },
+  "setup": {
+    "required_secrets": []
+  }
+}
