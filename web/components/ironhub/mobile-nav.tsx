@@ -33,9 +33,8 @@ export function MobileNav() {
       </SheetTrigger>
       <SheetContent side="right" className="w-[19rem]">
         <SheetHeader>
-          <SheetTitle asChild>
-            <BrandMark />
-          </SheetTitle>
+          <BrandMark />
+          <SheetTitle className="sr-only">IronHub navigation</SheetTitle>
           <SheetDescription>
             Browse secure skills, Wasm tools, docs, and agent loadouts.
           </SheetDescription>

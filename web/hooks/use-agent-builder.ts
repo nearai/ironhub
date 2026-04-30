@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import {
   getModePreset,
   modePresets,
@@ -22,7 +22,7 @@ import type {
 
 export function useAgentBuilder(catalog: LoadoutCatalog) {
   const initialPreset = getModePreset("developer-agent")
-  const [generatedAt, setGeneratedAt] = useState("")
+  const [generatedAt] = useState(() => new Date().toISOString())
   const [activeStep, setActiveStep] = useState<BuilderStep>("persona")
   const [mode, setModeState] = useState<AgentMode>(initialPreset.mode)
   const [soul, setSoul] = useState<SoulConfig>(initialPreset.defaultSoul)
@@ -112,10 +112,6 @@ export function useAgentBuilder(catalog: LoadoutCatalog) {
       stats,
     ]
   )
-
-  useEffect(() => {
-    setGeneratedAt(new Date().toISOString())
-  }, [])
 
   function setMode(nextMode: AgentMode) {
     const nextPreset = getModePreset(nextMode)
