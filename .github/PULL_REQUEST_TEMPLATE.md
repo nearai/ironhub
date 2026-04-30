@@ -16,10 +16,12 @@ Closes #
 
 ## Status change
 
-- [ ] Marks an entry as `live` in `tracking.md`
-- [ ] Updates an existing `live` entry's version or description
-- [ ] Adds a new entry to `tracking.md`
-- [ ] No `tracking.md` change needed (CI, infra, or docs only)
+Both `tracking.md` and the `README.md` "Currently shipped" section have to stay in sync with the repo state. Pick one:
+
+- [ ] Marks an entry as `live` in `tracking.md` and adds it to README "Currently shipped"
+- [ ] Updates an existing `live` entry's version or description in `tracking.md` (and README if user-visible)
+- [ ] Adds a new entry to `tracking.md` and README "Currently shipped"
+- [ ] No `tracking.md` or README change needed (CI, infra, or docs only)
 
 ## Testing
 

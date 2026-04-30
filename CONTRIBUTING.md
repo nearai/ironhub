@@ -7,7 +7,7 @@ This repository ships WASM tools and SKILL.md skills for the IronClaw agent runt
 1. **Open an issue** using one of the templates (`new tool`, `new skill`, `integration bug`). The template captures Author, Trunk, Description, Limits, and Status. Labels are auto-applied.
 2. **Branch and implement.** Branch name reflects the issue: `tool/<name>`, `skill/<name>`, or `fix/<integration>-<short-tag>`.
 3. **Open a PR** that closes the issue (`Closes #N`). CI runs the quality gates. The PR template asks for testing notes and a status change.
-4. **Reviewer merges to `main`.** Once merged, the issue closes and `tracking.md` is updated in the same commit.
+4. **Reviewer merges to `main`.** Once merged, the issue closes and both `tracking.md` and the `README.md` "Currently shipped" section are updated in the same commit. Every PR landing a new tool or skill, or changing an existing live entry's status or description, has to surface in both files so the repo's front page stays accurate.
 5. **Pack for upstream IronClaw** when an integration is stable. Run `scripts/pack-for-ironclaw.sh` to produce the `tools-src/`, `skills/`, and `registry/tools/` layout that `nearai/ironclaw` accepts. Open the PR there.
 
 ## Adding a tool
