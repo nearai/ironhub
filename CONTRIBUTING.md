@@ -92,14 +92,6 @@ When a tool or skill is ready for upstream `nearai/ironclaw`:
 
 The script produces the upstream layout (`tools-src/<name>/`, `skills/<name>/`, `registry/tools/<name>.json`) inside the target IronClaw checkout. Open the PR there. The contribution repo remains the source of truth for ongoing development.
 
-## Style
-
-- No em dashes in committed prose. Use commas, periods, semicolons, or colons.
-- No decorative emoji.
-- Comments explain why, not what. Self-evident code does not get a comment.
-- Doc comments on schema types only when the field name is ambiguous to a reader who has the JSON schema in hand.
-- Error messages are user-actionable. They name the action and the next step.
-
 ## Author conventions
 
 Issues, PR descriptions, and `tracking.md` use the contributor's legal name. GitHub handles are reserved for the CODEOWNERS file.
