@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { AgentPreview } from "@/components/ironhub/agents/agent-preview"
 import { BuilderSummary } from "@/components/ironhub/agents/builder-summary"
 import { BuilderStepNav } from "@/components/ironhub/agents/builder-step-nav"
@@ -9,7 +10,7 @@ import { ModeSelector } from "@/components/ironhub/agents/mode-selector"
 import { SoulForm } from "@/components/ironhub/agents/soul-form"
 import { Button } from "@/components/ui/button"
 import { useAgentBuilder } from "@/hooks/use-agent-builder"
-import type { LoadoutCatalog } from "@/lib/agent-builder-types"
+import type { AgentMode, LoadoutCatalog } from "@/lib/agent-builder-types"
 import { cn } from "@/lib/utils"
 
 type AgentBuilderProps = {
@@ -18,8 +19,14 @@ type AgentBuilderProps = {
 
 export function AgentBuilder({ catalog }: AgentBuilderProps) {
   const builder = useAgentBuilder(catalog)
+  const [selectedMode, setSelectedMode] = useState<AgentMode | null>(null)
   const showBuildSummary =
     builder.activeStep === "soul" || builder.activeStep === "loadout"
+
+  function handleModeChange(nextMode: AgentMode) {
+    builder.setMode(nextMode)
+    setSelectedMode(nextMode)
+  }
 
   return (
     <div className="grid gap-5">
@@ -36,9 +43,14 @@ export function AgentBuilder({ catalog }: AgentBuilderProps) {
         <div className="min-w-0">
           {builder.activeStep === "persona" && (
             <ModeSelector
-              mode={builder.mode}
+              selectedMode={selectedMode}
+              selectedPreset={builder.preset}
               presets={builder.presets}
-              onModeChange={builder.setMode}
+              soul={builder.soul}
+              stats={builder.stats}
+              skillsEnabled={builder.selectedSkills.length}
+              toolsConnected={builder.selectedTools.length}
+              onModeChange={handleModeChange}
               onContinue={() => builder.setActiveStep("soul")}
             />
           )}

@@ -48,7 +48,7 @@ export function BuilderSummary({
         <PersonaPortrait
           preset={preset}
           className="aspect-[4/3] w-full"
-          imageClassName="scale-125"
+          imageClassName="object-center scale-90"
           sizes="320px"
         />
       </div>

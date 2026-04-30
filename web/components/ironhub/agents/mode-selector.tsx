@@ -1,38 +1,61 @@
 "use client"
 
-import { PersonaCard } from "@/components/ironhub/agents/persona-card"
-import type { AgentMode, AgentModePreset } from "@/lib/agent-builder-types"
+import { AgentSelectorCard } from "@/components/ironhub/agents/agent-selector-card"
+import { AgentSelectorPreview } from "@/components/ironhub/agents/agent-selector-preview"
+import { agentSelectorPresets } from "@/lib/agent-selector-utils"
+import type {
+  AgentMode,
+  AgentModePreset,
+  AgentStats,
+  SoulConfig,
+} from "@/lib/agent-builder-types"
 
 type ModeSelectorProps = {
-  mode: AgentMode
+  selectedMode: AgentMode | null
+  selectedPreset: AgentModePreset
   presets: AgentModePreset[]
+  soul: SoulConfig
+  stats: AgentStats
+  skillsEnabled: number
+  toolsConnected: number
   onModeChange: (mode: AgentMode) => void
   onContinue: () => void
 }
 
 export function ModeSelector({
-  mode,
+  selectedMode,
+  selectedPreset,
   presets,
+  soul,
+  stats,
+  skillsEnabled,
+  toolsConnected,
   onModeChange,
   onContinue,
 }: ModeSelectorProps) {
-  function handlePersonaSelect(nextMode: AgentMode) {
-    onModeChange(nextMode)
-    onContinue()
-  }
+  const selectorPresets = agentSelectorPresets(presets)
+  const previewPreset = selectedMode ? selectedPreset : null
 
   return (
-    <section className="grid gap-4">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        {presets.map((preset) => (
-          <PersonaCard
+    <section className="grid items-start gap-6 xl:grid-cols-[minmax(420px,1fr)_440px]">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        {selectorPresets.map((preset) => (
+          <AgentSelectorCard
             key={preset.mode}
             preset={preset}
-            selected={mode === preset.mode}
-            onSelect={handlePersonaSelect}
+            selected={selectedMode === preset.mode}
+            onSelect={onModeChange}
           />
         ))}
       </div>
+      <AgentSelectorPreview
+        preset={previewPreset}
+        soul={soul}
+        stats={stats}
+        skillsEnabled={skillsEnabled}
+        toolsConnected={toolsConnected}
+        onContinue={onContinue}
+      />
     </section>
   )
 }

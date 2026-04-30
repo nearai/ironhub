@@ -42,7 +42,7 @@ export function AgentPreview({
           <PersonaPortrait
             preset={preset}
             className="mx-auto aspect-square w-full max-w-56"
-            imageClassName="scale-125"
+            imageClassName="object-center scale-95"
             sizes="220px"
           />
           <div className="grid gap-4">
