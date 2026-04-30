@@ -1,7 +1,6 @@
 "use client"
 
 import { PersonaPortrait } from "@/components/ironhub/agents/persona-portrait"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type {
   AgentModePreset,
@@ -39,11 +38,6 @@ export function AgentPreview({
         </div>
       </CardHeader>
       <CardContent className="grid gap-6">
-        <div className="flex flex-wrap gap-2">
-          <Badge>Soul</Badge>
-          <Badge variant="secondary">Ready</Badge>
-          <Badge variant="outline">{preset.badge}</Badge>
-        </div>
         <div className="grid items-center gap-6 md:grid-cols-[220px_1fr]">
           <PersonaPortrait
             preset={preset}

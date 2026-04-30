@@ -1,9 +1,7 @@
 "use client"
 
 import { PersonaPortrait } from "@/components/ironhub/agents/persona-portrait"
-import { Badge } from "@/components/ui/badge"
 import type { AgentMode, AgentModePreset } from "@/lib/agent-builder-types"
-import { modeIcons } from "@/lib/agent-persona-utils"
 import { cn } from "@/lib/utils"
 import { IconArrowRight } from "@tabler/icons-react"
 
@@ -14,8 +12,6 @@ type PersonaCardProps = {
 }
 
 export function PersonaCard({ preset, selected, onSelect }: PersonaCardProps) {
-  const Icon = modeIcons[preset.mode]
-
   return (
     <button
       type="button"
@@ -37,20 +33,6 @@ export function PersonaCard({ preset, selected, onSelect }: PersonaCardProps) {
         imageClassName="scale-110 transition-transform duration-300 group-hover:scale-[1.15]"
       />
       <span className="grid gap-4 p-4">
-        <span className="flex items-start justify-between gap-3">
-          <span
-            className="grid size-10 place-items-center rounded-lg border bg-background/80 text-primary"
-            style={{ color: preset.artwork.accent }}
-          >
-            <Icon className="size-5" />
-          </span>
-          <Badge
-            variant={selected ? "default" : "outline"}
-            className="max-w-32 truncate"
-          >
-            {preset.badge}
-          </Badge>
-        </span>
         <span className="grid gap-2">
           <span className="text-lg font-semibold">{preset.label}</span>
           <span className="min-h-12 text-sm leading-6 text-muted-foreground">

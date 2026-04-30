@@ -1,7 +1,6 @@
 "use client"
 
 import { PersonaCard } from "@/components/ironhub/agents/persona-card"
-import { SelectedPersonaSummary } from "@/components/ironhub/agents/selected-persona-summary"
 import type { AgentMode, AgentModePreset } from "@/lib/agent-builder-types"
 
 type ModeSelectorProps = {
@@ -17,7 +16,10 @@ export function ModeSelector({
   onModeChange,
   onContinue,
 }: ModeSelectorProps) {
-  const selectedPreset = presets.find((preset) => preset.mode === mode)
+  function handlePersonaSelect(nextMode: AgentMode) {
+    onModeChange(nextMode)
+    onContinue()
+  }
 
   return (
     <section className="grid gap-4">
@@ -27,16 +29,10 @@ export function ModeSelector({
             key={preset.mode}
             preset={preset}
             selected={mode === preset.mode}
-            onSelect={onModeChange}
+            onSelect={handlePersonaSelect}
           />
         ))}
       </div>
-      {selectedPreset ? (
-        <SelectedPersonaSummary
-          preset={selectedPreset}
-          onContinue={onContinue}
-        />
-      ) : null}
     </section>
   )
 }
