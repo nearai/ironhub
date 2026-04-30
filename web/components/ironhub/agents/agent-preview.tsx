@@ -1,12 +1,7 @@
 "use client"
 
 import { Badge } from "@/components/ui/badge"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type {
   AgentModePreset,
   AgentStats,
@@ -62,7 +57,7 @@ export function AgentPreview({
             <div className="grid size-28 place-items-center rounded-full border bg-card shadow-2xl shadow-primary/20">
               <IconSword className="size-14 text-primary" />
             </div>
-            <span className="absolute bottom-4 text-xs uppercase text-muted-foreground">
+            <span className="absolute bottom-4 text-xs text-muted-foreground uppercase">
               {appearance.avatar}
             </span>
           </div>
@@ -71,7 +66,9 @@ export function AgentPreview({
               <div key={metric.label} className="grid gap-2">
                 <div className="flex items-center justify-between gap-3 text-sm">
                   <span>{metric.label}</span>
-                  <span className="font-medium text-primary">{metric.value}</span>
+                  <span className="font-medium text-primary">
+                    {metric.value}
+                  </span>
                 </div>
                 <div className="h-2 rounded-full bg-muted">
                   <div
@@ -85,10 +82,15 @@ export function AgentPreview({
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
           {summaryMetrics(skillsEnabled, toolsConnected, soul).map((metric) => (
-            <div key={metric.label} className="rounded-xl border bg-background/45 p-3">
+            <div
+              key={metric.label}
+              className="rounded-xl border bg-background/45 p-3"
+            >
               <metric.icon className="mb-3 size-5 text-primary" />
               <div className="text-2xl font-semibold">{metric.value}</div>
-              <div className="text-xs text-muted-foreground">{metric.label}</div>
+              <div className="text-xs text-muted-foreground">
+                {metric.label}
+              </div>
             </div>
           ))}
         </div>

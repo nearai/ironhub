@@ -54,7 +54,7 @@ export function IronClawSecurityGrid() {
           key={title}
           className="rounded-lg border bg-card p-5 shadow-sm transition-colors hover:border-primary/45"
         >
-          <div className="flex size-10 items-center justify-center rounded-lg bg-primary/12 text-primary">
+          <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <Icon className="size-5" />
           </div>
           <h3 className="mt-5 font-heading text-xl font-semibold">{title}</h3>

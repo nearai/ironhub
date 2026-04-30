@@ -16,7 +16,7 @@ export function MarketDetailHeader({ item }: MarketDetailHeaderProps) {
           <CatalogIcon item={item} />
           <div>
             <StatusBadge item={item} />
-            <h1 className="font-heading mt-4 text-4xl font-semibold">
+            <h1 className="mt-4 font-heading text-4xl font-semibold">
               {item.name}
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">

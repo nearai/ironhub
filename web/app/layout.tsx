@@ -6,8 +6,39 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "IronHub",
-  description: "Repo-backed skills and tools marketplace for IronClaw.",
+  title: {
+    default: "IronHub | Secure Skills for IronClaw",
+    template: "%s | IronHub",
+  },
+  description:
+    "Repo-backed IronClaw skills and Wasm tools with visible vault, sandbox, auth, and endpoint boundaries.",
+  manifest: "/site.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    other: [{ rel: "mask-icon", url: "/mask-icon.svg", color: "#2563eb" }],
+  },
+  openGraph: {
+    title: "IronHub | Secure Skills for IronClaw",
+    description:
+      "Browse repo-backed IronClaw skills and tools with security boundaries visible before install.",
+    images: ["/assets/iron_claw_guy1.webp"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "IronHub | Secure Skills for IronClaw",
+    description:
+      "Repo-backed skills and Wasm tools for encrypted, sandboxed IronClaw agents.",
+    images: ["/assets/iron_claw_guy1.webp"],
+  },
+  appleWebApp: {
+    capable: true,
+    title: "IronHub",
+    statusBarStyle: "black-translucent",
+  },
 }
 
 export default function RootLayout({
@@ -16,7 +47,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className="dark font-sans antialiased">
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className="dark font-sans antialiased"
+    >
       <body>
         <TooltipProvider>
           <ThemeProvider defaultTheme="dark">

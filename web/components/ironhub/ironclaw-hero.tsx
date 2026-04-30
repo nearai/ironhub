@@ -17,21 +17,20 @@ const proofPoints = [
 
 export function IronClawHero() {
   return (
-    <section className="relative isolate overflow-hidden rounded-none border-b border-border/70 px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_78%_18%,color-mix(in_oklab,var(--primary)_28%,transparent),transparent_34%),linear-gradient(120deg,color-mix(in_oklab,var(--background)_88%,black),var(--background)_52%,color-mix(in_oklab,var(--accent)_48%,var(--background)))]" />
+    <section className="relative isolate overflow-hidden rounded-xl border bg-card px-4 py-10 shadow-sm sm:px-6 lg:px-8">
       <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,1.02fr)_minmax(360px,0.98fr)] lg:items-center">
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-background/70 px-3 py-1 text-xs font-semibold text-primary shadow-sm backdrop-blur">
             <IconCloudLock className="size-4" />
             Now aligned with NEAR AI Cloud security
           </div>
-          <h1 className="font-heading mt-6 max-w-4xl text-5xl font-semibold leading-[0.98] sm:text-6xl lg:text-7xl">
+          <h1 className="mt-6 max-w-4xl font-heading text-5xl leading-[0.98] font-semibold sm:text-6xl lg:text-7xl">
             IronClaw skills that keep secrets outside the LLM.
           </h1>
           <p className="mt-6 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-            IronHub is the repo-backed command center for secure IronClaw
-            skills and Wasm tools: encrypted vault boundaries, endpoint
-            allowlists, and integration metadata visible before anything runs.
+            IronHub is the repo-backed command center for secure IronClaw skills
+            and Wasm tools: encrypted vault boundaries, endpoint allowlists, and
+            integration metadata visible before anything runs.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <ActionLink href="/marketplace" variant="default">
@@ -68,7 +67,7 @@ export function IronClawHero() {
             className="object-cover object-[50%_30%]"
             sizes="(min-width: 1024px) 46vw, 100vw"
           />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0_45%,rgba(0,0,0,0.74)_100%)]" />
+          <div className="absolute inset-0 bg-black/35" />
           <div className="absolute top-5 left-5 rounded-lg border border-white/15 bg-black/45 px-4 py-3 text-white backdrop-blur-md">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase">
               <IconShieldCheck className="size-4 text-primary" />
@@ -109,7 +108,7 @@ function HeroBadge({ icon, label, value }: HeroBadgeProps) {
   return (
     <div className="rounded-lg border border-white/15 bg-black/45 p-3 text-white backdrop-blur-md">
       <div className="text-primary [&_svg]:size-4">{icon}</div>
-      <p className="mt-2 text-[0.68rem] font-semibold uppercase text-white/65">
+      <p className="mt-2 text-[0.68rem] font-semibold text-white/65 uppercase">
         {label}
       </p>
       <p className="text-sm font-semibold">{value}</p>

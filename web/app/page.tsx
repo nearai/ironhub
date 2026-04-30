@@ -1,8 +1,9 @@
 import { ActionLink } from "@/components/ironhub/action-link"
 import { CatalogCard } from "@/components/ironhub/catalog-card"
 import { HubLayout } from "@/components/ironhub/hub-layout"
+import { IronClawHero } from "@/components/ironhub/ironclaw-hero"
+import { IronClawSecurityGrid } from "@/components/ironhub/ironclaw-security-grid"
 import { MetricGrid } from "@/components/ironhub/metric-grid"
-import { PageHero } from "@/components/ironhub/page-hero"
 import { SectionHeading } from "@/components/ironhub/section-heading"
 import { getCatalog, getCatalogStats } from "@/lib/catalog.server"
 import { links } from "@/lib/links"
@@ -15,35 +16,15 @@ export default async function Home() {
 
   return (
     <HubLayout>
-      <div className="mx-auto grid max-w-7xl gap-8">
-        <PageHero
-          eyebrow="IronHub"
-          title="The repo-backed home for IronClaw skills and tools"
-          description="Discover integrations directly parsed from this repository: tracking rows, tool manifests, Rust action enums, and SKILL.md frontmatter."
-        >
-          <div className="grid gap-6">
-            <MetricGrid
-              metrics={[
-                { label: "Live tools", value: stats.tools },
-                { label: "Live skills", value: stats.skills },
-                { label: "Tool actions", value: stats.actions },
-                { label: "Categories", value: stats.categories },
-              ]}
-            />
-            <div className="flex flex-wrap gap-3">
-              <ActionLink href="/marketplace" variant="default">
-                Browse marketplace
-              </ActionLink>
-              <ActionLink href={links.newSkill} external>
-                Create Skill
-              </ActionLink>
-            </div>
-          </div>
-        </PageHero>
-        <section>
+      <div className="mx-auto grid max-w-7xl gap-10">
+        <IronClawHero />
+
+
+
+        <section className="grid gap-6">
           <SectionHeading
-            title="Current repo inventory"
-            description="Cards are generated from filesystem data at server render time, not hard-coded catalog rows."
+            title="Current repo-backed entries"
+            description="Cards are generated from filesystem data at server render time, so the marketplace follows the repo instead of a hard-coded CMS."
             action={
               <ActionLink href="/developer">Contributor portal</ActionLink>
             }
