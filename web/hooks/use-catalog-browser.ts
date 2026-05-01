@@ -27,6 +27,7 @@ export function useCatalogBrowser(items: CatalogItem[]) {
 
   function setQuery(nextQuery: string) {
     setQueryState({ param: queryParam, value: nextQuery })
+    setFilterParam("q", nextQuery)
   }
 
   function setKind(nextKind: CatalogKind | "all") {
@@ -37,10 +38,10 @@ export function useCatalogBrowser(items: CatalogItem[]) {
     setFilterParam("category", nextCategory)
   }
 
-  function setFilterParam(key: "category" | "kind", value: string) {
+  function setFilterParam(key: "category" | "kind" | "q", value: string) {
     const params = new URLSearchParams(searchParams)
 
-    if (value === "all") {
+    if (value === "all" || (key === "q" && !value)) {
       params.delete(key)
     } else {
       params.set(key, value)

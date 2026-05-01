@@ -2,8 +2,7 @@ import Image from "next/image"
 
 import { ActionLink } from "@/components/ironhub/action-link"
 import { CatalogBrowser } from "@/components/ironhub/catalog-browser"
-import { CatalogCard } from "@/components/ironhub/catalog-card"
-import { HomeMobileToolbar } from "@/components/ironhub/home-mobile-toolbar"
+
 import { HomeSidebar } from "@/components/ironhub/home-sidebar"
 import { IronClawHero } from "@/components/ironhub/ironclaw-hero"
 import { SectionHeading } from "@/components/ironhub/section-heading"
@@ -29,11 +28,6 @@ export default async function Home({ searchParams }: HomePageProps) {
     count: items.filter((it) => it.category === cat).length,
   }))
 
-  const featuredItems = (
-    categoryParam
-      ? items.filter((it) => it.category === categoryParam)
-      : items
-  ).slice(0, 6)
 
   return (
     <main className="relative min-h-screen">
@@ -43,10 +37,6 @@ export default async function Home({ searchParams }: HomePageProps) {
         tools={stats.tools}
       />
 
-      <HomeMobileToolbar
-        categories={categoryCounts}
-        totalCount={items.length}
-      />
 
       <div className="px-4 pb-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl lg:grid lg:grid-cols-[240px_1fr] lg:gap-8">
@@ -59,29 +49,8 @@ export default async function Home({ searchParams }: HomePageProps) {
             </div>
           </aside>
 
-          <div className="min-w-0 grid gap-12">
-            <section>
-              <SectionHeading
-                title="Staff Picks"
-                description="Curated signal from the current catalog for quick trust."
-                action={
-                  <ActionLink href="/marketplace">View all entries</ActionLink>
-                }
-              />
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {featuredItems.map((item) => (
-                  <CatalogCard key={item.slug} item={item} />
-                ))}
-              </div>
-            </section>
-
-            <section>
-              <SectionHeading
-                title="Search and filter the hub"
-                description="The home grid mirrors the old IronHub browsing flow while using the current Next marketplace data."
-              />
-              <CatalogBrowser items={items} categories={getCategories(items)} />
-            </section>
+          <div className="min-w-0">
+            <CatalogBrowser items={items} categories={getCategories(items)} />
           </div>
         </div>
       </div>

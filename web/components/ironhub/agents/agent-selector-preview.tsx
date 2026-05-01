@@ -52,10 +52,13 @@ export function AgentSelectorPreview({
     <aside className="grid min-h-[460px] rounded-2xl border bg-card/90 p-6 shadow-sm">
       <div className="grid gap-5">
         <div>
-          <h2 className="text-xl font-semibold">
-            {soul.name} - {preset.label}
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
+            {soul.name}
           </h2>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          <p className="text-xs font-bold tracking-widest text-primary/80 uppercase">
+            {soul.title}
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             {soul.mission}
           </p>
         </div>

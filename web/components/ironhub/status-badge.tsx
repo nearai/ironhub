@@ -1,4 +1,4 @@
-import { Sparkles, Wrench } from "lucide-react"
+import { IconSparkles, IconTool } from "@tabler/icons-react"
 
 import { Badge } from "@/components/ui/badge"
 import type { CatalogItem } from "@/lib/catalog-types"
@@ -8,7 +8,7 @@ type StatusBadgeProps = {
 }
 
 export function StatusBadge({ item }: StatusBadgeProps) {
-  const Icon = item.kind === "skill" ? Sparkles : Wrench
+  const Icon = item.kind === "skill" ? IconSparkles : IconTool
   const iconClass = "size-3.5 -ml-0.5 mr-1"
 
   if (item.origin === "iliad") {

@@ -1,3 +1,4 @@
+import { CATEGORIES } from "@/lib/catalog-inference"
 import type { CatalogItem } from "@/lib/catalog-types"
 import {
   findRepoRoot,
@@ -81,7 +82,16 @@ export function getCatalogStats(items: CatalogItem[]) {
 }
 
 export function getCategories(items: CatalogItem[]) {
-  return Array.from(new Set(items.map((item) => item.category))).sort()
+  const counts = items.reduce((acc, item) => {
+    acc[item.category] = (acc[item.category] ?? 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+
+  return [...CATEGORIES].sort((a, b) => {
+    const diff = (counts[b] ?? 0) - (counts[a] ?? 0)
+    if (diff !== 0) return diff
+    return a.localeCompare(b)
+  })
 }
 
 function getSkillBranchMap(items: CatalogItem[]) {

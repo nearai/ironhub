@@ -1,6 +1,8 @@
 import {
   IconArrowRight,
   IconBrandGithub,
+  IconPencil,
+  IconRobot,
   IconShieldCheck,
 } from "@tabler/icons-react"
 
@@ -39,8 +41,14 @@ export function IronClawHero({ total, skills, tools }: IronClawHeroProps) {
               Browse marketplace
               <IconArrowRight />
             </ActionLink>
-            <ActionLink href="/developer">Contribute</ActionLink>
-            <ActionLink href="/agents">Build agent</ActionLink>
+            <ActionLink href="/developer">
+              <IconPencil />
+              Contribute
+            </ActionLink>
+            <ActionLink href="/agents">
+              <IconRobot />
+              Build agent
+            </ActionLink>
             <ActionLink href={links.repo} external>
               <IconBrandGithub />
               Source

@@ -1,5 +1,17 @@
 "use client"
 
+import {
+  IconAdjustments,
+  IconBolt,
+  IconBrain,
+  IconCategory,
+  IconDatabase,
+  IconHexagon,
+  IconLayoutGrid,
+  IconMessage2,
+  IconShield,
+  IconTerminal2,
+} from "@tabler/icons-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 import { cn } from "@/lib/utils"
@@ -13,12 +25,14 @@ type HomeSidebarProps = {
   categories: HomeSidebarCategory[]
   totalCount: number
   onSelect?: () => void
+  hideTitle?: boolean
 }
 
 export function HomeSidebar({
   categories,
   totalCount,
   onSelect,
+  hideTitle,
 }: HomeSidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -42,14 +56,30 @@ export function HomeSidebar({
     ...categories,
   ]
 
+  const categoryIcons: Record<string, any> = {
+    all: IconLayoutGrid,
+    "dev tools": IconTerminal2,
+    "data & apis": IconDatabase,
+    security: IconShield,
+    automation: IconAdjustments,
+    communication: IconMessage2,
+    productivity: IconBolt,
+    "ai & ml": IconBrain,
+    web3: IconHexagon,
+  }
+
   return (
     <nav aria-label="Categories" className="flex flex-col gap-1">
-      <h3 className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        Categories
-      </h3>
+      {!hideTitle && (
+        <h3 className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Categories
+        </h3>
+      )}
       {entries.map((entry) => {
-        const isActive = entry.slug === active
+         const isActive = entry.slug === active
         const label = entry.slug === "all" ? "All" : entry.slug
+        const Icon = categoryIcons[entry.slug.toLowerCase()] || IconCategory
+
         return (
           <button
             key={entry.slug}
@@ -63,7 +93,10 @@ export function HomeSidebar({
                 : "text-muted-foreground hover:bg-accent hover:text-foreground",
             )}
           >
-            <span className="truncate capitalize">{label}</span>
+            <div className="flex items-center gap-2 truncate">
+              <Icon className="size-4 shrink-0 opacity-70" />
+              <span>{label}</span>
+            </div>
             <span
               className={cn(
                 "shrink-0 rounded-full px-2 py-0.5 text-xs tabular-nums",
