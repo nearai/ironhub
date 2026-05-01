@@ -13,11 +13,21 @@ export function useCatalogBrowser(items: CatalogItem[]) {
   const searchParams = useSearchParams()
   const categoryParam = searchParams.get("category")
   const kindParam = searchParams.get("kind")
-  const [query, setQuery] = useState("")
+  const queryParam = searchParams.get("q") ?? ""
+  const [queryState, setQueryState] = useState({
+    param: queryParam,
+    value: queryParam,
+  })
   const kind = getKindFromParam(kindParam)
   const category = getCategoryFromParam(items, categoryParam)
   const [sort, setSort] = useState<SortMode>("relevance")
   const [view, setView] = useState<ViewMode>("grid")
+  const query =
+    queryState.param === queryParam ? queryState.value : queryParam
+
+  function setQuery(nextQuery: string) {
+    setQueryState({ param: queryParam, value: nextQuery })
+  }
 
   function setKind(nextKind: CatalogKind | "all") {
     setFilterParam("kind", nextKind)

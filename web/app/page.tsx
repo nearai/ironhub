@@ -1,35 +1,67 @@
+import Image from "next/image"
+
 import { ActionLink } from "@/components/ironhub/action-link"
+import { CatalogBrowser } from "@/components/ironhub/catalog-browser"
 import { CatalogCard } from "@/components/ironhub/catalog-card"
-import { HubLayout } from "@/components/ironhub/hub-layout"
 import { IronClawHero } from "@/components/ironhub/ironclaw-hero"
 import { SectionHeading } from "@/components/ironhub/section-heading"
-import { getCatalog } from "@/lib/catalog.server"
+import {
+  getCatalogStats,
+  getCategories,
+  getMarketplaceCatalog,
+} from "@/lib/catalog.server"
 
 export const dynamic = "force-dynamic"
 
 export default async function Home() {
-  const items = await getCatalog()
+  const { items } = await getMarketplaceCatalog()
+  const stats = getCatalogStats(items)
+  const featuredItems = items.slice(0, 6)
 
   return (
-    <HubLayout>
-      <div className="mx-auto grid max-w-7xl gap-10">
-        <IronClawHero />
+    <main className="relative min-h-screen">
+      <IronClawHero
+        total={stats.total}
+        skills={stats.skills}
+        tools={stats.tools}
+      />
 
-        <section className="grid gap-6">
-          <SectionHeading
-            title="Current repo-backed entries"
-            description="Cards are generated from filesystem data at server render time, so the marketplace follows the repo instead of a hard-coded CMS."
-            action={
-              <ActionLink href="/developer">Contributor portal</ActionLink>
-            }
-          />
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {items.map((item) => (
-              <CatalogCard key={item.slug} item={item} />
-            ))}
-          </div>
-        </section>
+      <div className="px-4 pb-16 sm:px-6 lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-12">
+          <section>
+            <SectionHeading
+              title="Staff Picks"
+              description="Curated signal from the current catalog for quick trust."
+              action={
+                <ActionLink href="/marketplace">View all entries</ActionLink>
+              }
+            />
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {featuredItems.map((item) => (
+                <CatalogCard key={item.slug} item={item} />
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <SectionHeading
+              title="Search and filter the hub"
+              description="The home grid mirrors the old IronHub browsing flow while using the current Next marketplace data."
+            />
+            <CatalogBrowser items={items} categories={getCategories(items)} />
+          </section>
+        </div>
       </div>
-    </HubLayout>
+
+      <Image
+        src="/ironclaw.png"
+        alt=""
+        aria-hidden="true"
+        width={420}
+        height={420}
+        className="pointer-events-none fixed right-0 bottom-0 z-[-1] h-auto w-[260px] opacity-70 select-none sm:w-[340px] lg:w-[420px]"
+        style={{ filter: "drop-shadow(0 4px 24px rgba(43, 130, 212, 0.25))" }}
+      />
+    </main>
   )
 }

@@ -30,7 +30,7 @@ export function CatalogCard({ item, compact = false }: CatalogCardProps) {
 
   return (
     <Card
-      className="h-full bg-card/80 transition-colors hover:bg-card"
+      className="h-full bg-card/80 transition-all hover:-translate-y-0.5 hover:bg-card hover:shadow-[0_20px_70px_rgb(43_130_212_/_0.2)]"
       size="sm"
     >
       <CardHeader>
@@ -74,9 +74,9 @@ export function CatalogCard({ item, compact = false }: CatalogCardProps) {
             {metric}
           </span>
         </div>
-        <Button asChild variant="outline">
-          <Link href={`/marketplace/${item.slug}`}>
-            View setup
+          <Button asChild variant="outline">
+            <Link href={`/marketplace/${item.slug}`}>
+              View setup
             <IconArrowRight />
           </Link>
         </Button>

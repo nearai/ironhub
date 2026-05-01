@@ -17,7 +17,7 @@ export function BrandMark({ compact, className }: BrandMarkProps) {
     >
       <span className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg">
         <Image
-          src="/favicon-96x96.png"
+          src="/clawhubicon.jpg"
           alt=""
           width={40}
           height={40}
