@@ -1,4 +1,5 @@
 export type CatalogKind = "tool" | "skill"
+export type CatalogOrigin = "repo" | "iliad"
 export type CatalogStatus = "live" | "proposed" | "in-progress" | "blocked"
 
 type CatalogLinks = {
@@ -27,6 +28,7 @@ type CatalogRelated = {
 export type BaseCatalogItem = {
   slug: string
   kind: CatalogKind
+  origin?: CatalogOrigin
   name: string
   status: CatalogStatus
   version: string
@@ -41,6 +43,15 @@ export type BaseCatalogItem = {
   limits: string[]
   related: CatalogRelated
   icon: "microsoft" | "near" | "workflow" | "tool" | "skill"
+  remoteUserId?: string
+  contentHash?: string
+  contentSize?: number
+  contentPath?: string
+  capabilitiesPath?: string | null
+  publishedAt?: string
+  madePublicAt?: string
+  downloadUrl?: string
+  capabilitiesUrl?: string | null
 }
 
 export type ToolCatalogItem = BaseCatalogItem & {

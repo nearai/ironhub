@@ -9,6 +9,14 @@ type MarketDetailHeaderProps = {
 }
 
 export function MarketDetailHeader({ item }: MarketDetailHeaderProps) {
+  const sourceLabel =
+    item.origin === "iliad" ? `Download ${item.kind}` : "Open source"
+  const setupLabel = item.origin === "iliad" ? "Open Iliad" : "View setup"
+  const setupHref =
+    item.origin === "iliad"
+      ? (item.links.docs ?? item.links.source)
+      : (item.links.setup ?? item.links.docs ?? item.links.source)
+
   return (
     <Card>
       <CardContent className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
@@ -26,14 +34,10 @@ export function MarketDetailHeader({ item }: MarketDetailHeaderProps) {
         </div>
         <div className="flex flex-wrap gap-2">
           <ActionLink href={item.links.source} external>
-            Open source
+            {sourceLabel}
           </ActionLink>
-          <ActionLink
-            href={item.links.setup ?? item.links.docs ?? item.links.source}
-            external
-            variant="default"
-          >
-            View setup
+          <ActionLink href={setupHref} external variant="default">
+            {setupLabel}
           </ActionLink>
         </div>
       </CardContent>

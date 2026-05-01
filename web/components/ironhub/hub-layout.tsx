@@ -1,4 +1,4 @@
-import { getCatalog, getCategories } from "@/lib/catalog.server"
+import { getCategories, getMarketplaceCatalog } from "@/lib/catalog.server"
 import { HubSidebar } from "./hub-sidebar"
 
 type HubLayoutProps = {
@@ -6,7 +6,7 @@ type HubLayoutProps = {
 }
 
 export async function HubLayout({ children }: HubLayoutProps) {
-  const items = await getCatalog()
+  const { items } = await getMarketplaceCatalog()
 
   return (
     <main className="flex">

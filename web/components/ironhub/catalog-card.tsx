@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import type { CatalogItem } from "@/lib/catalog-types"
+import { formatBytes } from "@/lib/format-utils"
 import { CatalogIcon } from "./catalog-icon"
 import { StatusBadge } from "./status-badge"
 
@@ -21,7 +22,9 @@ type CatalogCardProps = {
 
 export function CatalogCard({ item, compact = false }: CatalogCardProps) {
   const metric =
-    item.kind === "tool"
+    item.origin === "iliad"
+      ? formatBytes(item.contentSize)
+      : item.kind === "tool"
       ? `${item.actionCount} actions`
       : `${item.activationKeywords.length} triggers`
 

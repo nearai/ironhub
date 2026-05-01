@@ -5,7 +5,7 @@ import { MarketDetailAside } from "@/components/ironhub/market-detail-aside"
 import { MarketDetailHeader } from "@/components/ironhub/market-detail-header"
 import { MarketDetailInfo } from "@/components/ironhub/market-detail-info"
 import { MarketDetailSurface } from "@/components/ironhub/market-detail-surface"
-import { getCatalog, getCatalogItem } from "@/lib/catalog.server"
+import { getCatalog, getMarketplaceCatalogItem } from "@/lib/catalog.server"
 
 type MarketplaceDetailPageProps = {
   params: Promise<{ slug: string }>
@@ -22,7 +22,7 @@ export default async function MarketplaceDetailPage({
   params,
 }: MarketplaceDetailPageProps) {
   const { slug } = await params
-  const item = await getCatalogItem(slug)
+  const item = await getMarketplaceCatalogItem(slug)
 
   if (!item) {
     notFound()

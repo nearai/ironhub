@@ -6,8 +6,9 @@ export const links = {
   newTool: `${REPO}/issues/new?template=new-tool.yml`,
   contributing: `${REPO}/blob/main/CONTRIBUTING.md`,
   tracking: `${REPO}/blob/main/tracking.md`,
-  ironclaw: "https://www.ironclaw.com/",
+  ironclaw: "https://ironclaw.com/",
   docs: "https://docs.ironclaw.com/",
+  iliad: "https://iliad.codes/",
 }
 
 export function sourceLink(path: string) {

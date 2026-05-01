@@ -2,18 +2,19 @@ import { Suspense } from "react"
 
 import { CatalogBrowser } from "@/components/ironhub/catalog-browser"
 import { HubLayout } from "@/components/ironhub/hub-layout"
+import { MarketplaceSourceNote } from "@/components/ironhub/marketplace-source-note"
 import { MetricGrid } from "@/components/ironhub/metric-grid"
 import { PageHeader } from "@/components/ironhub/page-header"
 import {
-  getCatalog,
   getCatalogStats,
   getCategories,
+  getMarketplaceCatalog,
 } from "@/lib/catalog.server"
 
 export const dynamic = "force-dynamic"
 
 export default async function MarketplacePage() {
-  const items = await getCatalog()
+  const { items, iliad } = await getMarketplaceCatalog()
   const stats = getCatalogStats(items)
 
   return (
@@ -22,17 +23,18 @@ export default async function MarketplacePage() {
         <PageHeader
           eyebrow="Marketplace"
           title="IronClaw skills and tool trunks"
-          description="Search SKILL.md branches and WASM tools parsed from this repo, with source, setup, auth, and limits kept visible."
+          description="Search repo-backed SKILL.md branches, WASM tools, and public prompt skills mirrored from Iliad."
         >
           <MetricGrid
             metrics={[
               { label: "Total entries", value: stats.total },
               { label: "WASM tools", value: stats.tools },
               { label: "Prompt skills", value: stats.skills },
-              { label: "Exposed actions", value: stats.actions },
+              { label: "Iliad skills", value: stats.iliad },
             ]}
           />
         </PageHeader>
+        <MarketplaceSourceNote {...iliad} />
         <Suspense fallback={null}>
           <CatalogBrowser items={items} categories={getCategories(items)} />
         </Suspense>

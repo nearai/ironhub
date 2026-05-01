@@ -29,7 +29,9 @@ export function MarketDetailAside({ item }: MarketDetailAsideProps) {
         </CardHeader>
         <CardContent>
           <p className="text-sm leading-6 text-muted-foreground">
-            {item.kind === "skill"
+            {item.origin === "iliad"
+              ? `Public ${item.kind} mirrored from Iliad publisher ${item.remoteUserId ?? "unknown"}.`
+              : item.kind === "skill"
               ? `Skill branch from ${item.trunk}.`
               : item.related.branches?.length
                 ? `Tool trunk with branches: ${item.related.branches.join(", ")}.`

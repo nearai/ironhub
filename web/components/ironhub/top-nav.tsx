@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { links } from "@/lib/links"
-import { IconBook, IconBrandGithub } from "@tabler/icons-react"
+import { IconBook, IconBrandGithub, IconExternalLink } from "@tabler/icons-react"
 import { BrandMark } from "./brand-mark"
 import { MobileNav } from "./mobile-nav"
 import { ThemeToggle } from "./theme-toggle"
@@ -14,6 +14,16 @@ export function TopNav() {
         <BrandMark />
 
         <div className="ml-auto flex items-center gap-3">
+          <Button
+            asChild
+            variant="outline"
+            className="hidden md:inline-flex"
+          >
+            <a href={links.iliad} target="_blank" rel="noreferrer">
+              <IconExternalLink />
+              Iliad
+            </a>
+          </Button>
           <Button
             asChild
             variant="outline"

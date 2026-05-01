@@ -10,8 +10,18 @@ Next.js catalog UI for the skills and tools in this repository.
 - `components/ui/` contains the shadcn primitives currently used by the app.
 - `hooks/` contains stateful client logic shared by components.
 - `lib/catalog*.ts` contains server-side catalog loading, parsing, and inference.
+- `lib/iliad-public-skills*.ts` contains the server-side Iliad public catalog client.
 - `lib/agent-*.ts` contains agent-builder types, presets, export formatting, and pure helpers.
 - `public/` contains favicons and catalog artwork.
+
+## Iliad public skills
+
+Set `ILIAD_BASE_URL` and `ILIAD_X_API_KEY` in `web/.env` or the
+deployment environment. The browser never receives these values; Next route
+handlers proxy Iliad catalog requests at:
+
+- `GET /api/public-skills`
+- `GET /api/public-skills/:userId/:name/:version`
 
 ## Commands
 

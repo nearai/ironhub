@@ -4,6 +4,7 @@ import Link from "next/link"
 import {
   IconBook,
   IconBrandGithub,
+  IconExternalLink,
   IconMenu2,
   IconPlus,
 } from "@tabler/icons-react"
@@ -62,6 +63,14 @@ export function MobileNav() {
               <a href={links.newSkill} target="_blank" rel="noreferrer">
                 <IconPlus />
                 Create Skill
+              </a>
+            </Button>
+          </SheetClose>
+          <SheetClose asChild>
+            <Button asChild variant="outline">
+              <a href={links.iliad} target="_blank" rel="noreferrer">
+                <IconExternalLink />
+                Iliad
               </a>
             </Button>
           </SheetClose>
