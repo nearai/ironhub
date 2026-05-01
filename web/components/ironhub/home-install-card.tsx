@@ -1,7 +1,4 @@
-import { IconCopy, IconSearch, IconTerminal2 } from "@tabler/icons-react"
-
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { IconCopy, IconTerminal2 } from "@tabler/icons-react"
 
 type HomeInstallCardProps = {
   total: number
@@ -9,32 +6,16 @@ type HomeInstallCardProps = {
   tools: number
 }
 
-export function HomeInstallCard({ total, skills, tools }: HomeInstallCardProps) {
+export function HomeInstallCard({
+  total,
+  skills,
+  tools,
+}: HomeInstallCardProps) {
   return (
     <div className="rounded-xl border border-[var(--ironhub-line)] bg-card/90 p-6 shadow-[var(--ironhub-shadow)] backdrop-blur-xl">
-      <form action="/marketplace" className="relative" role="search">
-        <IconSearch
-          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-          aria-hidden="true"
-        />
-        <Input
-          name="q"
-          type="search"
-          placeholder="Search skills, tools, or workflows"
-          className="h-11 bg-background/75 pl-9 pr-24"
-        />
-        <Button
-          type="submit"
-          size="sm"
-          className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-full"
-        >
-          Search
-        </Button>
-      </form>
-
-      <div className="mt-5 grid gap-3">
+      <div className="grid gap-3">
         <div className="text-sm font-semibold text-muted-foreground">
-          Search skills. Versioned, rollback-ready.
+          IronHub. Versioned, rollback-ready.
         </div>
         <div className="overflow-hidden rounded-xl border border-slate-900/20 bg-slate-950 text-slate-100 shadow-inner dark:border-white/10">
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-2 text-xs text-slate-400">

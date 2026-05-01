@@ -1,15 +1,12 @@
 import Image from "next/image"
 
 import { ActionLink } from "@/components/ironhub/action-link"
-import { CatalogBrowser } from "@/components/ironhub/catalog-browser"
 import { CatalogCard } from "@/components/ironhub/catalog-card"
+import { CollectionStarts } from "@/components/ironhub/collection-starts"
 import { IronClawHero } from "@/components/ironhub/ironclaw-hero"
 import { SectionHeading } from "@/components/ironhub/section-heading"
-import {
-  getCatalogStats,
-  getCategories,
-  getMarketplaceCatalog,
-} from "@/lib/catalog.server"
+import { buildCollectionBundles } from "@/lib/collection-bundles"
+import { getCatalogStats, getMarketplaceCatalog } from "@/lib/catalog.server"
 
 export const dynamic = "force-dynamic"
 
@@ -17,6 +14,7 @@ export default async function Home() {
   const { items } = await getMarketplaceCatalog()
   const stats = getCatalogStats(items)
   const featuredItems = items.slice(0, 6)
+  const collections = buildCollectionBundles(items).slice(0, 3)
 
   return (
     <main className="relative min-h-screen">
@@ -45,10 +43,10 @@ export default async function Home() {
 
           <section>
             <SectionHeading
-              title="Search and filter the hub"
-              description="The home grid mirrors the old IronHub browsing flow while using the current Next marketplace data."
+              title="Tool Collections"
+              description="Unified bundles of 10-20 related tools and skills for common IronClaw jobs."
             />
-            <CatalogBrowser items={items} categories={getCategories(items)} />
+            <CollectionStarts collections={collections} />
           </section>
         </div>
       </div>

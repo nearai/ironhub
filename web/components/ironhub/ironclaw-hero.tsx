@@ -24,12 +24,10 @@ export function IronClawHero({ total, skills, tools }: IronClawHeroProps) {
             The extension hub for IronClaw
           </p>
           <h1 className="max-w-4xl font-heading text-[clamp(2.2rem,5vw,3.8rem)] leading-[1.08] font-extrabold tracking-normal">
-            IronHub, the skill and tool dock for safe agents.
+            IronHub for IronClaw skills and tools.
           </h1>
           <p className="max-w-xl text-lg leading-8 text-muted-foreground">
-            Browse, install, and publish skill and tool packs. Versioned like
-            npm, searchable from the current repo-backed catalog, and wired into
-            the existing IronClaw builder flow.
+            Browse, install, and publish repo-backed extensions for IronClaw.
           </p>
           <p className="text-sm font-semibold text-muted-foreground">
             {total.toLocaleString("en-US")} skills and tools available
