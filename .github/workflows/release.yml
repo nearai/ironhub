@@ -1,0 +1,83 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip2
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Make scripts executable
+        run: chmod +x scripts/generate-manifest.sh
+
+      - name: Stage artifacts
+        id: stage
+        run: |
+          set -euo pipefail
+          mkdir -p staging
+
+          for dir in tools/*/; do
+            name="$(basename "$dir")"
+            crate_name="$(grep -E '^name\s*=' "${dir}Cargo.toml" | head -1 | sed -E 's/^name\s*=\s*"(.+)"\s*$/\1/')"
+            wasm_filename="$(echo "$crate_name" | tr '-' '_').wasm"
+
+            echo "building $name ($crate_name)"
+            (cd "$dir" && cargo build --release --target wasm32-wasip2)
+
+            cp "${dir}target/wasm32-wasip2/release/${wasm_filename}" "staging/${name}.wasm"
+            cp "${dir}${name}-tool.capabilities.json" "staging/${name}.capabilities.json"
+          done
+
+          if [ -d skills ]; then
+            for dir in skills/*/; do
+              name="$(basename "$dir")"
+              if [ -f "${dir}SKILL.md" ]; then
+                cp "${dir}SKILL.md" "staging/${name}.SKILL.md"
+              fi
+            done
+          fi
+
+          ls -la staging/
+
+      - name: Compute release tag
+        id: tag
+        run: |
+          date_part="$(date -u +%Y-%m-%d)"
+          run_part="${{ github.run_number }}"
+          tag="release-${date_part}-${run_part}"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "release tag: ${tag}"
+
+      - name: Generate manifest
+        run: ./scripts/generate-manifest.sh staging "${{ steps.tag.outputs.tag }}" "${{ github.repository }}"
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="${{ steps.tag.outputs.tag }}"
+          notes="Automated release built from ${{ github.sha }} on $(date -u +"%Y-%m-%dT%H:%M:%SZ"). See tools.json for the full manifest."
+
+          gh release create "$tag" \
+            --title "$tag" \
+            --notes "$notes" \
+            --target "${{ github.sha }}" \
+            staging/*
+
+          echo "release published: https://github.com/${{ github.repository }}/releases/tag/${tag}"
