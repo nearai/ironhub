@@ -1,0 +1,36 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "Polymarket public market intelligence integration. Reads markets, events, tags, series, sports, orderbooks, prices, positions, leaderboards, profiles, comments, and rewards configurations across the Polymarket prediction-market platform. No authentication required.",
+  "http": {
+    "allowlist": [
+      {
+        "host": "gamma-api.polymarket.com",
+        "path_prefix": "/",
+        "methods": ["GET", "POST"]
+      },
+      {
+        "host": "clob.polymarket.com",
+        "path_prefix": "/",
+        "methods": ["GET", "POST"]
+      },
+      {
+        "host": "data-api.polymarket.com",
+        "path_prefix": "/",
+        "methods": ["GET", "POST"]
+      }
+    ],
+    "credentials": {},
+    "rate_limit": {
+      "requests_per_minute": 120,
+      "requests_per_hour": 3600
+    },
+    "timeout_secs": 30
+  },
+  "secrets": {
+    "allowed_names": []
+  },
+  "setup": {
+    "required_secrets": []
+  }
+}

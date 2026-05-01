@@ -1,0 +1,25 @@
+[package]
+name = "polymarket-tool"
+version = "0.1.0"
+edition = "2021"
+description = "Polymarket public market intelligence integration for IronClaw. Reads markets, events, tags, orderbooks, prices, positions, leaderboards, profiles, comments, and rewards across the Polymarket prediction-market platform."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/neo-sky/ironclaw-skills"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wit-bindgen = "0.41"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["raw_value"] }
+schemars = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+codegen-units = 1
+
+[workspace]
