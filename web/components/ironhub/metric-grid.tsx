@@ -13,7 +13,7 @@ export function MetricGrid({ metrics }: MetricGridProps) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {metrics.map((metric) => (
-        <Card key={metric.label} className="bg-background/40" size="sm">
+        <Card key={metric.label} className="bg-card/70" size="sm">
           <CardContent>
             <div className="text-primary text-2xl font-semibold">
               {metric.value}

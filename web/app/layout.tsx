@@ -51,11 +51,11 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className="dark font-sans antialiased"
+      className="font-sans antialiased"
     >
       <body>
         <TooltipProvider>
-          <ThemeProvider defaultTheme="dark">
+          <ThemeProvider defaultTheme="light">
             <SiteShell>{children}</SiteShell>
           </ThemeProvider>
         </TooltipProvider>

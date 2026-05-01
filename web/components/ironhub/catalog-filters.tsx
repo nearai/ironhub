@@ -49,6 +49,7 @@ export function CatalogFilters(props: CatalogFiltersProps) {
               key={value}
               type="button"
               variant={props.kind === value ? "default" : "outline"}
+              className="rounded-full"
               onClick={() => props.onKindChange(value)}
             >
               {value === "all" ? "All" : `${value}s`}
@@ -83,6 +84,7 @@ export function CatalogFilters(props: CatalogFiltersProps) {
             type="button"
             variant={props.view === "grid" ? "default" : "outline"}
             size="icon"
+            className="rounded-full"
             onClick={() => props.onViewChange("grid")}
             aria-label="Grid view"
           >
@@ -92,6 +94,7 @@ export function CatalogFilters(props: CatalogFiltersProps) {
             type="button"
             variant={props.view === "list" ? "default" : "outline"}
             size="icon"
+            className="rounded-full"
             onClick={() => props.onViewChange("list")}
             aria-label="List view"
           >
