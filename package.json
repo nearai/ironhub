@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "build": "pnpm --dir web build",
+    "start": "pnpm --dir web start",
+    "dev": "pnpm --dir web dev"
+  }
+}
