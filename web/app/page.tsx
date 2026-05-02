@@ -25,7 +25,7 @@ export default async function Home() {
         />
       </div>
 
-      <div className="px-4 pb-16 sm:px-6 lg:px-8">
+      <div className="px-4 pb-16 sm:px-6 lg:px-0">
         <div className="mx-auto grid max-w-7xl gap-12">
           <section className="ih-fade-up" style={{ animationDelay: "0.1s" }}>
             <SectionHeading

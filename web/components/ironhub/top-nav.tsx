@@ -16,7 +16,7 @@ export function TopNav() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--ironhub-line)] bg-background/82 shadow-[0_2px_24px_rgb(43_130_212_/_0.1)] backdrop-blur-xl">
-      <div className="px-4 sm:px-6 lg:px-8">
+      <div className="px-4 sm:px-6 lg:px-0">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-4">
           <BrandMark />
 
