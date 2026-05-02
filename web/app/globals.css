@@ -45,6 +45,19 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* IronHub design tokens */
+  --color-ih-bg: var(--ih-bg);
+  --color-ih-bg-soft: var(--ih-bg-soft);
+  --color-ih-surface: var(--ih-surface);
+  --color-ih-surface-muted: var(--ih-surface-muted);
+  --color-ih-ink: var(--ih-ink);
+  --color-ih-ink-soft: var(--ih-ink-soft);
+  --color-ih-accent: var(--ih-accent);
+  --color-ih-accent-deep: var(--ih-accent-deep);
+  --color-ih-line: var(--ih-line);
+  --color-ih-border-ui: var(--ih-border-ui);
+  --color-ih-border-ui-hover: var(--ih-border-ui-hover);
 }
 
 :root {
@@ -85,6 +98,26 @@
   --ironhub-surface: rgb(255 255 255 / 0.74);
   --ironhub-line: rgb(43 130 212 / 0.26);
   --ironhub-shadow: 0 18px 60px rgb(43 130 212 / 0.14);
+
+  /* IronHub design tokens — additive */
+  --ih-bg: #f8faff;
+  --ih-bg-soft: #eef4ff;
+  --ih-surface: #ffffff;
+  --ih-surface-muted: rgba(255, 255, 255, 0.7);
+  --ih-nav-bg: rgba(248, 250, 255, 0.88);
+  --ih-ink: #0f172a;
+  --ih-ink-soft: #1e293b;
+  --ih-accent: #2b82d4;
+  --ih-accent-deep: #1d6ab5;
+  --ih-line: rgba(43, 130, 212, 0.4);
+  --ih-border-ui: rgba(43, 130, 212, 0.28);
+  --ih-border-ui-hover: rgba(43, 130, 212, 0.42);
+  --ih-border-ui-active: rgba(43, 130, 212, 0.62);
+  --ih-shadow: 0 8px 32px rgba(43, 130, 212, 0.2);
+  --ih-radius-lg: 20px;
+  --ih-radius-md: 16px;
+  --ih-radius-sm: 10px;
+  --ih-radius-pill: 16px;
 }
 
 .dark {
@@ -117,6 +150,22 @@
   --ironhub-surface: rgb(30 41 59 / 0.68);
   --ironhub-line: rgb(96 165 250 / 0.22);
   --ironhub-shadow: 0 24px 70px rgb(0 0 0 / 0.28);
+
+  /* IronHub dark tokens */
+  --ih-bg: #0f172a;
+  --ih-bg-soft: #1e293b;
+  --ih-surface: #1e293b;
+  --ih-surface-muted: rgba(30, 41, 59, 0.5);
+  --ih-nav-bg: rgba(15, 23, 42, 0.9);
+  --ih-ink: #f8fafc;
+  --ih-ink-soft: #94a3b8;
+  --ih-accent: #3b82f6;
+  --ih-accent-deep: #2563eb;
+  --ih-line: rgba(148, 163, 184, 0.1);
+  --ih-border-ui: #334155;
+  --ih-border-ui-hover: #475569;
+  --ih-border-ui-active: #64748b;
+  --ih-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
 }
 
 @layer base {
@@ -173,3 +222,74 @@ body::after {
   background-size: 96px 96px;
   mask-image: linear-gradient(180deg, black 0%, transparent 65%);
 }
+
+/* ── IronHub animations ── */
+.ih-fade-up {
+  animation: ih-fadeUp 0.6s ease forwards;
+  opacity: 0;
+  transform: translateY(12px);
+}
+.ih-fade-up[data-delay="1"] { animation-delay: 0.1s; }
+.ih-fade-up[data-delay="2"] { animation-delay: 0.2s; }
+.ih-fade-up[data-delay="3"] { animation-delay: 0.3s; }
+.ih-fade-up[data-delay="4"] { animation-delay: 0.4s; }
+
+@keyframes ih-fadeUp {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes dotDrift {
+  0% { background-position: 0 0; }
+  100% { background-position: 32px 32px; }
+}
+
+@keyframes dotDriftFast {
+  0% { background-position: 0 0; }
+  100% { background-position: 16px 16px; }
+}
+
+@keyframes loading-bar {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.animate-loading-bar {
+  animation: loading-bar 1.5s infinite linear;
+}
+
+.ih-home-wrapper {
+  position: relative;
+  min-height: 100vh;
+  background: linear-gradient(180deg, var(--ih-bg) 0%, #e0f0ff 100%);
+}
+
+.dark .ih-home-wrapper {
+  background: linear-gradient(180deg, #0f172a 0%, #0d1929 100%);
+}
+
+.ih-home-wrapper::before,
+.ih-home-wrapper::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ih-home-wrapper::before {
+  background-image: radial-gradient(circle, #2b82d4 1.5px, transparent 1.5px);
+  background-size: 32px 32px;
+  opacity: 0.20;
+  animation: dotDrift 4s linear infinite;
+}
+
+.ih-home-wrapper::after {
+  background-image: radial-gradient(circle, #2b82d4 1px, transparent 1px);
+  background-size: 16px 16px;
+  opacity: 0.10;
+  animation: dotDriftFast 2.5s linear infinite;
+}
+
+.dark .ih-home-wrapper::before { opacity: 0.08; }
+.dark .ih-home-wrapper::after { opacity: 0.04; }
+
