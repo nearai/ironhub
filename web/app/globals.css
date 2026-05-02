@@ -65,7 +65,7 @@
   --font-sans-family: "Manrope", "Avenir Next", ui-sans-serif, system-ui, sans-serif;
   --background: oklch(0.982 0.016 247.5);
   --foreground: oklch(0.223 0.055 259.5);
-  --card: oklch(1 0 0 / 88%);
+  --card: oklch(1 0 0 / 96%);
   --card-foreground: oklch(0.223 0.055 259.5);
   --popover: oklch(1 0 0 / 96%);
   --popover-foreground: oklch(0.223 0.055 259.5);
@@ -123,7 +123,7 @@
 .dark {
   --background: oklch(0.215 0.055 258.4);
   --foreground: oklch(0.976 0.012 247.8);
-  --card: oklch(0.285 0.07 257.5 / 82%);
+  --card: oklch(0.285 0.07 257.5 / 94%);
   --card-foreground: oklch(0.976 0.012 247.8);
   --popover: oklch(0.269 0.07 259.5 / 96%);
   --popover-foreground: oklch(0.976 0.012 247.8);

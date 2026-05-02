@@ -27,7 +27,7 @@ export function CollectionBundleCard({
   return (
     <Card
       id={bundle.slug}
-      className="group relative flex h-full flex-col overflow-hidden border-border/60 bg-card/70 transition-all duration-300 hover:-translate-y-1 hover:bg-card hover:shadow-[0_20px_50px_rgba(43,130,212,0.15)]"
+      className="group relative flex h-full flex-col overflow-hidden border-border/60 bg-card transition-all duration-300 hover:-translate-y-1 hover:bg-card hover:shadow-[0_20px_50px_rgba(43,130,212,0.15)]"
       size="sm"
     >
       <CardHeader className="pb-4">
