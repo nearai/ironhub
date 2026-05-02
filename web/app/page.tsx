@@ -1,11 +1,10 @@
-import Image from "next/image"
-
-import { ActionLink } from "@/components/ironhub/action-link"
+import { Suspense } from "react"
 import { CatalogBrowser } from "@/components/ironhub/catalog-browser"
-
+import { HomeMobileToolbar } from "@/components/ironhub/home-mobile-toolbar"
 import { HomeSidebar } from "@/components/ironhub/home-sidebar"
+import { HubLayout } from "@/components/ironhub/hub-layout"
 import { IronClawHero } from "@/components/ironhub/ironclaw-hero"
-import { SectionHeading } from "@/components/ironhub/section-heading"
+import { MarketplaceSourceNote } from "@/components/ironhub/marketplace-source-note"
 import {
   getCatalogStats,
   getCategories,
@@ -14,56 +13,49 @@ import {
 
 export const dynamic = "force-dynamic"
 
-type HomePageProps = {
-  searchParams: Promise<{ category?: string }>
-}
-
-export default async function Home({ searchParams }: HomePageProps) {
-  const { category: categoryParam } = await searchParams
-  const { items } = await getMarketplaceCatalog()
+export default async function Home() {
+  const { items, iliad } = await getMarketplaceCatalog()
   const stats = getCatalogStats(items)
-
-  const categoryCounts = getCategories(items).map((cat) => ({
-    slug: cat,
-    count: items.filter((it) => it.category === cat).length,
-  }))
-
+  const categories = getCategories(items)
 
   return (
-    <main className="relative min-h-screen">
-      <IronClawHero
-        total={stats.total}
-        skills={stats.skills}
-        tools={stats.tools}
-      />
-
-
-      <div className="px-4 pb-16 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl lg:grid lg:grid-cols-[240px_1fr] lg:gap-8">
-          <aside className="hidden lg:block">
-            <div className="sticky top-[4.5rem]">
-              <HomeSidebar
-                categories={categoryCounts}
-                totalCount={items.length}
-              />
-            </div>
-          </aside>
-
-          <div className="min-w-0">
-            <CatalogBrowser items={items} categories={getCategories(items)} />
-          </div>
-        </div>
+    <HubLayout>
+      <div className="ih-fade-up">
+        <IronClawHero
+          total={stats.total}
+          skills={stats.skills}
+          tools={stats.tools}
+        />
       </div>
 
-      <Image
-        src="/ironclaw.png"
-        alt=""
-        aria-hidden="true"
-        width={420}
-        height={420}
-        className="pointer-events-none fixed right-0 bottom-0 z-[-1] h-auto w-[260px] opacity-70 select-none sm:w-[340px] lg:w-[420px]"
-        style={{ filter: "drop-shadow(0 4px 24px rgba(43, 130, 212, 0.25))" }}
+      <HomeMobileToolbar
+        categories={categories.map((c) => ({
+          slug: c,
+          count: items.filter((i) => i.category === c).length,
+        }))}
+        totalCount={stats.total}
       />
-    </main>
+
+      <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[240px_1fr]">
+        <aside className="hidden lg:block">
+          <div className="sticky top-[5.5rem]">
+            <HomeSidebar
+              categories={categories.map((c) => ({
+                slug: c,
+                count: items.filter((i) => i.category === c).length,
+              }))}
+              totalCount={stats.total}
+            />
+          </div>
+        </aside>
+
+        <div className="flex flex-col gap-6">
+          <MarketplaceSourceNote {...iliad} />
+          <Suspense fallback={null}>
+            <CatalogBrowser items={items} categories={categories} />
+          </Suspense>
+        </div>
+      </div>
+    </HubLayout>
   )
 }

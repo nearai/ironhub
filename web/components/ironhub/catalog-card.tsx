@@ -30,7 +30,7 @@ export function CatalogCard({ item, compact = false }: CatalogCardProps) {
 
   return (
     <Card
-      className="h-full bg-card/80 transition-all hover:-translate-y-0.5 hover:bg-card hover:shadow-[0_20px_70px_rgb(43_130_212_/_0.2)]"
+      className="group h-full border-[var(--ih-border-ui)] bg-[var(--ih-surface-muted)] transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-[var(--ih-border-ui-hover)] hover:bg-[var(--ih-surface)] hover:shadow-[var(--ih-shadow)]"
       size="sm"
     >
       <CardHeader>
@@ -39,7 +39,7 @@ export function CatalogCard({ item, compact = false }: CatalogCardProps) {
           <CardTitle>
             <Link
               href={`/marketplace/${item.slug}`}
-              className="hover:text-primary"
+              className="text-[var(--ih-ink)] transition-colors group-hover:text-[var(--ih-accent)]"
             >
               {item.name}
             </Link>
