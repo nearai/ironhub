@@ -26,7 +26,7 @@ export function IronClawHero({ total, skills, tools }: IronClawHeroProps) {
             The extension hub for IronClaw
           </p>
           <h1 className="max-w-4xl font-heading text-[clamp(2.2rem,5vw,3.8rem)] leading-[1.08] font-extrabold tracking-normal">
-            IronHub for IronClaw skills and tools.
+            IronHub for IronClaw Skills and Tools.
           </h1>
           <p className="max-w-xl text-lg leading-8 text-muted-foreground">
             Browse, install, and publish repo-backed extensions for IronClaw.
