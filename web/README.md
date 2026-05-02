@@ -1,6 +1,6 @@
 # IronClaw Skills Web
 
-Next.js catalog UI for the skills and tools in this repository.
+Next.js catalog UI for the Skills and Tools in this repository.
 
 ## Structure
 

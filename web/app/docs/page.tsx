@@ -43,7 +43,7 @@ export default function DocsPage() {
       <div className="mx-auto grid max-w-7xl gap-8">
         <PageHeader
           eyebrow="Docs"
-          title="Docs for IronClaw skills and tools"
+          title="Docs for IronClaw Skills and Tools"
           description="Open the repo guides that define shipped tools, skill branches, manifests, tracking, and contribution flow."
         />
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

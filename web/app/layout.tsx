@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "IronHub | Secure Skills for IronClaw",
     description:
-      "Browse repo-backed IronClaw skills and tools with security boundaries visible before install.",
+      "Browse repo-backed IronClaw Skills and Tools with security boundaries visible before install.",
     images: ["/assets/iron_claw_guy1.webp"],
   },
   twitter: {
