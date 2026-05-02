@@ -3,15 +3,15 @@ import { IconCopy, IconSearch, IconTerminal2 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
-type HomeInstallCardProps = {
+type MarketplaceInstallCardProps = {
   total: number
   skills: number
   tools: number
 }
 
-export function HomeInstallCard({ total, skills, tools }: HomeInstallCardProps) {
+export function MarketplaceInstallCard({ total, skills, tools }: MarketplaceInstallCardProps) {
   return (
-    <div className="rounded-xl border border-[var(--ironhub-line)] bg-card/90 p-6 shadow-[var(--ironhub-shadow)] backdrop-blur-xl">
+    <div className="rounded-xl border border-[var(--ih-line)] bg-[var(--ih-surface-muted)] p-6 shadow-[var(--ih-shadow)] backdrop-blur-xl">
       <form action="/marketplace" className="relative" role="search">
         <IconSearch
           className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"

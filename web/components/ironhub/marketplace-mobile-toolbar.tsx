@@ -18,17 +18,17 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 
-import { HomeSidebar, type HomeSidebarCategory } from "./home-sidebar"
+import { MarketplaceSidebar, type MarketplaceSidebarCategory } from "./marketplace-sidebar"
 
-type HomeMobileToolbarProps = {
-  categories: HomeSidebarCategory[]
+type MarketplaceMobileToolbarProps = {
+  categories: MarketplaceSidebarCategory[]
   totalCount: number
 }
 
-export function HomeMobileToolbar({
+export function MarketplaceMobileToolbar({
   categories,
   totalCount,
-}: HomeMobileToolbarProps) {
+}: MarketplaceMobileToolbarProps) {
   const [open, setOpen] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
@@ -76,7 +76,7 @@ export function HomeMobileToolbar({
             <SheetHeader className="px-0 pb-3">
               <SheetTitle>Categories</SheetTitle>
             </SheetHeader>
-            <HomeSidebar
+            <MarketplaceSidebar
               categories={categories}
               totalCount={totalCount}
               onSelect={() => setOpen(false)}

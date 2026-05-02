@@ -16,24 +16,24 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 import { cn } from "@/lib/utils"
 
-export type HomeSidebarCategory = {
+export type MarketplaceSidebarCategory = {
   slug: string
   count: number
 }
 
-type HomeSidebarProps = {
-  categories: HomeSidebarCategory[]
+type MarketplaceSidebarProps = {
+  categories: MarketplaceSidebarCategory[]
   totalCount: number
   onSelect?: () => void
   hideTitle?: boolean
 }
 
-export function HomeSidebar({
+export function MarketplaceSidebar({
   categories,
   totalCount,
   onSelect,
   hideTitle,
-}: HomeSidebarProps) {
+}: MarketplaceSidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -51,7 +51,7 @@ export function HomeSidebar({
     onSelect?.()
   }
 
-  const entries: HomeSidebarCategory[] = [
+  const entries: MarketplaceSidebarCategory[] = [
     { slug: "all", count: totalCount },
     ...categories,
   ]
@@ -71,7 +71,7 @@ export function HomeSidebar({
   return (
     <nav aria-label="Categories" className="flex flex-col gap-1">
       {!hideTitle && (
-        <h3 className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <h3 className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-[var(--ih-ink-soft)]">
           Categories
         </h3>
       )}
@@ -89,8 +89,8 @@ export function HomeSidebar({
             className={cn(
               "flex items-center justify-between gap-2 rounded-md px-3 py-2 text-sm transition-colors",
               isActive
-                ? "bg-primary/10 text-primary font-semibold"
-                : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                ? "bg-[var(--ih-accent)]/10 text-[var(--ih-accent)] font-semibold"
+                : "text-[var(--ih-ink-soft)] hover:bg-[var(--ih-surface-muted)] hover:text-[var(--ih-ink)]",
             )}
           >
             <div className="flex items-center gap-2 truncate">
@@ -101,8 +101,8 @@ export function HomeSidebar({
               className={cn(
                 "shrink-0 rounded-full px-2 py-0.5 text-xs tabular-nums",
                 isActive
-                  ? "bg-primary/15 text-primary"
-                  : "bg-muted text-muted-foreground",
+                  ? "bg-[var(--ih-accent)]/15 text-[var(--ih-accent)]"
+                  : "bg-[var(--ih-line)]/10 text-[var(--ih-ink-soft)]",
               )}
             >
               {entry.count}

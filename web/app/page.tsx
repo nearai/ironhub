@@ -1,7 +1,7 @@
 import { Suspense } from "react"
 import { CatalogBrowser } from "@/components/ironhub/catalog-browser"
-import { HomeMobileToolbar } from "@/components/ironhub/home-mobile-toolbar"
-import { HomeSidebar } from "@/components/ironhub/home-sidebar"
+import { MarketplaceMobileToolbar } from "@/components/ironhub/marketplace-mobile-toolbar"
+import { MarketplaceSidebar } from "@/components/ironhub/marketplace-sidebar"
 import { HubLayout } from "@/components/ironhub/hub-layout"
 import { IronClawHero } from "@/components/ironhub/ironclaw-hero"
 import { MarketplaceSourceNote } from "@/components/ironhub/marketplace-source-note"
@@ -28,7 +28,7 @@ export default async function Home() {
         />
       </div>
 
-      <HomeMobileToolbar
+      <MarketplaceMobileToolbar
         categories={categories.map((c) => ({
           slug: c,
           count: items.filter((i) => i.category === c).length,
@@ -36,10 +36,10 @@ export default async function Home() {
         totalCount={stats.total}
       />
 
-      <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[240px_1fr]">
+      <div className="mx-auto grid max-w-7xl gap-4 lg:grid-cols-[240px_1fr] lg:gap-10">
         <aside className="hidden lg:block">
           <div className="sticky top-[5.5rem]">
-            <HomeSidebar
+            <MarketplaceSidebar
               categories={categories.map((c) => ({
                 slug: c,
                 count: items.filter((i) => i.category === c).length,
@@ -49,13 +49,14 @@ export default async function Home() {
           </div>
         </aside>
 
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4">
           <MarketplaceSourceNote {...iliad} />
           <Suspense fallback={null}>
             <CatalogBrowser items={items} categories={categories} />
           </Suspense>
         </div>
       </div>
+
     </HubLayout>
   )
 }

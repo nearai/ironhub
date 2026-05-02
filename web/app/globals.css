@@ -103,7 +103,7 @@
   --ih-bg: #f8faff;
   --ih-bg-soft: #eef4ff;
   --ih-surface: #ffffff;
-  --ih-surface-muted: rgba(255, 255, 255, 0.7);
+  --ih-surface-muted: rgba(255, 255, 255, 0.82);
   --ih-nav-bg: rgba(248, 250, 255, 0.88);
   --ih-ink: #0f172a;
   --ih-ink-soft: #1e293b;
@@ -113,7 +113,7 @@
   --ih-border-ui: rgba(43, 130, 212, 0.28);
   --ih-border-ui-hover: rgba(43, 130, 212, 0.42);
   --ih-border-ui-active: rgba(43, 130, 212, 0.62);
-  --ih-shadow: 0 8px 32px rgba(43, 130, 212, 0.2);
+  --ih-shadow: 0 20px 50px rgba(43, 130, 212, 0.25);
   --ih-radius-lg: 20px;
   --ih-radius-md: 16px;
   --ih-radius-sm: 10px;
@@ -155,7 +155,7 @@
   --ih-bg: #0f172a;
   --ih-bg-soft: #1e293b;
   --ih-surface: #1e293b;
-  --ih-surface-muted: rgba(30, 41, 59, 0.5);
+  --ih-surface-muted: rgba(30, 41, 59, 0.6);
   --ih-nav-bg: rgba(15, 23, 42, 0.9);
   --ih-ink: #f8fafc;
   --ih-ink-soft: #94a3b8;
@@ -165,7 +165,7 @@
   --ih-border-ui: #334155;
   --ih-border-ui-hover: #475569;
   --ih-border-ui-active: #64748b;
-  --ih-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+  --ih-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
 }
 
 @layer base {
