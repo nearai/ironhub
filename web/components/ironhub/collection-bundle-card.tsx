@@ -1,7 +1,6 @@
-"use client"
-
 import Link from "next/link"
 import { IconArrowRight, IconBoxMultiple } from "@tabler/icons-react"
+
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -45,7 +44,7 @@ export function CollectionBundleCard({
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="flex flex-1 flex-col gap-6">
         <div className="grid grid-cols-3 gap-3">
           <div className="rounded-xl border border-border/50 bg-background/50 p-3 text-center shadow-sm transition-colors group-hover:border-primary/20 group-hover:bg-background">
@@ -79,11 +78,11 @@ export function CollectionBundleCard({
             &quot;{bundle.outcome}&quot;
           </p>
         )}
-        
+
         <div className="flex flex-wrap gap-2">
           {previewItems.map((item) => (
-            <Badge 
-              key={item.slug} 
+            <Badge
+              key={item.slug}
               variant="outline"
               className="rounded-full border-border/60 bg-transparent px-2 py-0.5 text-[0.7rem] font-medium text-muted-foreground transition-colors hover:bg-primary/5 hover:border-primary/20 hover:text-primary"
             >
@@ -94,7 +93,7 @@ export function CollectionBundleCard({
       </CardContent>
 
       <CardFooter className="mt-auto border-t border-border/40 pt-4">
-        <Button 
+        <Button
           asChild
           className="w-fit gap-2 rounded-full bg-primary px-6 font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.98]"
         >

@@ -31,9 +31,9 @@ export default async function MarketplacePage() {
     <HubLayout>
       <div className="mx-auto grid max-w-7xl gap-6">
         <PageHeader
-          eyebrow="Marketplace"
-          title="Explore the IronClaw Hub"
-          description="Discover the full range of skills, tools, collection available in the IronClaw Hub for your usecases"
+          eyebrow="IronClaw Marketplace"
+          title="Browse IronClaw Skills and Tools"
+          description="Search repo-backed skills, WASM tools, and public Iliad skills from one catalog."
         >
           <MetricGrid
             metrics={[
@@ -63,7 +63,11 @@ export default async function MarketplacePage() {
           <div className="flex flex-col gap-6">
             <MarketplaceSourceNote {...iliad} />
             <Suspense fallback={null}>
-              <CatalogBrowser items={items} collections={collections} categories={categories} />
+              <CatalogBrowser
+                items={items}
+                collections={collections}
+                categories={categories}
+              />
             </Suspense>
           </div>
         </div>

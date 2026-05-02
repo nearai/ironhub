@@ -1,5 +1,6 @@
 "use client"
 
+import type { ComponentType } from "react"
 import {
   IconAdjustments,
   IconBolt,
@@ -27,6 +28,8 @@ type MarketplaceSidebarProps = {
   onSelect?: () => void
   hideTitle?: boolean
 }
+
+type CategoryIcon = ComponentType<{ className?: string }>
 
 export function MarketplaceSidebar({
   categories,
@@ -56,7 +59,7 @@ export function MarketplaceSidebar({
     ...categories,
   ]
 
-  const categoryIcons: Record<string, any> = {
+  const categoryIcons: Record<string, CategoryIcon> = {
     all: IconLayoutGrid,
     "dev tools": IconTerminal2,
     "data & apis": IconDatabase,
@@ -76,7 +79,7 @@ export function MarketplaceSidebar({
         </h3>
       )}
       {entries.map((entry) => {
-         const isActive = entry.slug === active
+        const isActive = entry.slug === active
         const label = entry.slug === "all" ? "All" : entry.slug
         const Icon = categoryIcons[entry.slug.toLowerCase()] || IconCategory
 
