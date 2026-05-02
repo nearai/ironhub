@@ -9,7 +9,7 @@ import {
 export const navItems = [
   ["Overview", "/", IconLayoutDashboard],
   ["Marketplace", "/marketplace", IconSparkles],
-  ["Agents", "/agents", IconRobot],
-  ["Collections", "/collections", IconLibrary],
+  // ["Agents", "/agents", IconRobot],
+  // ["Collections", "/collections", IconLibrary],
   ["Docs", "/docs", IconBook],
 ] as const

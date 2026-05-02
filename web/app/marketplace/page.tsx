@@ -12,6 +12,7 @@ import {
   getCategories,
   getMarketplaceCatalog,
 } from "@/lib/catalog.server"
+import { buildCollectionBundles } from "@/lib/collection-bundles"
 
 export const dynamic = "force-dynamic"
 
@@ -19,6 +20,7 @@ export default async function MarketplacePage() {
   const { items, iliad } = await getMarketplaceCatalog()
   const stats = getCatalogStats(items)
   const categories = getCategories(items)
+  const collections = buildCollectionBundles(items)
 
   const categoryCounts = categories.map((c) => ({
     slug: c,
@@ -30,8 +32,8 @@ export default async function MarketplacePage() {
       <div className="mx-auto grid max-w-7xl gap-6">
         <PageHeader
           eyebrow="Marketplace"
-          title="IronClaw skills and tool trunks"
-          description="Search repo-backed SKILL.md branches, WASM tools, and public prompt skills mirrored from Iliad."
+          title="Explore the IronClaw Hub"
+          description="Discover the full range of skills, tools, collection available in the IronClaw Hub for your usecases"
         >
           <MetricGrid
             metrics={[
@@ -61,7 +63,7 @@ export default async function MarketplacePage() {
           <div className="flex flex-col gap-6">
             <MarketplaceSourceNote {...iliad} />
             <Suspense fallback={null}>
-              <CatalogBrowser items={items} categories={categories} />
+              <CatalogBrowser items={items} collections={collections} categories={categories} />
             </Suspense>
           </div>
         </div>

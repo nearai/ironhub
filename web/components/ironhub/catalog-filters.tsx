@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  IconBoxMultiple,
   IconCategory,
   IconLayoutGrid,
   IconList,
@@ -53,7 +54,7 @@ export function CatalogFilters(props: CatalogFiltersProps) {
 
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide lg:flex-wrap lg:overflow-visible lg:pb-0">
         <ButtonGroup className="shrink-0">
-          {(["all", "tool", "skill"] as const).map((value) => (
+          {(["all", "tool", "skill", "collection"] as const).map((value) => (
             <Button
               key={value}
               type="button"
@@ -65,8 +66,9 @@ export function CatalogFilters(props: CatalogFiltersProps) {
                 {value === "all" && <IconLayoutGrid className="size-3.5" />}
                 {value === "tool" && <IconTool className="size-3.5" />}
                 {value === "skill" && <IconSparkles className="size-3.5" />}
+                {value === "collection" && <IconBoxMultiple className="size-3.5" />}
                 <span className="text-sm font-medium capitalize">
-                  {value === "all" ? "All" : `${value}s`}
+                  {value === "all" ? "All" : value === "collection" ? "Collections" : `${value}s`}
                 </span>
               </div>
             </Button>

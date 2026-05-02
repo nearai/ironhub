@@ -1,4 +1,5 @@
 import type { CatalogItem, CatalogKind } from "@/lib/catalog-types"
+import type { CollectionBundle } from "@/lib/collection-bundles"
 
 export type SortMode = "relevance" | "name" | "actions"
 
@@ -26,6 +27,37 @@ export function filterCatalog(
 
     return matchesKind && matchesCategory && (!needle || haystack.includes(needle))
   })
+}
+
+export function filterCollections(
+  collections: CollectionBundle[],
+  query: string
+) {
+  const needle = query.trim().toLowerCase()
+
+  return collections.filter((bundle) => {
+    const haystack = [
+      bundle.title,
+      bundle.slug,
+      bundle.summary,
+      bundle.outcome,
+      ...bundle.keywords,
+    ]
+      .join(" ")
+      .toLowerCase()
+
+    return !needle || haystack.includes(needle)
+  })
+}
+
+export function sortCollections(collections: CollectionBundle[]) {
+  return [...collections].sort((a, b) => {
+    return scoreCollectionBundle(b) - scoreCollectionBundle(a)
+  })
+}
+
+function scoreCollectionBundle(bundle: CollectionBundle) {
+  return bundle.items.length + bundle.keywords.length
 }
 
 export function sortCatalog(items: CatalogItem[], sort: SortMode) {

@@ -1,22 +1,19 @@
-import { Suspense } from "react"
-import { CatalogBrowser } from "@/components/ironhub/catalog-browser"
-import { MarketplaceMobileToolbar } from "@/components/ironhub/marketplace-mobile-toolbar"
-import { MarketplaceSidebar } from "@/components/ironhub/marketplace-sidebar"
+import { ActionLink } from "@/components/ironhub/action-link"
+import { CatalogCard } from "@/components/ironhub/catalog-card"
+import { CollectionStarts } from "@/components/ironhub/collection-starts"
 import { HubLayout } from "@/components/ironhub/hub-layout"
 import { IronClawHero } from "@/components/ironhub/ironclaw-hero"
-import { MarketplaceSourceNote } from "@/components/ironhub/marketplace-source-note"
-import {
-  getCatalogStats,
-  getCategories,
-  getMarketplaceCatalog,
-} from "@/lib/catalog.server"
+import { SectionHeading } from "@/components/ironhub/section-heading"
+import { buildCollectionBundles } from "@/lib/collection-bundles"
+import { getCatalogStats, getMarketplaceCatalog } from "@/lib/catalog.server"
 
 export const dynamic = "force-dynamic"
 
 export default async function Home() {
-  const { items, iliad } = await getMarketplaceCatalog()
+  const { items } = await getMarketplaceCatalog()
   const stats = getCatalogStats(items)
-  const categories = getCategories(items)
+  const featuredItems = items.slice(0, 6)
+  const collections = buildCollectionBundles(items).slice(0, 3)
 
   return (
     <HubLayout>
@@ -28,35 +25,32 @@ export default async function Home() {
         />
       </div>
 
-      <MarketplaceMobileToolbar
-        categories={categories.map((c) => ({
-          slug: c,
-          count: items.filter((i) => i.category === c).length,
-        }))}
-        totalCount={stats.total}
-      />
-
-      <div className="mx-auto grid max-w-7xl gap-4 lg:grid-cols-[240px_1fr] lg:gap-10">
-        <aside className="hidden lg:block">
-          <div className="sticky top-[5.5rem]">
-            <MarketplaceSidebar
-              categories={categories.map((c) => ({
-                slug: c,
-                count: items.filter((i) => i.category === c).length,
-              }))}
-              totalCount={stats.total}
+      <div className="px-4 pb-16 sm:px-6 lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-12">
+          <section className="ih-fade-up" style={{ animationDelay: "0.1s" }}>
+            <SectionHeading
+              title="Staff Picks"
+              description="Curated signal from the current catalog for quick trust."
+              action={
+                <ActionLink href="/marketplace">View all entries</ActionLink>
+              }
             />
-          </div>
-        </aside>
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {featuredItems.map((item) => (
+                <CatalogCard key={item.slug} item={item} />
+              ))}
+            </div>
+          </section>
 
-        <div className="flex flex-col gap-4">
-          <MarketplaceSourceNote {...iliad} />
-          <Suspense fallback={null}>
-            <CatalogBrowser items={items} categories={categories} />
-          </Suspense>
+          <section className="ih-fade-up" style={{ animationDelay: "0.2s" }}>
+            <SectionHeading
+              title="Tool Collections"
+              description="Unified bundles of 10-20 related tools and skills for common IronClaw jobs."
+            />
+            <CollectionStarts collections={collections} />
+          </section>
         </div>
       </div>
-
     </HubLayout>
   )
 }
