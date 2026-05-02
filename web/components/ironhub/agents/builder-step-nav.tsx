@@ -31,7 +31,7 @@ const steps = [
   {
     key: "loadout",
     label: "Loadout",
-    description: "Enable skills and tools",
+    description: "Enable Skills and Tools",
     icon: IconBoxSeam,
   },
   {

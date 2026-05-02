@@ -33,7 +33,7 @@ export default function DeveloperPage() {
       <div className="mx-auto grid max-w-7xl gap-8">
         <PageHeader
           eyebrow="Developer portal"
-          title="Ship IronClaw skills and tools"
+          title="Ship IronClaw Skills and Tools"
           description="Use the repo lifecycle to propose skill branches, WASM tool trunks, auth scopes, limits, and tracking updates."
         />
         <div className="grid gap-4 md:grid-cols-2">

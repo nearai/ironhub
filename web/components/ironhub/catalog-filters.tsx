@@ -48,7 +48,7 @@ export function CatalogFilters(props: CatalogFiltersProps) {
         <InputGroupInput
           value={props.query}
           onChange={(event) => props.onQueryChange(event.target.value)}
-          placeholder="Search skills and tools..."
+          placeholder="Search Skills and Tools..."
         />
       </InputGroup>
 

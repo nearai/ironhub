@@ -32,7 +32,7 @@ export function IronClawHero({ total, skills, tools }: IronClawHeroProps) {
             Browse, install, and publish repo-backed extensions for IronClaw.
           </p>
           <p className="text-sm font-semibold text-muted-foreground">
-            {total.toLocaleString("en-US")} skills and tools available
+            {total.toLocaleString("en-US")} Skills and Tools available
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
             <ActionLink href="/marketplace" variant="default">
