@@ -33,7 +33,7 @@ export function buildAgentExportConfig({
 }: BuildAgentExportConfigInput): AgentExportConfig {
   return {
     version: "ironclaw.agent.v1",
-    agent: { mode, name: soul.name, type: presetLabel },
+    agent: { mode, name: soul.name, type: soul.title },
     soul,
     skills: {
       enabled: selectedSkills.map((skill) => ({

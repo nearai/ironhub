@@ -1,4 +1,4 @@
-export type CatalogKind = "tool" | "skill"
+export type CatalogKind = "tool" | "skill" | "collection"
 export type CatalogOrigin = "repo" | "iliad"
 export type CatalogStatus = "live" | "proposed" | "in-progress" | "blocked"
 

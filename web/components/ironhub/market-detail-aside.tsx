@@ -1,4 +1,5 @@
 import { ActionLink } from "@/components/ironhub/action-link"
+import { CLIInstallBox } from "@/components/ironhub/cli-install-box"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { CatalogItem } from "@/lib/catalog-types"
@@ -11,6 +12,7 @@ type MarketDetailAsideProps = {
 export function MarketDetailAside({ item }: MarketDetailAsideProps) {
   return (
     <aside className="grid content-start gap-4">
+      <CLIInstallBox slug={item.slug} />
       <Card>
         <CardHeader>
           <CardTitle>Tags</CardTitle>

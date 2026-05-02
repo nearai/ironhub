@@ -20,26 +20,42 @@ export function extractSkillLimits(text: string) {
   return limits.slice(0, 3)
 }
 
+export const CATEGORIES = [
+  "Dev Tools",
+  "Data & APIs",
+  "Security",
+  "Automation",
+  "Communication",
+  "Productivity",
+  "AI & ML",
+  "Web3",
+] as const
+
 export function inferCategory(slug: string, text: string) {
   const haystack = `${slug} ${text}`.toLowerCase()
 
   if (
+    haystack.includes("polymarket") ||
     haystack.includes("near") ||
     haystack.includes("rpc") ||
-    haystack.includes("contract")
+    haystack.includes("contract") ||
+    haystack.includes("web3") ||
+    haystack.includes("crypto") ||
+    haystack.includes("blockchain")
   ) {
-    return "Development"
+    return "Web3"
   }
 
   if (
     haystack.includes("microsoft") ||
     haystack.includes("excel") ||
-    haystack.includes("teams")
+    haystack.includes("teams") ||
+    haystack.includes("workflow")
   ) {
     return "Productivity"
   }
 
-  return "Utilities"
+  return "Dev Tools"
 }
 
 export function inferToolTags(

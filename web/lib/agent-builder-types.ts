@@ -27,6 +27,7 @@ export type AgentPersonaArtwork = {
 
 export type SoulConfig = {
   name: string
+  title: string
   mission: string
   personality: string
   autonomy: number

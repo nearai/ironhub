@@ -1,7 +1,10 @@
 import { Suspense } from "react"
 
 import { CatalogBrowser } from "@/components/ironhub/catalog-browser"
+import { MarketplaceMobileToolbar } from "@/components/ironhub/marketplace-mobile-toolbar"
+import { MarketplaceSidebar } from "@/components/ironhub/marketplace-sidebar"
 import { HubLayout } from "@/components/ironhub/hub-layout"
+import { MarketplaceSourceNote } from "@/components/ironhub/marketplace-source-note"
 import { MetricGrid } from "@/components/ironhub/metric-grid"
 import { PageHeader } from "@/components/ironhub/page-header"
 import {
@@ -9,12 +12,20 @@ import {
   getCategories,
   getMarketplaceCatalog,
 } from "@/lib/catalog.server"
+import { buildCollectionBundles } from "@/lib/collection-bundles"
 
 export const dynamic = "force-dynamic"
 
 export default async function MarketplacePage() {
-  const { items } = await getMarketplaceCatalog()
+  const { items, iliad } = await getMarketplaceCatalog()
   const stats = getCatalogStats(items)
+  const categories = getCategories(items)
+  const collections = buildCollectionBundles(items)
+
+  const categoryCounts = categories.map((c) => ({
+    slug: c,
+    count: items.filter((i) => i.category === c).length,
+  }))
 
   return (
     <HubLayout>
@@ -33,9 +44,33 @@ export default async function MarketplacePage() {
             ]}
           />
         </PageHeader>
-        <Suspense fallback={null}>
-          <CatalogBrowser items={items} categories={getCategories(items)} />
-        </Suspense>
+
+        <MarketplaceMobileToolbar
+          categories={categoryCounts}
+          totalCount={stats.total}
+        />
+
+        <div className="grid gap-10 lg:grid-cols-[240px_1fr]">
+          <aside className="hidden lg:block">
+            <div className="sticky top-[5.5rem]">
+              <MarketplaceSidebar
+                categories={categoryCounts}
+                totalCount={stats.total}
+              />
+            </div>
+          </aside>
+
+          <div className="flex flex-col gap-6">
+            <MarketplaceSourceNote {...iliad} />
+            <Suspense fallback={null}>
+              <CatalogBrowser
+                items={items}
+                collections={collections}
+                categories={categories}
+              />
+            </Suspense>
+          </div>
+        </div>
       </div>
     </HubLayout>
   )

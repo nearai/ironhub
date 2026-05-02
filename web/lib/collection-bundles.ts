@@ -10,6 +10,7 @@ export type CollectionBundleDefinition = {
 }
 
 export type CollectionBundle = CollectionBundleDefinition & {
+  kind: "collection"
   items: CatalogItem[]
   toolCount: number
   skillCount: number
@@ -149,6 +150,7 @@ export function buildCollectionBundles(items: CatalogItem[]) {
 
     return {
       ...definition,
+      kind: "collection" as const,
       items: bundleItems,
       toolCount: bundleItems.filter((item) => item.kind === "tool").length,
       skillCount: bundleItems.filter((item) => item.kind === "skill").length,

@@ -10,7 +10,7 @@ const footerLinks = [
 
 export function SiteFooter() {
   return (
-    <footer className="px-4 pb-8 pt-10 sm:px-6 lg:px-8">
+    <footer className="px-4 pb-8 pt-10 sm:px-6 lg:px-0">
       <div className="mx-auto max-w-7xl">
         <Separator className="mb-5 bg-[var(--ironhub-line)]" />
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">

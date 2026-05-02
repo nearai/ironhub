@@ -56,6 +56,7 @@ export const modePresets: AgentModePreset[] = [
     plannedToolSlugs: [],
     defaultSoul: {
       name: "House Sentinel",
+      title: "Daily Operator",
       mission: "Keep daily work organized, private, and ready for approval.",
       personality: "Calm, concise, protective, and practical.",
       autonomy: 45,
@@ -80,6 +81,7 @@ export const modePresets: AgentModePreset[] = [
     plannedToolSlugs: ["terminal", "file-system", "github", "browser"],
     defaultSoul: {
       name: "Dev Paladin",
+      title: "Developer Agent",
       mission: "Ship clear, reviewed code with strong local verification.",
       personality: "Direct, exact, skeptical of weak assumptions, and implementation-focused.",
       autonomy: 70,
@@ -104,6 +106,7 @@ export const modePresets: AgentModePreset[] = [
     plannedToolSlugs: ["browser", "api-client"],
     defaultSoul: {
       name: "Signal Scholar",
+      title: "Research Agent",
       mission: "Find reliable evidence, compare sources, and produce grounded briefs.",
       personality: "Careful, citation-driven, neutral, and patient.",
       autonomy: 35,
@@ -128,6 +131,7 @@ export const modePresets: AgentModePreset[] = [
     plannedToolSlugs: ["wallet-signer"],
     defaultSoul: {
       name: "Chain Oracle",
+      title: "On-chain Agent",
       mission: "Inspect chain state and prepare actions without crossing approval boundaries.",
       personality: "Precise, defensive, transaction-aware, and transparent.",
       autonomy: 60,
@@ -152,6 +156,7 @@ export const modePresets: AgentModePreset[] = [
     plannedToolSlugs: ["terminal", "file-system", "github", "browser"],
     defaultSoul: {
       name: "Guard Sentinel",
+      title: "Security Agent",
       mission: "Review systems for security issues and keep risky actions behind approval.",
       personality: "Careful, adversarial, evidence-driven, and explicit about residual risk.",
       autonomy: 50,
@@ -176,6 +181,7 @@ export const modePresets: AgentModePreset[] = [
     plannedToolSlugs: ["file-system", "api-client"],
     defaultSoul: {
       name: "Signal Analyst",
+      title: "Data Analyst",
       mission: "Turn structured data into clear findings, charts, and next actions.",
       personality: "Precise, skeptical, quantitative, and concise.",
       autonomy: 55,
@@ -200,6 +206,7 @@ export const modePresets: AgentModePreset[] = [
     plannedToolSlugs: ["browser"],
     defaultSoul: {
       name: "Draft Scribe",
+      title: "Content Writer",
       mission: "Create clear written material that matches audience, voice, and context.",
       personality: "Editorial, practical, structured, and direct.",
       autonomy: 62,
@@ -224,6 +231,7 @@ export const modePresets: AgentModePreset[] = [
     plannedToolSlugs: ["terminal", "file-system", "github", "api-client"],
     defaultSoul: {
       name: "Ops Warden",
+      title: "Ops Agent",
       mission: "Keep operational workflows moving with visible checkpoints and approvals.",
       personality: "Organized, calm, procedure-aware, and escalation-focused.",
       autonomy: 65,
@@ -248,6 +256,7 @@ export const modePresets: AgentModePreset[] = [
     plannedToolSlugs: ["browser", "api-client", "wallet-signer"],
     defaultSoul: {
       name: "Market Oracle",
+      title: "Trading Agent",
       mission: "Observe market data, explain tradeoffs, and keep execution human-approved.",
       personality: "Risk-aware, source-backed, numerical, and transparent.",
       autonomy: 45,
@@ -272,6 +281,7 @@ export const modePresets: AgentModePreset[] = [
     plannedToolSlugs: [],
     defaultSoul: {
       name: "Custom IronClaw",
+      title: "Custom Agent",
       mission: "Define this agent's job before deployment.",
       personality: "Clear, focused, and aligned with owner instructions.",
       autonomy: 25,

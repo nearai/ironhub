@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import { IconArrowRight, IconKey, IconUserCircle } from "@tabler/icons-react"
 import { Badge } from "@/components/ui/badge"
@@ -30,16 +32,16 @@ export function CatalogCard({ item, compact = false }: CatalogCardProps) {
 
   return (
     <Card
-      className="h-full bg-card/80 transition-all hover:-translate-y-0.5 hover:bg-card hover:shadow-[0_20px_70px_rgb(43_130_212_/_0.2)]"
+      className="group relative flex h-full flex-col overflow-hidden border-border/60 bg-card transition-all duration-300 hover:-translate-y-1 hover:bg-card hover:shadow-[0_20px_50px_rgba(43,130,212,0.15)]"
       size="sm"
     >
-      <CardHeader>
+      <CardHeader className="pb-2">
         <div className="flex items-center gap-3">
           <CatalogIcon item={item} />
-          <CardTitle>
+          <CardTitle className="text-lg font-bold">
             <Link
               href={`/marketplace/${item.slug}`}
-              className="hover:text-primary"
+              className="hover:text-primary transition-colors"
             >
               {item.name}
             </Link>
@@ -49,35 +51,46 @@ export function CatalogCard({ item, compact = false }: CatalogCardProps) {
           <StatusBadge item={item} />
         </CardAction>
       </CardHeader>
+
       <CardContent className="flex flex-1 flex-col gap-4">
-        <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">
+        <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
           {item.description}
         </p>
         {!compact && (
           <div className="flex flex-wrap gap-2">
             {item.tags.slice(0, 4).map((tag) => (
-              <Badge key={tag} variant="outline">
+              <Badge 
+                key={tag} 
+                variant="outline"
+                className="rounded-full bg-primary/5 border-primary/10 text-[0.7rem] font-medium text-muted-foreground"
+              >
                 {tag}
               </Badge>
             ))}
           </div>
         )}
       </CardContent>
-      <CardFooter className="flex-col items-stretch gap-4 border-t">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5">
+
+      <CardFooter className="flex-col items-stretch gap-4 border-t border-border/40 pt-4">
+        <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+          <span className="inline-flex items-center gap-1.5 opacity-80">
             <IconUserCircle className="size-3.5" />
             {item.author}
           </span>
-          <span className="inline-flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1.5 opacity-80">
             <IconKey className="size-3.5" />
             {metric}
           </span>
         </div>
-          <Button asChild variant="outline">
-            <Link href={`/marketplace/${item.slug}`}>
-              View setup
-            <IconArrowRight />
+        
+        <Button 
+          asChild 
+          variant="outline"
+          className="w-full gap-2 rounded-full border-border/60 bg-transparent font-semibold text-foreground transition-all hover:bg-primary/5 hover:border-primary/30 hover:text-primary"
+        >
+          <Link href={`/marketplace/${item.slug}`}>
+            View setup
+            <IconArrowRight className="size-4" />
           </Link>
         </Button>
       </CardFooter>

@@ -29,10 +29,13 @@ export function AgentPreview({
     <Card className={cn("relative bg-card/90")}>
       <CardHeader>
         <div>
-          <CardTitle className="text-xl">
-            {soul.name} - {preset.label}
+          <CardTitle className="text-2xl font-bold tracking-tight text-foreground">
+            {soul.name}
           </CardTitle>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          <p className="text-xs font-bold tracking-widest text-primary/80 uppercase">
+            {soul.title}
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             {soul.mission}
           </p>
         </div>

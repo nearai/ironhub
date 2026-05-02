@@ -3,11 +3,12 @@
 import { useMemo, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import type { CatalogItem, CatalogKind } from "@/lib/catalog-types"
-import { filterCatalog, sortCatalog, type SortMode } from "@/lib/catalog-utils"
+import { filterCatalog, sortCatalog, filterCollections, sortCollections, type SortMode } from "@/lib/catalog-utils"
+import type { CollectionBundle } from "@/lib/collection-bundles"
 
 export type ViewMode = "grid" | "list"
 
-export function useCatalogBrowser(items: CatalogItem[]) {
+export function useCatalogBrowser(items: CatalogItem[], collections: CollectionBundle[]) {
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -27,6 +28,7 @@ export function useCatalogBrowser(items: CatalogItem[]) {
 
   function setQuery(nextQuery: string) {
     setQueryState({ param: queryParam, value: nextQuery })
+    setFilterParam("q", nextQuery)
   }
 
   function setKind(nextKind: CatalogKind | "all") {
@@ -37,10 +39,10 @@ export function useCatalogBrowser(items: CatalogItem[]) {
     setFilterParam("category", nextCategory)
   }
 
-  function setFilterParam(key: "category" | "kind", value: string) {
+  function setFilterParam(key: "category" | "kind" | "q", value: string) {
     const params = new URLSearchParams(searchParams)
 
-    if (value === "all") {
+    if (value === "all" || (key === "q" && !value)) {
       params.delete(key)
     } else {
       params.set(key, value)
@@ -53,8 +55,12 @@ export function useCatalogBrowser(items: CatalogItem[]) {
   }
 
   const results = useMemo(() => {
-    return sortCatalog(filterCatalog(items, query, kind, category), sort)
+    return sortCatalog(filterCatalog(items, query, kind === "collection" ? "all" : kind, category), sort)
   }, [items, query, kind, category, sort])
+
+  const filteredCollections = useMemo(() => {
+    return sortCollections(filterCollections(collections, query))
+  }, [collections, query])
 
   return {
     query,
@@ -68,11 +74,12 @@ export function useCatalogBrowser(items: CatalogItem[]) {
     view,
     setView,
     results,
+    filteredCollections,
   }
 }
 
 function getKindFromParam(kindParam: string | null): CatalogKind | "all" {
-  if (kindParam === "tool" || kindParam === "skill") {
+  if (kindParam === "tool" || kindParam === "skill" || kindParam === "collection") {
     return kindParam
   }
 

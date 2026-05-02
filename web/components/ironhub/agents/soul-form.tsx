@@ -54,12 +54,20 @@ export function SoulForm({
         </div>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <FormField label="Name">
-          <Input
-            value={soul.name}
-            onChange={(event) => onSoulChange({ name: event.target.value })}
-          />
-        </FormField>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField label="Name">
+            <Input
+              value={soul.name}
+              onChange={(event) => onSoulChange({ name: event.target.value })}
+            />
+          </FormField>
+          <FormField label="Persona Title">
+            <Input
+              value={soul.title}
+              onChange={(event) => onSoulChange({ title: event.target.value })}
+            />
+          </FormField>
+        </div>
         <FormField label="Mission">
           <Textarea
             value={soul.mission}
