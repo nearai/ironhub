@@ -9,7 +9,11 @@ type MarketplaceInstallCardProps = {
   tools: number
 }
 
-export function MarketplaceInstallCard({ total, skills, tools }: MarketplaceInstallCardProps) {
+export function MarketplaceInstallCard({
+  total,
+  skills,
+  tools,
+}: MarketplaceInstallCardProps) {
   return (
     <div className="rounded-xl border border-[var(--ih-line)] bg-[var(--ih-surface-muted)] p-6 shadow-[var(--ih-shadow)] backdrop-blur-xl">
       <form action="/marketplace" className="relative" role="search">
@@ -34,7 +38,7 @@ export function MarketplaceInstallCard({ total, skills, tools }: MarketplaceInst
 
       <div className="mt-5 grid gap-3">
         <div className="text-sm font-semibold text-muted-foreground">
-          Search skills. Versioned, rollback-ready.
+          IronHub. Versioned, rollback-ready.
         </div>
         <div className="overflow-hidden rounded-xl border border-slate-900/20 bg-slate-950 text-slate-100 shadow-inner dark:border-white/10">
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-2 text-xs text-slate-400">
