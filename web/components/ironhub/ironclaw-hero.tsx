@@ -45,14 +45,14 @@ export function IronClawHero({ total, skills, tools }: IronClawHeroProps) {
               <IconPencil />
               Contribute
             </ActionLink>
-            <ActionLink href="/agents">
+            {/* <ActionLink href="/agents">
               <IconRobot />
               Build agent
-            </ActionLink>
-            <ActionLink href={links.repo} external>
+            </ActionLink> */}
+            {/* <ActionLink href={links.repo} external>
               <IconBrandGithub />
               Source
-            </ActionLink>
+            </ActionLink> */}
           </div>
         </div>
 
