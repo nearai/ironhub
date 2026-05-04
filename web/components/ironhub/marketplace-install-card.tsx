@@ -1,7 +1,8 @@
-import { IconCopy, IconSearch, IconTerminal2 } from "@tabler/icons-react"
+import { IconSearch } from "@tabler/icons-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { TerminalBox } from "@/components/ironhub/terminal-box"
 
 type MarketplaceInstallCardProps = {
   total: number
@@ -14,6 +15,8 @@ export function MarketplaceInstallCard({
   skills,
   tools,
 }: MarketplaceInstallCardProps) {
+  const installCommand = "ironclaw hub install near-rpc"
+
   return (
     <div className="rounded-xl border border-[var(--ih-line)] bg-[var(--ih-surface-muted)] p-6 shadow-[var(--ih-shadow)] backdrop-blur-xl">
       <form action="/marketplace" className="relative" role="search">
@@ -37,24 +40,29 @@ export function MarketplaceInstallCard({
       </form>
 
       <div className="mt-5 grid gap-3">
-        <div className="text-sm font-semibold text-muted-foreground">
+        {/* <div className="text-sm font-semibold text-muted-foreground">
           IronHub. Versioned, rollback-ready.
-        </div>
-        <div className="overflow-hidden rounded-xl border border-slate-900/20 bg-slate-950 text-slate-100 shadow-inner dark:border-white/10">
-          <div className="flex items-center justify-between border-b border-white/10 px-4 py-2 text-xs text-slate-400">
-            <span className="inline-flex items-center gap-2">
-              <IconTerminal2 className="size-3.5 text-sky-300" />
-              ironhub
-            </span>
-            <IconCopy className="size-3.5" aria-hidden="true" />
+        </div> */}
+        <TerminalBox copyText={installCommand}>
+          <div className="space-y-1 font-mono text-sm">
+            <div className="flex gap-3">
+              <span className="text-slate-400 select-none dark:text-slate-500">$</span>
+              <span className="text-slate-900 dark:text-slate-100">ironclaw hub search near</span>
+            </div>
+            <div className="flex gap-3">
+              <span className="text-slate-400 select-none dark:text-slate-500">{">"}</span>
+              <span className="text-slate-400 dark:text-slate-400">{total} extensions indexed</span>
+            </div>
+            <div className="flex gap-3">
+              <span className="text-slate-400 select-none dark:text-slate-500">{">"}</span>
+              <span className="text-slate-400 dark:text-slate-400">{skills} skills / {tools} wasm tools</span>
+            </div>
+            <div className="flex gap-3">
+              <span className="text-slate-400 select-none dark:text-slate-500">$</span>
+              <span className="text-slate-900 dark:text-slate-100">{installCommand}</span>
+            </div>
           </div>
-          <pre className="overflow-x-auto p-4 font-mono text-sm leading-7">
-            <code>{`$ ironclaw hub search near
-> ${total} extensions indexed
-> ${skills} skills / ${tools} wasm tools
-$ ironclaw hub install near-rpc`}</code>
-          </pre>
-        </div>
+        </TerminalBox>
       </div>
     </div>
   )
