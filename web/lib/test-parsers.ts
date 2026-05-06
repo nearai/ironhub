@@ -1,4 +1,4 @@
-import { parseToolValueMetadata, parseSkillFrontmatter, parseTrackingTable } from './catalog-parsers.ts';
+import { parseToolValueMetadata, parseSkillFrontmatter, parseTrackingTable } from './catalog-parsers';
 import assert from 'assert';
 
 function testToolValueMetadata() {
@@ -73,7 +73,7 @@ try {
   testSkillFrontmatter();
   testTrackingTable();
   console.log('\nAll tests passed!');
-} catch (e) {
+} catch (e: any) {
   console.error('FAIL:', e.message);
   process.exit(1);
 }
