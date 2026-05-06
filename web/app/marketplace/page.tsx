@@ -31,7 +31,7 @@ export default async function MarketplacePage() {
     <HubLayout>
       <div className="mx-auto grid max-w-7xl gap-6">
         <PageHeader
-          eyebrow="IronClaw Marketplace"
+          eyebrow="Skill Library"
           title="Browse IronClaw Skills and Tools"
           description="Search repo-backed skills, WASM tools, and public Iliad skills from one catalog."
         >

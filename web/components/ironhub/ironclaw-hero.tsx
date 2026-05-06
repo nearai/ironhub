@@ -36,7 +36,7 @@ export function IronClawHero({ total, skills, tools }: IronClawHeroProps) {
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
             <ActionLink href="/marketplace" variant="default">
-              Browse marketplace
+              Skill Library
               <IconArrowRight />
             </ActionLink>
             <ActionLink href="/developer">

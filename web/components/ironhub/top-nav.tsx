@@ -45,16 +45,6 @@ export function TopNav() {
             <Button
               asChild
               variant="outline"
-              className="hidden rounded-full md:inline-flex"
-            >
-              <a href={links.iliad} target="_blank" rel="noreferrer">
-                <IconExternalLink />
-                Iliad
-              </a>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
               size="icon"
               className="hidden rounded-full sm:inline-flex"
             >

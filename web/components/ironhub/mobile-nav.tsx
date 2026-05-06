@@ -68,14 +68,6 @@ export function MobileNav() {
           </SheetClose>
           <SheetClose asChild>
             <Button asChild variant="outline">
-              <a href={links.iliad} target="_blank" rel="noreferrer">
-                <IconExternalLink />
-                Iliad
-              </a>
-            </Button>
-          </SheetClose>
-          <SheetClose asChild>
-            <Button asChild variant="outline">
               <a href={links.docs} target="_blank" rel="noreferrer">
                 <IconBook />
                 Docs

@@ -27,9 +27,21 @@ export function MarketDetailHeader({ item }: MarketDetailHeaderProps) {
             <h1 className="mt-4 font-heading text-4xl font-semibold">
               {item.name}
             </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
-              {item.description}
-            </p>
+            <div className="mt-3 max-w-3xl space-y-3">
+              <p className="text-sm leading-6 text-muted-foreground">
+                {item.valueProp ?? item.description}
+              </p>
+              {item.valueProp && item.valueProp !== item.description && (
+                <div className="pt-2 border-t border-border/40">
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/50 mb-1">
+                    Technical Overview
+                  </p>
+                  <p className="text-xs leading-relaxed text-muted-foreground/70">
+                    {item.description}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">

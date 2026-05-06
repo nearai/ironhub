@@ -12,18 +12,23 @@ export function MarketDetailSurface({ item }: MarketDetailSurfaceProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Iliad artifact</CardTitle>
+          <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground/60">
+            Technical Specifications
+          </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4">
-          <p className="text-sm text-muted-foreground">
-            {item.contentPath} · {formatBytes(item.contentSize)}
-          </p>
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-medium">Iliad Artifact</span>
+            <p className="text-xs text-muted-foreground">
+              {item.contentPath} · {formatBytes(item.contentSize)}
+            </p>
+          </div>
           <div className="flex flex-wrap gap-2">
-            <Badge variant="secondary">15-minute download URL</Badge>
+            <Badge variant="secondary" className="text-[10px]">15-minute download URL</Badge>
             {item.capabilitiesUrl ? (
-              <Badge variant="secondary">Capabilities descriptor</Badge>
+              <Badge variant="secondary" className="text-[10px]">Capabilities descriptor</Badge>
             ) : (
-              <Badge variant="outline">Prompt skill</Badge>
+              <Badge variant="outline" className="text-[10px]">Prompt skill</Badge>
             )}
           </div>
         </CardContent>
@@ -35,18 +40,30 @@ export function MarketDetailSurface({ item }: MarketDetailSurfaceProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Tool surface</CardTitle>
+          <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground/60">
+            Technical Specifications
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            {item.actionCount} actions · WIT {item.witVersion}
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {item.httpAllowlist.map((host) => (
-              <Badge key={host} variant="secondary">
-                {host}
-              </Badge>
-            ))}
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] uppercase text-muted-foreground/70">Interface</span>
+              <span className="text-sm font-medium">WIT {item.witVersion}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] uppercase text-muted-foreground/70">Capacity</span>
+              <span className="text-sm font-medium">{item.actionCount} actions</span>
+            </div>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase text-muted-foreground/70 block mb-2">Network Allowlist</span>
+            <div className="flex flex-wrap gap-2">
+              {item.httpAllowlist.map((host) => (
+                <Badge key={host} variant="secondary" className="text-[10px]">
+                  {host}
+                </Badge>
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -56,18 +73,24 @@ export function MarketDetailSurface({ item }: MarketDetailSurfaceProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Skill activation</CardTitle>
+        <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground/60">
+          Technical Specifications
+        </CardTitle>
       </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">
-          Context budget: {item.maxContextTokens.toLocaleString()} tokens
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {item.activationKeywords.map((keyword) => (
-            <Badge key={keyword} variant="secondary">
-              {keyword}
-            </Badge>
-          ))}
+      <CardContent className="space-y-4">
+        <div className="flex flex-col gap-1">
+          <span className="text-[10px] uppercase text-muted-foreground/70">Memory Budget</span>
+          <span className="text-sm font-medium">{item.maxContextTokens.toLocaleString()} tokens</span>
+        </div>
+        <div>
+          <span className="text-[10px] uppercase text-muted-foreground/70 block mb-2">Activation Keywords</span>
+          <div className="flex flex-wrap gap-2">
+            {item.activationKeywords.map((keyword) => (
+              <Badge key={keyword} variant="secondary" className="text-[10px]">
+                {keyword}
+              </Badge>
+            ))}
+          </div>
         </div>
       </CardContent>
     </Card>
