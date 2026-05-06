@@ -161,18 +161,33 @@ export async function readSkills(
         const frontmatter = parseSkillFrontmatter(text)
         const row = tracking.get(slug)
 
+        const description = row?.description ?? frontmatter.description ?? ""
+        const tags = ["Skill", ...frontmatter.tags]
+
+        const valueProp =
+          frontmatter.valueProp ||
+          row?.valueProp ||
+          inferValuePropFallback(description)
+
+        const valueTags =
+          (frontmatter.valueTags?.length ? frontmatter.valueTags : undefined) ||
+          (row?.valueTags?.length ? row.valueTags : undefined) ||
+          inferValueTagsFallback(slug, description, tags)
+
         return {
           slug,
           kind: "skill",
           name: titleize(frontmatter.name ?? slug),
           status: row?.status ?? "live",
           version: row?.version ?? frontmatter.version ?? "1.0.0",
-          description: row?.description ?? frontmatter.description ?? "",
+          description,
           category: inferCategory(
             slug,
             `${frontmatter.tags.join(" ")} ${frontmatter.description ?? ""}`
           ),
-          tags: ["Skill", ...frontmatter.tags],
+          tags,
+          valueProp,
+          valueTags,
           author: row?.author ?? "unknown",
           sourcePath,
           links: {
