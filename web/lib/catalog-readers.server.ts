@@ -7,12 +7,15 @@ import {
   inferCategory,
   inferIcon,
   inferToolTags,
+  inferValuePropFallback,
+  inferValueTagsFallback,
   titleize,
 } from "@/lib/catalog-inference"
 import {
   countRustEnumVariants,
   parseSkillFrontmatter,
   parseTrackingTable,
+  parseToolValueMetadata,
   readCargoValue,
 } from "@/lib/catalog-parsers"
 import type {
@@ -65,6 +68,7 @@ export async function readTools(
           : {}
         const cargo = await readText(path.join(toolRoot, "Cargo.toml"))
         const readme = await readText(path.join(toolRoot, "README.md"))
+        const readmeMetadata = parseToolValueMetadata(readme)
         const row = tracking.get(slug)
         const actionCount = countRustEnumVariants(
           await readText(path.join(toolRoot, "src/types.rs"))
@@ -72,6 +76,24 @@ export async function readTools(
         const authModel = manifest.auth?.oauth
           ? `OAuth 2.0 user-context${slug === "microsoft-365" ? " with PKCE" : ""}`
           : "No auth"
+
+        const description =
+          row?.description ??
+          manifest.description ??
+          readCargoValue(cargo, "description") ??
+          ""
+
+        const tags = inferToolTags(slug, manifest, readme)
+
+        const valueProp =
+          readmeMetadata.valueProp ||
+          row?.valueProp ||
+          inferValuePropFallback(description)
+
+        const valueTags =
+          (readmeMetadata.valueTags?.length ? readmeMetadata.valueTags : undefined) ||
+          (row?.valueTags?.length ? row.valueTags : undefined) ||
+          inferValueTagsFallback(slug, description, tags)
 
         return {
           slug,
@@ -83,16 +105,14 @@ export async function readTools(
             manifest.version ??
             readCargoValue(cargo, "version") ??
             "0.0.0",
-          description:
-            row?.description ??
-            manifest.description ??
-            readCargoValue(cargo, "description") ??
-            "",
+          description,
           category: inferCategory(
             slug,
             `${manifest.description ?? ""} ${readme}`
           ),
-          tags: inferToolTags(slug, manifest, readme),
+          tags,
+          valueProp,
+          valueTags,
           author: row?.author ?? "unknown",
           sourcePath: `tools/${slug}`,
           links: {
