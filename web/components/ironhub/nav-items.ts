@@ -1,11 +1,10 @@
 import {
-  IconBook,
-  IconLayoutDashboard,
+  IconGitPullRequest,
   IconSparkles,
 } from "@tabler/icons-react"
 
 export const navItems = [
-  ["Overview", "/", IconLayoutDashboard],
-  ["Marketplace", "/marketplace", IconSparkles],
-  ["Docs", "/docs", IconBook],
+  ["Skill Library", "/marketplace", IconSparkles],
+  ["Contribute", "/developer", IconGitPullRequest],
 ] as const
+

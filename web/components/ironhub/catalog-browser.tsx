@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { useCatalogBrowser } from "@/hooks/use-catalog-browser"
 import type { CatalogItem } from "@/lib/catalog-types"
@@ -24,6 +24,16 @@ export function CatalogBrowser({
   children,
 }: CatalogBrowserProps) {
   const browser = useCatalogBrowser(items, collections)
+  const [isScrolled, setIsScrolled] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // Transition past 160px of vertical scroll
+      setIsScrolled(window.scrollY > 160)
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
 
   const combinedResults = useMemo(() => {
     if (browser.kind === "collection") {
@@ -56,7 +66,13 @@ export function CatalogBrowser({
 
   return (
     <div className="grid gap-4">
-      <div className="sticky top-16 z-30 -mx-4 bg-background/95 px-4 py-3 backdrop-blur-md lg:static lg:mx-0 lg:rounded-xl lg:border lg:bg-card lg:p-6 lg:shadow-sm lg:backdrop-blur-none">
+      <div className={cn(
+        "sticky top-16 z-30 -mx-4 px-4 py-3 bg-background/95 backdrop-blur-md transition-all duration-300",
+        "lg:sticky lg:top-[4.5rem] lg:mx-0 lg:rounded-xl lg:border",
+        isScrolled
+          ? "lg:bg-background/90 lg:backdrop-blur-md lg:p-3 lg:shadow-md lg:border-primary/20"
+          : "lg:bg-card lg:p-6 lg:shadow-sm lg:border-[var(--ironhub-line)] lg:backdrop-blur-none"
+      )}>
         <CatalogFilters
           query={browser.query}
           onQueryChange={browser.setQuery}
@@ -69,6 +85,7 @@ export function CatalogBrowser({
           view={browser.view}
           onViewChange={browser.setView}
           categories={categories}
+          compact={isScrolled}
         />
       </div>
 
