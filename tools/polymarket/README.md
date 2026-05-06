@@ -1,5 +1,8 @@
 # polymarket
 
+**Value Prop:** Real-time prediction market data feed.
+**Value Tags:** Data Feed, Web3
+
 Polymarket public market intelligence integration for IronClaw. Reads markets, events, tags, sports, orderbooks, prices, positions, leaderboards, profiles, and comments across the Polymarket prediction-market platform. No authentication required.
 
 ## Actions
