@@ -43,6 +43,8 @@ export type BaseCatalogItem = {
   limits: string[]
   related: CatalogRelated
   icon: "microsoft" | "near" | "workflow" | "tool" | "skill"
+  valueProp?: string
+  valueTags?: string[]
   remoteUserId?: string
   contentHash?: string
   contentSize?: number
