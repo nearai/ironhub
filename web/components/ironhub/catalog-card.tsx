@@ -54,11 +54,11 @@ export function CatalogCard({ item, compact = false }: CatalogCardProps) {
 
       <CardContent className="flex flex-1 flex-col gap-4">
         <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
-          {item.description}
+          {item.valueProp ?? item.description}
         </p>
         {!compact && (
           <div className="flex flex-wrap gap-2">
-            {item.tags.slice(0, 4).map((tag) => (
+            {(item.valueTags?.length ? item.valueTags : item.tags).slice(0, 4).map((tag) => (
               <Badge 
                 key={tag} 
                 variant="outline"
