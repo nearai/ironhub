@@ -1,8 +1,7 @@
-import { DetailRow } from "@/components/ironhub/detail-row"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
+import { CLIInstallBox } from "@/components/ironhub/cli-install-box"
+import { MarkdownView } from "@/components/ironhub/markdown-view"
+import { Card, CardContent } from "@/components/ui/card"
 import type { CatalogItem } from "@/lib/catalog-types"
-import { formatBytes, formatDate } from "@/lib/format-utils"
 
 type MarketDetailInfoProps = {
   item: CatalogItem
@@ -10,38 +9,42 @@ type MarketDetailInfoProps = {
 
 export function MarketDetailInfo({ item }: MarketDetailInfoProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Integration details</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <dl className="grid gap-4 sm:grid-cols-2">
-          <DetailRow label="Version" value={item.version} />
-          <DetailRow label="Author" value={item.author} />
-          <DetailRow label="Auth" value={item.auth.model} />
-          <DetailRow label="Source path" value={item.sourcePath} />
-          {item.origin === "iliad" && (
-            <>
-              <DetailRow label="Publisher" value={item.remoteUserId ?? "Iliad"} />
-              <DetailRow label="Artifact size" value={formatBytes(item.contentSize)} />
-              <DetailRow label="Published" value={formatDate(item.publishedAt)} />
-              <DetailRow
-                label="Made public"
-                value={formatDate(item.madePublicAt)}
-              />
-            </>
-          )}
-        </dl>
-        <Separator className="my-6" />
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase">
-          Known limits
-        </h3>
-        <ul className="mt-3 grid gap-2 text-sm leading-6">
-          {item.limits.map((limit) => (
-            <li key={limit}>{limit}</li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
+    <div className="w-full min-w-0 space-y-6">
+      {item.useCases.length > 0 && (
+        <Card className="gap-0 py-0 border border-[var(--ironhub-line)] bg-card/60 shadow-[var(--ironhub-shadow)] backdrop-blur-xl overflow-hidden">
+          <div className="bg-muted/30 dark:bg-muted/15 border-b border-border/30 px-5 py-3 flex items-center justify-between">
+            <h3 className="font-heading text-sm font-bold uppercase tracking-wider text-muted-foreground/90">
+              Use Cases
+            </h3>
+          </div>
+          <CardContent className="p-5">
+            <ul className="grid gap-3.5 sm:grid-cols-2">
+              {item.useCases.map((useCase) => (
+                <li key={useCase} className="flex items-start gap-2.5 text-sm text-foreground/90">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                  <span>{useCase}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="block lg:hidden">
+        <CLIInstallBox slug={item.slug} />
+      </div>
+
+      <Card className="gap-0 py-0 border border-[var(--ironhub-line)] bg-card/60 shadow-[var(--ironhub-shadow)] backdrop-blur-xl overflow-hidden">
+        <div className="bg-muted/30 dark:bg-muted/15 border-b border-border/30 px-5 py-3 flex items-center justify-between">
+          <h3 className="font-heading text-sm font-bold uppercase tracking-wider text-muted-foreground/90">
+            Description
+          </h3>
+        </div>
+        <CardContent className="p-5">
+          <MarkdownView content={item.body || item.description} />
+        </CardContent>
+      </Card>
+    </div>
   )
 }
+

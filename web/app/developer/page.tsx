@@ -73,7 +73,7 @@ export default function DeveloperPage() {
                   Create IronClaw Skills, tools easily with Iliad
                 </h3>
                 <p className="text-sm leading-6 text-muted-foreground max-w-2xl">
-                  Create your own IronClaw tools, skills, and presets easily using Iliad build platform using AI assistance, no technical skills required.
+                  Build custom IronClaw tools, skills, and bundles easily with the Iliad AI cloud platform. No technical experience needed.
                 </p>
               </div>
               <div className="shrink-0 pt-2 sm:pt-0">

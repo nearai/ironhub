@@ -7,8 +7,6 @@ import {
   inferCategory,
   inferIcon,
   inferToolTags,
-  inferValuePropFallback,
-  inferValueTagsFallback,
   titleize,
 } from "@/lib/catalog-inference"
 import {
@@ -77,23 +75,17 @@ export async function readTools(
           ? `OAuth 2.0 user-context${slug === "microsoft-365" ? " with PKCE" : ""}`
           : "No auth"
 
-        const description =
-          row?.description ??
-          manifest.description ??
-          readCargoValue(cargo, "description") ??
-          ""
+        const description = readmeMetadata.description ?? ""
 
         const tags = inferToolTags(slug, manifest, readme)
 
-        const valueProp =
-          readmeMetadata.valueProp ||
-          row?.valueProp ||
-          inferValuePropFallback(description)
+        const useCases = readmeMetadata.useCases ?? []
 
-        const valueTags =
-          (readmeMetadata.valueTags?.length ? readmeMetadata.valueTags : undefined) ||
-          (row?.valueTags?.length ? row.valueTags : undefined) ||
-          inferValueTagsFallback(slug, description, tags)
+        const valueTags = readmeMetadata.valueTags ?? []
+
+        const body = (readme.split(/^---\n[\s\S]*?\n---/m)[1] ?? readme)
+          .replace(/^# .*\n/, "") // Strip title if it's the first line
+          .trim()
 
         return {
           slug,
@@ -102,6 +94,7 @@ export async function readTools(
           status: row?.status ?? "live",
           version:
             row?.version ??
+            readmeMetadata.version ??
             manifest.version ??
             readCargoValue(cargo, "version") ??
             "0.0.0",
@@ -111,8 +104,9 @@ export async function readTools(
             `${manifest.description ?? ""} ${readme}`
           ),
           tags,
-          valueProp,
+          useCases,
           valueTags,
+          body,
           author: row?.author ?? "unknown",
           sourcePath: `tools/${slug}`,
           links: {
@@ -161,18 +155,14 @@ export async function readSkills(
         const frontmatter = parseSkillFrontmatter(text)
         const row = tracking.get(slug)
 
-        const description = row?.description ?? frontmatter.description ?? ""
+        const description = frontmatter.description ?? ""
         const tags = ["Skill", ...frontmatter.tags]
 
-        const valueProp =
-          frontmatter.valueProp ||
-          row?.valueProp ||
-          inferValuePropFallback(description)
+        const useCases = frontmatter.useCases ?? []
 
-        const valueTags =
-          (frontmatter.valueTags?.length ? frontmatter.valueTags : undefined) ||
-          (row?.valueTags?.length ? row.valueTags : undefined) ||
-          inferValueTagsFallback(slug, description, tags)
+        const valueTags = frontmatter.valueTags ?? []
+
+        const body = text.split(/^---\n[\s\S]*?\n---/m)[1]?.trim() ?? ""
 
         return {
           slug,
@@ -186,8 +176,9 @@ export async function readSkills(
             `${frontmatter.tags.join(" ")} ${frontmatter.description ?? ""}`
           ),
           tags,
-          valueProp,
+          useCases,
           valueTags,
+          body,
           author: row?.author ?? "unknown",
           sourcePath,
           links: {

@@ -2,7 +2,11 @@
 name: microsoft-365-workflow
 version: 1.0.0
 description: Microsoft 365 business workflow patterns for the IronClaw agent. Covers Outlook email, Excel data operations, Teams channel communication, Word and PowerPoint document generation, and SharePoint and OneDrive file management via Microsoft Graph.
-value_prop: \"Microsoft 365 business workflow patterns.\"
+use_cases:
+  - Automate Outlook email drafts and replies
+  - Read and write Excel range data directly
+  - Post status updates to Teams channels
+value_prop: "Microsoft 365 business workflow patterns."
 value_tags:
   - Automation
   - Productivity

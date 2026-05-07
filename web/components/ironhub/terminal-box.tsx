@@ -12,7 +12,7 @@ type TerminalBoxProps = {
 }
 
 export function TerminalBox({
-  title = "ironhub",
+  title = "Install",
   copyText,
   children,
   className,
