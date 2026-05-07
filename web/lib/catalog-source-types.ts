@@ -7,7 +7,7 @@ export type TrackingRow = {
   limits?: string[]
   author?: string
   trunk?: string
-  valueProp?: string
+  useCases?: string[]
   valueTags?: string[]
 }
 
@@ -36,6 +36,6 @@ export type SkillFrontmatter = {
   keywords: string[]
   patterns: string[]
   maxContextTokens: number
-  valueProp?: string
-  valueTags?: string[]
+  useCases: string[]
+  valueTags: string[]
 }

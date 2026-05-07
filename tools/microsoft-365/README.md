@@ -1,3 +1,17 @@
+---
+name: microsoft-365
+version: 0.1.0
+description: Microsoft Graph integration. 14 actions across Outlook, Excel, Teams, OneDrive, SharePoint, Calendar, plus Word and PowerPoint document generation. OAuth via Microsoft Entra ID.
+use_cases:
+  - List recent Outlook emails
+  - Manage OneDrive and SharePoint files
+  - Send Teams channel messages
+value_prop: "Microsoft Graph integration."
+value_tags:
+  - Automation
+  - Productivity
+---
+
 # microsoft-365
 
 Microsoft 365 integration tool for the IronClaw agent runtime. Wraps Microsoft Graph v1.0 across Outlook mail, Excel workbook operations, Teams channel messaging, OneDrive and SharePoint file management, Outlook Calendar scheduling, and Word and PowerPoint document generation. OAuth 2.0 user-context authentication against Microsoft Entra ID.

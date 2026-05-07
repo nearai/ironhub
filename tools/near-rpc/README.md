@@ -1,3 +1,18 @@
+---
+name: near-rpc
+version: 0.1.0
+description: NEAR Protocol JSON-RPC integration. 27 actions covering account state, access keys, contract storage and code, view function calls, blocks, chunks, validators, transaction lifecycle, gas and protocol config, state changes, network status, and light-client proofs. No credentials required for read actions.
+use_cases:
+  - Monitor NEAR account state
+  - Query smart contract data
+  - Track blockchain state changes
+value_prop: "NEAR Protocol JSON-RPC integration."
+value_tags:
+  - Web3
+  - Data Feed
+  - Blockchain
+---
+
 # near-rpc
 
 NEAR Protocol JSON-RPC integration for IronClaw. 27 actions covering account state, access keys, contract storage and code, view function calls, blocks and chunks, validators, transaction lifecycle, gas and protocol config, state changes, network status, and light-client proofs.

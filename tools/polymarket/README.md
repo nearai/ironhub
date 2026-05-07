@@ -1,7 +1,18 @@
-# polymarket
+---
+name: polymarket
+version: 0.1.0
+description: Polymarket public market intelligence integration for IronClaw. Reads markets, events, tags, sports, orderbooks, prices, positions, leaderboards, profiles, and comments across the Polymarket prediction-market platform. No authentication required.
+use_cases:
+  - Query real-time election odds
+  - Track crypto prediction markets
+  - Feed sentiment data into trading agents
+value_prop: "Polymarket public market intelligence integration."
+value_tags:
+  - Data Feed
+  - Web3
+---
 
-**Value Prop:** Real-time prediction market data feed.
-**Value Tags:** Data Feed, Web3
+# polymarket
 
 Polymarket public market intelligence integration for IronClaw. Reads markets, events, tags, sports, orderbooks, prices, positions, leaderboards, profiles, and comments across the Polymarket prediction-market platform. No authentication required.
 
