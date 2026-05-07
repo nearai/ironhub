@@ -5,7 +5,7 @@ type HubLayoutProps = {
 export function HubLayout({ children }: HubLayoutProps) {
   return (
     <div className="ih-home-wrapper">
-      <main className="relative z-10 mx-auto max-w-7xl px-4 pt-0 pb-7 sm:px-6 sm:py-7 lg:px-0">
+      <main className="relative z-10 mx-auto max-w-7xl px-4 pt-6 pb-7 sm:px-6 sm:py-7 lg:px-0">
         {children}
       </main>
       <img

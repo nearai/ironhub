@@ -24,30 +24,20 @@ export function parseTrackingTable(text: string, heading: "Tools" | "Skills") {
       rows.set(name, {
         status: normalizeStatus(cells[1]),
         version: cells[2],
-        valueProp: cells[3],
-        valueTags: cells[4]
-          ? cells[4]
-              .split(",")
-              .map((t) => t.trim())
-              .filter(Boolean)
-          : [],
+        useCases: parseList(cells[3]),
+        valueTags: parseList(cells[4]),
         description: cells[5],
         limits: splitLimits(cells[6]),
         author: cells[7],
       })
     } else {
       rows.set(name, {
-        trunk: cells[1]?.replaceAll("`", ""),
-        status: normalizeStatus(cells[2]),
-        version: cells[3],
-        valueProp: cells[4],
-        valueTags: cells[5]
-          ? cells[5]
-              .split(",")
-              .map((t) => t.trim())
-              .filter(Boolean)
-          : [],
-        description: cells[6],
+        status: normalizeStatus(cells[1]),
+        version: cells[2],
+        useCases: parseList(cells[3]),
+        valueTags: parseList(cells[4]),
+        description: cells[5],
+        trunk: cells[6]?.replaceAll("`", ""),
         author: cells[7],
       })
     }
@@ -56,7 +46,16 @@ export function parseTrackingTable(text: string, heading: "Tools" | "Skills") {
   return rows
 }
 
-export function parseSkillFrontmatter(text: string): SkillFrontmatter {
+function parseList(value?: string) {
+  return value
+    ? value
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
+    : []
+}
+
+export function parseYamlFrontmatter(text: string) {
   const yaml = text.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? ""
 
   return {
@@ -64,25 +63,33 @@ export function parseSkillFrontmatter(text: string): SkillFrontmatter {
     version: readYamlScalar(yaml, "version"),
     description: readYamlScalar(yaml, "description"),
     tags: readYamlList(yaml, "tags"),
+    useCases: readYamlList(yaml, "use_cases"),
+    valueTags: readYamlList(yaml, "value_tags"),
+    valueProp: readYamlScalar(yaml, "value_prop"),
+    yaml,
+  }
+}
+
+export function parseSkillFrontmatter(text: string): SkillFrontmatter {
+  const { name, version, description, tags, useCases, valueTags, yaml } =
+    parseYamlFrontmatter(text)
+
+  return {
+    name,
+    version,
+    description,
+    tags,
     keywords: readYamlList(yaml, "keywords"),
     patterns: readYamlList(yaml, "patterns"),
     maxContextTokens: Number(readYamlScalar(yaml, "max_context_tokens") ?? 0),
-    valueProp: readYamlScalar(yaml, "value_prop"),
-    valueTags: readYamlList(yaml, "value_tags"),
+    useCases,
+    valueTags,
   }
 }
 
 export function parseToolValueMetadata(text: string) {
-  const valueProp = text.match(/\*\*Value Prop:\*\*\s*(.+)/i)?.[1]?.trim()
-  const tagsStr = text.match(/\*\*Value Tags:\*\*\s*(.+)/i)?.[1]
-  const valueTags = tagsStr
-    ? tagsStr
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean)
-    : []
-
-  return { valueProp, valueTags }
+  const { name, version, description, useCases, valueTags } = parseYamlFrontmatter(text)
+  return { name, version, description, useCases, valueTags }
 }
 
 export function countRustEnumVariants(source: string) {

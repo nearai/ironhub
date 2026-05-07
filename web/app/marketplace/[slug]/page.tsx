@@ -30,9 +30,9 @@ export default async function MarketplaceDetailPage({
 
   return (
     <HubLayout>
-      <div className="mx-auto grid max-w-7xl gap-6">
+      <div className="mx-auto grid max-w-7xl w-full min-w-0 gap-6">
         <MarketDetailHeader item={item} />
-        <section className="grid gap-4 lg:grid-cols-[1fr_360px]">
+        <section className="grid w-full min-w-0 gap-4 lg:grid-cols-[1fr_360px]">
           <MarketDetailInfo item={item} />
           <MarketDetailAside item={item} />
         </section>

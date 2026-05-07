@@ -23,7 +23,7 @@ export function StatusBadge({ item }: StatusBadgeProps) {
   return (
     <Badge variant={item.kind === "skill" ? "secondary" : "default"}>
       <Icon className={iconClass} aria-hidden="true" />
-      {item.kind === "skill" ? "Skill" : "Tool"} · {item.status}
+      {item.kind === "skill" ? "Skill" : "Tool"}
     </Badge>
   )
 }
