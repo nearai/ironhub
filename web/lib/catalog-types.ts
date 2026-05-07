@@ -32,7 +32,7 @@ export type BaseCatalogItem = {
   name: string
   status: CatalogStatus
   version: string
-  description: string
+  description: string | null
   category: string
   tags: string[]
   author: string

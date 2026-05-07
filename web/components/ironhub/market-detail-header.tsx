@@ -29,9 +29,9 @@ export function MarketDetailHeader({ item }: MarketDetailHeaderProps) {
             </h1>
             <div className="mt-3 max-w-3xl space-y-3">
               <p className="text-sm leading-6 text-muted-foreground">
-                {item.valueProp ?? item.description}
+                {item.valueProp ?? item.description ?? "No description."}
               </p>
-              {item.valueProp && item.valueProp !== item.description && (
+              {item.valueProp && item.description && item.valueProp !== item.description && (
                 <div className="pt-2 border-t border-border/40">
                   <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/50 mb-1">
                     Technical Overview

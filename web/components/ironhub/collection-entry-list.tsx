@@ -29,7 +29,7 @@ export function CollectionEntryList({ items }: CollectionEntryListProps) {
           </CardHeader>
           <CardContent className="grid gap-4">
             <p className="text-sm leading-6 text-muted-foreground">
-              {item.description}
+              {item.description ?? "No description."}
             </p>
             <div className="flex flex-wrap gap-2">
               {item.tags.slice(0, 4).map((tag) => (
