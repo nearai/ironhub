@@ -1,4 +1,4 @@
-const REPO = "https://github.com/neo-sky/ironclaw-skills"
+const REPO = "https://github.com/nearai/ironhub"
 
 export const links = {
   repo: REPO,

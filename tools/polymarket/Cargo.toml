@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Polymarket public market intelligence integration for IronClaw. Reads markets, events, tags, orderbooks, prices, positions, leaderboards, profiles, comments, and rewards across the Polymarket prediction-market platform."
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/neo-sky/ironclaw-skills"
+repository = "https://github.com/nearai/ironhub"
 publish = false
 
 [lib]
