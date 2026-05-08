@@ -1,0 +1,50 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "WhatsApp Cloud API via the Meta Graph API. Send messages (text, template, image, video, document, audio, location, contacts, interactive buttons and lists, reactions, and read receipts), manage the business profile, read phone number metadata, and manage message templates per WhatsApp Business Account. Authenticated with a permanent System User access token provisioned at deployment time; the exec does not OAuth into WhatsApp.",
+  "http": {
+    "allowlist": [
+      {
+        "host": "graph.facebook.com",
+        "path_prefix": "/v23.0/",
+        "methods": ["GET", "POST", "PUT", "DELETE"]
+      }
+    ],
+    "credentials": {
+      "whatsapp_access_token": {
+        "secret_name": "whatsapp_access_token",
+        "location": { "type": "bearer" },
+        "host_patterns": ["graph.facebook.com"]
+      }
+    },
+    "rate_limit": {
+      "requests_per_minute": 60,
+      "requests_per_hour": 3600
+    },
+    "timeout_secs": 60
+  },
+  "secrets": {
+    "allowed_names": ["whatsapp_access_token"]
+  },
+  "auth": {
+    "secret_name": "whatsapp_access_token",
+    "display_name": "WhatsApp Cloud API",
+    "static_token": {
+      "env_var": "WHATSAPP_ACCESS_TOKEN",
+      "instructions": "Provision a permanent System User access token in Meta Business Manager. The token does not expire unless explicitly revoked."
+    },
+    "env_var": "WHATSAPP_ACCESS_TOKEN",
+    "setup_url": "https://business.facebook.com/settings/system-users",
+    "instructions": "1. Open Meta Business Manager at https://business.facebook.com and switch to the business that owns the WhatsApp Business Account.\n2. Go to Business Settings, then System Users in the left sidebar. Click Add and create a System User with role Admin. Name it (e.g. IronClaw Service Account).\n3. Click the new System User. Click Add Assets, choose WhatsApp Accounts, select the WhatsApp Business Account this IronClaw instance will send from, and grant Full control.\n4. Click Generate New Token. Choose the connected app. Set the token to never expire. Select the permissions whatsapp_business_messaging and whatsapp_business_management. Click Generate token.\n5. Copy the access token immediately. It will not be visible again.\n6. Note the WhatsApp Business Account ID (visible in WhatsApp Manager > Account tools > Phone numbers > the WABA id) and the Phone Number ID for the sender phone (also in Phone numbers).\n7. On the IronClaw host, set:\n\n   ```sh\n   export WHATSAPP_ACCESS_TOKEN=<the token>\n   ```\n\n   The phone number id and business account id are passed per call as action parameters; they are not stored as IronClaw secrets because they are not sensitive.\n8. Run `ironclaw tool install whatsapp` to register the tool. Re-authentication is only required if the token is revoked or its permissions change."
+  },
+  "setup": {
+    "fields": [
+      {
+        "name": "WHATSAPP_ACCESS_TOKEN",
+        "label": "WhatsApp permanent System User access token",
+        "kind": "secret",
+        "required": true
+      }
+    ]
+  }
+}
