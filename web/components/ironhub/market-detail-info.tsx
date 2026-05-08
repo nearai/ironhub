@@ -41,7 +41,7 @@ export function MarketDetailInfo({ item }: MarketDetailInfoProps) {
           </h3>
         </div>
         <CardContent className="p-5">
-          <MarkdownView content={item.body || item.description} />
+          <MarkdownView content={item.body || item.description || "No description."} />
         </CardContent>
       </Card>
     </div>
