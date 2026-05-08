@@ -63,7 +63,7 @@ export function iliadSkillToCatalogItem(skill: IliadPublicSkill): CatalogItem {
     name: titleize(skill.name),
     status: "live",
     version: skill.version,
-    description: skill.description,
+    description: skill.description?.trim() || null,
     category: "Iliad",
     tags: ["Iliad", skill.kind, skill.category].filter(Boolean),
     author: skill.author,

@@ -47,7 +47,7 @@ export function MarketDetailHeader({ item }: MarketDetailHeaderProps) {
             )}
           </div>
           <p className="mt-3.5 max-w-2xl text-base leading-relaxed text-muted-foreground">
-            {item.description}
+            {item.description ?? "No description."}
           </p>
           {item.valueTags.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">

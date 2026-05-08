@@ -4,7 +4,7 @@ export type IliadPublicSkill = {
   userId: string
   name: string
   version: string
-  description: string
+  description: string | null
   category: string
   kind: CatalogKind
   contentHash: string

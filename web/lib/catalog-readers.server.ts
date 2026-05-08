@@ -75,7 +75,7 @@ export async function readTools(
           ? `OAuth 2.0 user-context${slug === "microsoft-365" ? " with PKCE" : ""}`
           : "No auth"
 
-        const description = readmeMetadata.description ?? ""
+        const description = readmeMetadata.description?.trim() || null
 
         const tags = inferToolTags(slug, manifest, readme)
 
@@ -155,7 +155,7 @@ export async function readSkills(
         const frontmatter = parseSkillFrontmatter(text)
         const row = tracking.get(slug)
 
-        const description = frontmatter.description ?? ""
+        const description = frontmatter.description?.trim() || null
         const tags = ["Skill", ...frontmatter.tags]
 
         const useCases = frontmatter.useCases ?? []
