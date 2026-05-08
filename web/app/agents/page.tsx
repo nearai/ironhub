@@ -1,27 +1,38 @@
-import { AgentBuilder } from "@/components/ironhub/agents/agent-builder"
+import { Suspense } from "react"
+import { LoadoutBuilder } from "@/components/ironhub/agents/loadout-builder"
 import { HubLayout } from "@/components/ironhub/hub-layout"
-import { PageHeader } from "@/components/ironhub/page-header"
-import { getCatalog } from "@/lib/catalog.server"
+import { getMarketplaceCatalog } from "@/lib/catalog.server"
+import { buildCollectionBundles } from "@/lib/collection-bundles"
+import { IconLoader2 } from "@tabler/icons-react"
 
 export const dynamic = "force-dynamic"
 
 export default async function AgentsPage() {
-  const items = await getCatalog()
+  const { items } = await getMarketplaceCatalog()
+  const collections = buildCollectionBundles(items)
   const catalog = {
     skills: items.filter((item) => item.kind === "skill"),
     tools: items.filter((item) => item.kind === "tool"),
+    collections,
   }
 
   return (
     <HubLayout>
-      <div className="mx-auto grid max-w-7xl gap-6">
-        <PageHeader
-          eyebrow="Agents / New agent"
-          title="Choose a Persona"
-          description="Each persona comes with a preconfigured soul, default skills, and recommended tools."
-        />
-        <AgentBuilder catalog={catalog} />
+      <div className="mx-auto grid max-w-7xl">
+        <Suspense
+          fallback={
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <IconLoader2 className="size-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground font-medium">
+                Loading Loadout Builder...
+              </p>
+            </div>
+          }
+        >
+          <LoadoutBuilder catalog={catalog} />
+        </Suspense>
       </div>
     </HubLayout>
   )
 }
+

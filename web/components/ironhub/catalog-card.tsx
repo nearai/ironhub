@@ -4,6 +4,7 @@ import Link from "next/link"
 import { IconArrowRight, IconKey, IconUserCircle } from "@tabler/icons-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import {
   Card,
   CardAction,
@@ -20,9 +21,18 @@ import { StatusBadge } from "./status-badge"
 type CatalogCardProps = {
   item: CatalogItem
   compact?: boolean
+  onSelect?: (item: CatalogItem) => void
+  selectText?: string
+  disabled?: boolean
 }
 
-export function CatalogCard({ item, compact = false }: CatalogCardProps) {
+export function CatalogCard({
+  item,
+  compact = false,
+  onSelect,
+  selectText,
+  disabled = false,
+}: CatalogCardProps) {
   const metric =
     item.origin === "iliad"
       ? formatBytes(item.contentSize)
@@ -83,16 +93,32 @@ export function CatalogCard({ item, compact = false }: CatalogCardProps) {
           </span>
         </div>
         
-        <Button 
-          asChild 
-          variant="outline"
-          className="w-full gap-2 rounded-full border-border/60 bg-transparent font-semibold text-foreground transition-all hover:bg-primary/5 hover:border-primary/30 hover:text-primary"
-        >
-          <Link href={`/marketplace/${item.slug}`}>
-            View setup
+        {onSelect ? (
+          <Button 
+            onClick={() => !disabled && onSelect(item)}
+            disabled={disabled}
+            className={cn(
+              "w-full gap-2 rounded-full font-semibold transition-all cursor-pointer",
+              disabled 
+                ? "bg-muted text-muted-foreground border border-border/40 cursor-not-allowed opacity-70" 
+                : "bg-primary text-primary-foreground hover:bg-primary/90"
+            )}
+          >
+            {selectText || "Select"}
             <IconArrowRight className="size-4" />
-          </Link>
-        </Button>
+          </Button>
+        ) : (
+          <Button 
+            asChild 
+            variant="outline"
+            className="w-full gap-2 rounded-full border-border/60 bg-transparent font-semibold text-foreground transition-all hover:bg-primary/5 hover:border-primary/30 hover:text-primary"
+          >
+            <Link href={`/marketplace/${item.slug}`}>
+              View setup
+              <IconArrowRight className="size-4" />
+            </Link>
+          </Button>
+        )}
       </CardFooter>
     </Card>
   )
