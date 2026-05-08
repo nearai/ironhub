@@ -35,7 +35,7 @@ version = "0.1.0"
 edition = "2021"
 description = "<one-sentence summary>"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/neo-sky/ironclaw-skills"
+repository = "https://github.com/nearai/ironhub"
 publish = false
 
 [lib]
