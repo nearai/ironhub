@@ -54,7 +54,7 @@ export function CatalogCard({ item, compact = false }: CatalogCardProps) {
 
       <CardContent className="flex flex-col gap-4">
         <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
-          {item.description}
+          {item.description ?? "No description."}
         </p>
         {!compact && (
           <div className="flex flex-wrap gap-2">

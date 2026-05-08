@@ -25,7 +25,7 @@ export function LoadoutCatalogItem({
           </Badge>
         </span>
         <span className="mt-1 line-clamp-2 block text-sm leading-5 text-muted-foreground">
-          {item.description}
+          {item.description ?? "No description."}
         </span>
       </span>
       <Switch checked={checked} onCheckedChange={() => onToggle(item.slug)} />
