@@ -16,7 +16,7 @@ import {
  * Set `ENABLE_AUTHOR_FILTER` to true to restrict visible items, or false to show all.
  */
 export const ENABLE_AUTHOR_FILTER = true
-export const ALLOWED_AUTHORS: readonly string[] = ["Brandon", "IronClaw Foundation"]
+export const ALLOWED_AUTHORS: readonly string[] = ["Brandon", "Iliad"]
 
 export async function getCatalog() {
   const root = await findRepoRoot()
