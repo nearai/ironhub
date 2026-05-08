@@ -11,6 +11,13 @@ import {
   getIliadCatalogItems,
 } from "@/lib/iliad-public-skills.server"
 
+/**
+ * Configuration for filtering marketplace catalog items by selected authors.
+ * Set `ENABLE_AUTHOR_FILTER` to true to restrict visible items, or false to show all.
+ */
+export const ENABLE_AUTHOR_FILTER = true
+export const ALLOWED_AUTHORS: readonly string[] = ["Brandon", "IronClaw Foundation"]
+
 export async function getCatalog() {
   const root = await findRepoRoot()
   const tracking = await readTracking(root)
@@ -18,9 +25,14 @@ export async function getCatalog() {
     readTools(root, tracking.tools),
     readSkills(root, tracking.skills),
   ])
-  const items = [...tools, ...skills].sort((a, b) =>
+  let items = [...tools, ...skills].sort((a, b) =>
     a.name.localeCompare(b.name)
   )
+
+  if (ENABLE_AUTHOR_FILTER) {
+    items = items.filter((item) => ALLOWED_AUTHORS.includes(item.author))
+  }
+
   const branchMap = getSkillBranchMap(items)
 
   return items.map((item) => {
@@ -46,11 +58,21 @@ export async function getMarketplaceCatalog() {
     getIliadCatalogItems(),
   ])
 
+  let items = [...repoItems, ...iliadCatalog.items]
+
+  if (ENABLE_AUTHOR_FILTER) {
+    items = items.filter((item) => ALLOWED_AUTHORS.includes(item.author))
+  }
+
+  const filteredIliadItems = ENABLE_AUTHOR_FILTER
+    ? iliadCatalog.items.filter((item) => ALLOWED_AUTHORS.includes(item.author))
+    : iliadCatalog.items
+
   return {
-    items: [...repoItems, ...iliadCatalog.items],
+    items,
     iliad: {
-      loaded: iliadCatalog.items.length,
-      total: iliadCatalog.total,
+      loaded: filteredIliadItems.length,
+      total: filteredIliadItems.length,
       error: iliadCatalog.error,
     },
   }
@@ -64,7 +86,11 @@ export async function getMarketplaceCatalogItem(slug: string) {
   }
 
   try {
-    return await getIliadCatalogItem(slug)
+    const item = await getIliadCatalogItem(slug)
+    if (item && ENABLE_AUTHOR_FILTER && !ALLOWED_AUTHORS.includes(item.author)) {
+      return undefined
+    }
+    return item
   } catch {
     return undefined
   }
