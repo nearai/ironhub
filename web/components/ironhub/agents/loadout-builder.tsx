@@ -205,7 +205,7 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
         (s) =>
           (s.slug.toLowerCase().includes(keyword) ||
             s.name.toLowerCase().includes(keyword) ||
-            s.description.toLowerCase().includes(keyword)) &&
+            (s.description && s.description.toLowerCase().includes(keyword))) &&
           !matchedSkills.some((existing) => existing.slug === s.slug)
       )
       matchedSkills = [...matchedSkills, ...found]
@@ -225,7 +225,7 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
         (t) =>
           (t.slug.toLowerCase().includes(keyword) ||
             t.name.toLowerCase().includes(keyword) ||
-            t.description.toLowerCase().includes(keyword)) &&
+            (t.description && t.description.toLowerCase().includes(keyword))) &&
           !matchedTools.some((existing) => existing.slug === t.slug)
       )
       matchedTools = [...matchedTools, ...found]
