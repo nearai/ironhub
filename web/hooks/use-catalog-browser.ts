@@ -59,8 +59,8 @@ export function useCatalogBrowser(items: CatalogItem[], collections: CollectionB
   }, [items, query, kind, category, sort])
 
   const filteredCollections = useMemo(() => {
-    return sortCollections(filterCollections(collections, query))
-  }, [collections, query])
+    return sortCollections(filterCollections(collections, query, category))
+  }, [collections, query, category])
 
   return {
     query,
@@ -94,7 +94,5 @@ function getCategoryFromParam(
     return "all"
   }
 
-  return items.some((item) => item.category === categoryParam)
-    ? categoryParam
-    : "all"
+  return categoryParam
 }

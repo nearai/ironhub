@@ -64,6 +64,43 @@ export function CatalogBrowser({
     return mixed
   }, [browser.kind, browser.results, browser.filteredCollections])
 
+  const [visibleCount, setVisibleCount] = useState(24)
+
+  // Reset visible count when filters/results change
+  useEffect(() => {
+    setVisibleCount(24)
+  }, [combinedResults])
+
+  // Scroll to top when switching categories or kinds
+  useEffect(() => {
+    window.scrollTo({ top: 280, behavior: "smooth" })
+  }, [browser.category, browser.kind])
+
+  // Intersection observer for infinite scroll
+  useEffect(() => {
+    if (visibleCount >= combinedResults.length) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + 24, combinedResults.length))
+        }
+      },
+      { threshold: 0.1, rootMargin: "400px" }
+    )
+
+    const trigger = document.getElementById("catalog-load-more-trigger")
+    if (trigger) observer.observe(trigger)
+
+    return () => {
+      if (trigger) observer.unobserve(trigger)
+    }
+  }, [visibleCount, combinedResults.length])
+
+  const visibleResults = useMemo(() => {
+    return combinedResults.slice(0, visibleCount)
+  }, [combinedResults, visibleCount])
+
   return (
     <div className="grid gap-4">
       <div className={cn(
@@ -92,7 +129,7 @@ export function CatalogBrowser({
       {children}
 
       <div className={cn("grid gap-4", browser.view === "grid" ? "md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1")}>
-        {combinedResults.map((result: CatalogItem | CollectionBundle) => {
+        {visibleResults.map((result: CatalogItem | CollectionBundle) => {
           if ("kind" in result && result.kind === "collection") {
             return (
               <CollectionBundleCard
@@ -111,6 +148,18 @@ export function CatalogBrowser({
           )
         })}
       </div>
+      
+      {visibleCount < combinedResults.length && (
+        <div 
+          id="catalog-load-more-trigger" 
+          className="h-10 w-full flex items-center justify-center opacity-50"
+        >
+          <div className="animate-pulse w-2 h-2 bg-primary rounded-full mx-1" />
+          <div className="animate-pulse w-2 h-2 bg-primary rounded-full mx-1 delay-75" />
+          <div className="animate-pulse w-2 h-2 bg-primary rounded-full mx-1 delay-150" />
+        </div>
+      )}
+
       {!combinedResults.length && (
         <Card>
           <CardContent className="text-muted-foreground text-center text-sm py-10">

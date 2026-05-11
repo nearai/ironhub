@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import {
   Sheet,
   SheetContent,
@@ -78,6 +78,61 @@ export function SlotPickerModal({
     const filtered = filterCatalog(scopedItems, query, "all", category)
     return sortCatalog(filtered, sort)
   }, [scopedItems, query, category, sort, filterKind])
+
+  const [visibleCount, setVisibleCount] = useState(24)
+
+  // Reset visible count when filters/results change
+  useEffect(() => {
+    if (!isOpen) return
+    setVisibleCount(24)
+    
+    // Also scroll the modal container back to top
+    setTimeout(() => {
+      const container = document.getElementById("slot-picker-scroll-container")
+      if (container) {
+        container.scrollTo({ top: 0, behavior: "smooth" })
+      }
+    }, 50)
+  }, [filteredResults, isOpen])
+
+  // Intersection observer for infinite scroll
+  useEffect(() => {
+    if (!isOpen || visibleCount >= filteredResults.length) return
+
+    // Small delay to ensure Radix Sheet has mounted the DOM elements
+    const timeout = setTimeout(() => {
+      const scrollContainer = document.getElementById("slot-picker-scroll-container")
+      const trigger = document.getElementById("slot-picker-load-more-trigger")
+      
+      if (!trigger) return
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting) {
+            setVisibleCount((prev) => Math.min(prev + 24, filteredResults.length))
+          }
+        },
+        { 
+          root: scrollContainer,
+          threshold: 0.1, 
+          rootMargin: "400px" 
+        }
+      )
+
+      observer.observe(trigger)
+
+      // Clean up on unmount or re-render
+      return () => {
+        observer.disconnect()
+      }
+    }, 100)
+
+    return () => clearTimeout(timeout)
+  }, [visibleCount, filteredResults.length, isOpen])
+
+  const visibleResults = useMemo(() => {
+    return filteredResults.slice(0, visibleCount)
+  }, [filteredResults, visibleCount])
 
   const titleText =
     filterKind === "skill"
@@ -164,10 +219,10 @@ export function SlotPickerModal({
         </div>
 
         {/* Picker Content Grid */}
-        <div className="flex-1 min-h-0 overflow-y-auto py-5">
+        <div id="slot-picker-scroll-container" className="flex-1 min-h-0 overflow-y-auto py-5">
           {filteredResults.length > 0 ? (
             <div className="grid gap-4 grid-cols-1">
-              {(filteredResults as any[]).map((item) => {
+              {(visibleResults as any[]).map((item) => {
                 const isEquipped = equippedSlugs.includes(item.slug)
 
                 if (filterKind === "collection") {
@@ -235,6 +290,17 @@ export function SlotPickerModal({
                   />
                 )
               })}
+              
+              {visibleCount < filteredResults.length && (
+                <div 
+                  id="slot-picker-load-more-trigger" 
+                  className="h-10 w-full flex items-center justify-center opacity-50"
+                >
+                  <div className="animate-pulse w-2 h-2 bg-primary rounded-full mx-1" />
+                  <div className="animate-pulse w-2 h-2 bg-primary rounded-full mx-1 delay-75" />
+                  <div className="animate-pulse w-2 h-2 bg-primary rounded-full mx-1 delay-150" />
+                </div>
+              )}
             </div>
           ) : (
             <Card className="border-dashed bg-muted/10">
