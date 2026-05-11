@@ -26,6 +26,17 @@ body:
     validations:
       required: true
   - type: textarea
+    id: use_cases
+    attributes:
+      label: Target use cases
+      description: List 2-3 concrete scenarios/use cases. One per line, prefixed with "- ".
+      placeholder: |
+        - Search and list active issues by assignee or status
+        - Create and assign new engineering tasks in real-time
+        - Query workspace and team-level metrics
+    validations:
+      required: true
+  - type: textarea
     id: surface
     attributes:
       label: API surface to wrap
