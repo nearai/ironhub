@@ -27,6 +27,7 @@ import {
   type SortMode,
 } from "@/lib/catalog-utils"
 import type { CatalogItem, CatalogKind } from "@/lib/catalog-types"
+import type { CollectionBundle } from "@/lib/collection-bundles"
 import {
   IconCategory,
   IconSearch,
@@ -38,8 +39,8 @@ import { cn } from "@/lib/utils"
 type SlotPickerModalProps = {
   isOpen: boolean
   onClose: () => void
-  onSelect: (item: any) => void
-  items: any[]
+  onSelect: (item: CatalogItem | CollectionBundle) => void
+  items: (CatalogItem | CollectionBundle)[]
   filterKind: CatalogKind
   equippedSlugs?: string[]
 }
@@ -65,28 +66,35 @@ export function SlotPickerModal({
   // Get unique categories for scoped items (only applicable to skills/tools)
   const categories = useMemo(() => {
     if (filterKind === "collection") return []
-    const list = scopedItems.map((item) => item.category).filter(Boolean)
+    const list = (scopedItems as CatalogItem[]).map((item) => item.category).filter(Boolean)
     return Array.from(new Set(list))
   }, [scopedItems, filterKind])
 
   // Filter and sort items based on local search, category and sorting state
   const filteredResults = useMemo(() => {
     if (filterKind === "collection") {
-      const filtered = filterCollections(scopedItems, query)
+      const filtered = filterCollections(scopedItems as CollectionBundle[], query)
       return sortCollections(filtered)
     }
-    const filtered = filterCatalog(scopedItems, query, "all", category)
+    const filtered = filterCatalog(scopedItems as CatalogItem[], query, "all", category)
     return sortCatalog(filtered, sort)
   }, [scopedItems, query, category, sort, filterKind])
 
   const [visibleCount, setVisibleCount] = useState(24)
+  const [prevFilteredResults, setPrevFilteredResults] = useState(filteredResults)
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
 
-  // Reset visible count when filters/results change
+  // Reset visible count during render to avoid cascading renders
+  if (filteredResults !== prevFilteredResults || isOpen !== prevIsOpen) {
+    setPrevFilteredResults(filteredResults)
+    setPrevIsOpen(isOpen)
+    setVisibleCount(24)
+  }
+
+  // Scroll the modal container back to top when filters change
   useEffect(() => {
     if (!isOpen) return
-    setVisibleCount(24)
     
-    // Also scroll the modal container back to top
     setTimeout(() => {
       const container = document.getElementById("slot-picker-scroll-container")
       if (container) {
@@ -222,13 +230,14 @@ export function SlotPickerModal({
         <div id="slot-picker-scroll-container" className="flex-1 min-h-0 overflow-y-auto py-5">
           {filteredResults.length > 0 ? (
             <div className="grid gap-4 grid-cols-1">
-              {(visibleResults as any[]).map((item) => {
+              {(visibleResults as (CatalogItem | CollectionBundle)[]).map((item) => {
                 const isEquipped = equippedSlugs.includes(item.slug)
 
                 if (filterKind === "collection") {
+                  const collection = item as CollectionBundle
                   return (
                     <Card
-                      key={item.slug}
+                      key={collection.slug}
                       className={cn(
                         "group relative overflow-hidden border border-border/60 bg-card p-4 transition-all duration-300 hover:shadow-md",
                         isEquipped ? "opacity-60 pointer-events-none" : "hover:border-primary/30 hover:bg-card"
@@ -241,7 +250,7 @@ export function SlotPickerModal({
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-2">
                             <h4 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">
-                              {item.title}
+                              {collection.title}
                             </h4>
                             <Button
                               size="xs"
@@ -252,7 +261,7 @@ export function SlotPickerModal({
                               )}
                               disabled={isEquipped}
                               onClick={() => {
-                                onSelect(item)
+                                onSelect(collection)
                                 onClose()
                               }}
                             >
@@ -260,14 +269,14 @@ export function SlotPickerModal({
                             </Button>
                           </div>
                           <p className="mt-1 text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                            {item.summary}
+                            {collection.summary}
                           </p>
                           <div className="flex items-center gap-2 mt-2.5">
                             <span className="inline-flex items-center rounded-md bg-primary/5 px-1.5 py-0.5 text-[10px] font-extrabold text-primary border border-primary/10">
-                              {item.toolCount} tools
+                              {collection.toolCount} tools
                             </span>
                             <span className="inline-flex items-center rounded-md bg-yellow-500/5 px-1.5 py-0.5 text-[10px] font-extrabold text-yellow-500 border border-yellow-500/10">
-                              {item.skillCount} skills
+                              {collection.skillCount} skills
                             </span>
                           </div>
                         </div>
@@ -276,10 +285,11 @@ export function SlotPickerModal({
                   )
                 }
 
+                const catalogItem = item as CatalogItem
                 return (
                   <CatalogCard
-                    key={item.slug}
-                    item={item}
+                    key={catalogItem.slug}
+                    item={catalogItem}
                     compact={false}
                     onSelect={(selectedItem) => {
                       onSelect(selectedItem)

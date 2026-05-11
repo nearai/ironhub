@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import type { CatalogItem, CatalogKind } from "@/lib/catalog-types"
+import type { CollectionBundle } from "@/lib/collection-bundles"
 import { cn } from "@/lib/utils"
 import {
   IconBoxMultiple,
@@ -38,7 +39,7 @@ type LoadoutBuilderProps = {
   catalog: {
     skills: CatalogItem[]
     tools: CatalogItem[]
-    collections?: any[]
+    collections?: CollectionBundle[]
   }
 }
 
@@ -125,17 +126,33 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
   const allItems = [...catalog.skills, ...catalog.tools]
 
   // Identity & Soul States
-  const [name, setName] = useState("")
-  const [description, setDescription] = useState("")
-  const [soulSource, setSoulSource] = useState<"ready-made" | "my-own">(
-    "my-own"
-  )
-  const [selectedPersona, setSelectedPersona] = useState<string>("researcher")
+  const [name, setName] = useState(() => searchParams.get("name") || "")
+  const [description, setDescription] = useState(() => searchParams.get("desc") || "")
+  const [soulSource, setSoulSource] = useState<"ready-made" | "my-own">(() => {
+    const soulParam = searchParams.get("soul")
+    return soulParam === "ready-made" || soulParam === "my-own" ? soulParam : "my-own"
+  })
+  const [selectedPersona, setSelectedPersona] = useState<string>(() => searchParams.get("persona") || "researcher")
 
   // Multi-item lists for Skills, Tools, and Collections!
-  const [skills, setSkills] = useState<CatalogItem[]>([])
-  const [tools, setTools] = useState<CatalogItem[]>([])
-  const [collections, setCollections] = useState<any[]>([])
+  const [skills, setSkills] = useState<CatalogItem[]>(() => {
+    const skillsParam = searchParams.get("skills")
+    if (!skillsParam) return []
+    const slugs = skillsParam.split(",").filter(Boolean)
+    return allItems.filter((item) => item.kind === "skill" && slugs.includes(item.slug))
+  })
+  const [tools, setTools] = useState<CatalogItem[]>(() => {
+    const toolsParam = searchParams.get("tools")
+    if (!toolsParam) return []
+    const slugs = toolsParam.split(",").filter(Boolean)
+    return allItems.filter((item) => item.kind === "tool" && slugs.includes(item.slug))
+  })
+  const [collections, setCollections] = useState<CollectionBundle[]>(() => {
+    const collectionsParam = searchParams.get("collections")
+    if (!collectionsParam || !catalog.collections) return []
+    const slugs = collectionsParam.split(",").filter(Boolean)
+    return catalog.collections.filter((c) => slugs.includes(c.slug))
+  })
 
   // Picker Modal controls
   const [modalOpen, setModalOpen] = useState(false)
@@ -149,48 +166,6 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
   const [cliCopied, setCliCopied] = useState(false)
   const [isDeploying, setIsDeploying] = useState(false)
   const [deploySuccess, setDeploySuccess] = useState(false)
-
-  // 1. Recover state from shared URL on mount
-  useEffect(() => {
-    const nameParam = searchParams.get("name")
-    const descParam = searchParams.get("desc")
-    const soulParam = searchParams.get("soul")
-    const personaParam = searchParams.get("persona")
-    const skillsParam = searchParams.get("skills")
-    const toolsParam = searchParams.get("tools")
-    const collectionsParam = searchParams.get("collections")
-
-    if (nameParam) setName(nameParam)
-    if (descParam) setDescription(descParam)
-    if (soulParam === "ready-made" || soulParam === "my-own") {
-      setSoulSource(soulParam)
-    }
-    if (personaParam) {
-      setSelectedPersona(personaParam)
-    }
-
-    if (skillsParam) {
-      const slugs = skillsParam.split(",").filter(Boolean)
-      const matches = allItems.filter(
-        (item) => item.kind === "skill" && slugs.includes(item.slug)
-      )
-      setSkills(matches)
-    }
-
-    if (toolsParam) {
-      const slugs = toolsParam.split(",").filter(Boolean)
-      const matches = allItems.filter(
-        (item) => item.kind === "tool" && slugs.includes(item.slug)
-      )
-      setTools(matches)
-    }
-
-    if (collectionsParam && catalog.collections) {
-      const slugs = collectionsParam.split(",").filter(Boolean)
-      const matches = catalog.collections.filter((c) => slugs.includes(c.slug))
-      setCollections(matches)
-    }
-  }, [searchParams, catalog.collections])
 
   const handleApplyPreset = (preset: (typeof HIGH_FIDELITY_PRESETS)[0]) => {
     setName(preset.name)
@@ -277,7 +252,7 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
   }
 
   // Append new skill/tool/collection to list (avoid duplicates)
-  const handleSelectItem = (item: any) => {
+  const handleSelectItem = (item: CatalogItem | CollectionBundle) => {
     if (item.kind === "skill") {
       if (!skills.some((s) => s.slug === item.slug)) {
         setSkills([...skills, item])
@@ -288,7 +263,7 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
       }
     } else if (item.kind === "collection") {
       if (!collections.some((c) => c.slug === item.slug)) {
-        setCollections([...collections, item])
+        setCollections([...collections, item as CollectionBundle])
       }
     }
   }
@@ -357,8 +332,6 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
     PREDEFINED_PERSONAS.find((p) => p.id === selectedPersona) ||
     PREDEFINED_PERSONAS[0]
 
-  // Gather currently equipped item slugs to disable them in picker
-  const equippedSlugs = [...skills, ...tools].map((item) => item.slug)
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 px-0 pb-40">
@@ -574,7 +547,7 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
                   Select Skills
                 </CardTitle>
                 <CardDescription className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                  Equip skills into your agent's capability roster.
+                  Equip skills into your agent&apos;s capability roster.
                 </CardDescription>
               </div>
 
@@ -653,7 +626,7 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
                   Select Tools
                 </CardTitle>
                 <CardDescription className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                  Choose tools to empower your agent's runtime actions.
+                  Choose tools to empower your agent&apos;s runtime actions.
                 </CardDescription>
               </div>
 
@@ -715,7 +688,7 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
                     Choose Tools
                   </span>
                   <span className="max-w-xs text-center text-[11px] leading-relaxed text-muted-foreground">
-                    Choose execution tools to empower your agent's runtime
+                    Choose execution tools to empower your agent&apos;s runtime
                     actions.
                   </span>
                 </button>
@@ -1004,7 +977,7 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
                   Select Ready-made Persona Core
                 </h3>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Configure your AI agent's personality guidelines, behavior
+                  Configure your AI agent&apos;s personality guidelines, behavior
                   limitations, and speaking traits.
                 </p>
               </div>

@@ -65,11 +65,13 @@ export function CatalogBrowser({
   }, [browser.kind, browser.results, browser.filteredCollections])
 
   const [visibleCount, setVisibleCount] = useState(24)
+  const [prevCombinedResults, setPrevCombinedResults] = useState(combinedResults)
 
-  // Reset visible count when filters/results change
-  useEffect(() => {
+  // Reset visible count during render when results change to avoid cascading renders
+  if (combinedResults !== prevCombinedResults) {
+    setPrevCombinedResults(combinedResults)
     setVisibleCount(24)
-  }, [combinedResults])
+  }
 
   // Scroll to top when switching categories or kinds
   useEffect(() => {
