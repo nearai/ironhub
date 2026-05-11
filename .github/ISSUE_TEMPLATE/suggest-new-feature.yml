@@ -1,0 +1,34 @@
+name: 💡 Suggest a Feature
+description: Tell us what you want your agent to do next!
+title: "[idea] "
+labels: ["feature-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### We're making 🛡️ IronClaw better for YOU! 🛠️
+        Got a cool idea? Tell us what you need, and we'll see if we can build it.
+  - type: input
+    id: feature-name
+    attributes:
+      label: 1. What should we call this?
+      description: Give your idea a short, catchy name.
+      placeholder: e.g., Auto-reply to Telegram messages, Notion Sync...
+    validations:
+      required: true
+  - type: textarea
+    id: user-story
+    attributes:
+      label: 2. How would you use this?
+      description: Tell us your story. What problem are you trying to solve?
+      placeholder: I want my agent to be able to... because it will help me save time doing...
+    validations:
+      required: true
+  - type: input
+    id: example-link
+    attributes:
+      label: 3. Got any examples? (Optional)
+      description: Drop a link to a website, app, or API that already does something similar.
+      placeholder: https://...
+    validations:
+      required: false

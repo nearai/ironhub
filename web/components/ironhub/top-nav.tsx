@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { links } from "@/lib/links"
-import { IconBook, IconBrandGithub, IconExternalLink } from "@tabler/icons-react"
+import { IconBook, IconBulb, IconExternalLink } from "@tabler/icons-react"
 import { BrandMark } from "./brand-mark"
 import { MobileNav } from "./mobile-nav"
 import { navItems } from "./nav-items"
@@ -45,16 +45,16 @@ export function TopNav() {
             <Button
               asChild
               variant="outline"
-              size="icon"
-              className="hidden rounded-full sm:inline-flex"
+              size="sm"
+              className="hidden rounded-full sm:inline-flex gap-1.5"
             >
               <a
-                href={links.repo}
+                href={links.suggestFeature}
                 target="_blank"
                 rel="noreferrer"
-                aria-label="GitHub repository"
               >
-                <IconBrandGithub />
+                <IconBulb className="size-4" />
+                <span>Suggest Feature</span>
               </a>
             </Button>
             <Button
