@@ -61,7 +61,7 @@ export default async function MarketplacePage() {
           </aside>
 
           <div className="flex flex-col gap-6">
-            <MarketplaceSourceNote {...iliad} />
+            {/* <MarketplaceSourceNote {...iliad} /> */}
             <Suspense fallback={null}>
               <CatalogBrowser
                 items={items}

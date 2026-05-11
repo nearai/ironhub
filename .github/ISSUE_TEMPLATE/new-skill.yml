@@ -34,6 +34,17 @@ body:
     validations:
       required: true
   - type: textarea
+    id: use_cases
+    attributes:
+      label: Target use cases
+      description: List 2-3 concrete scenarios/use cases. One per line, prefixed with "- ".
+      placeholder: |
+        - Reconcile complex general ledger entries
+        - Generate professional balance sheets and income statements
+        - Produce automated trial balance reports
+    validations:
+      required: true
+  - type: textarea
     id: activation
     attributes:
       label: Activation strategy

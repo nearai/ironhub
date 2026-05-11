@@ -31,11 +31,19 @@ export function filterCatalog(
 
 export function filterCollections(
   collections: CollectionBundle[],
-  query: string
+  query: string,
+  category?: string
 ) {
   const needle = query.trim().toLowerCase()
 
   return collections.filter((bundle) => {
+    if (category && category !== "all") {
+      const hasMatchingCategory = bundle.items.some(
+        (item) => item.category === category
+      )
+      if (!hasMatchingCategory) return false
+    }
+
     const haystack = [
       bundle.title,
       bundle.slug,

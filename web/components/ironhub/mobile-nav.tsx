@@ -3,7 +3,7 @@
 import Link from "next/link"
 import {
   IconBook,
-  IconBrandGithub,
+  IconBulb,
   IconExternalLink,
   IconMenu2,
   IconPlus,
@@ -76,9 +76,9 @@ export function MobileNav() {
           </SheetClose>
           <SheetClose asChild>
             <Button asChild variant="outline">
-              <a href={links.repo} target="_blank" rel="noreferrer">
-                <IconBrandGithub />
-                GitHub
+              <a href={links.suggestFeature} target="_blank" rel="noreferrer">
+                <IconBulb />
+                Suggest Feature
               </a>
             </Button>
           </SheetClose>
