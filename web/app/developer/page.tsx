@@ -9,9 +9,10 @@ import {
   IconCpu,
   IconGitFork,
   IconBook,
+  IconBulb,
 } from "@tabler/icons-react"
 
-const actions = [
+const creationActions = [
   {
     title: "Create Skill",
     description: "Propose a SKILL.md branch from an existing tool trunk to expand agent intelligence.",
@@ -28,6 +29,9 @@ const actions = [
     badgeColor: "from-amber-500/10 to-orange-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
     buttonText: "Create Tool",
   },
+]
+
+const resourceActions = [
   {
     title: "Read Contributing",
     description: "Follow the structured repository lifecycle for managing branches, Pull Requests, tracking, and packing.",
@@ -56,37 +60,11 @@ export default function DeveloperPage() {
           description="Use the repo lifecycle to propose skill branches, WASM tool trunks, auth scopes, limits, and tracking updates."
         />
 
-        <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
-              <div className="relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-background border border-[var(--ironhub-line)] shadow-sm">
-                <Image
-                  src="/assets/iliad-logo.png"
-                  alt="Iliad Logo"
-                  width={56}
-                  height={56}
-                  className="size-full object-contain p-2"
-                />
-              </div>
-              <div className="flex-1 space-y-1.5">
-                <h3 className="text-xl font-bold tracking-tight">
-                  Create IronClaw Skills, tools easily with Iliad
-                </h3>
-                <p className="text-sm leading-6 text-muted-foreground max-w-2xl">
-                  Build custom IronClaw tools, skills, and bundles easily with the Iliad AI cloud platform. No technical experience needed.
-                </p>
-              </div>
-              <div className="shrink-0 pt-2 sm:pt-0">
-                <ActionLink href={links.iliad} external variant="default">
-                  Get started
-                </ActionLink>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
+
+        {/* Creation Cards Grid */}
         <div className="grid gap-6 md:grid-cols-2">
-          {actions.map(({ title, description, href, icon: Icon, badgeColor, buttonText }) => (
+          {creationActions.map(({ title, description, href, icon: Icon, badgeColor, buttonText }) => (
             <Card key={title} className="group relative overflow-hidden border border-[var(--ironhub-line)] bg-card/60 backdrop-blur-xl hover:bg-card hover:border-primary/20 hover:shadow-[var(--ironhub-shadow)] transition-all duration-300">
               <CardContent className="p-6 flex flex-col h-full min-h-[220px] justify-between gap-5">
                 <div className="space-y-4">
@@ -115,6 +93,93 @@ export default function DeveloperPage() {
             </Card>
           ))}
         </div>
+
+        {/* Suggest / Feature Request full-width card matching the exact background and style of the other cards */}
+        <Card className="group relative overflow-hidden border border-[var(--ironhub-line)] bg-card/60 backdrop-blur-xl hover:bg-card hover:border-primary/20 hover:shadow-[var(--ironhub-shadow)] transition-all duration-300 rounded-xl">
+          <CardContent className="px-5 py-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5 flex-1 min-w-0">
+                <div className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-yellow-500/10 to-amber-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20 shadow-sm group-hover:scale-105 transition-transform duration-300">
+                  <IconBulb className="size-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-bold tracking-tight">
+                    Suggest a Feature or Request Tools/Skills
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Got a cool idea? Tell us what you want your agent to do next! Request new WASM tools, integration trunks, or customized skill bundles, and we&apos;ll see if we can build it.
+                  </p>
+                </div>
+              </div>
+              <div className="shrink-0">
+                <ActionLink href={links.suggestFeature} external variant="outline" size="sm">
+                  Suggest Feature
+                </ActionLink>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Resources Cards Grid */}
+        <div className="grid gap-6 md:grid-cols-2">
+          {resourceActions.map(({ title, description, href, icon: Icon, badgeColor, buttonText }) => (
+            <Card key={title} className="group relative overflow-hidden border border-[var(--ironhub-line)] bg-card/60 backdrop-blur-xl hover:bg-card hover:border-primary/20 hover:shadow-[var(--ironhub-shadow)] transition-all duration-300">
+              <CardContent className="p-6 flex flex-col h-full min-h-[220px] justify-between gap-5">
+                <div className="space-y-4">
+                  <div className={`inline-flex size-12 items-center justify-center rounded-xl bg-gradient-to-br ${badgeColor} border shadow-sm group-hover:scale-105 transition-transform duration-300`}>
+                    <Icon className="size-6" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <h3 className="text-lg font-bold tracking-tight">
+                      {title}
+                    </h3>
+                    <p className="text-sm leading-6 text-muted-foreground">
+                      {description}
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <ActionLink
+                    href={href}
+                    external
+                    variant="outline"
+                  >
+                    {buttonText}
+                  </ActionLink>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+                <Card className="relative overflow-hidden border-primary/15 bg-gradient-to-r from-primary/8 via-primary/3 to-transparent shadow-sm rounded-xl">
+          <CardContent className="px-5 py-1">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
+              <div className="relative flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-background border border-[var(--ironhub-line)] shadow-sm">
+                <Image
+                  src="/assets/iliad-logo.png"
+                  alt="Iliad Logo"
+                  width={44}
+                  height={44}
+                  className="size-full object-contain p-1.5"
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-base font-bold tracking-tight">
+                  Create IronClaw Skills, tools easily with Iliad
+                </h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Build custom IronClaw tools, skills, and bundles easily with the Iliad AI cloud platform. No technical experience needed.
+                </p>
+              </div>
+              <div className="shrink-0">
+                <ActionLink href={links.iliad} external variant="default" size="sm">
+                  Get started
+                </ActionLink>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </HubLayout>
   )
