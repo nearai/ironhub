@@ -1,0 +1,67 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "ClickUp integration via the v2 REST API. Workspaces (list), spaces (list, get), folders (list, get), lists (list, get, create, list folderless), tasks (list, list filtered cross-list, get, create, update, delete, tag, untag), task comments (list, create), comments (update, delete), time tracking (list, current running), goals (list, get), and the authenticated user. OAuth 2.0 user-context authentication against app.clickup.com with non-expiring tokens.",
+  "http": {
+    "allowlist": [
+      {
+        "host": "api.clickup.com",
+        "path_prefix": "/api/v2/",
+        "methods": ["GET", "POST", "PUT", "DELETE"]
+      },
+      {
+        "host": "app.clickup.com",
+        "path_prefix": "/api",
+        "methods": ["GET", "POST"]
+      }
+    ],
+    "credentials": {
+      "clickup_oauth_token": {
+        "secret_name": "clickup_oauth_token",
+        "location": { "type": "bearer" },
+        "host_patterns": ["api.clickup.com"],
+        "path_patterns": ["/api/v2/"]
+      }
+    },
+    "rate_limit": {
+      "requests_per_minute": 100,
+      "requests_per_hour": 6000
+    },
+    "timeout_secs": 60
+  },
+  "secrets": {
+    "allowed_names": ["clickup_oauth_token"]
+  },
+  "auth": {
+    "secret_name": "clickup_oauth_token",
+    "display_name": "ClickUp",
+    "oauth": {
+      "authorization_url": "https://app.clickup.com/api",
+      "token_url": "https://api.clickup.com/api/v2/oauth/token",
+      "client_id_env": "CLICKUP_OAUTH_CLIENT_ID",
+      "client_secret_env": "CLICKUP_OAUTH_CLIENT_SECRET",
+      "scopes": [],
+      "use_pkce": false,
+      "pending_instructions": "Register an OAuth app in ClickUp at Settings, Apps, ClickUp API for the workspace that will host the integration. Redirect URL: http://localhost:9876/callback. After creation, copy the Client ID and Client Secret. Export CLICKUP_OAUTH_CLIENT_ID and CLICKUP_OAUTH_CLIENT_SECRET on the IronClaw host before running ironclaw tool auth clickup. ClickUp tokens do not expire and ClickUp does not partition access by scope, so the issued token grants the same authority as the consenting user."
+    },
+    "env_var": "CLICKUP_OAUTH_TOKEN",
+    "setup_url": "https://app.clickup.com",
+    "instructions": "1. Sign in to https://app.clickup.com and open the Settings menu in the lower-left corner.\n2. Under Workspace, choose Apps, then ClickUp API.\n3. Create OAuth App. Set Name (e.g. IronClaw ClickUp Tool) and Redirect URL: http://localhost:9876/callback.\n4. Save. Copy the Client ID into CLICKUP_OAUTH_CLIENT_ID and the Client Secret into CLICKUP_OAUTH_CLIENT_SECRET.\n5. Export both env vars on the IronClaw host (or write them to ~/.ironclaw/.env) and run `ironclaw tool auth clickup` to launch the consent flow.\n6. ClickUp does not issue refresh tokens and access tokens do not expire; you re-authenticate only if the user revokes the app from their ClickUp Settings."
+  },
+  "setup": {
+    "fields": [
+      {
+        "name": "CLICKUP_OAUTH_CLIENT_ID",
+        "label": "ClickUp OAuth Client ID",
+        "kind": "secret",
+        "required": true
+      },
+      {
+        "name": "CLICKUP_OAUTH_CLIENT_SECRET",
+        "label": "ClickUp OAuth Client Secret",
+        "kind": "secret",
+        "required": true
+      }
+    ]
+  }
+}

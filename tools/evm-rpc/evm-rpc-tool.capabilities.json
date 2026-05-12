@@ -1,0 +1,31 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "EVM JSON-RPC integration. Read account balances, contract code and storage, call view functions, fetch blocks, transactions, receipts, and event logs. Built-in chain shortcuts for Ethereum mainnet, Polygon, Arbitrum, Optimism, Base, BNB Chain, and Avalanche; accepts custom RPC URLs for any EVM-compatible network. Read-only (no transaction signing).",
+  "http": {
+    "allowlist": [
+      { "host": "ethereum-rpc.publicnode.com", "path_prefix": "/", "methods": ["POST"] },
+      { "host": "polygon-bor-rpc.publicnode.com", "path_prefix": "/", "methods": ["POST"] },
+      { "host": "arbitrum-one-rpc.publicnode.com", "path_prefix": "/", "methods": ["POST"] },
+      { "host": "optimism-rpc.publicnode.com", "path_prefix": "/", "methods": ["POST"] },
+      { "host": "base-rpc.publicnode.com", "path_prefix": "/", "methods": ["POST"] },
+      { "host": "bsc-rpc.publicnode.com", "path_prefix": "/", "methods": ["POST"] },
+      { "host": "avalanche-c-chain-rpc.publicnode.com", "path_prefix": "/", "methods": ["POST"] },
+      { "host": "cloudflare-eth.com", "path_prefix": "/", "methods": ["POST"] },
+      { "host": "*.publicnode.com", "path_prefix": "/", "methods": ["POST"] },
+      { "host": "*.llamarpc.com", "path_prefix": "/", "methods": ["POST"] },
+      { "host": "*.ankr.com", "path_prefix": "/", "methods": ["POST"] },
+      { "host": "*.alchemy.com", "path_prefix": "/", "methods": ["POST"] },
+      { "host": "*.infura.io", "path_prefix": "/", "methods": ["POST"] },
+      { "host": "*.blockpi.network", "path_prefix": "/", "methods": ["POST"] },
+      { "host": "*.drpc.org", "path_prefix": "/", "methods": ["POST"] },
+      { "host": "*.quiknode.pro", "path_prefix": "/", "methods": ["POST"] }
+    ],
+    "credentials": {},
+    "rate_limit": {
+      "requests_per_minute": 240,
+      "requests_per_hour": 7200
+    },
+    "timeout_secs": 30
+  }
+}

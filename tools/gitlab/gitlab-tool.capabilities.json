@@ -1,0 +1,67 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "GitLab integration via the v4 REST API. Projects (list, get, create), issues (list, get, create, update, comment), merge requests (list, get, create, update, comment, approve, merge), branches (list, get, create, delete), files (read, create or update, delete), search (projects, issues, blobs), pipelines (list, get, jobs), and current_user. OAuth 2.0 user-context authentication against gitlab.com with host-managed token refresh.",
+  "http": {
+    "allowlist": [
+      {
+        "host": "gitlab.com",
+        "path_prefix": "/api/v4/",
+        "methods": ["GET", "POST", "PUT", "DELETE"]
+      },
+      {
+        "host": "gitlab.com",
+        "path_prefix": "/oauth/",
+        "methods": ["GET", "POST"]
+      }
+    ],
+    "credentials": {
+      "gitlab_oauth_token": {
+        "secret_name": "gitlab_oauth_token",
+        "location": { "type": "bearer" },
+        "host_patterns": ["gitlab.com"],
+        "path_patterns": ["/api/v4/"]
+      }
+    },
+    "rate_limit": {
+      "requests_per_minute": 120,
+      "requests_per_hour": 4000
+    },
+    "timeout_secs": 60
+  },
+  "secrets": {
+    "allowed_names": ["gitlab_oauth_token"]
+  },
+  "auth": {
+    "secret_name": "gitlab_oauth_token",
+    "display_name": "GitLab",
+    "oauth": {
+      "authorization_url": "https://gitlab.com/oauth/authorize",
+      "token_url": "https://gitlab.com/oauth/token",
+      "client_id_env": "GITLAB_OAUTH_CLIENT_ID",
+      "client_secret_env": "GITLAB_OAUTH_CLIENT_SECRET",
+      "scopes": ["api", "read_user"],
+      "use_pkce": true,
+      "pending_instructions": "Register an application at https://gitlab.com/-/profile/applications. Redirect URI: http://localhost:9876/callback. Scopes: api, read_user. Confidential: yes. After creation, copy the Application ID and Secret. Export GITLAB_OAUTH_CLIENT_ID and GITLAB_OAUTH_CLIENT_SECRET on the IronClaw host before running ironclaw tool auth gitlab."
+    },
+    "env_var": "GITLAB_OAUTH_TOKEN",
+    "setup_url": "https://gitlab.com/-/profile/applications",
+    "instructions": "1. Sign in to https://gitlab.com and go to https://gitlab.com/-/profile/applications.\n2. Under Add new application, set Name (e.g. IronClaw GitLab Tool) and Redirect URI: http://localhost:9876/callback.\n3. Check Confidential. Under Scopes select api and read_user.\n4. Save application. Copy the Application ID into GITLAB_OAUTH_CLIENT_ID and the Secret into GITLAB_OAUTH_CLIENT_SECRET.\n5. Export both env vars on the IronClaw host (or write them to ~/.ironclaw/.env) and run `ironclaw tool auth gitlab` to launch the consent flow.\n6. Refresh tokens are managed by the host; you re-authenticate only when scopes change or consent is revoked."
+  },
+  "setup": {
+    "fields": [
+      {
+        "name": "GITLAB_OAUTH_CLIENT_ID",
+        "label": "GitLab OAuth Application ID",
+        "kind": "secret",
+        "required": true
+      },
+      {
+        "name": "GITLAB_OAUTH_CLIENT_SECRET",
+        "label": "GitLab OAuth Application Secret",
+        "kind": "secret",
+        "required": true
+      }
+    ]
+  }
+}
