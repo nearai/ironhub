@@ -3,6 +3,7 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(tag = "action", rename_all = "snake_case")]
+#[allow(clippy::enum_variant_names)]
 pub enum EvmRpcAction {
     EthBlockNumber {
         #[serde(default)]

@@ -434,6 +434,7 @@ pub fn get_file_content(
     }))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn create_or_update_file(
     project: &str,
     path: &str,
