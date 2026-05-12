@@ -37,7 +37,18 @@ impl exports::near::agent::tool::Guest for NearRpcTool {
          Check gas prices and protocol config. Submit signed transactions \
          with finality control. Query node status, health, and network info. \
          Light-client proofs and next-block lookup. Supports mainnet, \
-         testnet, archival endpoints, and custom RPC URLs."
+         testnet, archival endpoints, and custom RPC URLs.\n\
+         \n\
+         Parameter formats:\n\
+         - `account_id`: lowercase, ends in `.near` (mainnet) or `.testnet`. \
+         Implicit accounts are 64-char hex strings.\n\
+         - `args_base64`: contract function arguments encoded as base64. Encode \
+         the JSON args object using the standard alphabet. \
+         `{\"account_id\":\"alice.near\"}` becomes \
+         `eyJhY2NvdW50X2lkIjoiYWxpY2UubmVhciJ9`. Never pass raw JSON.\n\
+         - `block_id`: numeric block height (as a number) or 44-char base58 block \
+         hash string. Omit for latest.\n\
+         - `finality`: \"optimistic\" or \"final\"; defaults to \"final\" when omitted."
             .to_string()
     }
 }

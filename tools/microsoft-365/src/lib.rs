@@ -46,7 +46,17 @@ impl exports::near::agent::tool::Guest for MicrosoftTool {
          Outlook Calendar (list_calendar_events, create_calendar_event), and \
          document generation (create_word_document, create_powerpoint) with direct \
          upload to OneDrive. OAuth 2.0 user-context authentication against Azure \
-         AD with host-managed token refresh."
+         AD with host-managed token refresh.\n\
+         \n\
+         Parameter formats:\n\
+         - Excel: `worksheet` and `range` are separate fields, not a combined \
+         `Sheet1!A1:B10` string. Pass `worksheet: \"Sheet1\"` and `range: \"A1:B10\"`.\n\
+         - OneDrive / SharePoint file paths use forward slashes, no leading slash. \
+         Example: `Documents/report.docx`, not `/Documents/report.docx`.\n\
+         - Recipients in send_mail are an array of objects: \
+         `[{\"address\": \"x@example.com\", \"name\": \"X\"}]`.\n\
+         - Calendar datetimes use ISO 8601 with timezone offset: \
+         `2026-04-15T14:00:00-07:00`."
             .to_string()
     }
 }

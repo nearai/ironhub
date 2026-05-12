@@ -36,7 +36,15 @@ impl exports::near::agent::tool::Guest for EvmRpcTool {
          and event logs. Built-in chain shortcuts: ethereum, polygon, \
          arbitrum, optimism, base, bnb, avalanche. Pass `rpc_url` for any \
          other EVM-compatible network. Read-only: no transaction signing in \
-         this tool."
+         this tool.\n\
+         \n\
+         Parameter formats (all hex strings use 0x prefix):\n\
+         - Block numbers: hex string like \"0x112a880\" (= block 18000000), \
+         or tags \"latest\", \"earliest\", \"pending\", \"safe\", \"finalized\".\n\
+         - Addresses: 40 hex chars after 0x.\n\
+         - Tx and block hashes: 64 hex chars after 0x.\n\
+         - Storage slots, call data, log topics: hex string.\n\
+         - Logs `topics`: array of strings or nulls; use null to wildcard a slot."
             .to_string()
     }
 }
