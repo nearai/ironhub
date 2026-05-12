@@ -66,7 +66,7 @@ activation:
   exclude_keywords:
     - "code review only"
     - "pure dev"
-  max_context_tokens: 9500
+  max_context_tokens: 5000
 requires:
   bins: []
   env: []
