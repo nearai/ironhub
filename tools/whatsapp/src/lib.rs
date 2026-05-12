@@ -243,7 +243,13 @@ fn execute_inner(params: &str) -> Result<String, String> {
             language,
             category,
             components,
-        } => api::create_template(&business_account_id, &name, &language, &category, &components)?,
+        } => api::create_template(
+            &business_account_id,
+            &name,
+            &language,
+            &category,
+            &components,
+        )?,
         WhatsappAction::DeleteTemplate {
             business_account_id,
             name,

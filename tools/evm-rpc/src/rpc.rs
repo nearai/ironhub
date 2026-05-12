@@ -10,9 +10,7 @@ pub fn resolve_url(chain: Option<&str>, custom: Option<&str>) -> Result<String, 
     match key.as_str() {
         "ethereum" | "eth" | "mainnet" => Ok("https://ethereum-rpc.publicnode.com".into()),
         "polygon" | "matic" => Ok("https://polygon-bor-rpc.publicnode.com".into()),
-        "arbitrum" | "arb" | "arbitrum-one" => {
-            Ok("https://arbitrum-one-rpc.publicnode.com".into())
-        }
+        "arbitrum" | "arb" | "arbitrum-one" => Ok("https://arbitrum-one-rpc.publicnode.com".into()),
         "optimism" | "op" => Ok("https://optimism-rpc.publicnode.com".into()),
         "base" => Ok("https://base-rpc.publicnode.com".into()),
         "bnb" | "bsc" | "binance" => Ok("https://bsc-rpc.publicnode.com".into()),
@@ -122,10 +120,7 @@ mod tests {
     #[test]
     fn resolve_url_prefers_custom_over_chain() {
         let custom = "https://my-private-rpc.example/eth";
-        assert_eq!(
-            resolve_url(Some("ethereum"), Some(custom)).unwrap(),
-            custom
-        );
+        assert_eq!(resolve_url(Some("ethereum"), Some(custom)).unwrap(), custom);
     }
 
     #[test]

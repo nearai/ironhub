@@ -226,11 +226,7 @@ pub fn send_location(
     post_message(phone_number_id, Value::Object(message))
 }
 
-pub fn send_contacts(
-    phone_number_id: &str,
-    to: &str,
-    contacts: &[Value],
-) -> Result<Value, String> {
+pub fn send_contacts(phone_number_id: &str, to: &str, contacts: &[Value]) -> Result<Value, String> {
     require_token()?;
     require_non_empty("phone_number_id", phone_number_id)?;
     require_non_empty("to", to)?;
@@ -282,10 +278,7 @@ pub fn send_interactive_buttons(req: &SendInteractiveButtonsRequest<'_>) -> Resu
     let mut interactive = Map::new();
     interactive.insert("type".into(), json!("button"));
     if let Some(h) = req.header_text {
-        interactive.insert(
-            "header".into(),
-            json!({ "type": "text", "text": h }),
-        );
+        interactive.insert("header".into(), json!({ "type": "text", "text": h }));
     }
     interactive.insert("body".into(), json!({ "text": req.body }));
     if let Some(f) = req.footer {
@@ -363,10 +356,7 @@ pub fn send_interactive_list(req: &SendInteractiveListRequest<'_>) -> Result<Val
     let mut interactive = Map::new();
     interactive.insert("type".into(), json!("list"));
     if let Some(h) = req.header_text {
-        interactive.insert(
-            "header".into(),
-            json!({ "type": "text", "text": h }),
-        );
+        interactive.insert("header".into(), json!({ "type": "text", "text": h }));
     }
     interactive.insert("body".into(), json!({ "text": req.body }));
     if let Some(f) = req.footer {
@@ -437,10 +427,7 @@ pub fn get_phone_number_info(phone_number_id: &str) -> Result<Value, String> {
 pub fn get_business_profile(phone_number_id: &str) -> Result<Value, String> {
     require_token()?;
     require_non_empty("phone_number_id", phone_number_id)?;
-    let mut endpoint = format!(
-        "/{}/whatsapp_business_profile",
-        url_encode(phone_number_id)
-    );
+    let mut endpoint = format!("/{}/whatsapp_business_profile", url_encode(phone_number_id));
     append_query(
         &mut endpoint,
         "fields",
@@ -511,10 +498,7 @@ pub fn list_templates(
 ) -> Result<Value, String> {
     require_token()?;
     require_non_empty("business_account_id", business_account_id)?;
-    let mut endpoint = format!(
-        "/{}/message_templates",
-        url_encode(business_account_id)
-    );
+    let mut endpoint = format!("/{}/message_templates", url_encode(business_account_id));
     append_query(&mut endpoint, "limit", &limit.min(1000).to_string());
     if let Some(s) = status {
         append_query(&mut endpoint, "status", s);
@@ -548,10 +532,7 @@ pub fn create_template(
         "components": components,
     });
     let body = serde_json::to_string(&payload).map_err(|e| e.to_string())?;
-    let endpoint = format!(
-        "/{}/message_templates",
-        url_encode(business_account_id)
-    );
+    let endpoint = format!("/{}/message_templates", url_encode(business_account_id));
     let (_status, value) = request("POST", &endpoint, Some(&body))?;
     Ok(value)
 }
@@ -564,10 +545,7 @@ pub fn delete_template(
     require_token()?;
     require_non_empty("business_account_id", business_account_id)?;
     require_non_empty("name", name)?;
-    let mut endpoint = format!(
-        "/{}/message_templates",
-        url_encode(business_account_id)
-    );
+    let mut endpoint = format!("/{}/message_templates", url_encode(business_account_id));
     append_query(&mut endpoint, "name", name);
     if let Some(id) = hsm_id {
         append_query(&mut endpoint, "hsm_id", id);

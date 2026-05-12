@@ -29,11 +29,7 @@ pub fn get_balance(
     block: Option<&str>,
 ) -> Result<String, String> {
     let url = rpc::resolve_url(chain, rpc_url)?;
-    rpc::call(
-        &url,
-        "eth_getBalance",
-        json!([address, block_param(block)]),
-    )
+    rpc::call(&url, "eth_getBalance", json!([address, block_param(block)]))
 }
 
 pub fn get_transaction_count(
@@ -57,11 +53,7 @@ pub fn get_code(
     block: Option<&str>,
 ) -> Result<String, String> {
     let url = rpc::resolve_url(chain, rpc_url)?;
-    rpc::call(
-        &url,
-        "eth_getCode",
-        json!([address, block_param(block)]),
-    )
+    rpc::call(&url, "eth_getCode", json!([address, block_param(block)]))
 }
 
 pub fn get_storage_at(

@@ -206,8 +206,19 @@ mod tests {
     #[test]
     fn description_mentions_chain_shortcuts() {
         let d = EvmRpcTool::description();
-        for chain in ["ethereum", "polygon", "arbitrum", "optimism", "base", "bnb", "avalanche"] {
-            assert!(d.contains(chain), "description missing chain shortcut: {chain}");
+        for chain in [
+            "ethereum",
+            "polygon",
+            "arbitrum",
+            "optimism",
+            "base",
+            "bnb",
+            "avalanche",
+        ] {
+            assert!(
+                d.contains(chain),
+                "description missing chain shortcut: {chain}"
+            );
         }
     }
 

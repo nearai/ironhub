@@ -125,10 +125,16 @@ pub fn update_issue(
         payload.insert("title".into(), serde_json::Value::String(t.to_string()));
     }
     if let Some(d) = description {
-        payload.insert("description".into(), serde_json::Value::String(d.to_string()));
+        payload.insert(
+            "description".into(),
+            serde_json::Value::String(d.to_string()),
+        );
     }
     if let Some(s) = state_event {
-        payload.insert("state_event".into(), serde_json::Value::String(s.to_string()));
+        payload.insert(
+            "state_event".into(),
+            serde_json::Value::String(s.to_string()),
+        );
     }
     if let Some(l) = labels {
         payload.insert("labels".into(), serde_json::Value::String(l.join(",")));
@@ -139,8 +145,8 @@ pub fn update_issue(
                 .to_string(),
         );
     }
-    let body = serde_json::to_string(&serde_json::Value::Object(payload))
-        .map_err(|e| e.to_string())?;
+    let body =
+        serde_json::to_string(&serde_json::Value::Object(payload)).map_err(|e| e.to_string())?;
     let endpoint = format!("/projects/{}/issues/{}", project_path(project), iid);
     let (_status, value) = gitlab::request("PUT", &endpoint, Some(&body))?;
     Ok(value)
@@ -248,13 +254,22 @@ pub fn update_merge_request(
         payload.insert("title".into(), serde_json::Value::String(t.to_string()));
     }
     if let Some(d) = description {
-        payload.insert("description".into(), serde_json::Value::String(d.to_string()));
+        payload.insert(
+            "description".into(),
+            serde_json::Value::String(d.to_string()),
+        );
     }
     if let Some(s) = state_event {
-        payload.insert("state_event".into(), serde_json::Value::String(s.to_string()));
+        payload.insert(
+            "state_event".into(),
+            serde_json::Value::String(s.to_string()),
+        );
     }
     if let Some(b) = target_branch {
-        payload.insert("target_branch".into(), serde_json::Value::String(b.to_string()));
+        payload.insert(
+            "target_branch".into(),
+            serde_json::Value::String(b.to_string()),
+        );
     }
     if payload.is_empty() {
         return Err(
@@ -262,8 +277,8 @@ pub fn update_merge_request(
                 .to_string(),
         );
     }
-    let body = serde_json::to_string(&serde_json::Value::Object(payload))
-        .map_err(|e| e.to_string())?;
+    let body =
+        serde_json::to_string(&serde_json::Value::Object(payload)).map_err(|e| e.to_string())?;
     let endpoint = format!("/projects/{}/merge_requests/{}", project_path(project), iid);
     let (_status, value) = gitlab::request("PUT", &endpoint, Some(&body))?;
     Ok(value)
@@ -374,11 +389,7 @@ pub fn get_branch(project: &str, branch: &str) -> Result<serde_json::Value, Stri
     Ok(value)
 }
 
-pub fn create_branch(
-    project: &str,
-    branch: &str,
-    ref_: &str,
-) -> Result<serde_json::Value, String> {
+pub fn create_branch(project: &str, branch: &str, ref_: &str) -> Result<serde_json::Value, String> {
     gitlab::require_token()?;
     let endpoint = format!(
         "/projects/{}/repository/branches?branch={}&ref={}",
@@ -486,11 +497,7 @@ pub fn delete_file(
     Ok(serde_json::json!({ "deleted": path, "branch": branch }))
 }
 
-pub fn search_projects(
-    query: &str,
-    per_page: u32,
-    page: u32,
-) -> Result<serde_json::Value, String> {
+pub fn search_projects(query: &str, per_page: u32, page: u32) -> Result<serde_json::Value, String> {
     gitlab::require_token()?;
     let endpoint = format!(
         "/search?scope=projects&search={}&per_page={}&page={}",

@@ -307,9 +307,7 @@ pub struct UpdateTaskRequest<'a> {
 pub fn update_task(req: &UpdateTaskRequest<'_>) -> Result<Value, String> {
     require_token()?;
     if req.custom_task_ids && req.workspace_id.is_none() {
-        return Err(
-            "update_task: custom_task_ids=true requires workspace_id".to_string(),
-        );
+        return Err("update_task: custom_task_ids=true requires workspace_id".to_string());
     }
     let mut payload = Map::new();
     if let Some(n) = req.name {
@@ -369,9 +367,7 @@ pub fn delete_task(
 ) -> Result<Value, String> {
     require_token()?;
     if custom_task_ids && workspace_id.is_none() {
-        return Err(
-            "delete_task: custom_task_ids=true requires workspace_id".to_string(),
-        );
+        return Err("delete_task: custom_task_ids=true requires workspace_id".to_string());
     }
     let mut url = format!("/task/{}", url_encode(task_id));
     append_custom_task_ids(&mut url, custom_task_ids, workspace_id);
@@ -387,15 +383,9 @@ pub fn add_task_tag(
 ) -> Result<Value, String> {
     require_token()?;
     if custom_task_ids && workspace_id.is_none() {
-        return Err(
-            "add_task_tag: custom_task_ids=true requires workspace_id".to_string(),
-        );
+        return Err("add_task_tag: custom_task_ids=true requires workspace_id".to_string());
     }
-    let mut url = format!(
-        "/task/{}/tag/{}",
-        url_encode(task_id),
-        url_encode(tag_name)
-    );
+    let mut url = format!("/task/{}/tag/{}", url_encode(task_id), url_encode(tag_name));
     append_custom_task_ids(&mut url, custom_task_ids, workspace_id);
     let (_status, _value) = request("POST", &url, Some("{}"))?;
     Ok(json!({ "tagged": tag_name, "task_id": task_id }))
@@ -409,15 +399,9 @@ pub fn remove_task_tag(
 ) -> Result<Value, String> {
     require_token()?;
     if custom_task_ids && workspace_id.is_none() {
-        return Err(
-            "remove_task_tag: custom_task_ids=true requires workspace_id".to_string(),
-        );
+        return Err("remove_task_tag: custom_task_ids=true requires workspace_id".to_string());
     }
-    let mut url = format!(
-        "/task/{}/tag/{}",
-        url_encode(task_id),
-        url_encode(tag_name)
-    );
+    let mut url = format!("/task/{}/tag/{}", url_encode(task_id), url_encode(tag_name));
     append_custom_task_ids(&mut url, custom_task_ids, workspace_id);
     let (_status, _value) = request("DELETE", &url, None)?;
     Ok(json!({ "untagged": tag_name, "task_id": task_id }))
@@ -432,9 +416,7 @@ pub fn list_task_comments(
 ) -> Result<Value, String> {
     require_token()?;
     if custom_task_ids && workspace_id.is_none() {
-        return Err(
-            "list_task_comments: custom_task_ids=true requires workspace_id".to_string(),
-        );
+        return Err("list_task_comments: custom_task_ids=true requires workspace_id".to_string());
     }
     let mut url = format!("/task/{}/comment", url_encode(task_id));
     append_custom_task_ids(&mut url, custom_task_ids, workspace_id);
@@ -461,9 +443,7 @@ pub fn create_task_comment(
         return Err("create_task_comment requires non-empty comment_text".to_string());
     }
     if custom_task_ids && workspace_id.is_none() {
-        return Err(
-            "create_task_comment: custom_task_ids=true requires workspace_id".to_string(),
-        );
+        return Err("create_task_comment: custom_task_ids=true requires workspace_id".to_string());
     }
     let mut payload = Map::new();
     payload.insert("comment_text".into(), json!(comment_text));
@@ -569,10 +549,7 @@ pub fn list_time_entries(req: &ListTimeEntriesRequest<'_>) -> Result<Value, Stri
     Ok(value)
 }
 
-pub fn get_running_time_entry(
-    workspace_id: &str,
-    assignee: Option<u64>,
-) -> Result<Value, String> {
+pub fn get_running_time_entry(workspace_id: &str, assignee: Option<u64>) -> Result<Value, String> {
     require_token()?;
     let mut url = format!("/team/{}/time_entries/current", url_encode(workspace_id));
     if let Some(a) = assignee {
@@ -582,10 +559,7 @@ pub fn get_running_time_entry(
     Ok(value)
 }
 
-pub fn list_goals(
-    workspace_id: &str,
-    include_completed: bool,
-) -> Result<Value, String> {
+pub fn list_goals(workspace_id: &str, include_completed: bool) -> Result<Value, String> {
     require_token()?;
     let mut url = format!("/team/{}/goal", url_encode(workspace_id));
     append_query_bool(&mut url, "include_completed", include_completed);
@@ -618,7 +592,11 @@ mod tests {
     #[test]
     fn validate_priority_accepts_one_through_four() {
         for p in 1..=4 {
-            assert!(validate_priority(p).is_ok(), "priority {} should be valid", p);
+            assert!(
+                validate_priority(p).is_ok(),
+                "priority {} should be valid",
+                p
+            );
         }
     }
 

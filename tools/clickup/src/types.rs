@@ -307,8 +307,8 @@ mod tests {
 
     #[test]
     fn parse_list_spaces_with_archived() {
-        let action = parse(r#"{"action":"list_spaces","workspace_id":"abc","archived":true}"#)
-            .unwrap();
+        let action =
+            parse(r#"{"action":"list_spaces","workspace_id":"abc","archived":true}"#).unwrap();
         match action {
             ClickupAction::ListSpaces {
                 workspace_id,
@@ -332,8 +332,7 @@ mod tests {
 
     #[test]
     fn parse_create_task_minimal() {
-        let action = parse(r#"{"action":"create_task","list_id":"L1","name":"do thing"}"#)
-            .unwrap();
+        let action = parse(r#"{"action":"create_task","list_id":"L1","name":"do thing"}"#).unwrap();
         match action {
             ClickupAction::CreateTask {
                 list_id,
@@ -418,8 +417,7 @@ mod tests {
 
     #[test]
     fn parse_update_task_partial_only_status() {
-        let action =
-            parse(r#"{"action":"update_task","task_id":"T1","status":"closed"}"#).unwrap();
+        let action = parse(r#"{"action":"update_task","task_id":"T1","status":"closed"}"#).unwrap();
         match action {
             ClickupAction::UpdateTask {
                 task_id,

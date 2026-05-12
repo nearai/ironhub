@@ -73,15 +73,12 @@ pub fn request(
         return Ok((response.status, serde_json::Value::Null));
     }
 
-    let parsed = serde_json::from_str(&body_text)
-        .map_err(|e| format!("Invalid JSON from GitLab: {}", e))?;
+    let parsed =
+        serde_json::from_str(&body_text).map_err(|e| format!("Invalid JSON from GitLab: {}", e))?;
     Ok((response.status, parsed))
 }
 
-pub fn request_raw(
-    method: &str,
-    endpoint: &str,
-) -> Result<(u16, Vec<u8>), String> {
+pub fn request_raw(method: &str, endpoint: &str) -> Result<(u16, Vec<u8>), String> {
     let url = format!("{}{}", API_BASE, endpoint);
     host::log(
         host::LogLevel::Debug,

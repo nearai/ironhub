@@ -143,9 +143,7 @@ fn execute_inner(params: &str) -> Result<String, String> {
             per_page,
             page,
         } => api::list_merge_requests(&project, &state, per_page, page)?,
-        GitlabAction::GetMergeRequest { project, iid } => {
-            api::get_merge_request(&project, iid)?
-        }
+        GitlabAction::GetMergeRequest { project, iid } => api::get_merge_request(&project, iid)?,
         GitlabAction::CreateMergeRequest {
             project,
             source_branch,
@@ -215,9 +213,7 @@ fn execute_inner(params: &str) -> Result<String, String> {
             branch,
             ref_,
         } => api::create_branch(&project, &branch, &ref_)?,
-        GitlabAction::DeleteBranch { project, branch } => {
-            api::delete_branch(&project, &branch)?
-        }
+        GitlabAction::DeleteBranch { project, branch } => api::delete_branch(&project, &branch)?,
         GitlabAction::GetFileContent {
             project,
             path,
@@ -271,13 +267,7 @@ fn execute_inner(params: &str) -> Result<String, String> {
             ref_,
             per_page,
             page,
-        } => api::list_pipelines(
-            &project,
-            status.as_deref(),
-            ref_.as_deref(),
-            per_page,
-            page,
-        )?,
+        } => api::list_pipelines(&project, status.as_deref(), ref_.as_deref(), per_page, page)?,
         GitlabAction::GetPipeline {
             project,
             pipeline_id,

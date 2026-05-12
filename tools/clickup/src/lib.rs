@@ -70,19 +70,17 @@ fn execute_inner(params: &str) -> Result<String, String> {
             archived,
         } => api::list_spaces(&workspace_id, archived)?,
         ClickupAction::GetSpace { space_id } => api::get_space(&space_id)?,
-        ClickupAction::ListFolders {
-            space_id,
-            archived,
-        } => api::list_folders(&space_id, archived)?,
+        ClickupAction::ListFolders { space_id, archived } => {
+            api::list_folders(&space_id, archived)?
+        }
         ClickupAction::GetFolder { folder_id } => api::get_folder(&folder_id)?,
         ClickupAction::ListLists {
             folder_id,
             archived,
         } => api::list_lists(&folder_id, archived)?,
-        ClickupAction::ListFolderlessLists {
-            space_id,
-            archived,
-        } => api::list_folderless_lists(&space_id, archived)?,
+        ClickupAction::ListFolderlessLists { space_id, archived } => {
+            api::list_folderless_lists(&space_id, archived)?
+        }
         ClickupAction::GetList { list_id } => api::get_list(&list_id)?,
         ClickupAction::CreateList {
             folder_id,
