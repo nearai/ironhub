@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import type { CatalogItem, CatalogKind } from "@/lib/catalog-types"
+import type { CatalogItem } from "@/lib/catalog-types"
 import type { CollectionBundle } from "@/lib/collection-bundles"
 import { cn } from "@/lib/utils"
 import {
@@ -29,11 +29,12 @@ import {
   IconSparkles,
   IconTerminal,
   IconTool,
+  IconTrendingUp,
   IconX,
 } from "@tabler/icons-react"
 import { useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
-import { SlotPickerModal } from "./slot-picker-modal"
+import { useState } from "react"
+import { UniversalSelectionDrawer } from "./universal-selection-drawer"
 
 type LoadoutBuilderProps = {
   catalog: {
@@ -80,20 +81,33 @@ const PREDEFINED_PERSONAS = [
     gradient: "from-orange-400 to-rose-500 shadow-orange-500/20",
     badges: ["User-First", "High-Empathy", "Onboarder"],
   },
+  {
+    id: "trader",
+    name: "Crypto Trader",
+    description:
+      "Risk-aware, analytical profile optimized for tracking on-chain stats, prediction sentiment, and market data.",
+    icon: IconTrendingUp,
+    gradient: "from-lime-500 to-emerald-600 shadow-lime-500/20",
+    badges: ["Risk-Aware", "Market-Oracle", "Numerical"],
+  },
 ] as const
 
 const HIGH_FIDELITY_PRESETS = [
   {
-    id: "coder",
-    name: "Fullstack Architect",
-    label: "Fullstack Architect",
-    emoji: "💻",
+    id: "trader",
+    name: "Crypto Trader",
+    label: "Crypto Trader",
+    emoji: "📈",
     description:
-      "Optimize development and operation workflows with automated toolchains, repo checks, and local builds.",
-    persona: "coder",
-    skillKeywords: ["github", "typescript", "git", "deploy", "review"],
-    toolKeywords: ["shell", "exec", "terminal", "run", "filesystem"],
-    collectionSlugs: ["agent-builder", "security-review"],
+      "Analyze market trends, monitor Polymarket prediction odds, and track real-time NEAR blockchain data.",
+    persona: "trader",
+    skillSlugs: [
+      "iliad-WyJpbGlhZC1zZWVkIiwiZGVmaS1hcmNoaXRlY3QiLCIxLjAuMCJd", // Defi Architect
+      "iliad-WyJpbGlhZC1zZWVkIiwidGVjaG5pY2FsLWFuYWx5c2lzIiwiMS4wLjAiXQ", // Technical Analysis
+    ],
+    toolSlugs: ["near-rpc", "polymarket"],
+    collectionSlugs: ["onchain-data"],
+    tags: ["#crypto", "#web3", "#trading"],
   },
   {
     id: "creative",
@@ -103,9 +117,14 @@ const HIGH_FIDELITY_PRESETS = [
     description:
       "Supercharge audience outreach, copywriting hooks, and visual asset growth pipelines.",
     persona: "creative",
-    skillKeywords: ["market", "social", "copy", "hook", "writer", "content"],
-    toolKeywords: ["openai", "gpt", "browser", "search"],
+    skillSlugs: [
+      "iliad-WyJpbGlhZC1zZWVkIiwic29jaWFsLW1lZGlhLWVuZ2luZSIsIjEuMC4wIl0", // Social Media Engine
+      "iliad-WyJpbGlhZC1zZWVkIiwiY29weXdyaXRpbmctZnJhbWV3b3JrcyIsIjEuMC4wIl0", // Copywriting Frameworks
+      "iliad-WyJpbGlhZC1zZWVkIiwiZW1haWwtbWFya2V0aW5nIiwiMS4wLjAiXQ", // Email Marketing
+    ],
+    toolSlugs: [],
     collectionSlugs: ["content-studio", "product-design"],
+    tags: ["#marketing", "#social", "#creative"],
   },
   {
     id: "researcher",
@@ -115,11 +134,86 @@ const HIGH_FIDELITY_PRESETS = [
     description:
       "Streamline enterprise coordination, NEAR on-chain intelligence, spreadsheets, and logistics.",
     persona: "researcher",
-    skillKeywords: ["business", "ops", "spreadsheet", "excel", "manage"],
-    toolKeywords: ["near", "rpc", "chain", "wallet", "signer"],
+    skillSlugs: [
+      "iliad-WyJpbGlhZC1zZWVkIiwidGFzay1wbGFubmVyIiwiMS4wLjAiXQ", // Task Planner
+      "iliad-WyJpbGlhZC1zZWVkIiwib2tyLXBsYW5uaW5nIiwiMS4wLjAiXQ", // Okr Planning
+    ],
+    toolSlugs: ["near-rpc"],
     collectionSlugs: ["business-operations", "onchain-data"],
+    tags: ["#research", "#operations", "#data"],
+  },
+  {
+    id: "coder",
+    name: "Fullstack Architect",
+    label: "Fullstack Architect",
+    emoji: "💻",
+    description:
+      "Optimize development and operation workflows with automated toolchains, repo checks, and local builds.",
+    persona: "coder",
+    skillSlugs: [
+      "iliad-WyJpbGlhZC1zZWVkIiwiY29kZS1yZXZpZXciLCIxLjAuMCJd", // Code Review
+      "iliad-WyJpbGlhZC1zZWVkIiwiYXBpLWRlc2lnbiIsIjEuMC4wIl0", // Api Design
+      "iliad-WyJpbGlhZC1zZWVkIiwidHlwZXNjcmlwdC1leHBlcnQiLCIxLjAuMCJd", // Typescript Expert
+    ],
+    toolSlugs: [],
+    collectionSlugs: ["agent-builder", "security-review"],
+    tags: ["#dev", "#code", "#terminal"],
+  },
+  {
+    id: "evangelist",
+    name: "Customer Support Advocate",
+    label: "Customer Support Advocate",
+    emoji: "🤝",
+    description:
+      "Empathic support and guidance with customer success toolkits, feedback loops, and communication logs.",
+    persona: "evangelist",
+    skillSlugs: [
+      "microsoft-365-workflow",
+      "iliad-WyJpbGlhZC1zZWVkIiwic3Rha2Vob2xkZXItY29tbXVuaWNhdGlvbiIsIjEuMC4wIl0", // Stakeholder Communication
+    ],
+    toolSlugs: ["microsoft-365"],
+    collectionSlugs: ["business-operations"],
+    tags: ["#support", "#empathy", "#onboard"],
   },
 ]
+
+const getPresetIcon = (persona: string) => {
+  switch (persona) {
+    case "trader":
+      return IconTrendingUp
+    case "coder":
+      return IconCode
+    case "creative":
+      return IconSparkles
+    case "researcher":
+      return IconBrain
+    case "evangelist":
+      return IconHeart
+    default:
+      return IconSparkles
+  }
+}
+
+const getPersonaColorClasses = (persona: string) => {
+  switch (persona) {
+    case "trader":
+      return "bg-lime-50 text-lime-600 border border-lime-100 dark:bg-lime-950/30 dark:text-lime-400 dark:border-lime-900/50"
+    case "coder":
+      return "bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50"
+    case "creative":
+      return "bg-fuchsia-50 text-fuchsia-600 border border-fuchsia-100 dark:bg-fuchsia-950/30 dark:text-fuchsia-400 dark:border-fuchsia-900/50"
+    case "researcher":
+      return "bg-blue-50 text-blue-600 border border-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/50"
+    case "evangelist":
+      return "bg-orange-50 text-orange-600 border border-orange-100 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-900/50"
+    default:
+      return "bg-slate-50 text-slate-600 border border-slate-100 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700"
+  }
+}
+
+const getPresetPersonaObj = (personaId: string) => {
+  return PREDEFINED_PERSONAS.find((p) => p.id === personaId) || PREDEFINED_PERSONAS[0]
+}
 
 export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
   const searchParams = useSearchParams()
@@ -156,10 +250,13 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
 
   // Picker Modal controls
   const [modalOpen, setModalOpen] = useState(false)
-  const [modalKind, setModalKind] = useState<CatalogKind>("skill")
+  const [initialTab, setInitialTab] = useState<"all" | "skill" | "tool" | "collection">("skill")
 
   // Persona Modal controller
   const [personaModalOpen, setPersonaModalOpen] = useState(false)
+
+  // Preset Modal controller
+  const [presetModalOpen, setPresetModalOpen] = useState(false)
 
   // Action Bar states
   const [shareCopied, setShareCopied] = useState(false)
@@ -173,44 +270,12 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
     setSoulSource("ready-made")
     setSelectedPersona(preset.persona)
 
-    // Match skills by keywords
-    let matchedSkills: CatalogItem[] = []
-    for (const keyword of preset.skillKeywords) {
-      const found = catalog.skills.filter(
-        (s) =>
-          (s.slug.toLowerCase().includes(keyword) ||
-            s.name.toLowerCase().includes(keyword) ||
-            (s.description && s.description.toLowerCase().includes(keyword))) &&
-          !matchedSkills.some((existing) => existing.slug === s.slug)
-      )
-      matchedSkills = [...matchedSkills, ...found]
-      if (matchedSkills.length >= 2) break
-    }
-    if (matchedSkills.length === 0 && catalog.skills.length > 0) {
-      matchedSkills = catalog.skills.slice(0, 2)
-    } else if (matchedSkills.length > 3) {
-      matchedSkills = matchedSkills.slice(0, 3)
-    }
+    // Match skills by exact slugs
+    const matchedSkills = catalog.skills.filter((s) => preset.skillSlugs.includes(s.slug))
     setSkills(matchedSkills)
 
-    // Match tools by keywords
-    let matchedTools: CatalogItem[] = []
-    for (const keyword of preset.toolKeywords) {
-      const found = catalog.tools.filter(
-        (t) =>
-          (t.slug.toLowerCase().includes(keyword) ||
-            t.name.toLowerCase().includes(keyword) ||
-            (t.description && t.description.toLowerCase().includes(keyword))) &&
-          !matchedTools.some((existing) => existing.slug === t.slug)
-      )
-      matchedTools = [...matchedTools, ...found]
-      if (matchedTools.length >= 2) break
-    }
-    if (matchedTools.length === 0 && catalog.tools.length > 0) {
-      matchedTools = catalog.tools.slice(0, 2)
-    } else if (matchedTools.length > 3) {
-      matchedTools = matchedTools.slice(0, 3)
-    }
+    // Match tools by exact slugs
+    const matchedTools = catalog.tools.filter((t) => preset.toolSlugs.includes(t.slug))
     setTools(matchedTools)
 
     // Match collections by slugs
@@ -246,23 +311,29 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
   }`
 
   // Modal selector trigger
-  const handleOpenPicker = (kind: CatalogKind) => {
-    setModalKind(kind)
+  const handleOpenDrawer = (tab: "all" | "skill" | "tool" | "collection") => {
+    setInitialTab(tab)
     setModalOpen(true)
   }
 
-  // Append new skill/tool/collection to list (avoid duplicates)
-  const handleSelectItem = (item: CatalogItem | CollectionBundle) => {
+  // Toggle item in selection cart
+  const handleToggleItem = (item: CatalogItem | CollectionBundle) => {
     if (item.kind === "skill") {
-      if (!skills.some((s) => s.slug === item.slug)) {
+      if (skills.some((s) => s.slug === item.slug)) {
+        setSkills(skills.filter((s) => s.slug !== item.slug))
+      } else {
         setSkills([...skills, item])
       }
     } else if (item.kind === "tool") {
-      if (!tools.some((t) => t.slug === item.slug)) {
+      if (tools.some((t) => t.slug === item.slug)) {
+        setTools(tools.filter((t) => t.slug !== item.slug))
+      } else {
         setTools([...tools, item])
       }
     } else if (item.kind === "collection") {
-      if (!collections.some((c) => c.slug === item.slug)) {
+      if (collections.some((c) => c.slug === item.slug)) {
+        setCollections(collections.filter((c) => c.slug !== item.slug))
+      } else {
         setCollections([...collections, item as CollectionBundle])
       }
     }
@@ -351,25 +422,41 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
         </div>
 
         {/* INLINE TEMPLATES / PRESETS SELECTOR */}
-        <div className="flex flex-wrap items-center gap-3 border-t border-[var(--ironhub-line)] pt-4">
-          <span className="flex items-center gap-1.5 text-sm font-medium text-slate-500">
-            <IconSparkles className="size-4 shrink-0 animate-pulse text-primary" />
+        <div className="flex flex-col gap-3.5 border-t border-[var(--ironhub-line)] pt-4 md:flex-row md:items-center">
+          <span className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-zinc-300">
+            <IconSparkles className="size-4 text-blue-500 shrink-0" />
             Start with a preset:
           </span>
-          <div className="flex flex-wrap gap-2">
-            {HIGH_FIDELITY_PRESETS.map((preset) => (
-              <Button
-                key={preset.id}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {HIGH_FIDELITY_PRESETS.slice(0, 3).map((preset) => {
+              const Icon = getPresetIcon(preset.persona)
+              const colorClasses = getPersonaColorClasses(preset.persona)
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => handleApplyPreset(preset)}
+                  className="flex h-11 shrink-0 cursor-pointer items-center gap-3 rounded-xl border border-slate-300 bg-white px-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-500 hover:bg-blue-50/5 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-blue-400"
+                >
+                  <div className={cn("flex size-6 shrink-0 items-center justify-center rounded-full shadow-sm", colorClasses)}>
+                    <Icon className="size-3.5" />
+                  </div>
+                  <span className="text-xs font-bold text-slate-800 dark:text-zinc-200">
+                    {preset.label}
+                  </span>
+                </button>
+              )
+            })}
+
+            {HIGH_FIDELITY_PRESETS.length > 3 && (
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleApplyPreset(preset)}
-                className="flex h-8 shrink-0 cursor-pointer items-center gap-2 rounded-full border-border/80 bg-background px-4 text-xs font-semibold shadow-sm transition-all duration-300 hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+                onClick={() => setPresetModalOpen(true)}
+                className="flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-transparent px-4 text-xs font-bold text-slate-600 transition-all duration-200 hover:border-slate-400 hover:bg-slate-100 hover:text-slate-800 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100"
               >
-                <span className="shrink-0 text-sm">{preset.emoji}</span>
-                {preset.label}
-              </Button>
-            ))}
+                + {HIGH_FIDELITY_PRESETS.length - 3} More
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -555,11 +642,11 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
                 <Button
                   type="button"
                   variant="outline"
-                  size="xs"
-                  onClick={() => handleOpenPicker("skill")}
-                  className="shrink-0 cursor-pointer gap-1 rounded-lg border-primary/20 text-xs font-bold text-primary hover:bg-primary/5"
+                  size="sm"
+                  onClick={() => handleOpenDrawer("skill")}
+                  className="shrink-0 cursor-pointer gap-1.5 rounded-full border-primary/30 px-3.5 py-1 text-xs font-extrabold text-primary shadow-sm hover:bg-primary hover:text-primary-foreground transition-all duration-300"
                 >
-                  <IconPlus className="size-3" />
+                  <IconPlus className="size-3.5 stroke-[3px]" />
                   Add Skill
                 </Button>
               )}
@@ -599,7 +686,7 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
               ) : (
                 <button
                   type="button"
-                  onClick={() => handleOpenPicker("skill")}
+                  onClick={() => handleOpenDrawer("skill")}
                   className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border/60 bg-background/20 px-4 py-10 text-muted-foreground/80 shadow-inner transition-all hover:border-primary/50 hover:bg-background/50 hover:text-primary"
                 >
                   <div className="mb-1 flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -634,11 +721,11 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
                 <Button
                   type="button"
                   variant="outline"
-                  size="xs"
-                  onClick={() => handleOpenPicker("tool")}
-                  className="shrink-0 cursor-pointer gap-1 rounded-lg border-primary/20 text-xs font-bold text-primary hover:bg-primary/5"
+                  size="sm"
+                  onClick={() => handleOpenDrawer("tool")}
+                  className="shrink-0 cursor-pointer gap-1.5 rounded-full border-primary/30 px-3.5 py-1 text-xs font-extrabold text-primary shadow-sm hover:bg-primary hover:text-primary-foreground transition-all duration-300"
                 >
-                  <IconPlus className="size-3" />
+                  <IconPlus className="size-3.5 stroke-[3px]" />
                   Add Tool
                 </Button>
               )}
@@ -678,7 +765,7 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
               ) : (
                 <button
                   type="button"
-                  onClick={() => handleOpenPicker("tool")}
+                  onClick={() => handleOpenDrawer("tool")}
                   className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border/60 bg-background/20 px-4 py-10 text-muted-foreground/80 shadow-inner transition-all hover:border-primary/50 hover:bg-background/50 hover:text-primary"
                 >
                   <div className="mb-1 flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -714,11 +801,11 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
                 <Button
                   type="button"
                   variant="outline"
-                  size="xs"
-                  onClick={() => handleOpenPicker("collection")}
-                  className="shrink-0 cursor-pointer gap-1 rounded-lg border-primary/20 text-xs font-bold text-primary hover:bg-primary/5"
+                  size="sm"
+                  onClick={() => handleOpenDrawer("collection")}
+                  className="shrink-0 cursor-pointer gap-1.5 rounded-full border-primary/30 px-3.5 py-1 text-xs font-extrabold text-primary shadow-sm hover:bg-primary hover:text-primary-foreground transition-all duration-300"
                 >
-                  <IconPlus className="size-3" />
+                  <IconPlus className="size-3.5 stroke-[3px]" />
                   Add Collection
                 </Button>
               )}
@@ -760,7 +847,7 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
               ) : (
                 <button
                   type="button"
-                  onClick={() => handleOpenPicker("collection")}
+                  onClick={() => handleOpenDrawer("collection")}
                   className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border/60 bg-background/20 px-4 py-10 text-muted-foreground/80 shadow-inner transition-all hover:border-primary/50 hover:bg-background/50 hover:text-primary"
                 >
                   <div className="mb-1 flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -947,22 +1034,18 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
         </div>
       </footer>
 
-      {/* SLOT PICKER DRAWER/MODAL */}
-      <SlotPickerModal
+      {/* UNIVERSAL CATALOG DRAWER */}
+      <UniversalSelectionDrawer
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        onSelect={handleSelectItem}
-        items={
-          modalKind === "collection" ? catalog.collections || [] : allItems
-        }
-        filterKind={modalKind}
-        equippedSlugs={
-          modalKind === "skill"
-            ? skills.map((s) => s.slug)
-            : modalKind === "tool"
-              ? tools.map((t) => t.slug)
-              : collections.map((c) => c.slug)
-        }
+        onToggle={handleToggleItem}
+        skills={catalog.skills}
+        tools={catalog.tools}
+        collections={catalog.collections || []}
+        initialTab={initialTab}
+        equippedSkills={skills.map((s) => s.slug)}
+        equippedTools={tools.map((t) => t.slug)}
+        equippedCollections={collections.map((c) => c.slug)}
       />
 
       {/* GORGEOUS HIGH-FIDELITY PERSONA SELECTOR POPUP MODAL */}
@@ -1061,6 +1144,124 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
                     >
                       {isSelected ? "Equipped" : "Equip"}
                     </Button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* HIGH-FIDELITY PRESET SELECTION MODAL */}
+      {presetModalOpen && (
+        <div className="fixed inset-0 z-50 flex animate-in items-center justify-center bg-background/80 p-4 backdrop-blur-sm duration-200 fade-in">
+          <div className="relative flex max-h-[90vh] w-full max-w-2xl animate-in flex-col overflow-hidden rounded-2xl border border-[var(--ironhub-line)] bg-card shadow-xl duration-200 zoom-in-95">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-border/40 p-5">
+              <div>
+                <h3 className="flex items-center gap-2 font-heading text-base font-bold text-foreground">
+                  <IconSparkles className="size-4.5 text-primary" />
+                  Select a Preset Loadout
+                </h3>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Supercharge your workspace instantly with one of our high-fidelity pre-configured setups.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setPresetModalOpen(false)}
+                className="size-8 shrink-0 cursor-pointer rounded-full text-muted-foreground/60 hover:bg-muted hover:text-foreground"
+              >
+                <IconX className="size-4" />
+              </Button>
+            </div>
+
+            {/* Modal Content - Preset Cards List */}
+            <div className="flex-1 space-y-3.5 overflow-y-auto p-5">
+              {HIGH_FIDELITY_PRESETS.map((preset) => {
+                const isEquipped = name === preset.name
+                const personaObj = getPresetPersonaObj(preset.persona)
+                const Icon = getPresetIcon(preset.persona)
+                return (
+                  <div
+                    key={preset.id}
+                    onClick={() => {
+                      handleApplyPreset(preset)
+                      setPresetModalOpen(false)
+                    }}
+                    className={cn(
+                      "group flex cursor-pointer flex-col justify-between rounded-2xl border bg-background/45 p-4 transition-all duration-300 hover:bg-muted/12 hover:shadow-sm md:flex-row md:items-center",
+                      isEquipped
+                        ? "border-primary bg-primary/5 shadow-md ring-1 shadow-primary/5 ring-primary/20"
+                        : "border-border/60 hover:border-primary/20"
+                    )}
+                  >
+                    <div className="flex min-w-0 flex-1 items-start gap-4">
+                      {/* Left Section: Colored Gradient Icon Box matching Ready-made Persona style */}
+                      <div
+                        className={cn(
+                          "mt-0.5 flex size-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-white shadow-md transition-transform duration-300 group-hover:scale-105 md:mt-0",
+                          personaObj.gradient
+                        )}
+                      >
+                        <Icon className="size-6" />
+                      </div>
+
+                      {/* Middle Section: Info & Tags */}
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex flex-wrap items-center gap-2">
+                          <span className="text-sm leading-none font-bold text-slate-800 dark:text-zinc-100 transition-colors group-hover:text-primary">
+                            {preset.name}
+                          </span>
+                          {isEquipped && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] leading-none font-extrabold tracking-widest text-emerald-500 uppercase">
+                              <IconCheck className="size-2.5" />
+                              Active
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                          {preset.description}
+                        </p>
+
+                        {/* Lowercase capsules for tags */}
+                        <div className="mt-2.5 flex flex-wrap gap-1.5">
+                          {preset.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="rounded-full bg-slate-100 dark:bg-zinc-800 px-2.5 py-0.5 text-[10px] font-semibold text-slate-500 dark:text-zinc-400"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Section: Equip state action button */}
+                    <div className="mt-4 shrink-0 md:mt-0 md:ml-4">
+                      {isEquipped ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          disabled
+                          className="h-9 w-24 rounded-xl text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
+                        >
+                          Equipped
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-9 w-24 rounded-xl text-xs font-bold transition-all hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                        >
+                          Equip
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 )
               })}
