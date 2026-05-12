@@ -40,7 +40,16 @@ impl exports::near::agent::tool::Guest for GitlabTool {
          (get_file_content, create_or_update_file, delete_file), search (search_projects, \
          search_issues, search_blobs), pipelines (list_pipelines, get_pipeline, list_jobs), \
          and current_user. OAuth 2.0 user-context authentication against gitlab.com with \
-         host-managed token refresh."
+         host-managed token refresh.\n\
+         \n\
+         Parameter formats:\n\
+         - `project`: pass the numeric project ID as a string. Path form (e.g. \
+         `group/repo`) is also valid against the GitLab API but the host sandbox \
+         currently rejects URL-encoded path separators, so numeric IDs are required. \
+         Resolve a path to its ID with `search_projects` first.\n\
+         - Branch names are bare strings (`main`, `feature/x`), no `refs/heads/` prefix.\n\
+         - File paths in `get_file_content` / `create_or_update_file` are repository \
+         paths from the repo root, no leading slash."
             .to_string()
     }
 }
