@@ -24,7 +24,7 @@ export default async function AgentsPage() {
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <IconLoader2 className="size-8 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground font-medium">
-                Loading Loadout Builder...
+                Loading Agent Loadout Builder...
               </p>
             </div>
           }

@@ -24,6 +24,7 @@ type CatalogCardProps = {
   onSelect?: (item: CatalogItem) => void
   selectText?: string
   disabled?: boolean
+  isSelected?: boolean
 }
 
 export function CatalogCard({
@@ -32,6 +33,7 @@ export function CatalogCard({
   onSelect,
   selectText,
   disabled = false,
+  isSelected = false,
 }: CatalogCardProps) {
   const metric =
     item.origin === "iliad"
@@ -101,11 +103,13 @@ export function CatalogCard({
               "w-full gap-2 rounded-full font-semibold transition-all cursor-pointer",
               disabled 
                 ? "bg-muted text-muted-foreground border border-border/40 cursor-not-allowed opacity-70" 
+                : isSelected
+                ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 dark:text-emerald-400"
                 : "bg-primary text-primary-foreground hover:bg-primary/90"
             )}
           >
             {selectText || "Select"}
-            <IconArrowRight className="size-4" />
+            <IconArrowRight className={cn("size-4", isSelected && "hidden")} />
           </Button>
         ) : (
           <Button 
