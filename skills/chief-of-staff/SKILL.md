@@ -109,6 +109,31 @@ This skill orchestrates five tool surfaces. Each is a separate WASM tool with it
 
 The skill does not replace the tools. It orchestrates them. When a tool action covers a need, prefer the typed action over a raw HTTP call.
 
+## Pre-Flight: Check What's Authed
+
+Before any multi-tool orchestration, call `secret_list` to enumerate which tool credentials are present in the host secret store. Scope the orchestration to authed tools only.
+
+Credential names to look for:
+
+| Tool surface | Secret name |
+|---|---|
+| Google Workspace (gmail, google-calendar, google-drive, google-docs, google-sheets, google-slides) | `google_oauth_token` |
+| GitHub | `github_access_token` |
+| GitLab | `gitlab_oauth_token` |
+| ClickUp | `clickup_oauth_token` |
+| WhatsApp Cloud | `whatsapp_access_token` |
+
+If a credential is missing, skip every action for that tool surface for this turn. Do not call the tool to discover it is not connected. Do not approve a `tool_auth_required` prompt mid-orchestration; that is the sign the pre-flight check was skipped.
+
+When the response is assembled, name the skipped surfaces at the end so the user can authorize them later:
+
+```
+GitHub: not connected. Skipped.
+Google Workspace: not connected. Skipped.
+```
+
+A briefing that surfaces ClickUp + GitLab results and explicitly names the unconnected surfaces is more useful than a hung orchestration waiting for an approval prompt that nobody can answer.
+
 ## Approval Tiers
 
 Every side effect this skill might trigger falls into one of four tiers. The agent must respect the tier without exception.
