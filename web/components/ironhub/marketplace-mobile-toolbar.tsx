@@ -11,4 +11,3 @@ export function MarketplaceMobileToolbar({
 }: MarketplaceMobileToolbarProps) {
   return null
 }
-

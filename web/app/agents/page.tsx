@@ -18,12 +18,12 @@ export default async function AgentsPage() {
 
   return (
     <HubLayout fluid>
-      <div className="flex w-full items-start min-h-[calc(100vh-65px)]">
+      <div className="flex min-h-[calc(100vh-65px)] w-full items-start">
         <Suspense
           fallback={
-            <div className="flex flex-col items-center justify-center w-full h-full gap-3 py-20">
+            <div className="flex h-full w-full flex-col items-center justify-center gap-3 py-20">
               <IconLoader2 className="size-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground font-medium">
+              <p className="text-sm font-medium text-muted-foreground">
                 Loading Agent Loadout Builder...
               </p>
             </div>
@@ -35,4 +35,3 @@ export default async function AgentsPage() {
     </HubLayout>
   )
 }
-

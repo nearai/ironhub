@@ -13,12 +13,16 @@ export function MetricGrid({ metrics }: MetricGridProps) {
   return (
     <div className="grid grid-cols-2 gap-1.5 sm:gap-3 lg:grid-cols-4">
       {metrics.map((metric) => (
-        <Card key={metric.label} className="bg-[var(--ih-surface-muted)] backdrop-blur-md border-[var(--ih-border-ui)] py-1.5 sm:py-4 px-2 sm:px-4" size="sm">
-          <div className="flex sm:flex-col items-baseline sm:items-start gap-1.5 sm:gap-1 px-1 sm:px-4">
-            <span className="text-[var(--ih-accent)] text-sm sm:text-2xl font-bold sm:font-semibold leading-none">
+        <Card
+          key={metric.label}
+          className="border-[var(--ih-border-ui)] bg-[var(--ih-surface-muted)] px-2 py-1.5 backdrop-blur-md sm:px-4 sm:py-4"
+          size="sm"
+        >
+          <div className="flex items-baseline gap-1.5 px-1 sm:flex-col sm:items-start sm:gap-1 sm:px-4">
+            <span className="text-sm leading-none font-bold text-[var(--ih-accent)] sm:text-2xl sm:font-semibold">
               {metric.value}
             </span>
-            <span className="text-[var(--ih-ink-soft)] text-[10px] sm:text-sm font-medium leading-none">
+            <span className="text-[10px] leading-none font-medium text-[var(--ih-ink-soft)] sm:text-sm">
               {metric.label}
             </span>
           </div>
@@ -27,4 +31,3 @@ export function MetricGrid({ metrics }: MetricGridProps) {
     </div>
   )
 }
-

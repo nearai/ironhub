@@ -37,20 +37,36 @@ export function CollectionGrabCard({ bundle }: CollectionGrabCardProps) {
         <TerminalBox title="collection bundle" copyText={installCommand}>
           <div className="space-y-1 font-mono text-sm">
             <div className="flex gap-3">
-              <span className="text-slate-400 select-none dark:text-slate-500">$</span>
-              <span className="text-slate-900 dark:text-slate-100">{installCommand}</span>
+              <span className="text-slate-400 select-none dark:text-slate-500">
+                $
+              </span>
+              <span className="text-slate-900 dark:text-slate-100">
+                {installCommand}
+              </span>
             </div>
             <div className="flex gap-3">
-              <span className="text-slate-400 select-none dark:text-slate-500">{">"}</span>
-              <span className="text-slate-400 dark:text-slate-400">{bundle.items.length} entries selected</span>
+              <span className="text-slate-400 select-none dark:text-slate-500">
+                {">"}
+              </span>
+              <span className="text-slate-400 dark:text-slate-400">
+                {bundle.items.length} entries selected
+              </span>
             </div>
             <div className="flex gap-3">
-              <span className="text-slate-400 select-none dark:text-slate-500">{">"}</span>
-              <span className="text-slate-400 dark:text-slate-400">{bundle.toolCount} tools / {bundle.skillCount} skills</span>
+              <span className="text-slate-400 select-none dark:text-slate-500">
+                {">"}
+              </span>
+              <span className="text-slate-400 dark:text-slate-400">
+                {bundle.toolCount} tools / {bundle.skillCount} skills
+              </span>
             </div>
             <div className="flex gap-3">
-              <span className="text-slate-400 select-none dark:text-slate-500">{">"}</span>
-              <span className="text-slate-400 dark:text-slate-400">bundle ready for agent loadout</span>
+              <span className="text-slate-400 select-none dark:text-slate-500">
+                {">"}
+              </span>
+              <span className="text-slate-400 dark:text-slate-400">
+                bundle ready for agent loadout
+              </span>
             </div>
           </div>
         </TerminalBox>

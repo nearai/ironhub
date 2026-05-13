@@ -45,7 +45,7 @@ export function TerminalBox({
         {copyText && (
           <button
             onClick={handleCopy}
-            className="hover:text-slate-900 transition-colors dark:hover:text-slate-100"
+            className="transition-colors hover:text-slate-900 dark:hover:text-slate-100"
             aria-label="Copy to clipboard"
           >
             {copied ? (

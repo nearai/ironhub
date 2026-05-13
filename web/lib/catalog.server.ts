@@ -25,9 +25,7 @@ export async function getCatalog() {
     readTools(root, tracking.tools),
     readSkills(root, tracking.skills),
   ])
-  let items = [...tools, ...skills].sort((a, b) =>
-    a.name.localeCompare(b.name)
-  )
+  let items = [...tools, ...skills].sort((a, b) => a.name.localeCompare(b.name))
 
   if (ENABLE_AUTHOR_FILTER) {
     items = items.filter((item) => ALLOWED_AUTHORS.includes(item.author))
@@ -87,7 +85,11 @@ export async function getMarketplaceCatalogItem(slug: string) {
 
   try {
     const item = await getIliadCatalogItem(slug)
-    if (item && ENABLE_AUTHOR_FILTER && !ALLOWED_AUTHORS.includes(item.author)) {
+    if (
+      item &&
+      ENABLE_AUTHOR_FILTER &&
+      !ALLOWED_AUTHORS.includes(item.author)
+    ) {
       return undefined
     }
     return item
@@ -108,10 +110,13 @@ export function getCatalogStats(items: CatalogItem[]) {
 }
 
 export function getCategories(items: CatalogItem[]) {
-  const counts = items.reduce((acc, item) => {
-    acc[item.category] = (acc[item.category] ?? 0) + 1
-    return acc
-  }, {} as Record<string, number>)
+  const counts = items.reduce(
+    (acc, item) => {
+      acc[item.category] = (acc[item.category] ?? 0) + 1
+      return acc
+    },
+    {} as Record<string, number>
+  )
 
   return [...CATEGORIES].sort((a, b) => {
     const diff = (counts[b] ?? 0) - (counts[a] ?? 0)

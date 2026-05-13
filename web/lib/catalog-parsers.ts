@@ -88,7 +88,8 @@ export function parseSkillFrontmatter(text: string): SkillFrontmatter {
 }
 
 export function parseToolValueMetadata(text: string) {
-  const { name, version, description, useCases, valueTags } = parseYamlFrontmatter(text)
+  const { name, version, description, useCases, valueTags } =
+    parseYamlFrontmatter(text)
   return { name, version, description, useCases, valueTags }
 }
 

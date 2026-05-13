@@ -28,7 +28,7 @@ export function MarketplaceInstallCard({
           name="q"
           type="search"
           placeholder="Search skills, tools, or workflows"
-          className="h-11 bg-background/75 pl-9 pr-24"
+          className="h-11 bg-background/75 pr-24 pl-9"
         />
         <Button
           type="submit"
@@ -46,20 +46,36 @@ export function MarketplaceInstallCard({
         <TerminalBox copyText={installCommand}>
           <div className="space-y-1 font-mono text-sm">
             <div className="flex gap-3">
-              <span className="text-slate-400 select-none dark:text-slate-500">$</span>
-              <span className="text-slate-900 dark:text-slate-100">ironclaw hub search near</span>
+              <span className="text-slate-400 select-none dark:text-slate-500">
+                $
+              </span>
+              <span className="text-slate-900 dark:text-slate-100">
+                ironclaw hub search near
+              </span>
             </div>
             <div className="flex gap-3">
-              <span className="text-slate-400 select-none dark:text-slate-500">{">"}</span>
-              <span className="text-slate-400 dark:text-slate-400">{total} extensions indexed</span>
+              <span className="text-slate-400 select-none dark:text-slate-500">
+                {">"}
+              </span>
+              <span className="text-slate-400 dark:text-slate-400">
+                {total} extensions indexed
+              </span>
             </div>
             <div className="flex gap-3">
-              <span className="text-slate-400 select-none dark:text-slate-500">{">"}</span>
-              <span className="text-slate-400 dark:text-slate-400">{skills} skills / {tools} wasm tools</span>
+              <span className="text-slate-400 select-none dark:text-slate-500">
+                {">"}
+              </span>
+              <span className="text-slate-400 dark:text-slate-400">
+                {skills} skills / {tools} wasm tools
+              </span>
             </div>
             <div className="flex gap-3">
-              <span className="text-slate-400 select-none dark:text-slate-500">$</span>
-              <span className="text-slate-900 dark:text-slate-100">{installCommand}</span>
+              <span className="text-slate-400 select-none dark:text-slate-500">
+                $
+              </span>
+              <span className="text-slate-900 dark:text-slate-100">
+                {installCommand}
+              </span>
             </div>
           </div>
         </TerminalBox>

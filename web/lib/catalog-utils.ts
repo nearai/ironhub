@@ -25,7 +25,9 @@ export function filterCatalog(
       .join(" ")
       .toLowerCase()
 
-    return matchesKind && matchesCategory && (!needle || haystack.includes(needle))
+    return (
+      matchesKind && matchesCategory && (!needle || haystack.includes(needle))
+    )
   })
 }
 
@@ -83,5 +85,9 @@ export function sortCatalog(items: CatalogItem[], sort: SortMode) {
 }
 
 function scoreCatalogItem(item: CatalogItem) {
-  return (item.metrics.actions ?? 0) + (item.metrics.keywords ?? 0) + item.tags.length
+  return (
+    (item.metrics.actions ?? 0) +
+    (item.metrics.keywords ?? 0) +
+    item.tags.length
+  )
 }

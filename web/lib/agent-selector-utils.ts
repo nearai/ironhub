@@ -53,7 +53,8 @@ export function selectorMetricTiles(input: {
     { label: "Tools connected", value: input.toolsConnected },
     {
       label: "Soul status",
-      value: input.soul.name.trim() && input.soul.mission.trim() ? "Ready" : "Draft",
+      value:
+        input.soul.name.trim() && input.soul.mission.trim() ? "Ready" : "Draft",
     },
   ]
 }

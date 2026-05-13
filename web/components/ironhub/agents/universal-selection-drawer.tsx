@@ -11,7 +11,11 @@ import {
   IconTool,
   IconX,
 } from "@tabler/icons-react"
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group"
 import {
   Select,
   SelectContent,
@@ -65,7 +69,9 @@ export function UniversalSelectionDrawer({
   equippedTools,
   equippedCollections,
 }: UniversalSelectionDrawerProps) {
-  const [activeTab, setActiveTab] = useState<"all" | "skill" | "tool" | "collection">(initialTab)
+  const [activeTab, setActiveTab] = useState<
+    "all" | "skill" | "tool" | "collection"
+  >(initialTab)
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState("all")
   const [sort, setSort] = useState<SortMode>("relevance")
@@ -97,7 +103,11 @@ export function UniversalSelectionDrawer({
     if (activeTab === "all") {
       const filteredSkills = filterCatalog(skills, query, "skill", category)
       const filteredTools = filterCatalog(tools, query, "tool", category)
-      const filteredCollections = filterCollections(collections, query, category)
+      const filteredCollections = filterCollections(
+        collections,
+        query,
+        category
+      )
 
       const sortedSkills = sortCatalog(filteredSkills, sort)
       const sortedTools = sortCatalog(filteredTools, sort)
@@ -109,7 +119,8 @@ export function UniversalSelectionDrawer({
   }, [activeTab, skills, tools, collections, query, category, sort])
 
   const [visibleCount, setVisibleCount] = useState(24)
-  const [prevFilteredResults, setPrevFilteredResults] = useState(filteredResults)
+  const [prevFilteredResults, setPrevFilteredResults] =
+    useState(filteredResults)
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
   const [prevInitialTab, setPrevInitialTab] = useState(initialTab)
 
@@ -123,7 +134,7 @@ export function UniversalSelectionDrawer({
     setPrevIsOpen(isOpen)
     setPrevInitialTab(initialTab)
     setVisibleCount(24)
-    
+
     if (initialTab !== prevInitialTab) {
       setActiveTab(initialTab)
     } else if (isOpen && isOpen !== prevIsOpen) {
@@ -135,7 +146,9 @@ export function UniversalSelectionDrawer({
   useEffect(() => {
     if (!isOpen) return
     setTimeout(() => {
-      const container = document.getElementById("universal-drawer-scroll-container")
+      const container = document.getElementById(
+        "universal-drawer-scroll-container"
+      )
       if (container) {
         container.scrollTo({ top: 0, behavior: "smooth" })
       }
@@ -147,14 +160,20 @@ export function UniversalSelectionDrawer({
     if (!isOpen || visibleCount >= filteredResults.length) return
 
     const timeout = setTimeout(() => {
-      const scrollContainer = document.getElementById("universal-drawer-scroll-container")
-      const trigger = document.getElementById("universal-drawer-load-more-trigger")
+      const scrollContainer = document.getElementById(
+        "universal-drawer-scroll-container"
+      )
+      const trigger = document.getElementById(
+        "universal-drawer-load-more-trigger"
+      )
       if (!trigger) return
 
       const observer = new IntersectionObserver(
         (entries) => {
           if (entries[0].isIntersecting) {
-            setVisibleCount((prev) => Math.min(prev + 24, filteredResults.length))
+            setVisibleCount((prev) =>
+              Math.min(prev + 24, filteredResults.length)
+            )
           }
         },
         {
@@ -179,7 +198,8 @@ export function UniversalSelectionDrawer({
   const isEquipped = (item: CatalogItem | CollectionBundle) => {
     if (item.kind === "skill") return equippedSkills.includes(item.slug)
     if (item.kind === "tool") return equippedTools.includes(item.slug)
-    if (item.kind === "collection") return equippedCollections.includes(item.slug)
+    if (item.kind === "collection")
+      return equippedCollections.includes(item.slug)
     return false
   }
 
@@ -187,15 +207,16 @@ export function UniversalSelectionDrawer({
   const selectedSkillsCount = equippedSkills.length
   const selectedToolsCount = equippedTools.length
   const selectedCollectionsCount = equippedCollections.length
-  const totalCount = selectedSkillsCount + selectedToolsCount + selectedCollectionsCount
+  const totalCount =
+    selectedSkillsCount + selectedToolsCount + selectedCollectionsCount
 
   return (
     <>
       {/* Mobile backdrop - only visible on small screens when open */}
-      <div 
+      <div
         className={cn(
           "fixed inset-0 z-40 bg-black/80 backdrop-blur-sm transition-opacity duration-300 lg:hidden",
-          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+          isOpen ? "opacity-100" : "pointer-events-none opacity-0"
         )}
         onClick={onClose}
       />
@@ -208,19 +229,19 @@ export function UniversalSelectionDrawer({
           // Base desktop
           "lg:sticky lg:top-16 lg:z-30 lg:h-[calc(100vh-4rem)] lg:flex-shrink-0 lg:border-l lg:border-[var(--ironhub-line)] lg:shadow-none lg:transition-all lg:duration-300 lg:ease-in-out",
           // Open/Close states
-          isOpen 
-            ? "translate-x-0 lg:w-[400px] lg:translate-x-0 lg:opacity-100" 
+          isOpen
+            ? "translate-x-0 lg:w-[400px] lg:translate-x-0 lg:opacity-100"
             : "translate-x-full lg:w-0 lg:translate-x-0 lg:border-none lg:opacity-0",
-          "overflow-hidden flex flex-col"
+          "flex flex-col overflow-hidden"
         )}
       >
-        <div className="flex flex-col h-full w-[85vw] max-w-[400px] lg:w-[400px]">
+        <div className="flex h-full w-[85vw] max-w-[400px] flex-col lg:w-[400px]">
           {/* Header container */}
-          <div className="px-4 py-3 md:px-5 md:py-3.5 border-b border-border/40 relative flex flex-col justify-center">
-            <h2 className="text-lg md:text-xl font-bold font-heading text-foreground tracking-tight leading-none">
+          <div className="relative flex flex-col justify-center border-b border-border/40 px-4 py-3 md:px-5 md:py-3.5">
+            <h2 className="font-heading text-lg leading-none font-bold tracking-tight text-foreground md:text-xl">
               Equip Your Agent
             </h2>
-            <p className="text-slate-500 dark:text-slate-400 mt-1 text-[11px] font-medium leading-normal">
+            <p className="mt-1 text-[11px] leading-normal font-medium text-slate-500 dark:text-slate-400">
               Select the skills, tools, and collections to equip.
             </p>
             <Button
@@ -234,7 +255,7 @@ export function UniversalSelectionDrawer({
           </div>
 
           {/* Toolbar & Segmented Tabs Control */}
-          <div className="px-4 md:px-5 py-3 md:py-4 border-b border-border/30 flex flex-col gap-3 md:gap-4 bg-muted/20">
+          <div className="flex flex-col gap-3 border-b border-border/30 bg-muted/20 px-4 py-3 md:gap-4 md:px-5 md:py-4">
             {/* Search bar */}
             <InputGroup className="h-10">
               <InputGroupAddon>
@@ -244,12 +265,12 @@ export function UniversalSelectionDrawer({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search skills, tools, collections..."
-                className="text-sm bg-background/50"
+                className="bg-background/50 text-sm"
               />
             </InputGroup>
 
             {/* Segmented Control / Tabs */}
-            <div className="flex flex-nowrap p-0.5 bg-muted/40 dark:bg-zinc-900/40 rounded-full border border-primary/20 dark:border-zinc-800/80 gap-0 shadow-sm overflow-hidden">
+            <div className="flex flex-nowrap gap-0 overflow-hidden rounded-full border border-primary/20 bg-muted/40 p-0.5 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/40">
               {TABS.map((tab, idx) => {
                 const isActive = activeTab === tab.id
                 return (
@@ -260,18 +281,27 @@ export function UniversalSelectionDrawer({
                       setCategory("all") // reset category filter
                     }}
                     className={cn(
-                      "flex-1 flex items-center justify-center gap-1.5 py-1.5 px-1 text-[10px] md:text-[11px] font-extrabold transition-all duration-300 cursor-pointer relative whitespace-nowrap rounded-full",
+                      "relative flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full px-1 py-1.5 text-[10px] font-extrabold whitespace-nowrap transition-all duration-300 md:text-[11px]",
                       isActive
-                        ? "bg-primary text-primary-foreground shadow-sm font-black"
-                        : "text-muted-foreground hover:text-foreground hover:bg-background/25 dark:hover:bg-zinc-800/40",
+                        ? "bg-primary font-black text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:bg-background/25 hover:text-foreground dark:hover:bg-zinc-800/40",
                       // Delicate divider lines between adjacent inactive tabs
-                      idx < TABS.length - 1 && activeTab !== tab.id && activeTab !== TABS[idx + 1].id && "after:content-[''] after:absolute after:right-0 after:top-1/4 after:h-1/2 after:w-[1px] after:bg-border/60"
+                      idx < TABS.length - 1 &&
+                        activeTab !== tab.id &&
+                        activeTab !== TABS[idx + 1].id &&
+                        "after:absolute after:top-1/4 after:right-0 after:h-1/2 after:w-[1px] after:bg-border/60 after:content-['']"
                     )}
                   >
-                    {tab.id === "all" && <IconLayoutGrid className="size-3.5" />}
-                    {tab.id === "skill" && <IconSparkles className="size-3.5" />}
+                    {tab.id === "all" && (
+                      <IconLayoutGrid className="size-3.5" />
+                    )}
+                    {tab.id === "skill" && (
+                      <IconSparkles className="size-3.5" />
+                    )}
                     {tab.id === "tool" && <IconTool className="size-3.5" />}
-                    {tab.id === "collection" && <IconBoxMultiple className="size-3.5" />}
+                    {tab.id === "collection" && (
+                      <IconBoxMultiple className="size-3.5" />
+                    )}
                     <span>{tab.label}</span>
                   </button>
                 )
@@ -282,7 +312,7 @@ export function UniversalSelectionDrawer({
             {activeTab !== "collection" && (
               <div className="flex gap-2.5">
                 <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger className="h-10 flex-1 gap-2 text-xs bg-background/50">
+                  <SelectTrigger className="h-10 flex-1 gap-2 bg-background/50 text-xs">
                     <IconCategory className="size-3.5 opacity-70" />
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
@@ -300,7 +330,7 @@ export function UniversalSelectionDrawer({
                   value={sort}
                   onValueChange={(val) => setSort(val as SortMode)}
                 >
-                  <SelectTrigger className="h-10 flex-1 gap-2 text-xs bg-background/50">
+                  <SelectTrigger className="h-10 flex-1 gap-2 bg-background/50 text-xs">
                     <IconSortAscending className="size-3.5 opacity-70" />
                     <SelectValue placeholder="Sort" />
                   </SelectTrigger>
@@ -315,9 +345,12 @@ export function UniversalSelectionDrawer({
           </div>
 
           {/* Scrollable Content */}
-          <div id="universal-drawer-scroll-container" className="flex-1 min-h-0 overflow-y-auto px-6 py-4 pb-28">
+          <div
+            id="universal-drawer-scroll-container"
+            className="min-h-0 flex-1 overflow-y-auto px-6 py-4 pb-28"
+          >
             {filteredResults.length > 0 ? (
-              <div className="grid gap-4 grid-cols-1">
+              <div className="grid grid-cols-1 gap-4">
                 {visibleResults.map((item) => {
                   const equipped = isEquipped(item)
 
@@ -334,41 +367,43 @@ export function UniversalSelectionDrawer({
                         )}
                       >
                         <div className="flex items-start gap-3">
-                          <span className={cn(
-                            "flex size-10 shrink-0 items-center justify-center rounded-xl border shadow-sm",
-                            equipped
-                              ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                              : "border-primary/20 bg-primary/10 text-primary"
-                          )}>
+                          <span
+                            className={cn(
+                              "flex size-10 shrink-0 items-center justify-center rounded-xl border shadow-sm",
+                              equipped
+                                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                : "border-primary/20 bg-primary/10 text-primary"
+                            )}
+                          >
                             <IconBoxMultiple className="size-5" />
                           </span>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-start justify-between gap-2">
-                              <h4 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">
+                              <h4 className="text-sm font-bold text-foreground transition-colors group-hover:text-primary">
                                 {collection.title}
                               </h4>
                               <Button
                                 size="xs"
                                 variant={equipped ? "secondary" : "default"}
                                 className={cn(
-                                  "rounded-lg text-[11px] h-7 font-extrabold px-3 shrink-0 cursor-pointer transition-all",
+                                  "h-7 shrink-0 cursor-pointer rounded-lg px-3 text-[11px] font-extrabold transition-all",
                                   equipped
-                                    ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 dark:text-emerald-400"
-                                    : "bg-primary hover:bg-primary/95 text-primary-foreground shadow-sm shadow-primary/10"
+                                    ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 hover:border-destructive/20 hover:bg-destructive/10 hover:text-destructive dark:text-emerald-400"
+                                    : "bg-primary text-primary-foreground shadow-sm shadow-primary/10 hover:bg-primary/95"
                                 )}
                                 onClick={() => onToggle(collection)}
                               >
                                 {equipped ? "Equipped" : "Equip"}
                               </Button>
                             </div>
-                            <p className="mt-1 text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                               {collection.summary}
                             </p>
-                            <div className="flex items-center gap-2 mt-2.5">
-                              <span className="inline-flex items-center rounded-md bg-primary/5 px-1.5 py-0.5 text-[10px] font-extrabold text-primary border border-primary/10">
+                            <div className="mt-2.5 flex items-center gap-2">
+                              <span className="inline-flex items-center rounded-md border border-primary/10 bg-primary/5 px-1.5 py-0.5 text-[10px] font-extrabold text-primary">
                                 {collection.toolCount} tools
                               </span>
-                              <span className="inline-flex items-center rounded-md bg-yellow-500/5 px-1.5 py-0.5 text-[10px] font-extrabold text-yellow-500 border border-yellow-500/10">
+                              <span className="inline-flex items-center rounded-md border border-yellow-500/10 bg-yellow-500/5 px-1.5 py-0.5 text-[10px] font-extrabold text-yellow-500">
                                 {collection.skillCount} skills
                               </span>
                             </div>
@@ -394,32 +429,37 @@ export function UniversalSelectionDrawer({
                 {visibleCount < filteredResults.length && (
                   <div
                     id="universal-drawer-load-more-trigger"
-                    className="h-10 w-full flex items-center justify-center opacity-50"
+                    className="flex h-10 w-full items-center justify-center opacity-50"
                   >
-                    <div className="animate-pulse w-2 h-2 bg-primary rounded-full mx-1" />
-                    <div className="animate-pulse w-2 h-2 bg-primary rounded-full mx-1 delay-75" />
-                    <div className="animate-pulse w-2 h-2 bg-primary rounded-full mx-1 delay-150" />
+                    <div className="mx-1 h-2 w-2 animate-pulse rounded-full bg-primary" />
+                    <div className="mx-1 h-2 w-2 animate-pulse rounded-full bg-primary delay-75" />
+                    <div className="mx-1 h-2 w-2 animate-pulse rounded-full bg-primary delay-150" />
                   </div>
                 )}
               </div>
             ) : (
-              <Card className="border-dashed bg-muted/10 border-border/80">
-                <CardContent className="text-muted-foreground text-center text-sm py-12">
-                  No matching items found. Try clearing your search query or filters.
+              <Card className="border-dashed border-border/80 bg-muted/10">
+                <CardContent className="py-12 text-center text-sm text-muted-foreground">
+                  No matching items found. Try clearing your search query or
+                  filters.
                 </CardContent>
               </Card>
             )}
           </div>
 
           {/* Sticky Bottom Footer Action Bar */}
-          <div className="absolute bottom-0 left-0 right-0 border-t border-border bg-background/95 backdrop-blur-md px-6 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between z-10 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+          <div className="absolute right-0 bottom-0 left-0 z-10 flex flex-col gap-3 border-t border-border bg-background/95 px-6 py-4 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
             {/* Counters aggregate */}
             <div className="flex flex-col gap-0.5">
               <span className="text-xs font-bold text-foreground">
                 {totalCount} item{totalCount !== 1 ? "s" : ""} selected
               </span>
               <span className="text-[10px] font-semibold text-muted-foreground">
-                {selectedSkillsCount} Skill{selectedSkillsCount !== 1 ? "s" : ""}, {selectedToolsCount} Tool{selectedToolsCount !== 1 ? "s" : ""}, {selectedCollectionsCount} Collection{selectedCollectionsCount !== 1 ? "s" : ""}
+                {selectedSkillsCount} Skill
+                {selectedSkillsCount !== 1 ? "s" : ""}, {selectedToolsCount}{" "}
+                Tool{selectedToolsCount !== 1 ? "s" : ""},{" "}
+                {selectedCollectionsCount} Collection
+                {selectedCollectionsCount !== 1 ? "s" : ""}
               </span>
             </div>
 
@@ -427,7 +467,7 @@ export function UniversalSelectionDrawer({
             <Button
               type="button"
               onClick={onClose}
-              className="w-full sm:w-auto h-10 px-6 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/95 shadow-sm transition-all cursor-pointer"
+              className="h-10 w-full cursor-pointer rounded-xl bg-primary px-6 font-bold text-primary-foreground shadow-sm transition-all hover:bg-primary/95 sm:w-auto"
             >
               Done
             </Button>
@@ -437,4 +477,3 @@ export function UniversalSelectionDrawer({
     </>
   )
 }
-

@@ -39,8 +39,8 @@ export function CatalogCard({
     item.origin === "iliad"
       ? formatBytes(item.contentSize)
       : item.kind === "tool"
-      ? `${item.actionCount} actions`
-      : `${item.activationKeywords.length} triggers`
+        ? `${item.actionCount} actions`
+        : `${item.activationKeywords.length} triggers`
 
   return (
     <Card
@@ -53,7 +53,7 @@ export function CatalogCard({
           <CardTitle className="text-lg font-bold">
             <Link
               href={`/marketplace/${item.slug}`}
-              className="hover:text-primary transition-colors"
+              className="transition-colors hover:text-primary"
             >
               {item.name}
             </Link>
@@ -70,21 +70,23 @@ export function CatalogCard({
         </p>
         {!compact && (
           <div className="flex flex-wrap gap-2">
-            {(item.valueTags?.length ? item.valueTags : item.tags).slice(0, 4).map((tag) => (
-              <Badge 
-                key={tag} 
-                variant="outline"
-                className="rounded-full bg-primary/5 border-primary/10 text-[0.7rem] font-medium text-muted-foreground"
-              >
-                {tag}
-              </Badge>
-            ))}
+            {(item.valueTags?.length ? item.valueTags : item.tags)
+              .slice(0, 4)
+              .map((tag) => (
+                <Badge
+                  key={tag}
+                  variant="outline"
+                  className="rounded-full border-primary/10 bg-primary/5 text-[0.7rem] font-medium text-muted-foreground"
+                >
+                  {tag}
+                </Badge>
+              ))}
           </div>
         )}
       </CardContent>
 
       <CardFooter className="flex-col items-stretch gap-4 border-t border-border/40 pt-4">
-        <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+        <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
           <span className="inline-flex items-center gap-1.5 opacity-80">
             <IconUserCircle className="size-3.5" />
             {item.author}
@@ -94,28 +96,28 @@ export function CatalogCard({
             {metric}
           </span>
         </div>
-        
+
         {onSelect ? (
-          <Button 
+          <Button
             onClick={() => !disabled && onSelect(item)}
             disabled={disabled}
             className={cn(
-              "w-full gap-2 rounded-full font-semibold transition-all cursor-pointer",
-              disabled 
-                ? "bg-muted text-muted-foreground border border-border/40 cursor-not-allowed opacity-70" 
+              "w-full cursor-pointer gap-2 rounded-full font-semibold transition-all",
+              disabled
+                ? "cursor-not-allowed border border-border/40 bg-muted text-muted-foreground opacity-70"
                 : isSelected
-                ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 dark:text-emerald-400"
-                : "bg-primary text-primary-foreground hover:bg-primary/90"
+                  ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 hover:border-destructive/20 hover:bg-destructive/10 hover:text-destructive dark:text-emerald-400"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90"
             )}
           >
             {selectText || "Select"}
             <IconArrowRight className={cn("size-4", isSelected && "hidden")} />
           </Button>
         ) : (
-          <Button 
-            asChild 
+          <Button
+            asChild
             variant="outline"
-            className="w-full gap-2 rounded-full border-border/60 bg-transparent font-semibold text-foreground transition-all hover:bg-primary/5 hover:border-primary/30 hover:text-primary"
+            className="w-full gap-2 rounded-full border-border/60 bg-transparent font-semibold text-foreground transition-all hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
           >
             <Link href={`/marketplace/${item.slug}`}>
               View setup

@@ -74,7 +74,7 @@ export function MarketplaceSidebar({
   return (
     <nav aria-label="Categories" className="flex flex-col gap-1">
       {!hideTitle && (
-        <h3 className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-[var(--ih-ink-soft)]">
+        <h3 className="px-3 pb-2 text-xs font-semibold tracking-wider text-[var(--ih-ink-soft)] uppercase">
           Categories
         </h3>
       )}
@@ -92,8 +92,8 @@ export function MarketplaceSidebar({
             className={cn(
               "flex items-center justify-between gap-2 rounded-md px-3 py-2 text-sm transition-colors",
               isActive
-                ? "bg-[var(--ih-accent)]/10 text-[var(--ih-accent)] font-semibold"
-                : "text-[var(--ih-ink-soft)] hover:bg-[var(--ih-surface-muted)] hover:text-[var(--ih-ink)]",
+                ? "bg-[var(--ih-accent)]/10 font-semibold text-[var(--ih-accent)]"
+                : "text-[var(--ih-ink-soft)] hover:bg-[var(--ih-surface-muted)] hover:text-[var(--ih-ink)]"
             )}
           >
             <div className="flex items-center gap-2 truncate">
@@ -105,7 +105,7 @@ export function MarketplaceSidebar({
                 "shrink-0 rounded-full px-2 py-0.5 text-xs tabular-nums",
                 isActive
                   ? "bg-[var(--ih-accent)]/15 text-[var(--ih-accent)]"
-                  : "bg-[var(--ih-line)]/10 text-[var(--ih-ink-soft)]",
+                  : "bg-[var(--ih-line)]/10 text-[var(--ih-ink-soft)]"
               )}
             >
               {entry.count}
