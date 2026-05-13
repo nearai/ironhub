@@ -2,12 +2,15 @@
 
 import { useMemo, useState, useEffect } from "react"
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
+  IconCategory,
+  IconSearch,
+  IconSortAscending,
+  IconBoxMultiple,
+  IconLayoutGrid,
+  IconSparkles,
+  IconTool,
+  IconX,
+} from "@tabler/icons-react"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 import {
   Select,
@@ -28,15 +31,6 @@ import {
 } from "@/lib/catalog-utils"
 import type { CatalogItem } from "@/lib/catalog-types"
 import type { CollectionBundle } from "@/lib/collection-bundles"
-import {
-  IconCategory,
-  IconSearch,
-  IconSortAscending,
-  IconBoxMultiple,
-  IconLayoutGrid,
-  IconSparkles,
-  IconTool,
-} from "@tabler/icons-react"
 import { cn } from "@/lib/utils"
 
 type UniversalSelectionDrawerProps = {
@@ -117,13 +111,22 @@ export function UniversalSelectionDrawer({
   const [visibleCount, setVisibleCount] = useState(24)
   const [prevFilteredResults, setPrevFilteredResults] = useState(filteredResults)
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
+  const [prevInitialTab, setPrevInitialTab] = useState(initialTab)
 
-  // Reset pagination state when filters change or modal is toggled
-  if (filteredResults !== prevFilteredResults || isOpen !== prevIsOpen) {
+  // Reset pagination state when filters change, modal is toggled, or initial tab changes
+  if (
+    filteredResults !== prevFilteredResults ||
+    isOpen !== prevIsOpen ||
+    initialTab !== prevInitialTab
+  ) {
     setPrevFilteredResults(filteredResults)
     setPrevIsOpen(isOpen)
+    setPrevInitialTab(initialTab)
     setVisibleCount(24)
-    if (isOpen && isOpen !== prevIsOpen) {
+    
+    if (initialTab !== prevInitialTab) {
+      setActiveTab(initialTab)
+    } else if (isOpen && isOpen !== prevIsOpen) {
       setActiveTab(initialTab)
     }
   }
@@ -187,221 +190,251 @@ export function UniversalSelectionDrawer({
   const totalCount = selectedSkillsCount + selectedToolsCount + selectedCollectionsCount
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent
-        side="right"
-        className="!w-full md:!w-[45vw] lg:!w-[35vw] !max-w-none p-0 flex flex-col h-full bg-background border-l border-[var(--ironhub-line)] shadow-[var(--ironhub-shadow)]"
+    <>
+      {/* Mobile backdrop - only visible on small screens when open */}
+      <div 
+        className={cn(
+          "fixed inset-0 z-40 bg-black/80 backdrop-blur-sm transition-opacity duration-300 lg:hidden",
+          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        )}
+        onClick={onClose}
+      />
+
+      {/* Drawer Container */}
+      <div
+        className={cn(
+          // Base mobile
+          "fixed inset-y-0 right-0 z-50 w-[85vw] max-w-[400px] bg-background shadow-2xl transition-transform duration-300 ease-in-out",
+          // Base desktop
+          "lg:sticky lg:top-16 lg:z-30 lg:h-[calc(100vh-4rem)] lg:flex-shrink-0 lg:border-l lg:border-[var(--ironhub-line)] lg:shadow-none lg:transition-all lg:duration-300 lg:ease-in-out",
+          // Open/Close states
+          isOpen 
+            ? "translate-x-0 lg:w-[400px] lg:translate-x-0 lg:opacity-100" 
+            : "translate-x-full lg:w-0 lg:translate-x-0 lg:border-none lg:opacity-0",
+          "overflow-hidden flex flex-col"
+        )}
       >
-        {/* Header container */}
-        <SheetHeader className="p-4 md:p-5 pb-3 border-b border-border/40 gap-0.5">
-          <SheetTitle className="text-xl md:text-2xl font-extrabold font-heading text-foreground tracking-tight leading-none">
-            Equip Your Agent
-          </SheetTitle>
-          <SheetDescription className="text-slate-500 dark:text-slate-400 mt-1 text-xs md:text-sm font-semibold leading-normal">
-            Select the skills, tools, and collections you want to equip
-          </SheetDescription>
-        </SheetHeader>
-
-        {/* Toolbar & Segmented Tabs Control */}
-        <div className="px-4 md:px-5 py-3 md:py-4 border-b border-border/30 flex flex-col gap-3 md:gap-4 bg-muted/20">
-          {/* Search bar */}
-          <InputGroup className="h-10">
-            <InputGroupAddon>
-              <IconSearch className="size-4 text-muted-foreground/80" />
-            </InputGroupAddon>
-            <InputGroupInput
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search skills, tools, collections..."
-              className="text-sm bg-background/50"
-            />
-          </InputGroup>
-
-          {/* Segmented Control / Tabs */}
-          <div className="flex flex-nowrap p-0.5 bg-muted/40 dark:bg-zinc-900/40 rounded-full border border-primary/20 dark:border-zinc-800/80 gap-0 shadow-sm overflow-hidden">
-            {TABS.map((tab, idx) => {
-              const isActive = activeTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id)
-                    setCategory("all") // reset category filter
-                  }}
-                  className={cn(
-                    "flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] md:text-xs font-extrabold transition-all duration-300 cursor-pointer relative whitespace-nowrap rounded-full",
-                    isActive
-                      ? "bg-primary text-primary-foreground shadow-sm font-black"
-                      : "text-muted-foreground hover:text-foreground hover:bg-background/25 dark:hover:bg-zinc-800/40",
-                    // Delicate divider lines between adjacent inactive tabs
-                    idx < TABS.length - 1 && activeTab !== tab.id && activeTab !== TABS[idx + 1].id && "after:content-[''] after:absolute after:right-0 after:top-1/4 after:h-1/2 after:w-[1px] after:bg-border/60"
-                  )}
-                >
-                  {tab.id === "all" && <IconLayoutGrid className="size-3.5" />}
-                  {tab.id === "skill" && <IconSparkles className="size-3.5" />}
-                  {tab.id === "tool" && <IconTool className="size-3.5" />}
-                  {tab.id === "collection" && <IconBoxMultiple className="size-3.5" />}
-                  <span>{tab.label}</span>
-                </button>
-              )
-            })}
+        <div className="flex flex-col h-full w-[85vw] max-w-[400px] lg:w-[400px]">
+          {/* Header container */}
+          <div className="px-4 py-3 md:px-5 md:py-3.5 border-b border-border/40 relative flex flex-col justify-center">
+            <h2 className="text-lg md:text-xl font-bold font-heading text-foreground tracking-tight leading-none">
+              Equip Your Agent
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 mt-1 text-[11px] font-medium leading-normal">
+              Select the skills, tools, and collections to equip.
+            </p>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={onClose}
+              className="absolute top-4 right-4 text-muted-foreground hover:bg-muted lg:hidden"
+            >
+              <IconX className="size-4" />
+            </Button>
           </div>
 
-          {/* Filters */}
-          {activeTab !== "collection" && (
-            <div className="flex gap-2.5">
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="h-10 flex-1 gap-2 text-xs bg-background/50">
-                  <IconCategory className="size-3.5 opacity-70" />
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All categories</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Toolbar & Segmented Tabs Control */}
+          <div className="px-4 md:px-5 py-3 md:py-4 border-b border-border/30 flex flex-col gap-3 md:gap-4 bg-muted/20">
+            {/* Search bar */}
+            <InputGroup className="h-10">
+              <InputGroupAddon>
+                <IconSearch className="size-4 text-muted-foreground/80" />
+              </InputGroupAddon>
+              <InputGroupInput
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search skills, tools, collections..."
+                className="text-sm bg-background/50"
+              />
+            </InputGroup>
 
-              <Select
-                value={sort}
-                onValueChange={(val) => setSort(val as SortMode)}
-              >
-                <SelectTrigger className="h-10 flex-1 gap-2 text-xs bg-background/50">
-                  <IconSortAscending className="size-3.5 opacity-70" />
-                  <SelectValue placeholder="Sort" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="relevance">Relevance</SelectItem>
-                  <SelectItem value="name">Name</SelectItem>
-                  <SelectItem value="actions">Actions</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-        </div>
-
-        {/* Scrollable Content */}
-        <div id="universal-drawer-scroll-container" className="flex-1 min-h-0 overflow-y-auto px-6 py-4 pb-28">
-          {filteredResults.length > 0 ? (
-            <div className="grid gap-4 grid-cols-1">
-              {visibleResults.map((item) => {
-                const equipped = isEquipped(item)
-
-                if (item.kind === "collection") {
-                  const collection = item as CollectionBundle
-                  return (
-                    <Card
-                      key={collection.slug}
-                      className={cn(
-                        "group relative overflow-hidden border border-border/60 bg-card p-4 transition-all duration-300 hover:shadow-md",
-                        equipped
-                          ? "border-emerald-500/30 bg-emerald-500/[0.02] dark:bg-emerald-500/[0.01]"
-                          : "hover:border-primary/30 hover:bg-card"
-                      )}
-                    >
-                      <div className="flex items-start gap-3">
-                        <span className={cn(
-                          "flex size-10 shrink-0 items-center justify-center rounded-xl border shadow-sm",
-                          equipped
-                            ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                            : "border-primary/20 bg-primary/10 text-primary"
-                        )}>
-                          <IconBoxMultiple className="size-5" />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <h4 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">
-                              {collection.title}
-                            </h4>
-                            <Button
-                              size="xs"
-                              variant={equipped ? "secondary" : "default"}
-                              className={cn(
-                                "rounded-lg text-[11px] h-7 font-extrabold px-3 shrink-0 cursor-pointer transition-all",
-                                equipped
-                                  ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 dark:text-emerald-400"
-                                  : "bg-primary hover:bg-primary/95 text-primary-foreground shadow-sm shadow-primary/10"
-                              )}
-                              onClick={() => onToggle(collection)}
-                            >
-                              {equipped ? "Equipped" : "Equip"}
-                            </Button>
-                          </div>
-                          <p className="mt-1 text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                            {collection.summary}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2.5">
-                            <span className="inline-flex items-center rounded-md bg-primary/5 px-1.5 py-0.5 text-[10px] font-extrabold text-primary border border-primary/10">
-                              {collection.toolCount} tools
-                            </span>
-                            <span className="inline-flex items-center rounded-md bg-yellow-500/5 px-1.5 py-0.5 text-[10px] font-extrabold text-yellow-500 border border-yellow-500/10">
-                              {collection.skillCount} skills
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  )
-                }
-
-                const catalogItem = item as CatalogItem
+            {/* Segmented Control / Tabs */}
+            <div className="flex flex-nowrap p-0.5 bg-muted/40 dark:bg-zinc-900/40 rounded-full border border-primary/20 dark:border-zinc-800/80 gap-0 shadow-sm overflow-hidden">
+              {TABS.map((tab, idx) => {
+                const isActive = activeTab === tab.id
                 return (
-                  <CatalogCard
-                    key={catalogItem.slug}
-                    item={catalogItem}
-                    compact={false}
-                    isSelected={equipped}
-                    selectText={equipped ? "Equipped" : "Equip"}
-                    onSelect={() => onToggle(catalogItem)}
-                  />
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setActiveTab(tab.id)
+                      setCategory("all") // reset category filter
+                    }}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-1.5 py-1.5 px-1 text-[10px] md:text-[11px] font-extrabold transition-all duration-300 cursor-pointer relative whitespace-nowrap rounded-full",
+                      isActive
+                        ? "bg-primary text-primary-foreground shadow-sm font-black"
+                        : "text-muted-foreground hover:text-foreground hover:bg-background/25 dark:hover:bg-zinc-800/40",
+                      // Delicate divider lines between adjacent inactive tabs
+                      idx < TABS.length - 1 && activeTab !== tab.id && activeTab !== TABS[idx + 1].id && "after:content-[''] after:absolute after:right-0 after:top-1/4 after:h-1/2 after:w-[1px] after:bg-border/60"
+                    )}
+                  >
+                    {tab.id === "all" && <IconLayoutGrid className="size-3.5" />}
+                    {tab.id === "skill" && <IconSparkles className="size-3.5" />}
+                    {tab.id === "tool" && <IconTool className="size-3.5" />}
+                    {tab.id === "collection" && <IconBoxMultiple className="size-3.5" />}
+                    <span>{tab.label}</span>
+                  </button>
                 )
               })}
-
-              {visibleCount < filteredResults.length && (
-                <div
-                  id="universal-drawer-load-more-trigger"
-                  className="h-10 w-full flex items-center justify-center opacity-50"
-                >
-                  <div className="animate-pulse w-2 h-2 bg-primary rounded-full mx-1" />
-                  <div className="animate-pulse w-2 h-2 bg-primary rounded-full mx-1 delay-75" />
-                  <div className="animate-pulse w-2 h-2 bg-primary rounded-full mx-1 delay-150" />
-                </div>
-              )}
             </div>
-          ) : (
-            <Card className="border-dashed bg-muted/10 border-border/80">
-              <CardContent className="text-muted-foreground text-center text-sm py-12">
-                No matching items found. Try clearing your search query or filters.
-              </CardContent>
-            </Card>
-          )}
-        </div>
 
-        {/* Sticky Bottom Footer Action Bar */}
-        <div className="absolute bottom-0 left-0 right-0 border-t border-border bg-background/95 backdrop-blur-md px-6 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between z-10 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-          {/* Counters aggregate */}
-          <div className="flex flex-col gap-0.5">
-            <span className="text-xs font-bold text-foreground">
-              {totalCount} item{totalCount !== 1 ? "s" : ""} selected
-            </span>
-            <span className="text-[10px] font-semibold text-muted-foreground">
-              {selectedSkillsCount} Skill{selectedSkillsCount !== 1 ? "s" : ""}, {selectedToolsCount} Tool{selectedToolsCount !== 1 ? "s" : ""}, {selectedCollectionsCount} Collection{selectedCollectionsCount !== 1 ? "s" : ""}
-            </span>
+            {/* Filters */}
+            {activeTab !== "collection" && (
+              <div className="flex gap-2.5">
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger className="h-10 flex-1 gap-2 text-xs bg-background/50">
+                    <IconCategory className="size-3.5 opacity-70" />
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All categories</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={sort}
+                  onValueChange={(val) => setSort(val as SortMode)}
+                >
+                  <SelectTrigger className="h-10 flex-1 gap-2 text-xs bg-background/50">
+                    <IconSortAscending className="size-3.5 opacity-70" />
+                    <SelectValue placeholder="Sort" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="relevance">Relevance</SelectItem>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="actions">Actions</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
-          {/* Close button */}
-          <Button
-            type="button"
-            onClick={onClose}
-            className="w-full sm:w-auto h-10 px-6 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/95 shadow-sm transition-all cursor-pointer"
-          >
-            Done
-          </Button>
+          {/* Scrollable Content */}
+          <div id="universal-drawer-scroll-container" className="flex-1 min-h-0 overflow-y-auto px-6 py-4 pb-28">
+            {filteredResults.length > 0 ? (
+              <div className="grid gap-4 grid-cols-1">
+                {visibleResults.map((item) => {
+                  const equipped = isEquipped(item)
+
+                  if (item.kind === "collection") {
+                    const collection = item as CollectionBundle
+                    return (
+                      <Card
+                        key={collection.slug}
+                        className={cn(
+                          "group relative overflow-hidden border border-border/60 bg-card p-4 transition-all duration-300 hover:shadow-md",
+                          equipped
+                            ? "border-emerald-500/30 bg-emerald-500/[0.02] dark:bg-emerald-500/[0.01]"
+                            : "hover:border-primary/30 hover:bg-card"
+                        )}
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className={cn(
+                            "flex size-10 shrink-0 items-center justify-center rounded-xl border shadow-sm",
+                            equipped
+                              ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                              : "border-primary/20 bg-primary/10 text-primary"
+                          )}>
+                            <IconBoxMultiple className="size-5" />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <h4 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">
+                                {collection.title}
+                              </h4>
+                              <Button
+                                size="xs"
+                                variant={equipped ? "secondary" : "default"}
+                                className={cn(
+                                  "rounded-lg text-[11px] h-7 font-extrabold px-3 shrink-0 cursor-pointer transition-all",
+                                  equipped
+                                    ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 dark:text-emerald-400"
+                                    : "bg-primary hover:bg-primary/95 text-primary-foreground shadow-sm shadow-primary/10"
+                                )}
+                                onClick={() => onToggle(collection)}
+                              >
+                                {equipped ? "Equipped" : "Equip"}
+                              </Button>
+                            </div>
+                            <p className="mt-1 text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                              {collection.summary}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2.5">
+                              <span className="inline-flex items-center rounded-md bg-primary/5 px-1.5 py-0.5 text-[10px] font-extrabold text-primary border border-primary/10">
+                                {collection.toolCount} tools
+                              </span>
+                              <span className="inline-flex items-center rounded-md bg-yellow-500/5 px-1.5 py-0.5 text-[10px] font-extrabold text-yellow-500 border border-yellow-500/10">
+                                {collection.skillCount} skills
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    )
+                  }
+
+                  const catalogItem = item as CatalogItem
+                  return (
+                    <CatalogCard
+                      key={catalogItem.slug}
+                      item={catalogItem}
+                      compact={false}
+                      isSelected={equipped}
+                      selectText={equipped ? "Equipped" : "Equip"}
+                      onSelect={() => onToggle(catalogItem)}
+                    />
+                  )
+                })}
+
+                {visibleCount < filteredResults.length && (
+                  <div
+                    id="universal-drawer-load-more-trigger"
+                    className="h-10 w-full flex items-center justify-center opacity-50"
+                  >
+                    <div className="animate-pulse w-2 h-2 bg-primary rounded-full mx-1" />
+                    <div className="animate-pulse w-2 h-2 bg-primary rounded-full mx-1 delay-75" />
+                    <div className="animate-pulse w-2 h-2 bg-primary rounded-full mx-1 delay-150" />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Card className="border-dashed bg-muted/10 border-border/80">
+                <CardContent className="text-muted-foreground text-center text-sm py-12">
+                  No matching items found. Try clearing your search query or filters.
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Sticky Bottom Footer Action Bar */}
+          <div className="absolute bottom-0 left-0 right-0 border-t border-border bg-background/95 backdrop-blur-md px-6 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between z-10 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+            {/* Counters aggregate */}
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-bold text-foreground">
+                {totalCount} item{totalCount !== 1 ? "s" : ""} selected
+              </span>
+              <span className="text-[10px] font-semibold text-muted-foreground">
+                {selectedSkillsCount} Skill{selectedSkillsCount !== 1 ? "s" : ""}, {selectedToolsCount} Tool{selectedToolsCount !== 1 ? "s" : ""}, {selectedCollectionsCount} Collection{selectedCollectionsCount !== 1 ? "s" : ""}
+              </span>
+            </div>
+
+            {/* Close button */}
+            <Button
+              type="button"
+              onClick={onClose}
+              className="w-full sm:w-auto h-10 px-6 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/95 shadow-sm transition-all cursor-pointer"
+            >
+              Done
+            </Button>
+          </div>
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </>
   )
 }
+

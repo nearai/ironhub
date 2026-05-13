@@ -1,9 +1,9 @@
 import { Suspense } from "react"
 import { LoadoutBuilder } from "@/components/ironhub/agents/loadout-builder"
-import { HubLayout } from "@/components/ironhub/hub-layout"
 import { getMarketplaceCatalog } from "@/lib/catalog.server"
 import { buildCollectionBundles } from "@/lib/collection-bundles"
 import { IconLoader2 } from "@tabler/icons-react"
+import { HubLayout } from "@/components/ironhub/hub-layout"
 
 export const dynamic = "force-dynamic"
 
@@ -17,11 +17,11 @@ export default async function AgentsPage() {
   }
 
   return (
-    <HubLayout>
-      <div className="mx-auto grid max-w-7xl">
+    <HubLayout fluid>
+      <div className="flex w-full items-start min-h-[calc(100vh-65px)]">
         <Suspense
           fallback={
-            <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <div className="flex flex-col items-center justify-center w-full h-full gap-3 py-20">
               <IconLoader2 className="size-8 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground font-medium">
                 Loading Agent Loadout Builder...

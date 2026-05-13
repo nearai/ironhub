@@ -405,7 +405,9 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
 
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8 px-0 pb-40">
+    <>
+      <div className="flex flex-col flex-1 transition-all duration-300 ease-in-out">
+        <div className="mx-auto w-full max-w-7xl space-y-8 px-4 md:px-8 pt-6 pb-20 min-w-0 flex-1">
       {/* HEADER SECTION WITH GLASSMORPHIC BACKGROUND BLUR */}
       <div className="flex w-full flex-col gap-5 rounded-xl border border-[var(--ironhub-line)] bg-card/60 p-5 shadow-[var(--ironhub-shadow)] backdrop-blur-xl sm:p-6">
         <div className="space-y-2">
@@ -519,7 +521,7 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
                 <div
                   onClick={() => setSoulSource("ready-made")}
                   className={cn(
-                    "relative flex cursor-pointer flex-col rounded-xl border bg-background/40 p-4 transition-all duration-300 hover:bg-muted/10 hover:shadow-sm",
+                    "relative flex cursor-pointer flex-col rounded-xl border bg-background/40 p-4 transition-all duration-300 hover:bg-muted/10 hover:shadow-sm min-w-0",
                     soulSource === "ready-made"
                       ? "border-primary bg-primary/5 shadow-[0_0_12px_rgba(43,130,212,0.12)] ring-1 ring-primary/30"
                       : "border-border/60"
@@ -550,13 +552,13 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
                   {/* HIGH-FIDELITY ACTIVE PERSONA CARD PREVIEW */}
                   {soulSource === "ready-made" && (
                     <div
-                      className="group/pcard mt-3.5 flex items-center justify-between rounded-xl border border-border/70 bg-background/60 p-3 shadow-inner transition-all duration-300 hover:border-primary/25 hover:bg-background/80"
+                      className="group/pcard mt-3.5 flex items-center justify-between rounded-xl border border-border/70 bg-background/60 p-3 shadow-inner transition-all duration-300 hover:border-primary/25 hover:bg-background/80 min-w-0"
                       onClick={(e) => {
                         e.stopPropagation()
                         setPersonaModalOpen(true)
                       }}
                     >
-                      <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex min-w-0 flex-1 items-center gap-2.5">
                         <div
                           className={cn(
                             "flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-white shadow-md transition-transform duration-300 group-hover/pcard:scale-105",
@@ -565,11 +567,11 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
                         >
                           <activePersonaObj.icon className="size-5" />
                         </div>
-                        <div className="min-w-0">
-                          <div className="text-[13px] leading-snug font-bold text-foreground transition-colors group-hover/pcard:text-primary">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[13px] truncate leading-snug font-bold text-foreground transition-colors group-hover/pcard:text-primary">
                             {activePersonaObj.name}
                           </div>
-                          <p className="mt-0.5 line-clamp-1 text-[10px] leading-relaxed font-medium text-muted-foreground">
+                          <p className="mt-0.5 truncate text-[10px] leading-relaxed font-medium text-muted-foreground">
                             {activePersonaObj.description}
                           </p>
                         </div>
@@ -868,10 +870,20 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
       </div>
 
       {/* COMPACT ACTIONS FOOTER (Flush attached to bottom-0, responsive, space-saving design) */}
-      <footer className="fixed bottom-0 left-0 z-40 w-full border-t border-border bg-background/95 px-6 py-4 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] backdrop-blur-md dark:bg-zinc-950/95">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <footer className={cn(
+        "fixed z-40 transition-all duration-300 backdrop-blur-md shadow-[0_-4px_20px_rgba(0,0,0,0.05)] border-border bg-background/95",
+        // Mobile: full width, flush to bottom
+        "bottom-0 left-0 w-full border-t px-4 md:px-8 py-4",
+        // Desktop: floating pill
+        "lg:bottom-3 lg:border lg:rounded-full lg:w-max lg:px-4 lg:py-2.5 lg:shadow-2xl",
+        // Desktop placement and max-width logic
+        modalOpen 
+          ? "lg:left-[calc(50%-200px)] lg:-translate-x-1/2 lg:max-w-[calc(100vw-400px-3rem)]" 
+          : "lg:left-1/2 lg:-translate-x-1/2 lg:max-w-[calc(100vw-3rem)]"
+      )}>
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 md:flex-row md:items-center md:justify-between min-w-0">
           {/* DESKTOP VIEWPORT ACTION BAR (md breakpoint and up) */}
-          <div className="hidden w-full items-center justify-between md:flex">
+          <div className="hidden w-full items-center justify-between md:flex lg:gap-6 min-w-0">
             {/* Left Column: Share outline button */}
             <Button
               type="button"
@@ -897,12 +909,12 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
             </Button>
 
             {/* Right Column: Inline CLI snippet and Cloud Deploy solid button */}
-            <div className="flex items-center gap-4">
-              <code className="flex items-center gap-2 rounded-xl border border-border/60 bg-slate-100 px-3.5 py-2 font-mono text-sm font-semibold text-foreground dark:bg-zinc-800">
-                <span className="font-mono font-bold text-muted-foreground/80">
+            <div className="flex items-center gap-4 min-w-0 justify-end ml-4 flex-1">
+              <code className="flex items-center gap-2 rounded-xl border border-border/60 bg-slate-100 px-3.5 py-2 font-mono text-sm font-semibold text-foreground dark:bg-zinc-800 min-w-0">
+                <span className="font-mono font-bold text-muted-foreground/80 shrink-0">
                   $
                 </span>
-                <span className="max-w-sm truncate lg:max-w-md">
+                <span className="truncate min-w-0">
                   {cliCommand}
                 </span>
                 <button
@@ -1034,6 +1046,9 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
         </div>
       </footer>
 
+      </div>
+      </div>
+      
       {/* UNIVERSAL CATALOG DRAWER */}
       <UniversalSelectionDrawer
         isOpen={modalOpen}
@@ -1269,6 +1284,6 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }
