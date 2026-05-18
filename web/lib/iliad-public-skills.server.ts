@@ -59,10 +59,16 @@ export async function getIliadCatalogItems() {
     const lists = await Promise.all(
       categories.map(async (category) => {
         try {
-          const list = await fetchIliadPublicSkillsList({ category, limit: 200 })
+          const list = await fetchIliadPublicSkillsList({
+            category,
+            limit: 200,
+          })
           return list.skills.map(iliadSkillToCatalogItem)
         } catch (error) {
-          console.error(`Failed to fetch Iliad skills for category: ${category}`, error)
+          console.error(
+            `Failed to fetch Iliad skills for category: ${category}`,
+            error
+          )
           return []
         }
       })
@@ -70,7 +76,10 @@ export async function getIliadCatalogItems() {
 
     const allItems = lists.flat()
 
-    const uniqueItems = new Map<string, ReturnType<typeof iliadSkillToCatalogItem>>()
+    const uniqueItems = new Map<
+      string,
+      ReturnType<typeof iliadSkillToCatalogItem>
+    >()
     for (const item of allItems) {
       if (!uniqueItems.has(item.slug)) {
         uniqueItems.set(item.slug, item)

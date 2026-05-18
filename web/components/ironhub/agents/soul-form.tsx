@@ -126,7 +126,10 @@ export function SoulForm({
             value={appearance.avatar}
             values={["paladin", "sentinel", "scholar", "oracle"]}
             onChange={(value) =>
-              onAppearanceChange({ ...appearance, avatar: value as AvatarStyle })
+              onAppearanceChange({
+                ...appearance,
+                avatar: value as AvatarStyle,
+              })
             }
           />
           <SelectField
@@ -134,7 +137,10 @@ export function SoulForm({
             value={appearance.theme}
             values={["iron", "ember", "arc", "signal"]}
             onChange={(value) =>
-              onAppearanceChange({ ...appearance, theme: value as BuilderTheme })
+              onAppearanceChange({
+                ...appearance,
+                theme: value as BuilderTheme,
+              })
             }
           />
         </div>

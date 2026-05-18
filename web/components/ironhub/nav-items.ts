@@ -9,5 +9,3 @@ export const navItems = [
   ["Agents", "/agents", IconRobot],
   ["Contribute", "/developer", IconGitPullRequest],
 ] as const
-
-

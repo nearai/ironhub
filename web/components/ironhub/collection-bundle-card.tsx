@@ -38,7 +38,7 @@ export function CollectionBundleCard({
             <CardTitle className="text-xl font-bold text-foreground">
               {bundle.title}
             </CardTitle>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground line-clamp-2">
+            <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
               {bundle.summary}
             </p>
           </div>
@@ -51,7 +51,7 @@ export function CollectionBundleCard({
             <div className="text-xl font-bold text-primary">
               {bundle.items.length}
             </div>
-            <div className="text-[0.65rem] font-bold uppercase tracking-wider text-muted-foreground opacity-70">
+            <div className="text-[0.65rem] font-bold tracking-wider text-muted-foreground uppercase opacity-70">
               Included
             </div>
           </div>
@@ -59,7 +59,7 @@ export function CollectionBundleCard({
             <div className="text-xl font-bold text-primary">
               {bundle.toolCount}
             </div>
-            <div className="text-[0.65rem] font-bold uppercase tracking-wider text-muted-foreground opacity-70">
+            <div className="text-[0.65rem] font-bold tracking-wider text-muted-foreground uppercase opacity-70">
               Tools
             </div>
           </div>
@@ -67,7 +67,7 @@ export function CollectionBundleCard({
             <div className="text-xl font-bold text-primary">
               {bundle.skillCount}
             </div>
-            <div className="text-[0.65rem] font-bold uppercase tracking-wider text-muted-foreground opacity-70">
+            <div className="text-[0.65rem] font-bold tracking-wider text-muted-foreground uppercase opacity-70">
               Skills
             </div>
           </div>
@@ -84,7 +84,7 @@ export function CollectionBundleCard({
             <Badge
               key={item.slug}
               variant="outline"
-              className="rounded-full border-border/60 bg-transparent px-2 py-0.5 text-[0.7rem] font-medium text-muted-foreground transition-colors hover:bg-primary/5 hover:border-primary/20 hover:text-primary"
+              className="rounded-full border-border/60 bg-transparent px-2 py-0.5 text-[0.7rem] font-medium text-muted-foreground transition-colors hover:border-primary/20 hover:bg-primary/5 hover:text-primary"
             >
               {item.name}
             </Badge>

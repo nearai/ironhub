@@ -3,12 +3,21 @@
 import { useMemo, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import type { CatalogItem, CatalogKind } from "@/lib/catalog-types"
-import { filterCatalog, sortCatalog, filterCollections, sortCollections, type SortMode } from "@/lib/catalog-utils"
+import {
+  filterCatalog,
+  sortCatalog,
+  filterCollections,
+  sortCollections,
+  type SortMode,
+} from "@/lib/catalog-utils"
 import type { CollectionBundle } from "@/lib/collection-bundles"
 
 export type ViewMode = "grid" | "list"
 
-export function useCatalogBrowser(items: CatalogItem[], collections: CollectionBundle[]) {
+export function useCatalogBrowser(
+  items: CatalogItem[],
+  collections: CollectionBundle[]
+) {
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -23,8 +32,7 @@ export function useCatalogBrowser(items: CatalogItem[], collections: CollectionB
   const category = getCategoryFromParam(items, categoryParam)
   const [sort, setSort] = useState<SortMode>("relevance")
   const [view, setView] = useState<ViewMode>("grid")
-  const query =
-    queryState.param === queryParam ? queryState.value : queryParam
+  const query = queryState.param === queryParam ? queryState.value : queryParam
 
   function setQuery(nextQuery: string) {
     setQueryState({ param: queryParam, value: nextQuery })
@@ -55,7 +63,15 @@ export function useCatalogBrowser(items: CatalogItem[], collections: CollectionB
   }
 
   const results = useMemo(() => {
-    return sortCatalog(filterCatalog(items, query, kind === "collection" ? "all" : kind, category), sort)
+    return sortCatalog(
+      filterCatalog(
+        items,
+        query,
+        kind === "collection" ? "all" : kind,
+        category
+      ),
+      sort
+    )
   }, [items, query, kind, category, sort])
 
   const filteredCollections = useMemo(() => {
@@ -79,7 +95,11 @@ export function useCatalogBrowser(items: CatalogItem[], collections: CollectionB
 }
 
 function getKindFromParam(kindParam: string | null): CatalogKind | "all" {
-  if (kindParam === "tool" || kindParam === "skill" || kindParam === "collection") {
+  if (
+    kindParam === "tool" ||
+    kindParam === "skill" ||
+    kindParam === "collection"
+  ) {
     return kindParam
   }
 

@@ -1,11 +1,18 @@
 type HubLayoutProps = {
   children: React.ReactNode
+  fluid?: boolean
 }
 
-export function HubLayout({ children }: HubLayoutProps) {
+export function HubLayout({ children, fluid }: HubLayoutProps) {
   return (
     <div className="ih-home-wrapper">
-      <main className="relative z-10 mx-auto max-w-7xl px-4 pt-6 pb-7 sm:px-6 sm:py-7 lg:px-0">
+      <main
+        className={
+          fluid
+            ? "relative z-10 w-full"
+            : "relative z-10 mx-auto max-w-7xl px-4 pt-6 pb-7 sm:px-6 sm:py-7 lg:px-0"
+        }
+      >
         {children}
       </main>
       <img

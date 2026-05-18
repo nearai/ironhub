@@ -58,13 +58,13 @@ export function parseIliadSkillSlug(slug: string) {
 // Maps Iliad skill categoriy endpoints slugs ( api/v1/public-skills?category=slug) to catalog UI categories
 const ILIAD_CATEGORY_MAP: Record<string, string> = {
   "ai-ml": "AI & ML",
-  "automation": "Automation",
-  "communication": "Communication",
+  automation: "Automation",
+  communication: "Communication",
   "data-apis": "Data & APIs",
   "dev-tools": "Dev Tools",
-  "productivity": "Productivity",
-  "security": "Security",
-  "web3": "Web3",
+  productivity: "Productivity",
+  security: "Security",
+  web3: "Web3",
 }
 
 export function iliadSkillToCatalogItem(skill: IliadPublicSkill): CatalogItem {
