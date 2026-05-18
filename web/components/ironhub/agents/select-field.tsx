@@ -1,10 +1,7 @@
 "use client"
 
 import { FormField } from "@/components/ironhub/agents/form-field"
-import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select"
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 
 type SelectFieldProps = {
   label: string

@@ -32,7 +32,10 @@ export function TopNav() {
                   size="sm"
                   className="rounded-full"
                 >
-                  <Link href={href} aria-current={isActive ? "page" : undefined}>
+                  <Link
+                    href={href}
+                    aria-current={isActive ? "page" : undefined}
+                  >
                     <Icon />
                     {label}
                   </Link>
@@ -46,13 +49,9 @@ export function TopNav() {
               asChild
               variant="outline"
               size="sm"
-              className="hidden rounded-full sm:inline-flex gap-1.5"
+              className="hidden gap-1.5 rounded-full sm:inline-flex"
             >
-              <a
-                href={links.suggestFeature}
-                target="_blank"
-                rel="noreferrer"
-              >
+              <a href={links.suggestFeature} target="_blank" rel="noreferrer">
                 <IconBulb className="size-4" />
                 <span>Suggest Feature</span>
               </a>

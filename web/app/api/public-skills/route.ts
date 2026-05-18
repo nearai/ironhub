@@ -24,7 +24,9 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function getListParams(searchParams: URLSearchParams): IliadPublicSkillsListParams {
+function getListParams(
+  searchParams: URLSearchParams
+): IliadPublicSkillsListParams {
   const kind = searchParams.get("kind")
 
   return {

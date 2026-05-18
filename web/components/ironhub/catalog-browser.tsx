@@ -46,10 +46,13 @@ export function CatalogBrowser({
     // Mix them: every 3 items, insert a collection
     const mixed: (CatalogItem | CollectionBundle)[] = []
     let collectionIdx = 0
-    
+
     browser.results.forEach((item, i) => {
       mixed.push(item)
-      if ((i + 1) % 3 === 0 && collectionIdx < browser.filteredCollections.length) {
+      if (
+        (i + 1) % 3 === 0 &&
+        collectionIdx < browser.filteredCollections.length
+      ) {
         mixed.push(browser.filteredCollections[collectionIdx])
         collectionIdx++
       }
@@ -65,7 +68,8 @@ export function CatalogBrowser({
   }, [browser.kind, browser.results, browser.filteredCollections])
 
   const [visibleCount, setVisibleCount] = useState(24)
-  const [prevCombinedResults, setPrevCombinedResults] = useState(combinedResults)
+  const [prevCombinedResults, setPrevCombinedResults] =
+    useState(combinedResults)
 
   // Reset visible count during render when results change to avoid cascading renders
   if (combinedResults !== prevCombinedResults) {
@@ -105,13 +109,15 @@ export function CatalogBrowser({
 
   return (
     <div className="grid gap-4">
-      <div className={cn(
-        "sticky top-16 z-30 -mx-4 px-4 py-3 bg-background/95 backdrop-blur-md transition-all duration-300",
-        "lg:sticky lg:top-[4.5rem] lg:mx-0 lg:rounded-xl lg:border",
-        isScrolled
-          ? "lg:bg-background/90 lg:backdrop-blur-md lg:p-3 lg:shadow-md lg:border-primary/20"
-          : "lg:bg-card lg:p-6 lg:shadow-sm lg:border-[var(--ironhub-line)] lg:backdrop-blur-none"
-      )}>
+      <div
+        className={cn(
+          "sticky top-16 z-30 -mx-4 bg-background/95 px-4 py-3 backdrop-blur-md transition-all duration-300",
+          "lg:sticky lg:top-[4.5rem] lg:mx-0 lg:rounded-xl lg:border",
+          isScrolled
+            ? "lg:border-primary/20 lg:bg-background/90 lg:p-3 lg:shadow-md lg:backdrop-blur-md"
+            : "lg:border-[var(--ironhub-line)] lg:bg-card lg:p-6 lg:shadow-sm lg:backdrop-blur-none"
+        )}
+      >
         <CatalogFilters
           query={browser.query}
           onQueryChange={browser.setQuery}
@@ -130,7 +136,14 @@ export function CatalogBrowser({
 
       {children}
 
-      <div className={cn("grid gap-4", browser.view === "grid" ? "md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1")}>
+      <div
+        className={cn(
+          "grid gap-4",
+          browser.view === "grid"
+            ? "md:grid-cols-2 xl:grid-cols-3"
+            : "grid-cols-1"
+        )}
+      >
         {visibleResults.map((result: CatalogItem | CollectionBundle) => {
           if ("kind" in result && result.kind === "collection") {
             return (
@@ -150,28 +163,28 @@ export function CatalogBrowser({
           )
         })}
       </div>
-      
+
       {visibleCount < combinedResults.length && (
-        <div 
-          id="catalog-load-more-trigger" 
-          className="h-10 w-full flex items-center justify-center opacity-50"
+        <div
+          id="catalog-load-more-trigger"
+          className="flex h-10 w-full items-center justify-center opacity-50"
         >
-          <div className="animate-pulse w-2 h-2 bg-primary rounded-full mx-1" />
-          <div className="animate-pulse w-2 h-2 bg-primary rounded-full mx-1 delay-75" />
-          <div className="animate-pulse w-2 h-2 bg-primary rounded-full mx-1 delay-150" />
+          <div className="mx-1 h-2 w-2 animate-pulse rounded-full bg-primary" />
+          <div className="mx-1 h-2 w-2 animate-pulse rounded-full bg-primary delay-75" />
+          <div className="mx-1 h-2 w-2 animate-pulse rounded-full bg-primary delay-150" />
         </div>
       )}
 
       {!combinedResults.length && (
         <Card>
-          <CardContent className="text-muted-foreground text-center text-sm py-10">
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
             No matching entries found. Try adjusting your filters.
           </CardContent>
         </Card>
       )}
       {browser.kind === "collection" && !collections.length && (
         <Card>
-          <CardContent className="text-muted-foreground text-center text-sm py-10">
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
             No collections found.
           </CardContent>
         </Card>

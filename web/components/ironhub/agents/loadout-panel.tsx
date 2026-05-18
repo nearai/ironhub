@@ -70,7 +70,9 @@ export function LoadoutPanel({
               onToggle={onSkillToggle}
             />
           ))}
-          {!skills.length && <LoadoutEmptyState message="No repo skills found." />}
+          {!skills.length && (
+            <LoadoutEmptyState message="No repo skills found." />
+          )}
         </div>
         <div className="grid gap-3">
           <LoadoutTitle title="Connected tools" count={enabledTools.length} />
@@ -82,10 +84,15 @@ export function LoadoutPanel({
               onToggle={onToolToggle}
             />
           ))}
-          {!tools.length && <LoadoutEmptyState message="No repo tools found." />}
+          {!tools.length && (
+            <LoadoutEmptyState message="No repo tools found." />
+          )}
         </div>
         <div className="grid gap-3">
-          <LoadoutTitle title="Planned tools" count={enabledPlannedTools.length} />
+          <LoadoutTitle
+            title="Planned tools"
+            count={enabledPlannedTools.length}
+          />
           {plannedTools.map((tool) => (
             <PlannedToolItem
               key={tool.slug}

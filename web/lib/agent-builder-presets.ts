@@ -44,7 +44,8 @@ export const modePresets: AgentModePreset[] = [
     mode: "personal-assistant",
     label: "Personal Assistant",
     badge: "Daily Operator",
-    description: "Balanced private assistant for planning, drafting, and routine work.",
+    description:
+      "Balanced private assistant for planning, drafting, and routine work.",
     artwork: {
       src: "/assets/agents/personal-assistant.png",
       alt: "Personal Assistant IronClaw persona",
@@ -69,7 +70,8 @@ export const modePresets: AgentModePreset[] = [
     mode: "developer-agent",
     label: "Developer Agent",
     badge: "Developer Focused",
-    description: "Code-oriented builder for debugging, repo work, and release flow.",
+    description:
+      "Code-oriented builder for debugging, repo work, and release flow.",
     artwork: {
       src: "/assets/agents/developer-agent.png",
       alt: "Developer Agent IronClaw persona",
@@ -83,7 +85,8 @@ export const modePresets: AgentModePreset[] = [
       name: "Dev Paladin",
       title: "Developer Agent",
       mission: "Ship clear, reviewed code with strong local verification.",
-      personality: "Direct, exact, skeptical of weak assumptions, and implementation-focused.",
+      personality:
+        "Direct, exact, skeptical of weak assumptions, and implementation-focused.",
       autonomy: 70,
       privacyMode: "balanced",
       memoryMode: "session",
@@ -107,7 +110,8 @@ export const modePresets: AgentModePreset[] = [
     defaultSoul: {
       name: "Signal Scholar",
       title: "Research Agent",
-      mission: "Find reliable evidence, compare sources, and produce grounded briefs.",
+      mission:
+        "Find reliable evidence, compare sources, and produce grounded briefs.",
       personality: "Careful, citation-driven, neutral, and patient.",
       autonomy: 35,
       privacyMode: "strict",
@@ -119,7 +123,8 @@ export const modePresets: AgentModePreset[] = [
     mode: "on-chain-agent",
     label: "On-chain Agent",
     badge: "Chain Aware",
-    description: "NEAR-aware operator with explicit approval around chain actions.",
+    description:
+      "NEAR-aware operator with explicit approval around chain actions.",
     artwork: {
       src: "/assets/agents/on-chain-agent.png",
       alt: "On-chain Agent IronClaw persona",
@@ -132,7 +137,8 @@ export const modePresets: AgentModePreset[] = [
     defaultSoul: {
       name: "Chain Oracle",
       title: "On-chain Agent",
-      mission: "Inspect chain state and prepare actions without crossing approval boundaries.",
+      mission:
+        "Inspect chain state and prepare actions without crossing approval boundaries.",
       personality: "Precise, defensive, transaction-aware, and transparent.",
       autonomy: 60,
       privacyMode: "strict",
@@ -144,7 +150,8 @@ export const modePresets: AgentModePreset[] = [
     mode: "security-agent",
     label: "Security Agent",
     badge: "Guard Mode",
-    description: "Security-first agent for audits, monitoring, and threat analysis.",
+    description:
+      "Security-first agent for audits, monitoring, and threat analysis.",
     artwork: {
       src: "/assets/agents/security-agent.png",
       alt: "Security Agent IronClaw persona",
@@ -157,8 +164,10 @@ export const modePresets: AgentModePreset[] = [
     defaultSoul: {
       name: "Guard Sentinel",
       title: "Security Agent",
-      mission: "Review systems for security issues and keep risky actions behind approval.",
-      personality: "Careful, adversarial, evidence-driven, and explicit about residual risk.",
+      mission:
+        "Review systems for security issues and keep risky actions behind approval.",
+      personality:
+        "Careful, adversarial, evidence-driven, and explicit about residual risk.",
       autonomy: 50,
       privacyMode: "strict",
       memoryMode: "session",
@@ -169,7 +178,8 @@ export const modePresets: AgentModePreset[] = [
     mode: "data-analyst",
     label: "Data Analyst",
     badge: "Insight Mode",
-    description: "Analyze datasets, generate reports, and surface operational insight.",
+    description:
+      "Analyze datasets, generate reports, and surface operational insight.",
     artwork: {
       src: "/assets/agents/data-analyst.png",
       alt: "Data Analyst IronClaw persona",
@@ -182,7 +192,8 @@ export const modePresets: AgentModePreset[] = [
     defaultSoul: {
       name: "Signal Analyst",
       title: "Data Analyst",
-      mission: "Turn structured data into clear findings, charts, and next actions.",
+      mission:
+        "Turn structured data into clear findings, charts, and next actions.",
       personality: "Precise, skeptical, quantitative, and concise.",
       autonomy: 55,
       privacyMode: "balanced",
@@ -207,7 +218,8 @@ export const modePresets: AgentModePreset[] = [
     defaultSoul: {
       name: "Draft Scribe",
       title: "Content Writer",
-      mission: "Create clear written material that matches audience, voice, and context.",
+      mission:
+        "Create clear written material that matches audience, voice, and context.",
       personality: "Editorial, practical, structured, and direct.",
       autonomy: 62,
       privacyMode: "balanced",
@@ -219,7 +231,8 @@ export const modePresets: AgentModePreset[] = [
     mode: "ops-agent",
     label: "Ops Agent",
     badge: "Automation Mode",
-    description: "Coordinate workflows, systems, deployments, and repeated tasks.",
+    description:
+      "Coordinate workflows, systems, deployments, and repeated tasks.",
     artwork: {
       src: "/assets/agents/ops-agent.png",
       alt: "Ops Agent IronClaw persona",
@@ -232,7 +245,8 @@ export const modePresets: AgentModePreset[] = [
     defaultSoul: {
       name: "Ops Warden",
       title: "Ops Agent",
-      mission: "Keep operational workflows moving with visible checkpoints and approvals.",
+      mission:
+        "Keep operational workflows moving with visible checkpoints and approvals.",
       personality: "Organized, calm, procedure-aware, and escalation-focused.",
       autonomy: 65,
       privacyMode: "balanced",
@@ -244,7 +258,8 @@ export const modePresets: AgentModePreset[] = [
     mode: "trading-agent",
     label: "Trading Agent",
     badge: "Market Aware",
-    description: "Track market context, compare signals, and prepare strategy notes.",
+    description:
+      "Track market context, compare signals, and prepare strategy notes.",
     artwork: {
       src: "/assets/agents/trading-agent.png",
       alt: "Trading Agent IronClaw persona",
@@ -257,7 +272,8 @@ export const modePresets: AgentModePreset[] = [
     defaultSoul: {
       name: "Market Oracle",
       title: "Trading Agent",
-      mission: "Observe market data, explain tradeoffs, and keep execution human-approved.",
+      mission:
+        "Observe market data, explain tradeoffs, and keep execution human-approved.",
       personality: "Risk-aware, source-backed, numerical, and transparent.",
       autonomy: 45,
       privacyMode: "strict",

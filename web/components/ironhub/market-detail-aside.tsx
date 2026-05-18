@@ -20,4 +20,3 @@ export function MarketDetailAside({ item }: MarketDetailAsideProps) {
     </aside>
   )
 }
-

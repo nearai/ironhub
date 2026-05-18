@@ -16,7 +16,10 @@ export function MarketplaceSourceNote({
 }: MarketplaceSourceNoteProps) {
   if (error) {
     return (
-      <Card size="sm" className="bg-[var(--ih-surface-muted)] backdrop-blur-md border-[var(--ih-border-ui)]">
+      <Card
+        size="sm"
+        className="border-[var(--ih-border-ui)] bg-[var(--ih-surface-muted)] backdrop-blur-md"
+      >
         <CardContent className="flex items-center gap-3 text-sm text-[var(--ih-ink-soft)]">
           <IconAlertCircle className="size-5 text-[var(--ih-accent)]" />
           Iliad public skills are temporarily unavailable. Repo-backed entries
@@ -27,7 +30,10 @@ export function MarketplaceSourceNote({
   }
 
   return (
-    <Card size="sm" className="bg-[var(--ih-surface-muted)] backdrop-blur-md border-[var(--ih-border-ui)]">
+    <Card
+      size="sm"
+      className="border-[var(--ih-border-ui)] bg-[var(--ih-surface-muted)] backdrop-blur-md"
+    >
       <CardContent className="flex flex-col gap-3 text-sm text-[var(--ih-ink-soft)] sm:flex-row sm:items-center sm:justify-between">
         <span className="inline-flex items-center gap-2">
           <IconCloud className="size-5 text-[var(--ih-accent)]" />
@@ -37,7 +43,7 @@ export function MarketplaceSourceNote({
           href={links.iliad}
           target="_blank"
           rel="noreferrer"
-          className="font-medium text-[var(--ih-ink)] hover:text-[var(--ih-accent)] transition-colors"
+          className="font-medium text-[var(--ih-ink)] transition-colors hover:text-[var(--ih-accent)]"
         >
           Visit Iliad
         </a>
