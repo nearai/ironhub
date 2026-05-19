@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                   String                @id
+  name                 String
+  email                String                @unique
+  emailVerified        Boolean               @default(false) @map("email_verified")
+  image                String?
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+  accounts             Account[]
+  agentInstallations   AgentInstallation[]
+  installIntentRecords InstallIntentRecord[]
+  nearAccounts         NearAccount[]
+  relayedTransactions  RelayedTransaction[]
+  sessions             Session[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime @map("expires_at")
+  token     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  userId                String    @map("user_id")
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+model NearAccount {
+  id        String   @id
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId String   @map("account_id")
+  network   String
+  publicKey String   @map("public_key")
+  isPrimary Boolean  @default(false) @map("is_primary")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([accountId, network])
+  @@index([userId])
+  @@map("near_account")
+}
+
+model RelayedTransaction {
+  id         String    @id
+  userId     String?   @map("user_id")
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  txHash     String    @map("tx_hash")
+  senderId   String    @map("sender_id")
+  receiverId String    @map("receiver_id")
+  network    String
+  status     String
+  gasUsed    String?   @map("gas_used")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime? @map("updated_at")
+
+  @@unique([txHash])
+  @@index([userId])
+  @@map("relayed_transaction")
+}
+
+model RelayerKey {
+  id                  String    @id
+  accountId           String    @map("account_id")
+  encryptedPrivateKey String    @map("encrypted_private_key")
+  iv                  String
+  publicKey           String    @map("public_key")
+  network             String
+  createdAt           DateTime  @default(now()) @map("created_at")
+  lastUsedAt          DateTime? @map("last_used_at")
+
+  @@unique([network])
+  @@map("relayer_key")
+}
+
+model AgentInstallation {
+  id                   String                @id
+  userId               String                @map("user_id")
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label                String
+  agentUrl             String                @map("agent_url")
+  encryptedSharedKey   String                @map("encrypted_shared_key")
+  iv                   String
+  authTag              String                @map("auth_tag")
+  keyFingerprint       String                @map("key_fingerprint")
+  isDefault            Boolean               @default(false) @map("is_default")
+  verifiedAt           DateTime?             @map("verified_at")
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+  installIntentRecords InstallIntentRecord[]
+
+  @@unique([userId, agentUrl])
+  @@index([userId])
+  @@map("agent_installation")
+}
+
+model InstallIntentRecord {
+  id                  String            @id
+  userId              String            @map("user_id")
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentInstallationId String            @map("agent_installation_id")
+  agentInstallation   AgentInstallation @relation(fields: [agentInstallationId], references: [id], onDelete: Cascade)
+  marketplaceSlug     String            @map("marketplace_slug")
+  marketplaceVersion  String            @map("marketplace_version")
+  nonceHash           String            @map("nonce_hash")
+  issuedAt            DateTime          @default(now()) @map("issued_at")
+  expiresAt           DateTime          @map("expires_at")
+  redirectUrl         String            @map("redirect_url")
+  status              String
+
+  @@unique([nonceHash])
+  @@index([userId])
+  @@index([agentInstallationId])
+  @@map("install_intent_record")
+}

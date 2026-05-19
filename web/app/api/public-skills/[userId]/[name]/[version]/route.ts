@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server"
 import {
   fetchIliadPublicSkill,
   getIliadErrorResponse,
-} from "@/lib/iliad-public-skills.server"
+} from "@/lib/iliad/public-skills.server"
 
 type PublicSkillRouteContext = {
   params: Promise<{

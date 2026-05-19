@@ -2,8 +2,14 @@
   "private": true,
   "packageManager": "pnpm@10.0.0",
   "scripts": {
-    "build": "pnpm --dir web build",
-    "start": "pnpm --dir web start",
-    "dev": "pnpm --dir web dev"
+    "build": "pnpm --filter web build",
+    "start": "pnpm --filter web start",
+    "dev": "pnpm --filter web dev",
+    "lint": "pnpm --filter web lint",
+    "typecheck": "pnpm --filter web typecheck",
+    "db:generate": "pnpm --filter web db:generate",
+    "db:migrate": "pnpm --filter web db:migrate",
+    "db:push": "pnpm --filter web db:push",
+    "db:studio": "pnpm --filter web db:studio"
   }
 }
