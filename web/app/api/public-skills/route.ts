@@ -3,8 +3,8 @@ import { NextResponse, type NextRequest } from "next/server"
 import {
   fetchIliadPublicSkillsList,
   getIliadErrorResponse,
-} from "@/lib/iliad-public-skills.server"
-import type { IliadPublicSkillsListParams } from "@/lib/iliad-public-skills-types"
+} from "@/lib/iliad/public-skills.server"
+import type { IliadPublicSkillsListParams } from "@/lib/iliad/public-skills-types"
 
 export const dynamic = "force-dynamic"
 
