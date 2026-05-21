@@ -1,5 +1,7 @@
 import type { CatalogKind } from "@/lib/catalog/types"
 
+export type IliadAuthorTrustTier = "trusted" | "verified" | "new" | "banned"
+
 export type IliadPublicSkill = {
   userId: string
   name: string
@@ -11,6 +13,9 @@ export type IliadPublicSkill = {
   contentSize: number
   contentPath: string
   capabilitiesPath: string | null
+  capabilitiesHash: string | null
+  capabilitiesSize: number | null
+  authorTrustTier: IliadAuthorTrustTier
   author: string
   publishedAt: string
   madePublicAt: string

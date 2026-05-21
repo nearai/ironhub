@@ -4,6 +4,7 @@ import {
   fetchIliadPublicSkill,
   getIliadErrorResponse,
 } from "@/lib/iliad/public-skills.server"
+import { tokenizeIliadSkillUrls } from "@/lib/iliad/public-skills-utils"
 
 type PublicSkillRouteContext = {
   params: Promise<{
@@ -23,7 +24,7 @@ export async function GET(
     const { userId, name, version } = await context.params
     const result = await fetchIliadPublicSkill(userId, name, version)
 
-    return NextResponse.json(result)
+    return NextResponse.json(tokenizeIliadSkillUrls(result))
   } catch (error) {
     const response = getIliadErrorResponse(error)
 

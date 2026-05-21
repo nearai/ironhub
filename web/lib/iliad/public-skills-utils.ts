@@ -1,3 +1,7 @@
+import {
+  hubArtifactUrl,
+  type IliadArtifactRef,
+} from "@/lib/artifact-ref.server"
 import type { BaseCatalogItem, CatalogItem } from "@/lib/catalog/types"
 import { titleize } from "@/lib/catalog/inference"
 import type {
@@ -7,6 +11,26 @@ import type {
 import { links } from "@/lib/shared/links"
 
 const ILIAD_SLUG_PREFIX = "iliad-"
+
+export function tokenizeIliadSkillUrls(
+  skill: IliadPublicSkill
+): IliadPublicSkill {
+  const contentFile: "w" | "s" = skill.kind === "tool" ? "w" : "s"
+  const refFor = (file: "w" | "c" | "s"): IliadArtifactRef => [
+    "i",
+    skill.userId,
+    skill.name,
+    skill.version,
+    file,
+  ]
+  return {
+    ...skill,
+    downloadUrl: hubArtifactUrl(refFor(contentFile)),
+    capabilitiesUrl: skill.capabilitiesUrl
+      ? hubArtifactUrl(refFor("c"))
+      : null,
+  }
+}
 
 export function normalizeIliadListParams(
   params: IliadPublicSkillsListParams
