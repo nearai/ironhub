@@ -5,6 +5,7 @@ import {
   getIliadErrorResponse,
 } from "@/lib/iliad/public-skills.server"
 import type { IliadPublicSkillsListParams } from "@/lib/iliad/public-skills-types"
+import { tokenizeIliadSkillUrls } from "@/lib/iliad/public-skills-utils"
 
 export const dynamic = "force-dynamic"
 
@@ -12,8 +13,12 @@ export async function GET(request: NextRequest) {
   try {
     const params = getListParams(request.nextUrl.searchParams)
     const result = await fetchIliadPublicSkillsList(params)
+    const tokenized = {
+      ...result,
+      skills: result.skills.map(tokenizeIliadSkillUrls),
+    }
 
-    return NextResponse.json(result)
+    return NextResponse.json(tokenized)
   } catch (error) {
     const response = getIliadErrorResponse(error)
 
