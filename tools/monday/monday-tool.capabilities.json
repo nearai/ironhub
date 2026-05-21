@@ -1,0 +1,60 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "monday.com API v2 (GraphQL) read and write access. Reads the current account, boards (list/get/groups), items (paginated by board, single get, search by column value, updates), users, and workspaces. Writes: create_item, update_item_column_values (change_multiple_column_values), archive_item, delete_item, move_item_to_group, create_group, create_subitem, create_update. Exposes a raw monday_graphql_query action for any query or mutation against api.monday.com/v2. Authenticated with a personal API v2 token sent as the raw value of an Authorization header (NO Bearer prefix per the monday.com convention).",
+  "http": {
+    "allowlist": [
+      {
+        "host": "api.monday.com",
+        "path_prefix": "/v2",
+        "methods": [
+          "POST"
+        ]
+      }
+    ],
+    "credentials": {
+      "monday_api_token": {
+        "secret_name": "monday_api_token",
+        "location": {
+          "type": "header",
+          "name": "Authorization"
+        },
+        "host_patterns": [
+          "api.monday.com"
+        ],
+        "path_patterns": [
+          "/v2"
+        ]
+      }
+    },
+    "rate_limit": {
+      "requests_per_minute": 60,
+      "requests_per_hour": 2000
+    },
+    "timeout_secs": 60
+  },
+  "secrets": {
+    "allowed_names": [
+      "monday_api_token"
+    ]
+  },
+  "auth": {
+    "secret_name": "monday_api_token",
+    "display_name": "monday.com",
+    "static_token": {
+      "env_var": "MONDAY_API_TOKEN",
+      "instructions": "Obtain a personal API v2 token from monday.com. Open monday.com, click your avatar, choose Developers, then My access tokens. Copy the v2 personal token. The token is long-lived and does not expire unless rotated."
+    },
+    "env_var": "MONDAY_API_TOKEN",
+    "setup_url": "https://monday.com/developers/v2",
+    "instructions": "1. In monday.com, click your avatar (bottom-left), choose Developers, then My access tokens.\n2. Copy the v2 personal token.\n3. On the IronClaw host, set:\n\n   ```sh\n   export MONDAY_API_TOKEN=<the token>\n   ```\n\n4. Run `ironclaw tool install monday` to register the tool.\n5. The token is sent as the raw value of an Authorization header (no Bearer prefix), which is monday.com's documented convention. The host credential injector deliberately omits the prefix; do not edit the capabilities to add one."
+  },
+  "setup": {
+    "required_secrets": [
+      {
+        "name": "monday_api_token",
+        "prompt": "monday.com personal API token (Profile -> Developers -> My access tokens)"
+      }
+    ]
+  }
+}
