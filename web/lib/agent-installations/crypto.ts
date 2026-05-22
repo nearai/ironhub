@@ -43,6 +43,10 @@ export function decryptSharedKey(secret: EncryptedSecret) {
   ]).toString("utf8")
 }
 
+export function generateSharedKey() {
+  return `ihub_sk_${randomBytes(32).toString("base64url")}`
+}
+
 export function createKeyFingerprint(sharedKey: string) {
   const suffix = createHmac("sha256", sharedKey)
     .update("ironhub:key-fingerprint")

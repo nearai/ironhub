@@ -304,8 +304,8 @@ async function registerAgentInstallation(input: {
     redirect: "manual",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      userId: input.userId,
-      agentInstallationId: input.id,
+      uid: input.userId,
+      aid: input.id,
       ts,
       nonce,
       sig,

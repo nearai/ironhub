@@ -17,8 +17,17 @@ export function AgentInstallationForm({
   isPending,
   onSubmit,
 }: AgentInstallationFormProps) {
-  const { agentUrl, setAgentUrl, setSharedKey, sharedKey, submit } =
-    useAgentInstallationForm(onSubmit)
+  const {
+    agentUrl,
+    generateError,
+    isGenerating,
+    regenerate,
+    revealed,
+    setAgentUrl,
+    setSharedKey,
+    sharedKey,
+    submit,
+  } = useAgentInstallationForm(onSubmit)
 
   return (
     <form className="grid gap-2" onSubmit={submit}>
@@ -39,8 +48,9 @@ export function AgentInstallationForm({
             size="icon-sm"
             variant="outline"
             className="rounded-lg border-[var(--ironhub-line)] bg-background/60"
-            disabled
-            aria-label="Rotate shared key"
+            onClick={() => void regenerate()}
+            disabled={isGenerating}
+            aria-label="Generate shared key"
           >
             <IconRefresh className="size-4" />
           </Button>
@@ -48,13 +58,18 @@ export function AgentInstallationForm({
       >
         <Input
           id="shared-key"
-          type="password"
+          type={revealed ? "text" : "password"}
           value={sharedKey}
           onChange={(event) => setSharedKey(event.target.value)}
           placeholder="ihub_sk_..."
           className="h-10 rounded-lg border-[var(--ironhub-line)] bg-background/70"
         />
       </AccountField>
+      {generateError ? (
+        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {generateError}
+        </p>
+      ) : null}
       <Button
         type="submit"
         disabled={isPending}
