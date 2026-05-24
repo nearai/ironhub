@@ -2,8 +2,8 @@
 
 import { IconInfoCircle, IconShieldCheck } from "@tabler/icons-react"
 
-import { AgentInstallationDetails } from "@/features/account/components/agent-installation-details"
 import { AgentInstallationForm } from "@/features/account/components/agent-installation-form"
+import { AgentInstallationList } from "@/features/account/components/agent-installation-list"
 import { useAgentInstallations } from "@/features/account/hooks/use-agent-installations"
 
 type AgentInstallationsPanelProps = {
@@ -13,13 +13,17 @@ type AgentInstallationsPanelProps = {
 export function AgentInstallationsPanel({
   isActive,
 }: AgentInstallationsPanelProps) {
-  const { create, error, installations, isLoading, pendingAction, verify } =
-    useAgentInstallations(isActive)
+  const {
+    create,
+    error,
+    installations,
+    isLoading,
+    pendingAction,
+    remove,
+    setDefault,
+    verify,
+  } = useAgentInstallations(isActive)
   const isPending = pendingAction !== null
-  const primaryInstallation =
-    installations.find((installation) => installation.isDefault) ??
-    installations[0] ??
-    null
 
   return (
     <div className="grid gap-7">
@@ -32,7 +36,7 @@ export function AgentInstallationsPanel({
             Agent install security
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Configure secure deep-links to your IronClaw agent.
+            Configure secure deep-links to your IronClaw agents.
           </p>
         </div>
       </div>
@@ -45,17 +49,20 @@ export function AgentInstallationsPanel({
         ) : null}
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Loading agents...</p>
-        ) : primaryInstallation ? (
-          <AgentInstallationDetails
-            installation={primaryInstallation}
-            isPending={isPending}
-            onVerify={verify}
-          />
         ) : (
-          <AgentInstallationForm
-            isPending={pendingAction === "create"}
-            onSubmit={create}
-          />
+          <>
+            <AgentInstallationList
+              installations={installations}
+              isPending={isPending}
+              onDelete={remove}
+              onSetDefault={setDefault}
+              onVerify={verify}
+            />
+            <AgentInstallationForm
+              isPending={pendingAction === "create"}
+              onSubmit={create}
+            />
+          </>
         )}
 
         <div className="flex items-center gap-3 rounded-xl border border-[var(--ironhub-line)] bg-background/45 px-4 py-3 text-sm text-muted-foreground">
