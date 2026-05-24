@@ -1,6 +1,9 @@
 const steps = [
   ["Hub signs", "IronHub builds the message and signs with HMAC-SHA256."],
-  ["Agent verifies", "IronClaw verifies signature, ts, and nonce."],
+  [
+    "Agent verifies",
+    "IronClaw verifies the signature, freshness, nonce, version, and artifact digest.",
+  ],
   ["User confirms", "Valid intent shows confirm card with manifest data."],
   [
     "Phase 3 install",
