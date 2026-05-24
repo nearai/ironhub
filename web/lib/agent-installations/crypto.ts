@@ -1,6 +1,7 @@
 import {
   createCipheriv,
   createDecipheriv,
+  createHash,
   createHmac,
   randomBytes,
 } from "crypto"
@@ -58,6 +59,10 @@ export function createKeyFingerprint(sharedKey: string) {
 
 export function signInstallPayload(sharedKey: string, payload: string) {
   return createHmac("sha256", sharedKey).update(payload).digest("hex")
+}
+
+export function artifactDigest(parts: string[]) {
+  return createHash("sha256").update(parts.join(":")).digest("hex")
 }
 
 export function hashNonce(nonce: string) {

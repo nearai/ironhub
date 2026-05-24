@@ -1,4 +1,5 @@
 import {
+  artifactDigest,
   createKeyFingerprint,
   decryptSharedKey,
   encryptSharedKey,
@@ -21,6 +22,7 @@ import {
   validateSharedKey,
 } from "@/lib/agent-installations/validation"
 import { getMarketplaceCatalogItem } from "@/lib/catalog/server"
+import { buildUnifiedManifest } from "@/lib/catalog/manifest.server"
 import { prisma } from "@/lib/db"
 
 type AgentInstallationRow = {
@@ -45,6 +47,7 @@ type InstallRedirectInput = {
   ts: number
   nonce: string
   sig: string
+  artifactDigest: string
 }
 
 export function toAgentInstallationView(
@@ -192,6 +195,18 @@ export async function createInstallIntent(input: {
     throw new Error("Marketplace Entry not found.")
   }
 
+  const manifest = await buildUnifiedManifest()
+  const manifestTool = manifest.tools.find((t) => t.name === item.slug)
+  const manifestSkill = manifest.skills.find((s) => s.name === item.slug)
+  const digest = manifestTool
+    ? artifactDigest([manifestTool.wasm.sha256, manifestTool.capabilities.sha256])
+    : manifestSkill
+      ? artifactDigest([manifestSkill.skill_md.sha256])
+      : null
+  if (!digest) {
+    throw new Error("Marketplace Entry is not in the installable manifest.")
+  }
+
   const installation = await getInstallTarget(input)
 
   if (!installation.verifiedAt) {
@@ -209,6 +224,7 @@ export async function createInstallIntent(input: {
     agentInstallationId: installation.id,
     ts,
     nonce,
+    artifactDigest: digest,
   })
   const sig = signInstallPayload(sharedKey, payload)
   const redirectInput = {
@@ -219,6 +235,7 @@ export async function createInstallIntent(input: {
     ts,
     nonce,
     sig,
+    artifactDigest: digest,
   }
   const redirectUrl = buildInstallRedirectUrl(
     installation.agentUrl,
@@ -330,6 +347,7 @@ function buildInstallRedirectUrl(
     ts: String(input.ts),
     nonce: input.nonce,
     sig: input.sig,
+    artifact_digest: input.artifactDigest,
   })
 
   return `${agentUrl}/#/install/${input.slug}?${params.toString()}`
@@ -347,6 +365,7 @@ function buildAuditRedirectUrl(
     ts: String(input.ts),
     nonce: "redacted",
     sig: "redacted",
+    artifact_digest: input.artifactDigest,
   })
 
   return `${agentUrl}/#/install/${input.slug}?${params.toString()}`

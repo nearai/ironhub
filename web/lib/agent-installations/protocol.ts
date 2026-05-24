@@ -17,6 +17,7 @@ export function createInstallPayload(input: {
   agentInstallationId: string
   ts: number
   nonce: string
+  artifactDigest: string
 }) {
   return [
     "install",
@@ -26,6 +27,7 @@ export function createInstallPayload(input: {
     input.agentInstallationId,
     String(input.ts),
     input.nonce,
+    input.artifactDigest,
   ].join(":")
 }
 
