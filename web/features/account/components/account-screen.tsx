@@ -16,6 +16,7 @@ export function AccountScreen() {
     searchParams.get("intent") === "install" ? searchParams.get("slug") : null
   const {
     error,
+    isSigningOut,
     isPending,
     pendingProvider,
     session,
@@ -38,7 +39,12 @@ export function AccountScreen() {
         </div>
       ) : session ? (
         <div className="flex w-full flex-col gap-4">
-          <ProfilePanel session={session} onSignOut={signOut}>
+          <ProfilePanel
+            error={error}
+            isSigningOut={isSigningOut}
+            session={session}
+            onSignOut={signOut}
+          >
             <AgentInstallationsPanel isActive={Boolean(session)} />
           </ProfilePanel>
           <InstallIntentPreview slug={pendingInstallSlug ?? "clickup"} />

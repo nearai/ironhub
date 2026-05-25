@@ -12,6 +12,7 @@ export function useAccountActions() {
   const searchParams = useSearchParams()
   const session = authClient.useSession()
   const [pendingProvider, setPendingProvider] = useState<Provider | null>(null)
+  const [isSigningOut, setIsSigningOut] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const urlError = searchParams.get("error")
@@ -55,18 +56,45 @@ export function useAccountActions() {
   }
 
   const signOut = async () => {
-    await authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          router.refresh()
-          authClient.$store.notify("$sessionSignal")
+    if (isSigningOut) {
+      return
+    }
+
+    setError(null)
+    setIsSigningOut(true)
+
+    try {
+      await authClient.near.disconnect()
+    } catch {
+      // Keep auth sign-out working even if wallet provider rejects disconnect.
+    }
+
+    try {
+      await authClient.signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            router.refresh()
+            authClient.$store.notify("$sessionSignal")
+          },
+          onError: (ctx) => {
+            setError(ctx.error.message ?? "Sign-out failed.")
+          },
         },
-      },
-    })
+      })
+    } catch (signOutError) {
+      setError(
+        signOutError instanceof Error
+          ? signOutError.message
+          : "Sign-out failed."
+      )
+    } finally {
+      setIsSigningOut(false)
+    }
   }
 
   return {
     error: visibleError,
+    isSigningOut,
     isPending: session.isPending,
     pendingProvider,
     session: session.data,

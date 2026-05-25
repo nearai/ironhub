@@ -1,6 +1,6 @@
 "use client"
 
-import { IconLogout } from "@tabler/icons-react"
+import { IconLoader2, IconLogout } from "@tabler/icons-react"
 import type { ReactNode } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -9,12 +9,16 @@ import { UserClawAvatar } from "./user-claw-avatar"
 
 type ProfilePanelProps = {
   children: ReactNode
+  error: string | null
+  isSigningOut: boolean
   session: AuthSession
-  onSignOut: () => void
+  onSignOut: () => Promise<void>
 }
 
 export function ProfilePanel({
   children,
+  error,
+  isSigningOut,
   session,
   onSignOut,
 }: ProfilePanelProps) {
@@ -40,14 +44,26 @@ export function ProfilePanel({
           </div>
         </div>
         <Button
+          type="button"
           variant="outline"
+          disabled={isSigningOut}
           onClick={onSignOut}
           className="h-10 justify-self-start rounded-full border-[var(--ironhub-line)] bg-background/45 px-4 sm:justify-self-auto"
         >
-          <IconLogout className="size-4" />
-          Sign out
+          {isSigningOut ? (
+            <IconLoader2 className="size-4 animate-spin" />
+          ) : (
+            <IconLogout className="size-4" />
+          )}
+          {isSigningOut ? "Signing out..." : "Sign out"}
         </Button>
       </div>
+
+      {error ? (
+        <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
 
       <div className="border-t border-[var(--ironhub-line)] pt-6">
         {children}
