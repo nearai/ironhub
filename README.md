@@ -7,6 +7,8 @@ WASM tools and SKILL.md skills for the IronClaw agent runtime.
 - `tools/microsoft-365`. Microsoft Graph integration covering Outlook, Excel, Teams, OneDrive, SharePoint, Calendar, plus Word and PowerPoint document generation. 14 actions, OAuth via Microsoft Entra ID.
 - `tools/near-rpc`. NEAR Protocol JSON-RPC integration. 27 actions covering account state, access keys, contract storage and code, view function calls, blocks, chunks, validators, transactions with finality control, state changes, network status, gas and protocol config, and light-client proofs. No credentials required for read actions.
 - `tools/polymarket`. Polymarket public market intelligence. 36 actions covering markets, events, tags, sports, search, orderbooks, prices, position holdings, user activity, leaderboards, profiles, and comments across the prediction-market platform. No authentication required.
+- `tools/nova-submit`. Self-contained submission tool for IronClaw Hackathon: based on NOVA decentralized file-sharing, it allows the agent to submit to the hackathon in one command using the ironclaw-hackathon skill. Replicable by all NEAR Legion city nodes or any IronClaw hackathon organizer.
+
 - `skills/microsoft-365-workflow`. Business workflow patterns for the agent when operating inside the Microsoft 365 surface.
 
 See `tracking.md` for the full status table.
