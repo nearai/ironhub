@@ -1,17 +1,19 @@
-import { NextResponse, type NextRequest } from "next/server"
+import { NextResponse } from "next/server"
 
 import {
   buildUnifiedManifest,
   CatalogManifestError,
 } from "@/lib/catalog/manifest.server"
+import { signManifest } from "@/lib/catalog/manifest-signing.server"
 
 export const dynamic = "force-dynamic"
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     const manifest = await buildUnifiedManifest()
+    const envelope = signManifest(manifest)
 
-    return NextResponse.json(manifest, {
+    return NextResponse.json(envelope, {
       headers: { "Cache-Control": "no-store" },
     })
   } catch (error) {
