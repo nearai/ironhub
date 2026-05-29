@@ -1,0 +1,31 @@
+[package]
+name = "nova-submit"
+version = "0.1.0"
+edition = "2021"
+description = "Encrypt a file with AES-256-GCM and upload it to a NOVA group on NEAR. Self-contained: performs the NOVA session-token, prepare_upload, client-side encryption, and finalize_upload sequence in one call. Built for the NEAR Legion IronClaw Hackathon."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/jcarbonnell/ironclaw-hackathon"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wit-bindgen = "0.41"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+schemars = "1"
+base64 = "0.22"
+# RustCrypto AES-GCM — audited, no_std-capable, compiles cleanly to wasm32-wasip2.
+# This is the crypto core; it replaces NOVA's encrypt_nova.py / decrypt_nova.py.
+aes-gcm = "0.10"
+sha2 = "0.10"
+hex = "0.4"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+codegen-units = 1
+
+[workspace]
