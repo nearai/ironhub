@@ -10,3 +10,5 @@ Thumbs.db
 .env.*.local
 *.log
 node_modules
+.agent/
+docs/

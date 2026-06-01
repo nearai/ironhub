@@ -1,0 +1,94 @@
+name: 💡 Suggest a Use Case
+description: Share a real task users can run with IronClaw agents.
+title: "[usecase] "
+labels: ["type:usecase", "status:proposed"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### Help us grow the IronHub Use Case library 🛠️
+        Use cases are concrete tasks a real user would actually ask an agent to do — the kind that make someone say "Yes, that's exactly what I want."
+
+        **Good use cases are:**
+        - Concrete and specific (not "improve productivity" or "analyze data")
+        - Something a real user would actually request
+        - Clearly showing a useful agent capability
+
+        **Examples:** "Summarize my inbox every morning" · "DCA when a coin goes below $X" · "Turn this repeated workflow into a skill"
+  - type: input
+    id: title
+    attributes:
+      label: 1. Title
+      description: Short, action-oriented. Max 20 words.
+      placeholder: e.g., Summarize my inbox every morning
+    validations:
+      required: true
+  - type: textarea
+    id: example_prompt
+    attributes:
+      label: 2. Example prompt
+      description: Natural user voice, 1–2 sentences. Write it the way a real person would type it.
+      placeholder: "Everyday, summarize my Gmail inbox and send the top 5 important threads to my Signal."
+    validations:
+      required: true
+  - type: textarea
+    id: agent_does
+    attributes:
+      label: 3. What the agent does
+      description: Step-by-step outcome in a few sentences. Describe what the user gets, not the technical internals.
+      placeholder: "Scans your inbox safely, groups threads by importance, writes a concise bullet summary, and delivers it privately."
+    validations:
+      required: true
+  - type: textarea
+    id: skills_tools
+    attributes:
+      label: 4. Skills & tools used
+      description: |
+        List each skill or tool your agent needs, one per line as bullets.
+
+        - If it already exists on IronHub, paste its link (e.g. `- [gmail](https://hub.ironclaw.com/)`).
+        - If it doesn't exist yet, write the name + one-line description of what it should do, plus a reference URL to something similar (a docs page, API, existing product, GitHub repo). Example: `- Signal sender — sends messages to my Signal account. Ref: https://signal.org/docs/`
+
+        Goal: anyone reading should know exactly what pieces are required to make this use case work.
+      placeholder: |
+        - [gmail](https://hub.ironclaw.com/) — read inbox
+        - [cron](https://hub.ironclaw.com/) — run daily at 7am
+        - Signal sender (new) — send DM to my Signal. Ref: https://signal.org/docs/
+        - Priority ranker (new) — score thread importance. Ref: https://openai.com/research/
+    validations:
+      required: true
+  - type: checkboxes
+    id: categories
+    attributes:
+      label: 5. Categories
+      description: Pick all that apply.
+      options:
+        - label: Personal assistant
+        - label: Web 3 / Crypto
+        - label: Coding / dev workflow
+        - label: Research
+        - label: Marketing / content
+        - label: Business ops
+        - label: Sales / CRM
+        - label: Files / knowledge
+        - label: Automation
+        - label: Design / media
+        - label: Skill creation
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: 6. Source (optional)
+      description: If you found this use case from someone else, drop the link here.
+      placeholder: https://...
+    validations:
+      required: false
+  - type: input
+    id: author
+    attributes:
+      label: 7. Author (optional)
+      description: Your name or handle, if you'd like credit.
+      placeholder: e.g., @yourhandle
+    validations:
+      required: false
