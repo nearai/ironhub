@@ -57,7 +57,7 @@ ${skillsList}`
               <IconMessageCircle className="w-3 h-3" />
             </div>
           </div>
-          <p className="font-medium tracking-tight leading-relaxed">"{useCase.examplePrompt}"</p>
+          <p className="font-medium tracking-tight leading-relaxed">&ldquo;{useCase.examplePrompt}&rdquo;</p>
         </div>
 
         {/* What the agent does */}

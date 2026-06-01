@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo } from "react"
 import type { UseCase, UsecaseCategory } from "@/lib/usecases/types"
 import { UseCaseCard } from "./use-case-card"
 import { cn } from "@/lib/shared/utils"
@@ -51,10 +51,6 @@ export function ShowcaseBrowser({ useCases, categories }: ShowcaseBrowserProps) 
   const [searchQuery, setSearchQuery] = useState("")
   const [visibleCount, setVisibleCount] = useState(15)
 
-  useEffect(() => {
-    setVisibleCount(15)
-  }, [selectedCategory, searchQuery])
-
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {}
     useCases.forEach((uc) => {
@@ -101,14 +97,20 @@ export function ShowcaseBrowser({ useCases, categories }: ShowcaseBrowserProps) 
             placeholder="Search use cases..."
             className="pl-9 bg-muted/50 border-transparent focus:border-primary/50 focus:bg-background transition-all"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value)
+              setVisibleCount(15)
+            }}
           />
         </div>
         <div className="flex gap-2 w-full">
           <div className="flex-1">
             <Select
               value={selectedCategory}
-              onValueChange={(val) => setSelectedCategory(val as UsecaseCategory | "All")}
+              onValueChange={(val) => {
+                setSelectedCategory(val as UsecaseCategory | "All")
+                setVisibleCount(15)
+              }}
             >
               <SelectTrigger className="h-10 w-full gap-2 px-4 transition-all duration-300">
                 <IconCategory className="size-4 opacity-70 transition-all duration-300" />
@@ -146,14 +148,20 @@ export function ShowcaseBrowser({ useCases, categories }: ShowcaseBrowserProps) 
                 placeholder="Search use cases..."
                 className="pl-9 bg-muted/50 border-transparent focus:border-primary/50 focus:bg-background transition-all"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setVisibleCount(15)
+                }}
               />
             </div>
             
             <div className="flex flex-col gap-2">
               <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-2">Categories</h3>
               <button
-                onClick={() => setSelectedCategory("All")}
+                onClick={() => {
+                  setSelectedCategory("All")
+                  setVisibleCount(15)
+                }}
                 className={cn(
                   "text-left px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 w-full",
                   selectedCategory === "All"
@@ -172,7 +180,10 @@ export function ShowcaseBrowser({ useCases, categories }: ShowcaseBrowserProps) 
                 return (
                   <button
                     key={category}
-                    onClick={() => setSelectedCategory(category)}
+                    onClick={() => {
+                      setSelectedCategory(category)
+                      setVisibleCount(15)
+                    }}
                     className={cn(
                       "text-left px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 w-full",
                       selectedCategory === category

@@ -1,6 +1,6 @@
 import { promises as fs } from "fs"
 import path from "path"
-import type { UseCase, UsecaseCategory } from "./types"
+import type { UseCase } from "./types"
 import { CATEGORIES } from "@/lib/catalog/inference"
 
 export async function getUseCases(): Promise<UseCase[]> {

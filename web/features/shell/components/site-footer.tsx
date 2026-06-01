@@ -1,3 +1,6 @@
+"use client"
+
+import { usePathname } from "next/navigation"
 import { Separator } from "@/components/ui/separator"
 import { links } from "@/lib/shared/links"
 
@@ -9,6 +12,12 @@ const footerLinks = [
 ] as const
 
 export function SiteFooter() {
+  const pathname = usePathname()
+
+  if (pathname?.startsWith("/mvp")) {
+    return null
+  }
+
   return (
     <footer className="px-4 pt-10 pb-8 sm:px-6 lg:px-4">
       <div className="mx-auto max-w-7xl">
@@ -33,3 +42,4 @@ export function SiteFooter() {
     </footer>
   )
 }
+

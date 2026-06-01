@@ -11,4 +11,8 @@ Thumbs.db
 *.log
 node_modules
 .agent/
-docs/
+web/docs/
+.claude
+.superpowers/
+openspec/
+.agent/
