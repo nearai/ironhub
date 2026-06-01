@@ -64,7 +64,7 @@ export function CatalogCard({
         </CardAction>
       </CardHeader>
 
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex flex-1 flex-col gap-4">
         <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
           {item.description ?? "No description."}
         </p>

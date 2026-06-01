@@ -5,7 +5,20 @@ import type { UseCase, UsecaseCategory } from "@/lib/usecases/types"
 import { UseCaseCard } from "./use-case-card"
 import { cn } from "@/lib/shared/utils"
 import { Input } from "@/components/ui/input"
-import { IconSearch, IconCategory, IconPlus } from "@tabler/icons-react"
+import {
+  IconSearch,
+  IconCategory,
+  IconPlus,
+  IconLayoutGrid,
+  IconTerminal2,
+  IconDatabase,
+  IconShield,
+  IconAdjustments,
+  IconMessage2,
+  IconBolt,
+  IconBrain,
+  IconHexagon,
+} from "@tabler/icons-react"
 import {
   Select,
   SelectContent,
@@ -15,6 +28,18 @@ import {
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { sourceLink } from "@/lib/shared/links"
+
+const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+  all: IconLayoutGrid,
+  "dev tools": IconTerminal2,
+  "data & apis": IconDatabase,
+  security: IconShield,
+  automation: IconAdjustments,
+  communication: IconMessage2,
+  productivity: IconBolt,
+  "ai & ml": IconBrain,
+  web3: IconHexagon,
+}
 
 interface ShowcaseBrowserProps {
   useCases: UseCase[]
@@ -130,29 +155,33 @@ export function ShowcaseBrowser({ useCases, categories }: ShowcaseBrowserProps) 
               <button
                 onClick={() => setSelectedCategory("All")}
                 className={cn(
-                  "text-left px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                  "text-left px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 w-full",
                   selectedCategory === "All"
                     ? "bg-primary/10 text-primary font-semibold"
                     : "hover:bg-muted text-muted-foreground hover:text-foreground"
                 )}
               >
-                All Use Cases <span className="ml-auto opacity-60 text-xs">{useCases.length}</span>
+                <IconLayoutGrid className="size-4 shrink-0 opacity-70" />
+                <span>All Use Cases</span>
+                <span className="ml-auto opacity-60 text-xs">{useCases.length}</span>
               </button>
               {categories.map((category) => {
                 const count = categoryCounts[category] || 0
                 if (count === 0) return null
+                const Icon = categoryIcons[category.toLowerCase()] || IconCategory
                 return (
                   <button
                     key={category}
                     onClick={() => setSelectedCategory(category)}
                     className={cn(
-                      "text-left px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center",
+                      "text-left px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 w-full",
                       selectedCategory === category
                         ? "bg-primary/10 text-primary font-semibold"
                         : "hover:bg-muted text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    {category}
+                    <Icon className="size-4 shrink-0 opacity-70" />
+                    <span>{category}</span>
                     <span className="ml-auto opacity-60 text-xs">{count}</span>
                   </button>
                 )
