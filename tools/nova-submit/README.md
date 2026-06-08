@@ -45,7 +45,7 @@ The tool returns the CID, which is the permanent reference to the encrypted file
 The tool's `capabilities.json` grants it network access to exactly two hosts and nothing else:
 
 - `nova-sdk.com` — for the session-token exchange
-- the NOVA MCP server on Phala — for `prepare_upload` and `finalize_upload`
+- the NOVA MCP server on Phala — for `prepare_upload` and `finalize_upload` (the hostname embeds a Phala dstack verification hash and changes on redeploy — see *Security notes*)
 
 It declares no host-injected credentials: the NOVA API key is passed as a call parameter (NOVA's session-token endpoint authenticates with a custom `X-API-Key` header, not a bearer token, so the host's bearer-only injection cannot be used).
 
@@ -54,34 +54,34 @@ It declares no host-injected credentials: the NOVA API key is passed as a call p
 - **API key handling.** The `api_key` is passed as a tool parameter. If your agent's caller types it into a chat, treat it as exposed and rotate it at nova-sdk.com afterward. The cleaner pattern is to supply it from the agent's `~/.ironclaw/.env` rather than chat.
 - **Nonce.** The WASI p2 sandbox exposes no random number generator, so the 12-byte AES-GCM nonce is derived from the host millisecond clock. This is sufficient for unique-per-upload nonces in a low-frequency submission flow, but it is not a cryptographically strong RNG. For high-volume or adversarial use, have NOVA's `prepare_upload` return a server-generated nonce instead.
 - **Encryption layout.** Output is `nonce(12) ‖ ciphertext ‖ tag(16)`, base64-encoded — byte-compatible with the NOVA SDK's `encrypt`/`decrypt` (`iv = bytes[:12]`). A file uploaded by this tool retrieves and decrypts correctly via the NOVA JS SDK and vice versa.
-
-## Build from source
-
-Requires the Rust WASM toolchain:
-
-```bash
-rustup target add wasm32-wasip2
-cargo install wasm-tools
-```
-
-Then:
-
-```bash
-./build.sh
-```
-
-This compiles the crate for `wasm32-wasip2` and produces `nova-submit.wasm` in this directory. The WIT contract is vendored at `wit/tool.wit` (`near:agent@0.3.0`, world `sandboxed-tool`).
+- **NOVA MCP hostname.** The capabilities file allowlists the NOVA MCP host at `5a5223f7d1bfe777433c496b9d52ff851e927259-8000.dstack-prod5.phala.network`. This is a [Phala dstack](https://docs.phala.network/) deployment, and the hostname embeds the dstack instance's verification hash — proof the MCP server is the exact build NOVA published. If NOVA redeploys the MCP server, the hash changes and so does the hostname; this tool then stops working until `nova-submit-tool.capabilities.json` is bumped and a new release is cut. The live hostname is tracked at [`github.com/jcarbonnell/nova`](https://github.com/jcarbonnell/nova).
 
 ## Layout
 
+This crate lives at `tools/nova-submit/` and follows the ironhub layout: the WIT contract is shared at the repo root and referenced via a relative path, with no per-tool build script.
+
 ```
-nova-submit/
-  src/lib.rs                          the tool: params, the upload sequence, AES-256-GCM
-  wit/tool.wit                        vendored sandboxed-tool WIT contract (near:agent@0.3.0)
-  Cargo.toml                          crate config and dependencies
-  build.sh                            build script -> nova-submit.wasm
-  nova-submit.capabilities.json  capabilities manifest (released as nova-submit.capabilities.json)
+ironhub/
+  wit/tool.wit                                            ← shared WIT, used by all tools
+  tools/nova-submit/
+    Cargo.toml
+    src/lib.rs                                            ← `path: "../../wit/tool.wit"`
+    nova-submit-tool.capabilities.json
+    README.md
 ```
+
+The canonical standalone layout — with `wit/tool.wit` and `build.sh` inside the crate — lives at [`github.com/jcarbonnell/nova/nova-submit-tool`](https://github.com/jcarbonnell/nova/tree/main/nova-submit-tool) and is the development home of the tool.
+
+## Build
+
+From the ironhub repo root, or from `tools/nova-submit/`:
+
+```bash
+rustup target add wasm32-wasip2
+cargo build --release --target wasm32-wasip2
+```
+
+The output is `target/wasm32-wasip2/release/nova_submit_tool.wasm`. Rename to `nova-submit.wasm` when packing into a release alongside `nova-submit-tool.capabilities.json`.
 
 ## Compatibility
 

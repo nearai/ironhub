@@ -517,7 +517,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "nova-submit"
+name = "nova-submit-tool"
 version = "0.1.0"
 dependencies = [
  "aes-gcm",

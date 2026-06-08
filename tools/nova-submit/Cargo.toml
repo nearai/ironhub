@@ -1,10 +1,11 @@
 [package]
-name = "nova-submit"
+name = "nova-submit-tool"
 version = "0.1.0"
 edition = "2021"
 description = "Encrypt a file with AES-256-GCM and upload it to a NOVA group on NEAR. Self-contained: performs the NOVA session-token, prepare_upload, client-side encryption, and finalize_upload sequence in one call. Built for the NEAR Legion IronClaw Hackathon."
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/jcarbonnell/ironclaw-hackathon"
+repository = "https://github.com/nearai/ironhub"
+homepage = "https://github.com/jcarbonnell/nova"
 publish = false
 
 [lib]
