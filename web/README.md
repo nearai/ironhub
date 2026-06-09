@@ -23,6 +23,15 @@ handlers proxy Iliad catalog requests at:
 - `GET /api/public-skills`
 - `GET /api/public-skills/:userId/:name/:version`
 
+## Route flags
+
+Set these to `true` to disable the page and remove its header navigation item.
+Unset or `false` keeps the route visible.
+
+- `NEXT_PUBLIC_DISABLE_ACCOUNT_ROUTE`
+- `NEXT_PUBLIC_DISABLE_AGENTS_ROUTE`
+- `NEXT_PUBLIC_DISABLE_MVP_ROUTE`
+
 ## Commands
 
 ```bash

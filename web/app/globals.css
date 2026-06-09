@@ -200,6 +200,12 @@
   @apply bg-primary/30 text-foreground;
 }
 
+.selection-dark::selection,
+.selection-dark *::selection {
+  background-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+
 body::before,
 body::after {
   position: fixed;

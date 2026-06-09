@@ -1,0 +1,63 @@
+{
+  "version": "0.2.0",
+  "wit_version": "0.3.0",
+  "description": "Wazuh SIEM/XDR read and control. Queries alerts, vulnerabilities, and top rule aggregations from the Wazuh Indexer (OpenSearch) over HTTP Basic auth, and exchanges Basic credentials for a short-lived JWT at /security/user/authenticate to drive the Wazuh Server API. Read actions: search_alerts, search_vulnerabilities, top_alert_rules, cluster_health, list_indices, list_agents, agent_summary. Control actions: restart_agent, add_agent, remove_agent, move_agent_to_group, trigger_active_response (push commands like firewall-drop to one agent or the entire fleet), restart_manager, update_cdb_list (push to CDB block/allow lists that drive the rule engine). Default hostnames assume the operator places `wazuh-indexer.local` and `wazuh-api.local` in /etc/hosts (or behind a local TLS reverse proxy with an mkcert certificate).",
+  "http": {
+    "allowlist": [
+      {
+        "host": "wazuh-indexer.local",
+        "path_prefix": "/",
+        "methods": ["GET", "POST"]
+      },
+      {
+        "host": "wazuh-api.local",
+        "path_prefix": "/",
+        "methods": ["GET", "POST", "PUT", "DELETE"]
+      }
+    ],
+    "credentials": {
+      "wazuh_indexer_password": {
+        "secret_name": "wazuh_indexer_password",
+        "location": { "type": "basic", "username": "admin" },
+        "host_patterns": ["wazuh-indexer.local"]
+      },
+      "wazuh_api_password": {
+        "secret_name": "wazuh_api_password",
+        "location": { "type": "basic", "username": "wazuh-wui" },
+        "host_patterns": ["wazuh-api.local"],
+        "path_patterns": ["/security/user/authenticate"]
+      }
+    },
+    "rate_limit": {
+      "requests_per_minute": 60,
+      "requests_per_hour": 2000
+    },
+    "timeout_secs": 60
+  },
+  "secrets": {
+    "allowed_names": ["wazuh_indexer_password", "wazuh_api_password"]
+  },
+  "auth": {
+    "secret_name": "wazuh_indexer_password",
+    "display_name": "Wazuh",
+    "static_token": {
+      "env_var": "WAZUH_INDEXER_PASSWORD",
+      "instructions": "Use the Wazuh indexer admin password (or a dedicated read-only indexer role). The default username `admin` is baked into the capabilities; change the `username` field if your indexer uses a different account. The server API password is a separate secret stored as `wazuh_api_password` (default username `wazuh`)."
+    },
+    "env_var": "WAZUH_INDEXER_PASSWORD",
+    "setup_url": "https://documentation.wazuh.com/current/user-manual/wazuh-indexer/wazuh-indexer-security.html",
+    "instructions": "1. Ensure the Wazuh indexer and server API are reachable over HTTPS at `wazuh-indexer.local:9200` and `wazuh-api.local:55000`. If your hostnames differ, edit `host` in the allowlist and the matching `API_BASE` constants in `src/wazuh.rs` before building.\n2. The host machine running IronClaw must trust the TLS certificates of both endpoints. For local lab use, front the Wazuh containers with a local reverse proxy (for example caddy with an mkcert certificate) and run `mkcert -install` to add the local CA to the system trust store.\n3. On the IronClaw host, set both secrets:\n\n   ```sh\n   export WAZUH_INDEXER_PASSWORD=<indexer admin password>\n   export WAZUH_API_PASSWORD=<server api password>\n   ```\n\n4. Run `ironclaw tool install wazuh` to register the tool.\n5. The server API password is only sent to `/security/user/authenticate`. Other server API calls use a short-lived JWT obtained from that endpoint per invocation; the tool does not cache tokens across calls."
+  },
+  "setup": {
+    "required_secrets": [
+      {
+        "name": "wazuh_indexer_password",
+        "prompt": "Wazuh indexer admin password"
+      },
+      {
+        "name": "wazuh_api_password",
+        "prompt": "Wazuh server API password"
+      }
+    ]
+  }
+}

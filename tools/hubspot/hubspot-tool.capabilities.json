@@ -1,0 +1,63 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "HubSpot CRM v3 read and write access. Lists, searches, fetches, creates, updates, and archives contacts, companies, deals, and tickets. Lists contact lists and members, CRM owners, and per-object properties. Exposes a raw hubspot_request action for any CRM v3 endpoint bounded by the same host allowlist. Authenticated with a HubSpot access token (Private App or Service Key) presented as a Bearer header against api.hubapi.com.",
+  "http": {
+    "allowlist": [
+      {
+        "host": "api.hubapi.com",
+        "path_prefix": "/crm/v3/",
+        "methods": [
+          "GET",
+          "POST",
+          "PATCH",
+          "PUT",
+          "DELETE"
+        ]
+      }
+    ],
+    "credentials": {
+      "hubspot_private_app_token": {
+        "secret_name": "hubspot_private_app_token",
+        "location": {
+          "type": "bearer"
+        },
+        "host_patterns": [
+          "api.hubapi.com"
+        ],
+        "path_patterns": [
+          "/crm/v3/"
+        ]
+      }
+    },
+    "rate_limit": {
+      "requests_per_minute": 100,
+      "requests_per_hour": 4000
+    },
+    "timeout_secs": 60
+  },
+  "secrets": {
+    "allowed_names": [
+      "hubspot_private_app_token"
+    ]
+  },
+  "auth": {
+    "secret_name": "hubspot_private_app_token",
+    "display_name": "HubSpot",
+    "static_token": {
+      "env_var": "HUBSPOT_PRIVATE_APP_TOKEN",
+      "instructions": "Create a HubSpot Service Key (or Private App access token; both produce a long-lived bearer token sent as Authorization: Bearer pat-...). Grant the CRM read+write scopes required by this tool: crm.objects.contacts.read, crm.objects.contacts.write, crm.objects.companies.read, crm.objects.companies.write, crm.objects.deals.read, crm.objects.deals.write, crm.objects.line_items.read, crm.objects.owners.read, crm.lists.read, crm.schemas.contacts.read, crm.schemas.companies.read, crm.schemas.deals.read, and tickets (the legacy bare scope that covers ticket read and write). Copy the key value once; the token is long-lived and does not expire unless rotated."
+    },
+    "env_var": "HUBSPOT_PRIVATE_APP_TOKEN",
+    "setup_url": "https://app.hubspot.com/developer/",
+    "instructions": "1. Open HubSpot, navigate to the Developer section, choose Service Keys (preferred) or Legacy Apps -> Private Apps. Click Create.\n2. Name the key (e.g. Ironclaw). Add scopes:\n   - crm.objects.contacts.read\n   - crm.objects.contacts.write\n   - crm.objects.companies.read\n   - crm.objects.companies.write\n   - crm.objects.deals.read\n   - crm.objects.deals.write\n   - crm.objects.line_items.read\n   - crm.objects.owners.read\n   - crm.lists.read\n   - crm.schemas.contacts.read\n   - crm.schemas.companies.read\n   - crm.schemas.deals.read\n   - tickets\n3. Create the key and copy the value (format: pat-na3-...). HubSpot will not display it again in full.\n4. On the IronClaw host, set:\n\n   ```sh\n   export HUBSPOT_PRIVATE_APP_TOKEN=<the key>\n   ```\n\n   Or run `ironclaw tool setup hubspot-tool` to prompt for the value interactively and store it via the encrypted secrets store.\n5. Run `ironclaw tool install ~/VScode/ironhub/tools/hubspot --skip-build` to register the tool. Re-authentication is only required if the key is rotated or revoked.\n6. The HubSpot Search API is rate-limited to approximately 5 requests per second. Sequential search calls are recommended; bursts may return HTTP 429."
+  },
+  "setup": {
+    "required_secrets": [
+      {
+        "name": "hubspot_private_app_token",
+        "prompt": "HubSpot Private App access token (or Service Key). Format: pat-na..."
+      }
+    ]
+  }
+}
