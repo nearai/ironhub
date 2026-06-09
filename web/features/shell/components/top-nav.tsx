@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { isAccountRouteDisabled } from "@/lib/shared/feature-flags"
 import { links } from "@/lib/shared/links"
 import {
   IconBook,
@@ -15,7 +16,7 @@ import {
 import { AccountNavButton } from "./account-nav-button"
 import { BrandMark } from "./brand-mark"
 import { MobileNav } from "./mobile-nav"
-import { navItems } from "./nav-items"
+import { visibleNavItems } from "./nav-items"
 import { isNavItemActive } from "./nav-utils"
 import { ThemeToggle } from "./theme-toggle"
 
@@ -59,7 +60,7 @@ export function TopNav() {
                 </Button>
               </>
             ) : (
-              navItems.map(([label, href, Icon]) => {
+              visibleNavItems.map(([label, href, Icon]) => {
                 const isActive = isNavItemActive(pathname, href)
 
                 return (
@@ -124,7 +125,7 @@ export function TopNav() {
             )}
 
             <ThemeToggle />
-            {!isMvp && <AccountNavButton />}
+            {!isMvp && !isAccountRouteDisabled && <AccountNavButton />}
             <MobileNav />
           </div>
         </div>
@@ -132,4 +133,3 @@ export function TopNav() {
     </header>
   )
 }
-

@@ -14,6 +14,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
+import { isAccountRouteDisabled } from "@/lib/shared/feature-flags"
 import {
   Sheet,
   SheetClose,
@@ -26,7 +27,7 @@ import {
 } from "@/components/ui/sheet"
 import { links } from "@/lib/shared/links"
 import { BrandMark } from "./brand-mark"
-import { navItems } from "./nav-items"
+import { visibleNavItems } from "./nav-items"
 
 export function MobileNav() {
   const pathname = usePathname()
@@ -92,7 +93,7 @@ export function MobileNav() {
               </SheetClose>
             </>
           ) : (
-            navItems.map(([label, href, Icon]) => (
+            visibleNavItems.map(([label, href, Icon]) => (
               <SheetClose key={href} asChild>
                 <Button asChild variant="ghost" className="justify-start">
                   <Link href={href}>
@@ -106,11 +107,13 @@ export function MobileNav() {
         </nav>
         {!isMvp && (
           <SheetFooter>
-            <SheetClose asChild>
-              <Button asChild variant="outline">
-                <Link href="/account">Account</Link>
-              </Button>
-            </SheetClose>
+            {!isAccountRouteDisabled && (
+              <SheetClose asChild>
+                <Button asChild variant="outline">
+                  <Link href="/account">Account</Link>
+                </Button>
+              </SheetClose>
+            )}
             <SheetClose asChild>
               <Button asChild>
                 <a href={links.newSkill} target="_blank" rel="noreferrer">
@@ -141,4 +144,3 @@ export function MobileNav() {
     </Sheet>
   )
 }
-

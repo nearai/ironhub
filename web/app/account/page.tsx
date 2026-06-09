@@ -1,8 +1,14 @@
 import { Suspense } from "react"
+import { notFound } from "next/navigation"
 
 import { AccountScreen } from "@/features/account/components/account-screen"
+import { isAccountRouteDisabled } from "@/lib/shared/feature-flags"
 
 export default function AccountPage() {
+  if (isAccountRouteDisabled) {
+    notFound()
+  }
+
   return (
     <Suspense
       fallback={
