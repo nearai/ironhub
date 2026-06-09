@@ -39,3 +39,5 @@ next-env.d.ts
 .planning
 next.config.mjs
 .superpowers/
+openspec/
+.agent/
