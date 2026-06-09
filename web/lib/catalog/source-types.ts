@@ -1,16 +1,3 @@
-import type { CatalogStatus } from "@/lib/catalog/types"
-
-export type TrackingRow = {
-  status?: CatalogStatus
-  version?: string
-  description?: string
-  limits?: string[]
-  author?: string
-  trunk?: string
-  useCases?: string[]
-  valueTags?: string[]
-}
-
 export type CapabilityManifest = {
   version?: string
   wit_version?: string
@@ -32,6 +19,8 @@ export type SkillFrontmatter = {
   name?: string
   version?: string
   description?: string
+  author?: string
+  trunk?: string
   tags: string[]
   keywords: string[]
   patterns: string[]

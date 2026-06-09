@@ -12,14 +12,10 @@ import {
 import {
   countRustEnumVariants,
   parseSkillFrontmatter,
-  parseTrackingTable,
   parseToolValueMetadata,
   readCargoValue,
 } from "@/lib/catalog/parsers"
-import type {
-  CapabilityManifest,
-  TrackingRow,
-} from "@/lib/catalog/source-types"
+import type { CapabilityManifest } from "@/lib/catalog/source-types"
 import { links, sourceLink } from "@/lib/shared/links"
 
 export async function findRepoRoot() {
@@ -45,18 +41,7 @@ export async function findRepoRoot() {
   return path.resolve(process.cwd(), "..")
 }
 
-export async function readTracking(root: string) {
-  const text = await readText(path.join(root, "tracking.md"))
-  return {
-    tools: parseTrackingTable(text, "Tools"),
-    skills: parseTrackingTable(text, "Skills"),
-  }
-}
-
-export async function readTools(
-  root: string,
-  tracking: Map<string, TrackingRow>
-) {
+export async function readTools(root: string) {
   const toolsRoot = path.join(root, "tools")
   const entries = await safeReadDir(toolsRoot)
 
@@ -73,7 +58,6 @@ export async function readTools(
         const cargo = await readText(path.join(toolRoot, "Cargo.toml"))
         const readme = await readText(path.join(toolRoot, "README.md"))
         const readmeMetadata = parseToolValueMetadata(readme)
-        const row = tracking.get(slug)
         const actionCount = countRustEnumVariants(
           await readText(path.join(toolRoot, "src/types.rs"))
         )
@@ -96,10 +80,9 @@ export async function readTools(
         return {
           slug,
           kind: "tool",
-          name: titleize(slug),
-          status: row?.status ?? "live",
+          name: titleize(readmeMetadata.name ?? slug),
+          status: "live",
           version:
-            row?.version ??
             readmeMetadata.version ??
             manifest.version ??
             readCargoValue(cargo, "version") ??
@@ -113,7 +96,7 @@ export async function readTools(
           useCases,
           valueTags,
           body,
-          author: row?.author ?? "unknown",
+          author: readmeMetadata.author ?? "IronHub",
           sourcePath: `tools/${slug}`,
           links: {
             source: sourceLink(`tools/${slug}`),
@@ -129,7 +112,7 @@ export async function readTools(
               manifest.secrets?.allowed_names ??
               Object.keys(manifest.http?.credentials ?? {}),
           },
-          limits: row?.limits?.length ? row.limits : extractLimits(readme),
+          limits: extractLimits(readme),
           related: {},
           icon: inferIcon(slug),
           actionCount,
@@ -144,10 +127,7 @@ export async function readTools(
   )
 }
 
-export async function readSkills(
-  root: string,
-  tracking: Map<string, TrackingRow>
-) {
+export async function readSkills(root: string) {
   const skillsRoot = path.join(root, "skills")
   const entries = await safeReadDir(skillsRoot)
 
@@ -159,7 +139,6 @@ export async function readSkills(
         const sourcePath = `skills/${slug}/SKILL.md`
         const text = await readText(path.join(root, sourcePath))
         const frontmatter = parseSkillFrontmatter(text)
-        const row = tracking.get(slug)
 
         const description = frontmatter.description?.trim() || null
         const tags = ["Skill", ...frontmatter.tags]
@@ -174,8 +153,8 @@ export async function readSkills(
           slug,
           kind: "skill",
           name: titleize(frontmatter.name ?? slug),
-          status: row?.status ?? "live",
-          version: row?.version ?? frontmatter.version ?? "1.0.0",
+          status: "live",
+          version: frontmatter.version ?? "1.0.0",
           description,
           category: inferCategory(
             slug,
@@ -185,7 +164,7 @@ export async function readSkills(
           useCases,
           valueTags,
           body,
-          author: row?.author ?? "unknown",
+          author: frontmatter.author ?? "IronHub",
           sourcePath,
           links: {
             source: sourceLink(sourcePath),
@@ -197,13 +176,13 @@ export async function readSkills(
             patterns: frontmatter.patterns.length,
           },
           auth: {
-            model: `Uses ${row?.trunk ?? "declared"} trunk auth`,
+            model: `Uses ${frontmatter.trunk ?? "declared"} trunk auth`,
             requiredSecrets: [],
           },
           limits: extractSkillLimits(text),
-          related: { trunk: row?.trunk },
+          related: { trunk: frontmatter.trunk },
           icon: "workflow",
-          trunk: row?.trunk ?? "",
+          trunk: frontmatter.trunk ?? "",
           activationKeywords: frontmatter.keywords,
           activationPatterns: frontmatter.patterns,
           maxContextTokens: frontmatter.maxContextTokens,

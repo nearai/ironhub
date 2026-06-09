@@ -4,32 +4,21 @@ import {
   findRepoRoot,
   readSkills,
   readTools,
-  readTracking,
 } from "@/lib/catalog/readers.server"
 import {
   getIliadCatalogItem,
   getIliadCatalogItems,
 } from "@/lib/iliad/public-skills.server"
 
-/**
- * Configuration for filtering marketplace catalog items by selected authors.
- * Set `ENABLE_AUTHOR_FILTER` to true to restrict visible items, or false to show all.
- */
-export const ENABLE_AUTHOR_FILTER = true
-export const ALLOWED_AUTHORS: readonly string[] = ["Brandon", "Iliad"]
-
 export async function getCatalog() {
   const root = await findRepoRoot()
-  const tracking = await readTracking(root)
   const [tools, skills] = await Promise.all([
-    readTools(root, tracking.tools),
-    readSkills(root, tracking.skills),
+    readTools(root),
+    readSkills(root),
   ])
-  let items = [...tools, ...skills].sort((a, b) => a.name.localeCompare(b.name))
-
-  if (ENABLE_AUTHOR_FILTER) {
-    items = items.filter((item) => ALLOWED_AUTHORS.includes(item.author))
-  }
+  const items = [...tools, ...skills].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  )
 
   const branchMap = getSkillBranchMap(items)
 
@@ -56,21 +45,13 @@ export async function getMarketplaceCatalog() {
     getIliadCatalogItems(),
   ])
 
-  let items = [...repoItems, ...iliadCatalog.items]
-
-  if (ENABLE_AUTHOR_FILTER) {
-    items = items.filter((item) => ALLOWED_AUTHORS.includes(item.author))
-  }
-
-  const filteredIliadItems = ENABLE_AUTHOR_FILTER
-    ? iliadCatalog.items.filter((item) => ALLOWED_AUTHORS.includes(item.author))
-    : iliadCatalog.items
+  const items = [...repoItems, ...iliadCatalog.items]
 
   return {
     items,
     iliad: {
-      loaded: filteredIliadItems.length,
-      total: filteredIliadItems.length,
+      loaded: iliadCatalog.items.length,
+      total: iliadCatalog.total,
       error: iliadCatalog.error,
     },
   }
@@ -85,13 +66,6 @@ export async function getMarketplaceCatalogItem(slug: string) {
 
   try {
     const item = await getIliadCatalogItem(slug)
-    if (
-      item &&
-      ENABLE_AUTHOR_FILTER &&
-      !ALLOWED_AUTHORS.includes(item.author)
-    ) {
-      return undefined
-    }
     return item
   } catch {
     return undefined

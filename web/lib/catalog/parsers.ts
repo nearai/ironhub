@@ -1,59 +1,5 @@
 import type { CatalogStatus } from "@/lib/catalog/types"
-import type { SkillFrontmatter, TrackingRow } from "@/lib/catalog/source-types"
-
-export function parseTrackingTable(text: string, heading: "Tools" | "Skills") {
-  const section = text.split(`## ${heading}`)[1]?.split("\n## ")[0] ?? ""
-  const rows = new Map<string, TrackingRow>()
-
-  for (const line of section.split("\n")) {
-    if (!line.startsWith("| `")) {
-      continue
-    }
-
-    const cells = line
-      .split("|")
-      .slice(1, -1)
-      .map((cell) => cell.trim())
-    const name = cells[0]?.replaceAll("`", "")
-
-    if (!name) {
-      continue
-    }
-
-    if (heading === "Tools") {
-      rows.set(name, {
-        status: normalizeStatus(cells[1]),
-        version: cells[2],
-        useCases: parseList(cells[3]),
-        valueTags: parseList(cells[4]),
-        description: cells[5],
-        limits: splitLimits(cells[6]),
-        author: cells[7],
-      })
-    } else {
-      rows.set(name, {
-        status: normalizeStatus(cells[1]),
-        version: cells[2],
-        useCases: parseList(cells[3]),
-        valueTags: parseList(cells[4]),
-        description: cells[5],
-        trunk: cells[6]?.replaceAll("`", ""),
-        author: cells[7],
-      })
-    }
-  }
-
-  return rows
-}
-
-function parseList(value?: string) {
-  return value
-    ? value
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean)
-    : []
-}
+import type { SkillFrontmatter } from "@/lib/catalog/source-types"
 
 export function parseYamlFrontmatter(text: string) {
   const yaml = text.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? ""
@@ -62,6 +8,8 @@ export function parseYamlFrontmatter(text: string) {
     name: readYamlScalar(yaml, "name"),
     version: readYamlScalar(yaml, "version"),
     description: readYamlScalar(yaml, "description"),
+    author: readYamlScalar(yaml, "author"),
+    trunk: readYamlScalar(yaml, "trunk"),
     tags: readYamlList(yaml, "tags"),
     useCases: readYamlList(yaml, "use_cases"),
     valueTags: readYamlList(yaml, "value_tags"),
@@ -71,13 +19,25 @@ export function parseYamlFrontmatter(text: string) {
 }
 
 export function parseSkillFrontmatter(text: string): SkillFrontmatter {
-  const { name, version, description, tags, useCases, valueTags, yaml } =
+  const {
+    name,
+    version,
+    description,
+    author,
+    trunk,
+    tags,
+    useCases,
+    valueTags,
+    yaml,
+  } =
     parseYamlFrontmatter(text)
 
   return {
     name,
     version,
     description,
+    author,
+    trunk,
     tags,
     keywords: readYamlList(yaml, "keywords"),
     patterns: readYamlList(yaml, "patterns"),
@@ -88,9 +48,9 @@ export function parseSkillFrontmatter(text: string): SkillFrontmatter {
 }
 
 export function parseToolValueMetadata(text: string) {
-  const { name, version, description, useCases, valueTags } =
+  const { name, version, description, author, useCases, valueTags } =
     parseYamlFrontmatter(text)
-  return { name, version, description, useCases, valueTags }
+  return { name, version, description, author, useCases, valueTags }
 }
 
 export function countRustEnumVariants(source: string) {
@@ -135,21 +95,4 @@ function readYamlList(yaml: string, key: string) {
   }
 
   return values
-}
-
-function normalizeStatus(value?: string): CatalogStatus {
-  if (value === "proposed" || value === "in-progress" || value === "blocked") {
-    return value
-  }
-
-  return "live"
-}
-
-function splitLimits(value?: string) {
-  return (
-    value
-      ?.split(". ")
-      .map((item) => item.trim())
-      .filter(Boolean) ?? []
-  )
 }
