@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 
-import { SiteShell } from "@/components/ironhub/site-shell"
-import { ThemeProvider } from "@/components/theme-provider"
+import { SiteShell } from "@/features/shell/components/site-shell"
+import { ThemeProvider } from "@/features/shell/components/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import "./globals.css"
 

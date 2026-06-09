@@ -10,3 +10,9 @@ Thumbs.db
 .env.*.local
 *.log
 node_modules
+.agent/
+web/docs/
+.claude
+.superpowers/
+openspec/
+.agent/
