@@ -30,6 +30,7 @@ Unset or `false` keeps the route visible.
 
 - `NEXT_PUBLIC_DISABLE_ACCOUNT_ROUTE`
 - `NEXT_PUBLIC_DISABLE_AGENTS_ROUTE`
+- `NEXT_PUBLIC_DISABLE_MVP_ROUTE`
 
 ## Commands
 

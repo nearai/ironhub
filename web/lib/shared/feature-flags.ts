@@ -9,3 +9,7 @@ export const isAccountRouteDisabled = isTrue(
 export const isAgentsRouteDisabled = isTrue(
   process.env.NEXT_PUBLIC_DISABLE_AGENTS_ROUTE,
 )
+
+export const isMvpRouteDisabled = isTrue(
+  process.env.NEXT_PUBLIC_DISABLE_MVP_ROUTE,
+)
