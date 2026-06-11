@@ -7,6 +7,7 @@
     "dev": "pnpm --filter web dev",
     "lint": "pnpm --filter web lint",
     "typecheck": "pnpm --filter web typecheck",
+    "validate:usecases": "node scripts/validate-use-cases.mjs",
     "db:generate": "pnpm --filter web db:generate",
     "db:migrate": "pnpm --filter web db:migrate",
     "db:deploy": "pnpm --filter web db:deploy",

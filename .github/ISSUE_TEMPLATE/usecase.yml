@@ -1,66 +1,53 @@
-name: 💡 Suggest a Use Case
-description: Share a real task users can run with IronClaw agents.
+name: Suggest a use case
+description: Propose a real task an IronClaw agent should help with.
 title: "[usecase] "
-labels: ["type:usecase", "status:proposed"]
+labels: ["status:proposed"]
 body:
   - type: markdown
     attributes:
       value: |
-        ### Help us grow the IronHub Use Case library 🛠️
-        Use cases are concrete tasks a real user would actually ask an agent to do — the kind that make someone say "Yes, that's exactly what I want."
+        Use case issues are lightweight proposals. They help maintainers decide whether the task belongs in IronHub.
 
-        **Good use cases are:**
-        - Concrete and specific (not "improve productivity" or "analyze data")
-        - Something a real user would actually request
-        - Clearly showing a useful agent capability
-
-        **Examples:** "Summarize my inbox every morning" · "DCA when a coin goes below $X" · "Turn this repeated workflow into a skill"
-  - type: input
-    id: title
+        Published use cases live in `use-cases/<slug>/USE_CASE.md` and are added through pull requests after review.
+  - type: textarea
+    id: task
     attributes:
-      label: 1. Title
-      description: Short, action-oriented. Max 20 words.
-      placeholder: e.g., Summarize my inbox every morning
+      label: What should the agent do?
+      description: Describe the task in plain language. Keep it concrete.
+      placeholder: Watch my free trials and warn me before they charge.
     validations:
       required: true
   - type: textarea
-    id: example_prompt
+    id: prompt
     attributes:
-      label: 2. Example prompt
-      description: Natural user voice, 1–2 sentences. Write it the way a real person would type it.
-      placeholder: "Everyday, summarize my Gmail inbox and send the top 5 important threads to my Signal."
+      label: Example user prompt
+      description: Write one realistic prompt a user would type.
+      placeholder: "trial: Netflix, 14 days. Remind me before it charges."
     validations:
       required: true
   - type: textarea
-    id: agent_does
+    id: value
     attributes:
-      label: 3. What the agent does
-      description: Step-by-step outcome in a few sentences. Describe what the user gets, not the technical internals.
-      placeholder: "Scans your inbox safely, groups threads by importance, writes a concise bullet summary, and delivers it privately."
+      label: Why is this useful?
+      description: Who benefits, and what pain does it solve?
+      placeholder: People forget free trials and get charged. The agent remembers and alerts them at the right time.
     validations:
       required: true
   - type: textarea
-    id: skills_tools
+    id: integrations
     attributes:
-      label: 4. Skills & tools used
-      description: |
-        List each skill or tool your agent needs, one per line as bullets.
-
-        - If it already exists on IronHub, paste its link (e.g. `- [gmail](https://hub.ironclaw.com/)`).
-        - If it doesn't exist yet, write the name + one-line description of what it should do, plus a reference URL to something similar (a docs page, API, existing product, GitHub repo). Example: `- Signal sender — sends messages to my Signal account. Ref: https://signal.org/docs/`
-
-        Goal: anyone reading should know exactly what pieces are required to make this use case work.
+      label: Known integrations
+      description: List obvious tools, APIs, accounts, or services if you know them. It is fine to write "unknown".
       placeholder: |
-        - [gmail](https://hub.ironclaw.com/) — read inbox
-        - [cron](https://hub.ironclaw.com/) — run daily at 7am
-        - Signal sender (new) — send DM to my Signal. Ref: https://signal.org/docs/
-        - Priority ranker (new) — score thread importance. Ref: https://openai.com/research/
+        - memory
+        - time
+        - Telegram message sender
     validations:
-      required: true
+      required: false
   - type: checkboxes
     id: categories
     attributes:
-      label: 5. Categories
+      label: Categories
       description: Pick all that apply.
       options:
         - label: Personal assistant
@@ -76,19 +63,3 @@ body:
         - label: Skill creation
     validations:
       required: true
-  - type: input
-    id: source
-    attributes:
-      label: 6. Source (optional)
-      description: If you found this use case from someone else, drop the link here.
-      placeholder: https://...
-    validations:
-      required: false
-  - type: input
-    id: author
-    attributes:
-      label: 7. Author (optional)
-      description: Your name or handle, if you'd like credit.
-      placeholder: e.g., @yourhandle
-    validations:
-      required: false

@@ -15,7 +15,7 @@ you can use this a way to trace a contract and see how it work and so forth
 
 ### 4. Skills & tools used
 
-- None — No tools specified.
+- Unknown — No tool or skill was specified in the issue.
 
 ### 5. Categories
 

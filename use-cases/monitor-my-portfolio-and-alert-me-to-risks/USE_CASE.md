@@ -13,7 +13,7 @@ Tracks wallet holdings, monitors token prices continuously, calculates portfolio
 
 ### 4. Skills & tools used
 
-- None — No tools specified.
+- Unknown — No tool or skill was specified in the issue.
 
 ### 5. Categories
 

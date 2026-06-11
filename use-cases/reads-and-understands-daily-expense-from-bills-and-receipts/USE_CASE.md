@@ -16,10 +16,10 @@ After logging the expenses, it gives the user a short summary: total spend, top 
 
 ### 4. Skills & tools used
 
-- Receipt OCR / Image-to-Text Skill — Needed to read uploaded receipt and bill images and extract text, totals, dates, merchant names, and item details. Reference: https://docs.cloud.google.com/vision/docs/ocr If not available in Ironhub, create a skill using Google Cloud Vision OCR, Mindee Receipt OCR, or another document OCR service.
-- Receipt Parsing Skill — Needed to convert raw OCR text into structured fields like merchant, date, currency, subtotal, tax, total, category, and payment method. Reference: https://www.mindee.com/product/receipt-ocr-api
-- Expense Database / Spreadsheet Tool — Needed to save every expense into a structured tracker with columns such as date, merchant, category, amount, currency, notes, receipt image link, and payment method. Reference: https://developers.google.com/sheets/api
-- Budget Analysis Skill — Needed to summarize spending by week, month, category, merchant, and budget limit.
+- Receipt OCR / Image-to-Text Skill — Required by this use case Needed to read uploaded receipt and bill images and extract text, totals, dates, merchant names, and item details. Reference: https://docs.cloud.google.com/vision/docs/ocr If not available in Ironhub, create a skill using Google Cloud Vision OCR, Mindee Receipt OCR, or another document OCR service.
+- Receipt Parsing Skill — Required by this use case Needed to convert raw OCR text into structured fields like merchant, date, currency, subtotal, tax, total, category, and payment method. Reference: https://www.mindee.com/product/receipt-ocr-api
+- Expense Database / Spreadsheet Tool — Required by this use case Needed to save every expense into a structured tracker with columns such as date, merchant, category, amount, currency, notes, receipt image link, and payment method. Reference: https://developers.google.com/sheets/api
+- Budget Analysis Skill — Required by this use case Needed to summarize spending by week, month, category, merchant, and budget limit.
 
 ### 5. Categories
 

@@ -12,7 +12,7 @@ Monitors market prices, waits for the trigger condition, executes the trade secu
 
 ### 4. Skills & tools used
 
-- DCA.space — http://skill.md/
+- DCA.space — Reference: http://skill.md/
 
 ### 5. Categories
 

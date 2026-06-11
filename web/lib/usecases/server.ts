@@ -28,6 +28,7 @@ function parseTemplateSections(markdown: string, filePath: string) {
   const lines = markdown.split("\n")
   let current: (typeof SECTION_HEADINGS)[number] | null = null
   let buffer: string[] = []
+  let headingIndex = 0
 
   function flush() {
     if (current) sections.set(current, buffer.join("\n").trim())
@@ -38,12 +39,17 @@ function parseTemplateSections(markdown: string, filePath: string) {
     const heading = line.match(/^###\s+(.+)$/)?.[1]?.trim()
 
     if (heading) {
-      if (!SECTION_HEADINGS.includes(heading as (typeof SECTION_HEADINGS)[number])) {
-        throw new Error(`Unexpected use case heading "${heading}" in ${filePath}`)
+      const expected = SECTION_HEADINGS[headingIndex]
+
+      if (heading !== expected) {
+        throw new Error(
+          `Expected use case heading "### ${expected}" in ${filePath}`
+        )
       }
 
       flush()
       current = heading as (typeof SECTION_HEADINGS)[number]
+      headingIndex += 1
       continue
     }
 
@@ -86,6 +92,10 @@ function parseCategories(value: string, filePath: string): UsecaseCategory[] {
     .map((line, index) => {
       const match = line.match(/^-\s+\[([ xX])\]\s+(.+)$/)
       const expected = USE_CASE_CATEGORIES[index]
+
+      if (!expected) {
+        throw new Error(`Unexpected use case category row in ${filePath}: ${line}`)
+      }
 
       if (!match || match[2] !== expected) {
         throw new Error(`Invalid use case category row in ${filePath}: ${line}`)

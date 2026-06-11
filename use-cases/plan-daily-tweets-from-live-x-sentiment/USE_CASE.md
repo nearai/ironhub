@@ -16,11 +16,11 @@ Finally, it gives the user a ready-to-post tweet planner with 5–10 tweet ideas
 
 ### 4. Skills & tools used
 
-- X Search / Social Listening Tool — Needed to browse recent X posts, search cashtags, filter high-engagement posts, and detect live sentiment. Reference: https://docs.x.com/x-api/posts/search-recent-posts If not available in Ironhub, create a skill that connects to the X API recent search endpoint and returns posts, engagement stats, author info, timestamps, and links.
-- Crypto Market Data Tool — Needed to fetch current $NEAR price, 24h change, volume, market cap, and trend context. Reference: https://docs.coingecko.com/
-- NEAR Ecosystem Research Tool — Needed to verify NEAR-specific news, docs, ecosystem terms, and product context before generating tweets. Reference: https://docs.near.org/
-- Profile Memory / Personalization Skill — Needed to understand the user’s usual tweet style, projects, audience, and recurring themes like NEAR Merch, Ironclaw, NEAR Legion, AI, memes, and crypto culture.
-- Tweet Drafting / Content Planner Skill — Needed to turn market sentiment into specific tweet ideas, hooks, threads, meme captions, and posting suggestions.
+- X Search / Social Listening Tool — Required by this use case Needed to browse recent X posts, search cashtags, filter high-engagement posts, and detect live sentiment. Reference: https://docs.x.com/x-api/posts/search-recent-posts If not available in Ironhub, create a skill that connects to the X API recent search endpoint and returns posts, engagement stats, author info, timestamps, and links.
+- Crypto Market Data Tool — Required by this use case Needed to fetch current $NEAR price, 24h change, volume, market cap, and trend context. Reference: https://docs.coingecko.com/
+- NEAR Ecosystem Research Tool — Required by this use case Needed to verify NEAR-specific news, docs, ecosystem terms, and product context before generating tweets. Reference: https://docs.near.org/
+- Profile Memory / Personalization Skill — Required by this use case Needed to understand the user’s usual tweet style, projects, audience, and recurring themes like NEAR Merch, Ironclaw, NEAR Legion, AI, memes, and crypto culture.
+- Tweet Drafting / Content Planner Skill — Required by this use case Needed to turn market sentiment into specific tweet ideas, hooks, threads, meme captions, and posting suggestions.
 
 ### 5. Categories
 

@@ -12,7 +12,7 @@ Ingests the audio or video file, transcribes the full meeting with speaker label
 
 ### 4. Skills & tools used
 
-- Audio/video transcription skill (Whisper-based or similar speech-to-text with speaker diarization) — ref: https://github.com/openai/whisper
+- Audio/video transcription skill (Whisper-based or similar speech-to-text with speaker diarization) — ref — Reference: https://github.com/openai/whisper
 - Meeting summarizer skill (decisions + action items extraction template) — Required by this use case.
 - Notion/GoogleDoc/Google Tasks Access — Required by this use case.
 - Google Drive or local file read tool for ingesting the recording — Required by this use case.

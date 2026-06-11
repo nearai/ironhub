@@ -12,7 +12,7 @@ Every morning the agent searches Twitter/X for recent posts mentioning NFT launc
 
 ### 4. Skills & tools used
 
-- twitter-search skill — queries Twitter/X API for recent posts by keyword or hashtag. Requires a paid Twitter API v2 Bearer Token (Basic tier or above). To connect: get your Bearer Token from https://developer.x.com/en/portal/dashboard, then store it as an encrypted secret in IronClaw and pass it to the skill on install. Ref: https://developer.x.com/en/docs/twitter-api/tweets/search/introduction
+- twitter-search skill — queries Twitter/X API for recent posts by keyword or hashtag. Requires a paid Twitter API v2 Bearer Token (Basic tier or above). To connect: get your Bearer Token from https://developer.x.com/en/portal/dashboard, then store it as an encrypted secret in IronClaw and pass it to the skill on install. Ref — Reference: https://developer.x.com/en/docs/twitter-api/tweets/search/introduction
 - routine/cron — schedules the search to run automatically every morning
 - message — sends the digest to Telegram
 - memory_write — stores seen project names to avoid re-reporting the same launches on subsequent days

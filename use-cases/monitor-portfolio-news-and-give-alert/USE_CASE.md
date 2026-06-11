@@ -16,10 +16,10 @@ The agent can generate daily or weekly portfolio briefings summarizing the most 
 
 ### 4. Skills & tools used
 
-- Crypto News Monitoring Tool — Needed to track crypto news websites, official blogs, exchange announcements, and major ecosystem updates. Reference: https://cryptopanic.com/developers/api/
-- X Search / Social Sentiment Tool — Needed to monitor X conversations around $NEAR, $ZEC, $HYPE, NEAR Protocol, Zcash, Hyperliquid, and related ecosystem keywords. Reference: https://docs.x.com/x-api/posts/search-recent-posts
-- Crypto Market Data Tool — Needed to fetch price, 24h change, volume, market cap, volatility, and unusual movement for tracked tokens. Reference: https://docs.coingecko.com/
-- Personal Portfolio Memory Skill — Needed to remember which tokens the user tracks, alert preferences, risk level, ignored sources, and preferred alert style.
+- Crypto News Monitoring Tool — Required by this use case Needed to track crypto news websites, official blogs, exchange announcements, and major ecosystem updates. Reference: https://cryptopanic.com/developers/api/
+- X Search / Social Sentiment Tool — Required by this use case Needed to monitor X conversations around $NEAR, $ZEC, $HYPE, NEAR Protocol, Zcash, Hyperliquid, and related ecosystem keywords. Reference: https://docs.x.com/x-api/posts/search-recent-posts
+- Crypto Market Data Tool — Required by this use case Needed to fetch price, 24h change, volume, market cap, volatility, and unusual movement for tracked tokens. Reference: https://docs.coingecko.com/
+- Personal Portfolio Memory Skill — Required by this use case Needed to remember which tokens the user tracks, alert preferences, risk level, ignored sources, and preferred alert style.
 
 ### 5. Categories
 

@@ -14,7 +14,7 @@ search equity base on criteria you specify  return symbol  with there current  r
 
 ### 4. Skills & tools used
 
-- web  search tool (native) — in theory you could have as tuned skills. but ironclaw can handle it quite well by itself
+- web  search tool (native) — Required by this use case in theory you could have as tuned skills. but ironclaw can handle it quite well by itself
 
 ### 5. Categories
 

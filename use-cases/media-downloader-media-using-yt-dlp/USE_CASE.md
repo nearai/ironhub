@@ -18,7 +18,7 @@ User gets a media file sent to their chat interface. Once the video has been dow
 
 ### 4. Skills & tools used
 
-- References this Github repo: https://github.com/yt-dlp/yt-dlp — Required by this use case.
+- References this Github repo — Reference: https://github.com/yt-dlp/yt-dlp
 
 ### 5. Categories
 
