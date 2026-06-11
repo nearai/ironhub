@@ -1,67 +1,62 @@
 name: New skill
-description: Propose a new SKILL.md skill (a branch that grows from an existing tool trunk).
+description: Propose an agent workflow that should become a SKILL.md skill.
 title: "[skill] "
 labels: ["type:skill", "status:proposed"]
 body:
-  - type: input
-    id: name
+  - type: markdown
     attributes:
-      label: Skill name
-      description: kebab-case, no `skill` suffix. Example, `excel-bookkeeping`, `outlook-email-composer`.
-      placeholder: excel-bookkeeping
-    validations:
-      required: true
-  - type: input
-    id: author
+      value: |
+        Skill issues are lightweight proposals. They answer whether this workflow deserves a reusable skill.
+
+        The exact `SKILL.md` instructions, activation metadata, tool dependencies, and tests are reviewed in a pull request.
+  - type: textarea
+    id: workflow
     attributes:
-      label: Author
-      description: Legal name of the person claiming this work.
-    validations:
-      required: true
-  - type: input
-    id: trunk
-    attributes:
-      label: Trunk tool
-      description: The tool this skill depends on. Must be a tool already in `tools/` or proposed in another open issue.
-      placeholder: microsoft-365
-    validations:
-      required: true
-  - type: input
-    id: summary
-    attributes:
-      label: One-sentence description
-      placeholder: Excel-driven bookkeeping patterns for ledger entry, balance reconciliation, and trial balance reports.
+      label: What workflow should this skill enable?
+      description: Describe the repeatable agent behavior in plain language.
+      placeholder: Help users reconcile Excel bookkeeping sheets and produce balance reports.
     validations:
       required: true
   - type: textarea
-    id: use_cases
+    id: prompt
     attributes:
-      label: Target use cases
-      description: List 2-3 concrete scenarios/use cases. One per line, prefixed with "- ".
+      label: Example user prompt
+      description: Write one realistic prompt that should activate this skill.
+      placeholder: "Reconcile this ledger and tell me which accounts are out of balance."
+    validations:
+      required: true
+  - type: input
+    id: tool_dependency
+    attributes:
+      label: Known tool dependency
+      description: Existing tool, proposed tool issue, or "unknown".
+      placeholder: microsoft-365
+    validations:
+      required: false
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What should the skill know how to do?
+      description: Summarize the expected behavior. Do not write the full SKILL.md here.
       placeholder: |
-        - Reconcile complex general ledger entries
-        - Generate professional balance sheets and income statements
-        - Produce automated trial balance reports
+        - Read ledger-style spreadsheets
+        - Identify mismatched debit and credit entries
+        - Produce a concise reconciliation report
     validations:
       required: true
   - type: textarea
     id: activation
     attributes:
-      label: Activation strategy
-      description: List keywords, regex patterns, and tags the agent should use to recognize when this skill applies.
-      placeholder: |
-        keywords: bookkeeping, ledger entry, trial balance, debit credit
-        patterns: (?i)(reconcile|balance)\s+(account|ledger)
-        tags: finance, accounting, excel
+      label: When should it activate?
+      description: Explain the user situations or plain-language keywords. Regexes belong in the PR, not the issue.
+      placeholder: When users ask about bookkeeping, ledger reconciliation, trial balances, or debit/credit errors.
     validations:
       required: true
-  - type: textarea
-    id: out_of_scope
+  - type: input
+    id: credit
     attributes:
-      label: Out of scope
-      description: Explicitly list cases where the skill should not activate.
-  - type: textarea
-    id: limits
-    attributes:
-      label: Known limits or constraints
-      description: Tool dependencies, prompt budget concerns, partner-specific requirements.
+      label: Credit (optional)
+      description: Name or handle if you want attribution.
+      placeholder: "@yourhandle"
+    validations:
+      required: false
