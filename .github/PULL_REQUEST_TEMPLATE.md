@@ -8,28 +8,42 @@ Closes #
 
 ## Type
 
+- [ ] Use case
 - [ ] New tool
 - [ ] New skill
 - [ ] Bug fix
-- [ ] Documentation
-- [ ] Infrastructure (CI, scripts, templates)
+- [ ] Documentation / process
+- [ ] Infrastructure
 
-## Status change
+## Artifact checklist
 
-Both `tracking.md` and the `README.md` "Currently shipped" section have to stay in sync with the repo state. Pick one:
+Use case PRs:
 
-- [ ] Marks an entry as `live` in `tracking.md` and adds it to README "Currently shipped"
-- [ ] Updates an existing `live` entry's version or description in `tracking.md` (and README if user-visible)
-- [ ] Adds a new entry to `tracking.md` and README "Currently shipped"
-- [ ] No `tracking.md` or README change needed (CI, infra, or docs only)
+- [ ] Adds or updates `use-cases/<slug>/USE_CASE.md`
+- [ ] Uses the exact seven-section `USE_CASE.md` template
+- [ ] Uses strict skill/tool rows: `- name — description`
+- [ ] Selects at least one category
+- [ ] Passes `node scripts/validate-use-cases.mjs`
+
+Skill PRs:
+
+- [ ] Adds or updates `skills/<skill-name>/SKILL.md`
+- [ ] Documents required tool dependencies
+- [ ] Includes activation behavior in `SKILL.md`
+- [ ] Tests at least one prompt that should activate the skill
+
+Tool PRs:
+
+- [ ] Adds or updates `tools/<tool-name>/README.md`
+- [ ] Adds or updates `tools/<tool-name>/<tool-name>-tool.capabilities.json`
+- [ ] Documents auth, scopes, limits, and target use cases
+- [ ] Tests representative action calls and records the results below
+
+Docs/process PRs:
+
+- [ ] No `tracking.md` or README shipped-catalog change is needed
+- [ ] Or, shipped catalog changes are reflected in both `tracking.md` and README
 
 ## Testing
 
-How this was tested. Be specific. For tools: action calls executed and what they returned. For skills: prompts the skill activated on and what changed in the agent's response.
-
-## Quality gates
-
-- [ ] `cargo fmt --check` clean
-- [ ] `cargo clippy --target wasm32-wasip2 --release -- -D warnings` clean
-- [ ] `cargo clippy --tests --release -- -D warnings` clean
-- [ ] `cargo test` passing
+List the commands or manual checks run. For tools, include action calls and returned behavior. For skills, include prompts tested and activation behavior. For use cases, include the validator result.

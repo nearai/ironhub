@@ -27,7 +27,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { sourceLink } from "@/lib/shared/links"
+import { links } from "@/lib/shared/links"
+
+const useCaseIssueUrl = `${links.repo}/issues/new?template=usecase.yml`
 
 const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   all: IconLayoutGrid,
@@ -131,7 +133,7 @@ export function ShowcaseBrowser({ useCases, categories }: ShowcaseBrowserProps) 
             </Select>
           </div>
           <Button asChild variant="outline" className="h-10 px-3 shrink-0 rounded-full" aria-label="Submit Use Case">
-            <a href={sourceLink("web/data/usecases.json")} target="_blank" rel="noreferrer">
+            <a href={useCaseIssueUrl} target="_blank" rel="noreferrer">
               <IconPlus className="size-4" />
             </a>
           </Button>
@@ -200,7 +202,7 @@ export function ShowcaseBrowser({ useCases, categories }: ShowcaseBrowserProps) 
               
               <div className="pt-4 border-t border-[var(--ironhub-line)]/50 mt-2">
                 <Button asChild variant="outline" className="w-full justify-center gap-1.5 rounded-full text-xs font-semibold">
-                  <a href={sourceLink("web/data/usecases.json")} target="_blank" rel="noreferrer">
+                  <a href={useCaseIssueUrl} target="_blank" rel="noreferrer">
                     <IconPlus className="size-3.5" />
                     <span>Submit Use Case</span>
                   </a>

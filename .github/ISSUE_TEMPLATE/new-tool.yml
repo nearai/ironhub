@@ -1,72 +1,67 @@
 name: New tool
-description: Propose a new WASM tool (a trunk that one or more skills will branch from).
+description: Propose a service or API that IronHub should expose as a WASM tool.
 title: "[tool] "
 labels: ["type:tool", "status:proposed"]
 body:
-  - type: input
-    id: name
+  - type: markdown
     attributes:
-      label: Tool name
-      description: kebab-case, no `tool` suffix. The directory name will be `tools/<name>/` and the crate name will be `<name>-tool`.
-      placeholder: linear
-    validations:
-      required: true
+      value: |
+        Tool issues are lightweight proposals. They answer whether the tool should exist.
+
+        The exact action surface, scopes, limits, README, capabilities file, and Rust implementation are reviewed in a pull request.
   - type: input
-    id: author
+    id: service
     attributes:
-      label: Author
-      description: Legal name of the person claiming this work.
-    validations:
-      required: true
-  - type: input
-    id: summary
-    attributes:
-      label: One-sentence description
-      placeholder: Linear issue tracking integration via the Linear GraphQL API.
+      label: What service or API should this wrap?
+      description: Name the external product, API, protocol, or platform.
+      placeholder: Linear
     validations:
       required: true
   - type: textarea
-    id: use_cases
+    id: user_tasks
     attributes:
-      label: Target use cases
-      description: List 2-3 concrete scenarios/use cases. One per line, prefixed with "- ".
+      label: What should users be able to do with it?
+      description: List 2-3 concrete user tasks. Do not worry about exact action names.
       placeholder: |
         - Search and list active issues by assignee or status
-        - Create and assign new engineering tasks in real-time
-        - Query workspace and team-level metrics
-    validations:
-      required: true
-  - type: textarea
-    id: surface
-    attributes:
-      label: API surface to wrap
-      description: List the operations the tool exposes. One per line.
-      placeholder: |
-        list_issues
-        create_issue
-        update_issue
-        list_projects
+        - Create and assign new engineering tasks
+        - Read project and team-level metrics
     validations:
       required: true
   - type: dropdown
     id: auth
     attributes:
-      label: Auth model
+      label: Auth or account requirement
+      description: Pick the closest known option.
       options:
-        - OAuth 2.0 user-context (PKCE)
-        - OAuth 2.0 user-context (no PKCE)
+        - I do not know
+        - OAuth user account
         - Static API token
         - Static webhook URL
         - No auth
     validations:
       required: true
-  - type: textarea
-    id: scopes
+  - type: input
+    id: reference
     attributes:
-      label: Required scopes or permissions
-      description: Optional. List the OAuth scopes or API token permissions the tool needs.
+      label: Docs or reference link
+      description: API docs, SDK docs, product docs, or another useful reference.
+      placeholder: https://...
+    validations:
+      required: false
   - type: textarea
-    id: limits
+    id: depends_on
     attributes:
-      label: Known limits or constraints
-      description: Rate limits, tenant restrictions, content size caps, regional availability, etc.
+      label: Which workflow or use case needs this?
+      description: Link a use-case issue if one exists, or describe the workflow.
+      placeholder: Needed for agents that create and update engineering tickets from meeting notes.
+    validations:
+      required: true
+  - type: input
+    id: credit
+    attributes:
+      label: Credit (optional)
+      description: Name or handle if you want attribution.
+      placeholder: "@yourhandle"
+    validations:
+      required: false

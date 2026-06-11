@@ -1,6 +1,6 @@
 # ironhub
 
-WASM tools and SKILL.md skills for the IronClaw agent runtime.
+Use cases, WASM tools, and SKILL.md skills for the IronClaw agent runtime.
 
 ## Currently shipped
 
@@ -24,6 +24,7 @@ See `tracking.md` for the full status table.
 ```
 tools/                  WASM tool sources, one Cargo crate per tool
 skills/                 SKILL.md prompt extensions, one directory per skill
+use-cases/              Strict published use-case templates
 wit/                    Vendored WIT contract from upstream IronClaw
 scripts/                Build and packaging utilities
 .github/                Issue templates, PR template, CI
@@ -37,11 +38,17 @@ This shape lives in the directory layout. Tools and skills are siblings, not pai
 
 ## Contributing
 
-1. Open an issue using the appropriate template (new tool, new skill, or integration bug).
-2. Branch and implement.
-3. Open a PR. CI runs `cargo fmt`, `cargo clippy -D warnings`, and `cargo test` on every tool crate.
-4. Reviewer merges to main.
-5. When the integration is ready for upstream IronClaw, run `scripts/pack-for-ironclaw.sh` to produce the upstream layout for a PR into `nearai/ironclaw`.
+Issues are lightweight proposals. PRs are the source of truth.
+
+1. Open an issue using the appropriate template: use case, new tool, new skill, or integration bug.
+2. Discuss and triage the proposal.
+3. Open a PR with the strict repo artifact:
+   - `use-cases/<slug>/USE_CASE.md` for use cases
+   - `skills/<skill-name>/SKILL.md` for skills
+   - `tools/<tool-name>/` for tools
+4. CI validates use cases and runs Rust checks for tools.
+5. Reviewer merges to `main`.
+6. When the integration is ready for upstream IronClaw, run `scripts/pack-for-ironclaw.sh` to produce the upstream layout for a PR into `nearai/ironclaw`.
 
 Full guide in `CONTRIBUTING.md`.
 
