@@ -1,0 +1,16 @@
+{
+  "positive": [
+    "Show my commitments",
+    "What do I owe today",
+    "What's on my plate this week",
+    "Commitment digest",
+    "List my outstanding commitments",
+    "What's slipping"
+  ],
+  "negative": [
+    "What's in the smart contract code",
+    "Send an email",
+    "What's the weather",
+    "Capture this for me"
+  ]
+}

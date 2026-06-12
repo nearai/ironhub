@@ -1,0 +1,39 @@
+# {{MEETING_TITLE}}
+
+{{MEETING_DATE}} {{MEETING_TIME_LOCAL}} ({{MEETING_DURATION}}) · {{MEETING_LOCATION_OR_LINK}}
+
+**With:** {{ATTENDEE_LIST_WITH_ROLES}}
+**Goal:** {{MEETING_GOAL_ONE_LINE}}
+
+## Relationship status
+
+{{STAGE_OR_RELATIONSHIP_DESCRIPTOR}}
+Last substantive contact: {{LAST_CONTACT_DATE_AND_SUMMARY}}
+Current temperature: {{WARM_NEUTRAL_COOLING_STALLED}}
+
+## Open loops
+
+- {{OPEN_LOOP_1}}
+- {{OPEN_LOOP_2}}
+- {{OPEN_LOOP_3}}
+
+## Risks or stalled signals
+
+- {{RISK_OR_STALLED_SIGNAL_1}}
+- {{RISK_OR_STALLED_SIGNAL_2}}
+
+## Suggested questions
+
+1. {{QUESTION_1}}
+2. {{QUESTION_2}}
+3. {{QUESTION_3}}
+4. {{QUESTION_4}}
+5. {{QUESTION_5}}
+
+## Recommended next step
+
+{{ONE_SENTENCE_SPECIFIC_ACTIONABLE_NEXT_STEP}}
+
+---
+
+*Sources: {{SOURCE_LIST_GMAIL_NOTION_CALENDAR_ATTIO}}*

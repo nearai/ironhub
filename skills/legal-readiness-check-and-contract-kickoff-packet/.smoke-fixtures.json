@@ -1,0 +1,15 @@
+{
+  "positive": [
+    "Build the kickoff packet for the Acme MSA",
+    "What's our legal readiness on the partnership contract",
+    "Contract kickoff for the new vendor agreement",
+    "Compile the legal status on the Polygon deal",
+    "Need a legal readiness check before we sign"
+  ],
+  "negative": [
+    "Project kickoff for the engineering sprint",
+    "What's the weather today",
+    "Send a tweet about the launch",
+    "Schedule a meeting with the team"
+  ]
+}

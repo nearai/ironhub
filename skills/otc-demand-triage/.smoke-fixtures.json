@@ -1,0 +1,11 @@
+{
+  "positive": [
+    "Capture this OTC demand into the pipeline",
+    "Process the incoming block trade request",
+    "Triage today's OTC inquiry queue"
+  ],
+  "negative": [
+    "I need help finding OTC medication recommendations",
+    "Schedule a sync with the legal team about contracts"
+  ]
+}

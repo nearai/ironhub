@@ -1,0 +1,11 @@
+{
+  "positive": [
+    "Prep my 1:1 with Alice today",
+    "Build a 1:1 brief for my direct report meeting tomorrow",
+    "Log the action items from our 1:1"
+  ],
+  "negative": [
+    "Help me draft an expense report",
+    "Schedule a sync with the marketing team"
+  ]
+}
