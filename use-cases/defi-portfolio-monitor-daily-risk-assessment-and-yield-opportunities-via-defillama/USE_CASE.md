@@ -59,7 +59,9 @@ Create a routine that runs every day at 9:00 AM and executes this entire portfol
 
 ### 3. What the agent does
 
-The agent stores your DeFi positions in persistent memory. Every morning at 9 AM it fetches live TVL data for each protocol from DefiLlama and evaluates risk based on TVL changes over 24h and 7 days. It also scans DefiLlama's yield database for the best stablecoin opportunities above 5% APY. The full report lands in Telegram with risk labels for each position, one-line recommendations, and top yield opportunities available right now.
+The agent stores your DeFi positions in persistent memory.
+
+Every morning at 9 AM it fetches live TVL data for each protocol from DefiLlama and evaluates risk based on TVL changes over 24h and 7 days. It also scans DefiLlama's yield database for the best stablecoin opportunities above 5% APY. The full report lands in Telegram with risk labels for each position, one-line recommendations, and top yield opportunities available right now.
 
 <img width="642" height="647" alt="Image" src="https://github.com/user-attachments/assets/f19e422f-8d06-47dc-abb3-656596b0ca2c" />
 
