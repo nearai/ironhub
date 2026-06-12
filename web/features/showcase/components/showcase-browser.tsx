@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import type { UseCase, UsecaseCategory } from "@/lib/usecases/types"
 import { UseCaseCard } from "./use-case-card"
 import { cn } from "@/lib/shared/utils"
@@ -29,6 +29,63 @@ import {
 import { Button } from "@/components/ui/button"
 import { links } from "@/lib/shared/links"
 
+function useDebounce<T>(value: T, delay = 150): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value)
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value)
+    }, delay)
+
+    return () => {
+      clearTimeout(handler)
+    }
+  }, [value, delay])
+
+  return debouncedValue
+}
+
+function VirtualizedUseCaseCard({ useCase }: { useCase: UseCase }) {
+  const ref = useRef<HTMLDivElement | null>(null)
+  const [isVisible, setIsVisible] = useState(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: "200px" }
+    )
+
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <div 
+      ref={ref} 
+      className={cn(
+        "w-full transition-all duration-300", 
+        !isVisible && "min-h-[220px] bg-muted/10 rounded-2xl border border-[var(--ironhub-line)]/30 overflow-hidden"
+      )}
+    >
+      {isVisible ? (
+        <UseCaseCard useCase={useCase} />
+      ) : (
+        <div className="h-full min-h-[220px] w-full flex items-center justify-center text-muted-foreground/30 text-xs font-medium bg-muted/5 animate-pulse">
+          Loading...
+        </div>
+      )}
+    </div>
+  )
+}
+
 const useCaseIssueUrl = `${links.repo}/issues/new?template=usecase.yml`
 
 const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -44,50 +101,91 @@ const categoryIcons: Record<string, React.ComponentType<{ className?: string }>>
 }
 
 interface ShowcaseBrowserProps {
-  useCases: UseCase[]
+  initialUseCases: UseCase[]
   categories: UsecaseCategory[]
+  categoryCounts: Record<string, number>
+  initialTotal: number
+  initialHasMore: boolean
+  totalAllCount: number
 }
 
-export function ShowcaseBrowser({ useCases, categories }: ShowcaseBrowserProps) {
+export function ShowcaseBrowser({
+  initialUseCases,
+  categories,
+  categoryCounts,
+  initialTotal,
+  initialHasMore,
+  totalAllCount,
+}: ShowcaseBrowserProps) {
   const [selectedCategory, setSelectedCategory] = useState<UsecaseCategory | "All">("All")
   const [searchQuery, setSearchQuery] = useState("")
-  const [visibleCount, setVisibleCount] = useState(15)
+  const debouncedSearchQuery = useDebounce(searchQuery, 150)
+  
+  const [useCases, setUseCases] = useState<UseCase[]>(initialUseCases)
+  const [page, setPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(initialTotal)
+  const [hasMore, setHasMore] = useState(initialHasMore)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = {}
-    useCases.forEach((uc) => {
-      uc.categories.forEach((cat) => {
-        counts[cat] = (counts[cat] || 0) + 1
-      })
-    })
-    return counts
-  }, [useCases])
+  // Fetch filtered/searched use cases from the API
+  useEffect(() => {
+    let active = true
 
-  const filteredUseCases = useMemo(() => {
-    let filtered = useCases
-
-    if (selectedCategory !== "All") {
-      filtered = filtered.filter((uc) => uc.categories.includes(selectedCategory))
+    // Skip initial fetch on mount if filters are empty
+    const isInitial = selectedCategory === "All" && debouncedSearchQuery.trim() === "" && page === 1
+    if (isInitial) {
+      setUseCases(initialUseCases)
+      setTotalCount(initialTotal)
+      setHasMore(initialHasMore)
+      return
     }
 
-    if (searchQuery.trim() !== "") {
-      const q = searchQuery.toLowerCase()
-      filtered = filtered.filter(
-        (uc) =>
-          uc.title.toLowerCase().includes(q) ||
-          uc.examplePrompt.toLowerCase().includes(q) ||
-          uc.agentDoes.toLowerCase().includes(q)
+    async function fetchFiltered() {
+      setIsLoading(true)
+      try {
+        const res = await fetch(
+          `/api/usecases?category=${encodeURIComponent(selectedCategory)}&searchQuery=${encodeURIComponent(debouncedSearchQuery)}&page=1&limit=15`
+        )
+        const data = await res.json()
+        if (active) {
+          setUseCases(data.useCases)
+          setTotalCount(data.total)
+          setHasMore(data.hasMore)
+          setPage(1)
+        }
+      } catch (err) {
+        console.error("Error fetching usecases:", err)
+      } finally {
+        if (active) setIsLoading(false)
+      }
+    }
+
+    fetchFiltered()
+
+    return () => {
+      active = false
+    }
+  }, [selectedCategory, debouncedSearchQuery, initialUseCases, initialTotal, initialHasMore])
+
+  const handleLoadMore = async () => {
+    if (isLoading || !hasMore) return
+    setIsLoading(true)
+    const nextPage = page + 1
+    try {
+      const res = await fetch(
+        `/api/usecases?category=${encodeURIComponent(selectedCategory)}&searchQuery=${encodeURIComponent(debouncedSearchQuery)}&page=${nextPage}&limit=15`
       )
+      const data = await res.json()
+      setUseCases((prev) => [...prev, ...data.useCases])
+      setTotalCount(data.total)
+      setHasMore(data.hasMore)
+      setPage(nextPage)
+    } catch (err) {
+      console.error("Error loading more usecases:", err)
+    } finally {
+      setIsLoading(false)
     }
-
-    return filtered
-  }, [useCases, selectedCategory, searchQuery])
-
-  const visibleUseCases = useMemo(() => {
-    return filteredUseCases.slice(0, visibleCount)
-  }, [filteredUseCases, visibleCount])
-
-  const hasMore = visibleCount < filteredUseCases.length
+  }
 
   return (
     <div className="flex flex-col gap-8 w-full min-w-0">
@@ -101,7 +199,6 @@ export function ShowcaseBrowser({ useCases, categories }: ShowcaseBrowserProps) 
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value)
-              setVisibleCount(15)
             }}
           />
         </div>
@@ -111,7 +208,6 @@ export function ShowcaseBrowser({ useCases, categories }: ShowcaseBrowserProps) 
               value={selectedCategory}
               onValueChange={(val) => {
                 setSelectedCategory(val as UsecaseCategory | "All")
-                setVisibleCount(15)
               }}
             >
               <SelectTrigger className="h-10 w-full gap-2 px-4 transition-all duration-300">
@@ -119,7 +215,7 @@ export function ShowcaseBrowser({ useCases, categories }: ShowcaseBrowserProps) 
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="All">All Use Cases ({useCases.length})</SelectItem>
+                <SelectItem value="All">All Use Cases ({totalAllCount})</SelectItem>
                 {categories.map((category) => {
                   const count = categoryCounts[category] || 0
                   if (count === 0) return null
@@ -152,7 +248,6 @@ export function ShowcaseBrowser({ useCases, categories }: ShowcaseBrowserProps) 
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value)
-                  setVisibleCount(15)
                 }}
               />
             </div>
@@ -162,7 +257,6 @@ export function ShowcaseBrowser({ useCases, categories }: ShowcaseBrowserProps) 
               <button
                 onClick={() => {
                   setSelectedCategory("All")
-                  setVisibleCount(15)
                 }}
                 className={cn(
                   "text-left px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 w-full",
@@ -173,7 +267,7 @@ export function ShowcaseBrowser({ useCases, categories }: ShowcaseBrowserProps) 
               >
                 <IconLayoutGrid className="size-4 shrink-0 opacity-70" />
                 <span>All Use Cases</span>
-                <span className="ml-auto opacity-60 text-xs">{useCases.length}</span>
+                <span className="ml-auto opacity-60 text-xs">{totalAllCount}</span>
               </button>
               {categories.map((category) => {
                 const count = categoryCounts[category] || 0
@@ -184,7 +278,6 @@ export function ShowcaseBrowser({ useCases, categories }: ShowcaseBrowserProps) 
                     key={category}
                     onClick={() => {
                       setSelectedCategory(category)
-                      setVisibleCount(15)
                     }}
                     className={cn(
                       "text-left px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 w-full",
@@ -215,14 +308,19 @@ export function ShowcaseBrowser({ useCases, categories }: ShowcaseBrowserProps) 
         {/* Masonry Grid */}
         <div className="flex flex-col gap-8 w-full min-w-0">
           <div className="columns-1 sm:columns-2 xl:columns-3 gap-6 space-y-6 w-full">
-            {visibleUseCases.map((uc) => (
+            {useCases.map((uc) => (
               <div key={uc.id} className="break-inside-avoid w-full">
-                <UseCaseCard useCase={uc} />
+                <VirtualizedUseCaseCard useCase={uc} />
               </div>
             ))}
-            {filteredUseCases.length === 0 && (
+            {useCases.length === 0 && !isLoading && (
               <div className="col-span-full py-12 text-center text-muted-foreground">
                 No use cases found for this category.
+              </div>
+            )}
+            {useCases.length === 0 && isLoading && (
+              <div className="col-span-full py-12 text-center text-muted-foreground animate-pulse">
+                Searching use cases...
               </div>
             )}
           </div>
@@ -230,10 +328,11 @@ export function ShowcaseBrowser({ useCases, categories }: ShowcaseBrowserProps) 
           {hasMore && (
             <div className="flex justify-center pt-4 pb-12">
               <button
-                onClick={() => setVisibleCount((prev) => prev + 15)}
-                className="px-6 py-2.5 rounded-full border border-primary/20 bg-primary/5 text-primary font-medium hover:bg-primary/10 transition-colors"
+                disabled={isLoading}
+                onClick={handleLoadMore}
+                className="px-6 py-2.5 rounded-full border border-primary/20 bg-primary/5 text-primary font-medium hover:bg-primary/10 disabled:opacity-50 transition-colors"
               >
-                Load More Use Cases
+                {isLoading ? "Loading..." : "Load More Use Cases"}
               </button>
             </div>
           )}
@@ -242,3 +341,4 @@ export function ShowcaseBrowser({ useCases, categories }: ShowcaseBrowserProps) 
     </div>
   )
 }
+
