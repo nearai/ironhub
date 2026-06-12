@@ -123,6 +123,7 @@ function parseSkill(line: string, filePath: string): SkillReference {
   const markdownLink = rawName.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
   const name = (markdownLink ? markdownLink[1] : rawName)
     .replace(/\s+\(new\)$/i, "")
+    .replace(/`/g, "")
     .trim()
 
   if (!name) {
@@ -214,6 +215,85 @@ export async function getUseCases(): Promise<UseCase[]> {
   return useCases.sort((a, b) => a.title.localeCompare(b.title))
 }
 
+let cache: UseCase[] | null = null
+
+export async function getUseCasesCached(force = false): Promise<UseCase[]> {
+  if (process.env.NODE_ENV === "development") {
+    const g = globalThis as any
+    if (force || !g.__useCasesCache) {
+      g.__useCasesCache = await getUseCases()
+    }
+    return g.__useCasesCache
+  }
+  
+  if (force || !cache) {
+    cache = await getUseCases()
+  }
+  return cache
+}
+
+export interface PaginatedUseCases {
+  useCases: UseCase[]
+  total: number
+  page: number
+  limit: number
+  hasMore: boolean
+}
+
+export async function queryUseCases({
+  searchQuery = "",
+  category = "All",
+  page = 1,
+  limit = 15,
+  force = false,
+}: {
+  searchQuery?: string
+  category?: string
+  page?: number
+  limit?: number
+  force?: boolean
+} = {}): Promise<PaginatedUseCases> {
+  const allUseCases = await getUseCasesCached(force)
+  
+  let filtered = allUseCases
+
+  if (category && category !== "All") {
+    filtered = filtered.filter((uc) =>
+      uc.categories.some((c) => c.toLowerCase() === category.toLowerCase())
+    )
+  }
+
+  if (searchQuery && searchQuery.trim() !== "") {
+    const q = searchQuery.toLowerCase().trim()
+    filtered = filtered.filter(
+      (uc) =>
+        uc.title.toLowerCase().includes(q) ||
+        uc.examplePrompt.toLowerCase().includes(q) ||
+        uc.agentDoes.toLowerCase().includes(q) ||
+        uc.skillsAndTools.some((s) => s.name.toLowerCase().includes(q))
+    )
+  }
+
+  const total = filtered.length
+  const startIndex = (page - 1) * limit
+  const endIndex = page * limit
+  const paginated = filtered.slice(startIndex, endIndex)
+
+  return {
+    useCases: paginated,
+    total,
+    page,
+    limit,
+    hasMore: endIndex < total,
+  }
+}
+
+export async function getUseCaseById(id: string): Promise<UseCase | null> {
+  const allUseCases = await getUseCasesCached()
+  return allUseCases.find((uc) => uc.id === id) || null
+}
+
 export async function getUsecaseCategories() {
   return [...USE_CASE_CATEGORIES]
 }
+
