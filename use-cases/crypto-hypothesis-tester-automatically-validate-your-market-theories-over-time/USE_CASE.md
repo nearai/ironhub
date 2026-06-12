@@ -49,7 +49,9 @@ Create a routine that runs every 6 hours to check prices and update the hypothes
 
 ### 3. What the agent does
 
-You define a market hypothesis once — for example "when ETH pumps 3%+, NEAR follows within 48 hours". The agent monitors prices every 6 hours, logs trigger events and their outcomes, and tracks confirmation rate over time. Every Sunday it sends a Telegram report with how many times the hypothesis held vs failed, the current hit rate, and a verdict. After 30 days you have statistically grounded evidence whether your theory works or not — fully automated, no manual tracking needed.
+You define a market hypothesis once — for example "when ETH pumps 3%+, NEAR follows within 48 hours". The agent monitors prices every 6 hours, logs trigger events and their outcomes, and tracks confirmation rate over time.
+
+Every Sunday it sends a Telegram report with how many times the hypothesis held vs failed, the current hit rate, and a verdict. After 30 days you have statistically grounded evidence whether your theory works or not — fully automated, no manual tracking needed.
 
 ### 4. Skills & tools used
 

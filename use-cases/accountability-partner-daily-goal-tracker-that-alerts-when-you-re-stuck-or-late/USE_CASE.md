@@ -41,7 +41,9 @@ If all goals are on track: reply HEARTBEAT_OK and stop.
 
 ### 3. What the agent does
 
-You tell the agent your goals and deadlines once. Every morning at 9 AM it reads your goal list from memory, checks how long ago you last updated each goal and how close the deadline is. If you haven't logged any progress in 3+ days it flags the goal as STUCK. If the deadline is 2 days away or less it flags as URGENT. You only get a Telegram message when something actually needs your attention — silent run otherwise. Update your progress anytime by texting the agent, and it updates the memory file.
+You tell the agent your goals and deadlines once.
+
+Every morning at 9 AM it reads your goal list from memory, checks how long ago you last updated each goal and how close the deadline is. If you haven't logged any progress in 3+ days it flags the goal as STUCK. If the deadline is 2 days away or less it flags as URGENT. You only get a Telegram message when something actually needs your attention — silent run otherwise. Update your progress anytime by texting the agent, and it updates the memory file.
 
 <img width="530" height="280" alt="Image" src="https://github.com/user-attachments/assets/d260c733-b9bb-4c2f-874f-8db3d65eb0ad" />
 

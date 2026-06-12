@@ -45,7 +45,9 @@ Historically bullish signal for crypto markets."
 
 ### 3. What the agent does
 
-Every day the agent fetches USDT market cap from CoinGecko and logs it to persistent memory. It builds its own 30-day price history over time. Every Sunday it sends a weekly report showing 7-day and 30-day supply changes with a directional signal — inflow, outflow, or stable. If supply grows more than $1B in a week at any point, it fires an immediate alert. The longer the agent runs, the more context it builds — after a month you have a real liquidity trend dataset built automatically.
+Every day the agent fetches USDT market cap from CoinGecko and logs it to persistent memory. It builds its own 30-day price history over time.
+
+Every Sunday it sends a weekly report showing 7-day and 30-day supply changes with a directional signal — inflow, outflow, or stable. If supply grows more than $1B in a week at any point, it fires an immediate alert. The longer the agent runs, the more context it builds — after a month you have a real liquidity trend dataset built automatically.
 
 <img width="512" height="566" alt="Image" src="https://github.com/user-attachments/assets/79118ce9-13e3-4377-b300-abebff7f812c" />
 

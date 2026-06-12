@@ -90,7 +90,7 @@ export default async function UseCaseDetailPage({ params }: PageProps) {
 
         {/* Header Title and Categories (Flex Header block) */}
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8 border-b border-[var(--ironhub-line)]/50 pb-6">
-          <div className="flex flex-col gap-3.5 max-w-3xl">
+          <div className="flex flex-col gap-3.5 flex-1 min-w-0">
             <div className="flex flex-wrap gap-2">
               {useCase.categories.map((category) => (
                 <Badge key={category} variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 border-transparent font-semibold rounded-full text-xs py-0.5 px-3">
