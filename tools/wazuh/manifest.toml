@@ -1,0 +1,31 @@
+schema_version = "reborn.extension_manifest.v2"
+id = "wazuh"
+name = "Wazuh"
+version = "0.2.0"
+description = "Wazuh SIEM/XDR read and control: queries alerts, vulnerabilities, and rule aggregations from the Wazuh Indexer (OpenSearch) over HTTP Basic auth, and drives the Wazuh Server API via a Basic-to-token exchange."
+trust = "third_party"
+
+[runtime]
+kind = "wasm"
+module = "wasm/wazuh_tool.wasm"
+
+[[host_api]]
+id = "ironclaw.capability_provider/v1"
+section = "capability_provider.tools"
+
+[capability_provider.tools]
+
+[[capability_provider.tools.capabilities]]
+id = "wazuh.invoke"
+description = "Execute a Wazuh read or control action. The action name and its fields are passed in params; the input schema is a tagged union of the supported actions."
+effects = ["dispatch_capability", "network", "use_secret"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/wazuh/invoke.input.v1.json"
+output_schema_ref = "schemas/wazuh/raw_output.v1.json"
+prompt_doc_ref = "prompts/wazuh/invoke.md"
+required_host_ports = ["host.runtime.http_egress"]
+runtime_credentials = [
+  { handle = "wazuh_indexer_password", source = { type = "product_auth_account", provider = "wazuh", setup = { kind = "oauth", scopes = [] } }, audience = { scheme = "https", host_pattern = "wazuh-indexer.local" }, target = { type = "header", name = "authorization", prefix = "Basic " } },
+  { handle = "wazuh_api_password", source = { type = "product_auth_account", provider = "wazuh", setup = { kind = "oauth", scopes = [] } }, audience = { scheme = "https", host_pattern = "wazuh-api.local" }, target = { type = "header", name = "authorization", prefix = "Basic " } },
+]

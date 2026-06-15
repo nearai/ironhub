@@ -1,0 +1,30 @@
+schema_version = "reborn.extension_manifest.v2"
+id = "microsoft-365"
+name = "Microsoft 365"
+version = "0.1.0"
+description = "Microsoft 365 integration via Microsoft Graph v1.0: Outlook mail, Teams channel messaging, Excel ranges, OneDrive and SharePoint files, Outlook Calendar, and Word and PowerPoint document generation."
+trust = "third_party"
+
+[runtime]
+kind = "wasm"
+module = "wasm/microsoft_365_tool.wasm"
+
+[[host_api]]
+id = "ironclaw.capability_provider/v1"
+section = "capability_provider.tools"
+
+[capability_provider.tools]
+
+[[capability_provider.tools.capabilities]]
+id = "microsoft-365.invoke"
+description = "Execute a Microsoft 365 action via Microsoft Graph v1.0. The action name and its fields are passed in params; the input schema is a tagged union of the supported actions (send_mail, list_recent_messages, read_excel_range, send_channel_message, create_calendar_event, create_word_document, and so on)."
+effects = ["dispatch_capability", "network", "use_secret"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/microsoft-365/invoke.input.v1.json"
+output_schema_ref = "schemas/microsoft-365/raw_output.v1.json"
+prompt_doc_ref = "prompts/microsoft-365/invoke.md"
+required_host_ports = ["host.runtime.http_egress"]
+runtime_credentials = [
+  { handle = "microsoft_oauth_token", source = { type = "product_auth_account", provider = "microsoft", setup = { kind = "oauth", scopes = [] } }, audience = { scheme = "https", host_pattern = "graph.microsoft.com" }, target = { type = "header", name = "authorization", prefix = "Bearer " } },
+]

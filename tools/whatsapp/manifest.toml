@@ -1,0 +1,30 @@
+schema_version = "reborn.extension_manifest.v2"
+id = "whatsapp"
+name = "WhatsApp"
+version = "0.1.0"
+description = "WhatsApp Cloud API via the Meta Graph API: send messages, manage the business profile, read phone number metadata, and manage message templates."
+trust = "third_party"
+
+[runtime]
+kind = "wasm"
+module = "wasm/whatsapp_tool.wasm"
+
+[[host_api]]
+id = "ironclaw.capability_provider/v1"
+section = "capability_provider.tools"
+
+[capability_provider.tools]
+
+[[capability_provider.tools.capabilities]]
+id = "whatsapp.invoke"
+description = "Execute a WhatsApp Cloud API action. The action name and its fields are passed in params; the input schema is a tagged union of the supported actions (send_text, send_template, send_interactive_list, list_templates, and so on)."
+effects = ["dispatch_capability", "network", "use_secret"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/whatsapp/invoke.input.v1.json"
+output_schema_ref = "schemas/whatsapp/raw_output.v1.json"
+prompt_doc_ref = "prompts/whatsapp/invoke.md"
+required_host_ports = ["host.runtime.http_egress"]
+runtime_credentials = [
+  { handle = "whatsapp_access_token", source = { type = "product_auth_account", provider = "whatsapp", setup = { kind = "oauth", scopes = [] } }, audience = { scheme = "https", host_pattern = "graph.facebook.com" }, target = { type = "header", name = "authorization", prefix = "Bearer " } },
+]

@@ -1,0 +1,30 @@
+schema_version = "reborn.extension_manifest.v2"
+id = "gitlab"
+name = "GitLab"
+version = "0.1.0"
+description = "GitLab v4 REST integration: projects, issues, merge requests, branches, files, search, pipelines, and current user against gitlab.com."
+trust = "third_party"
+
+[runtime]
+kind = "wasm"
+module = "wasm/gitlab_tool.wasm"
+
+[[host_api]]
+id = "ironclaw.capability_provider/v1"
+section = "capability_provider.tools"
+
+[capability_provider.tools]
+
+[[capability_provider.tools.capabilities]]
+id = "gitlab.invoke"
+description = "Execute a GitLab v4 REST action. The action name and its fields are passed in params; the input schema is a tagged union of the supported actions."
+effects = ["dispatch_capability", "network", "use_secret"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/gitlab/invoke.input.v1.json"
+output_schema_ref = "schemas/gitlab/raw_output.v1.json"
+prompt_doc_ref = "prompts/gitlab/invoke.md"
+required_host_ports = ["host.runtime.http_egress"]
+runtime_credentials = [
+  { handle = "gitlab_oauth_token", source = { type = "product_auth_account", provider = "gitlab", setup = { kind = "oauth", scopes = [] } }, audience = { scheme = "https", host_pattern = "gitlab.com" }, target = { type = "header", name = "authorization", prefix = "Bearer " } },
+]

@@ -1,0 +1,27 @@
+schema_version = "reborn.extension_manifest.v2"
+id = "polymarket"
+name = "Polymarket"
+version = "0.1.0"
+description = "Polymarket public market intelligence integration: reads markets, events, tags, sports, orderbooks, prices, position holdings, leaderboards, profiles, and comments across the Polymarket prediction-market platform. No authentication required."
+trust = "third_party"
+
+[runtime]
+kind = "wasm"
+module = "wasm/polymarket_tool.wasm"
+
+[[host_api]]
+id = "ironclaw.capability_provider/v1"
+section = "capability_provider.tools"
+
+[capability_provider.tools]
+
+[[capability_provider.tools.capabilities]]
+id = "polymarket.invoke"
+description = "Execute a Polymarket public read action. The action name and its fields are passed in params; the input schema is a tagged union of the supported actions."
+effects = ["dispatch_capability", "network"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/polymarket/invoke.input.v1.json"
+output_schema_ref = "schemas/polymarket/raw_output.v1.json"
+prompt_doc_ref = "prompts/polymarket/invoke.md"
+required_host_ports = ["host.runtime.http_egress"]

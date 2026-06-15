@@ -1,0 +1,30 @@
+schema_version = "reborn.extension_manifest.v2"
+id = "clickup"
+name = "ClickUp"
+version = "0.1.0"
+description = "ClickUp v2 REST integration: workspaces, spaces, folders, lists, tasks, comments, time tracking, goals, and the authenticated user."
+trust = "third_party"
+
+[runtime]
+kind = "wasm"
+module = "wasm/clickup_tool.wasm"
+
+[[host_api]]
+id = "ironclaw.capability_provider/v1"
+section = "capability_provider.tools"
+
+[capability_provider.tools]
+
+[[capability_provider.tools.capabilities]]
+id = "clickup.invoke"
+description = "Execute a ClickUp v2 REST action. The action name and its fields are passed in params; the input schema is a tagged union of the supported actions (list_tasks, create_task, list_spaces, and so on)."
+effects = ["dispatch_capability", "network", "use_secret"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/clickup/invoke.input.v1.json"
+output_schema_ref = "schemas/clickup/raw_output.v1.json"
+prompt_doc_ref = "prompts/clickup/invoke.md"
+required_host_ports = ["host.runtime.http_egress"]
+runtime_credentials = [
+  { handle = "clickup_oauth_token", source = { type = "product_auth_account", provider = "clickup", setup = { kind = "oauth", scopes = [] } }, audience = { scheme = "https", host_pattern = "api.clickup.com" }, target = { type = "header", name = "authorization", prefix = "Bearer " } },
+]

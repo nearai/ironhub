@@ -9,10 +9,16 @@ trust = "untrusted"
 kind = "wasm"
 module = "wasm/nova_submit.wasm"
 
-[[capabilities]]
+[[host_api]]
+id = "ironclaw.capability_provider/v1"
+section = "capability_provider.tools"
+
+[capability_provider.tools]
+
+[[capability_provider.tools.capabilities]]
 id = "nova-submit.submit_file"
 description = "Encrypt a file with AES-256-GCM and upload it to a NOVA hackathon submission group on NEAR."
-effects = ["network"]
+effects = ["dispatch_capability", "network"]
 default_permission = "ask"
 visibility = "model"
 input_schema_ref = "schemas/nova-submit/submit_file.input.v1.json"

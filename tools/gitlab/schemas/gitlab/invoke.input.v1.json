@@ -1,0 +1,977 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GitlabAction",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "current_user"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_projects"
+        },
+        "membership": {
+          "type": "boolean",
+          "default": true
+        },
+        "page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 1,
+          "minimum": 0
+        },
+        "per_page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 20,
+          "minimum": 0
+        },
+        "search": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_project"
+        },
+        "project": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "project"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_project"
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "initialize_with_readme": {
+          "type": "boolean",
+          "default": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "visibility": {
+          "type": "string",
+          "default": "private"
+        }
+      },
+      "required": [
+        "action",
+        "name"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_issues"
+        },
+        "page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 1,
+          "minimum": 0
+        },
+        "per_page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 20,
+          "minimum": 0
+        },
+        "project": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string",
+          "default": "opened"
+        }
+      },
+      "required": [
+        "action",
+        "project"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_issue"
+        },
+        "iid": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "project": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "project",
+        "iid"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_issue"
+        },
+        "assignee_ids": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          }
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "labels": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "project": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "project",
+        "title"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "update_issue"
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "iid": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "labels": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "type": "string"
+          }
+        },
+        "project": {
+          "type": "string"
+        },
+        "state_event": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "project",
+        "iid"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_issue_notes"
+        },
+        "iid": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 1,
+          "minimum": 0
+        },
+        "per_page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 20,
+          "minimum": 0
+        },
+        "project": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "project",
+        "iid"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_issue_note"
+        },
+        "body": {
+          "type": "string"
+        },
+        "iid": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "project": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "project",
+        "iid",
+        "body"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_merge_requests"
+        },
+        "page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 1,
+          "minimum": 0
+        },
+        "per_page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 20,
+          "minimum": 0
+        },
+        "project": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string",
+          "default": "opened"
+        }
+      },
+      "required": [
+        "action",
+        "project"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_merge_request"
+        },
+        "iid": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "project": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "project",
+        "iid"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_merge_request"
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "project": {
+          "type": "string"
+        },
+        "remove_source_branch": {
+          "type": "boolean",
+          "default": false
+        },
+        "source_branch": {
+          "type": "string"
+        },
+        "squash": {
+          "type": "boolean",
+          "default": false
+        },
+        "target_branch": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "project",
+        "source_branch",
+        "target_branch",
+        "title"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "update_merge_request"
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "iid": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "project": {
+          "type": "string"
+        },
+        "state_event": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "target_branch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "project",
+        "iid"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_mr_notes"
+        },
+        "iid": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 1,
+          "minimum": 0
+        },
+        "per_page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 20,
+          "minimum": 0
+        },
+        "project": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "project",
+        "iid"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_mr_note"
+        },
+        "body": {
+          "type": "string"
+        },
+        "iid": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "project": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "project",
+        "iid",
+        "body"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "approve_merge_request"
+        },
+        "iid": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "project": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "project",
+        "iid"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "merge_merge_request"
+        },
+        "iid": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "merge_commit_message": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "project": {
+          "type": "string"
+        },
+        "should_remove_source_branch": {
+          "type": "boolean",
+          "default": false
+        },
+        "squash": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "action",
+        "project",
+        "iid"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_branches"
+        },
+        "page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 1,
+          "minimum": 0
+        },
+        "per_page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 20,
+          "minimum": 0
+        },
+        "project": {
+          "type": "string"
+        },
+        "search": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "project"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_branch"
+        },
+        "branch": {
+          "type": "string"
+        },
+        "project": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "project",
+        "branch"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_branch"
+        },
+        "branch": {
+          "type": "string"
+        },
+        "project": {
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "project",
+        "branch",
+        "ref"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "delete_branch"
+        },
+        "branch": {
+          "type": "string"
+        },
+        "project": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "project",
+        "branch"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_file_content"
+        },
+        "path": {
+          "type": "string"
+        },
+        "project": {
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "project",
+        "path",
+        "ref"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_or_update_file"
+        },
+        "author_email": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "author_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "branch": {
+          "type": "string"
+        },
+        "commit_message": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "encoding": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "path": {
+          "type": "string"
+        },
+        "project": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "project",
+        "path",
+        "branch",
+        "content",
+        "commit_message"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "delete_file"
+        },
+        "branch": {
+          "type": "string"
+        },
+        "commit_message": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "project": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "project",
+        "path",
+        "branch",
+        "commit_message"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "search_projects"
+        },
+        "page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 1,
+          "minimum": 0
+        },
+        "per_page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 20,
+          "minimum": 0
+        },
+        "query": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "query"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "search_issues"
+        },
+        "page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 1,
+          "minimum": 0
+        },
+        "per_page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 20,
+          "minimum": 0
+        },
+        "project": {
+          "type": "string"
+        },
+        "query": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "project",
+        "query"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "search_blobs"
+        },
+        "page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 1,
+          "minimum": 0
+        },
+        "per_page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 20,
+          "minimum": 0
+        },
+        "project": {
+          "type": "string"
+        },
+        "query": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "project",
+        "query"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_pipelines"
+        },
+        "page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 1,
+          "minimum": 0
+        },
+        "per_page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 20,
+          "minimum": 0
+        },
+        "project": {
+          "type": "string"
+        },
+        "ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "project"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_pipeline"
+        },
+        "pipeline_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "project": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "project",
+        "pipeline_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_jobs"
+        },
+        "page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 1,
+          "minimum": 0
+        },
+        "per_page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 20,
+          "minimum": 0
+        },
+        "pipeline_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "project": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "project",
+        "pipeline_id"
+      ]
+    }
+  ]
+}
