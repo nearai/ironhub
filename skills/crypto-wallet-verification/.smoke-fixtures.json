@@ -1,0 +1,11 @@
+{
+  "positive": [
+    "Verify this new wallet before we add it as a payee",
+    "Run wallet verification and a test payment for the new vendor",
+    "Verify this address and prepare a test payment"
+  ],
+  "negative": [
+    "Connect my wallet to the dapp",
+    "What is my account balance right now"
+  ]
+}

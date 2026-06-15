@@ -1,0 +1,11 @@
+{
+  "positive": [
+    "Run the weekly data quality check on the BLOG ledger",
+    "Audit the bookkeeping ledger for missing references this week",
+    "Check the transaction log for data quality issues"
+  ],
+  "negative": [
+    "Write a blog post about our finance team",
+    "Schedule a sync with the operations team"
+  ]
+}
