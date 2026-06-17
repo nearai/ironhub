@@ -1,0 +1,11 @@
+{
+  "positive": [
+    "Capture these tasks: draft the Q3 proposal for Acme, set up the staging environment",
+    "Log my tasks into the ledger",
+    "Brain dump: I need to make a deck and onboard the new hire"
+  ],
+  "negative": [
+    "Help me write a smart contract",
+    "What is the weather today"
+  ]
+}

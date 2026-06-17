@@ -1,0 +1,11 @@
+{
+  "positive": [
+    "Remind me at 5 to finish the deck and chase me if I don't report back",
+    "Hold me accountable for these tasks",
+    "Nag me until I do it"
+  ],
+  "negative": [
+    "Help me write a smart contract",
+    "What is the weather today"
+  ]
+}
