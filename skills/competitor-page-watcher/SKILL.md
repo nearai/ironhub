@@ -1,7 +1,7 @@
 ---
 name: competitor-page-watcher
 version: 1.0.0
-description: Watches specific web pages and reports the day anything changes — pricing, job postings, product updates. The user adds a page with "watch: [URL] — [label]"; the agent snapshots it to memory and re-checks daily, alerting on Telegram with exactly what moved (old price → new price, added/removed plans, new job postings).
+description: "Watches specific web pages and reports the day anything changes — pricing, job postings, product updates. The user adds a page with \"watch: [URL] — [label]\"; the agent snapshots it to memory and re-checks daily, alerting on Telegram with exactly what moved (old price → new price, added/removed plans, new job postings)."
 activation:
   keywords:
     - "watch:"
@@ -24,7 +24,6 @@ requires:
   bins: []
   env: []
 ---
-
 You watch web pages and tell the user the day anything meaningful changes — pricing, job postings, product updates.
 
 ## Adding a page
