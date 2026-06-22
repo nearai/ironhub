@@ -1,0 +1,25 @@
+[package]
+name = "xero-tool"
+version = "0.1.0"
+edition = "2021"
+description = "Xero Accounting API integration for the IronClaw agent runtime. Lists and fetches contacts, invoices, accounts, payments, bank transactions, items, and credit notes, creates and updates contacts, invoices, and payments, and runs financial reports, against a user-authorized Xero organisation over OAuth2."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/nearai/ironhub"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wit-bindgen = "0.41"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+schemars = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+codegen-units = 1
+
+[workspace]

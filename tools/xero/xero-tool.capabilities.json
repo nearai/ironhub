@@ -1,0 +1,79 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "Xero Accounting API integration. Reads contacts, invoices, accounts, payments, bank transactions, items, credit notes, the organisation, and financial reports; creates and updates contacts, invoices, and payments. Multi-tenant: every action except list_connections takes a tenant_id (discover ids via list_connections). Created invoices default to DRAFT and create actions accept an idempotency key. Authenticated with a user-authorized Xero OAuth2 token presented as a Bearer header against api.xero.com, with the Xero-tenant-id header set per call.",
+  "http": {
+    "allowlist": [
+      {
+        "host": "api.xero.com",
+        "path_prefix": "/api.xro/2.0/",
+        "methods": ["GET", "POST", "PUT", "DELETE"]
+      },
+      {
+        "host": "api.xero.com",
+        "path_prefix": "/connections",
+        "methods": ["GET"]
+      }
+    ],
+    "credentials": {
+      "xero_oauth_token": {
+        "secret_name": "xero_oauth_token",
+        "location": { "type": "bearer" },
+        "host_patterns": ["api.xero.com"],
+        "path_patterns": ["/api.xro/2.0/", "/connections"]
+      }
+    },
+    "rate_limit": {
+      "requests_per_minute": 60,
+      "requests_per_hour": 3000
+    },
+    "timeout_secs": 60
+  },
+  "secrets": {
+    "allowed_names": ["xero_oauth_token"]
+  },
+  "auth": {
+    "secret_name": "xero_oauth_token",
+    "display_name": "Xero",
+    "oauth": {
+      "authorization_url": "https://login.xero.com/identity/connect/authorize",
+      "token_url": "https://identity.xero.com/connect/token",
+      "client_id_env": "XERO_OAUTH_CLIENT_ID",
+      "client_secret_env": "XERO_OAUTH_CLIENT_SECRET",
+      "scopes": [
+        "offline_access",
+        "accounting.settings.read",
+        "accounting.contacts",
+        "accounting.invoices",
+        "accounting.payments",
+        "accounting.banktransactions",
+        "accounting.reports.profitandloss.read",
+        "accounting.reports.balancesheet.read",
+        "accounting.reports.trialbalance.read",
+        "accounting.reports.aged.read"
+      ],
+      "use_pkce": false,
+      "pending_instructions": "Register an app at https://developer.xero.com/app/manage (Web app). Set the redirect URI to http://localhost:9876/callback, copy the Client ID and Client Secret into XERO_OAUTH_CLIENT_ID and XERO_OAUTH_CLIENT_SECRET on the IronClaw host, then run `ironclaw tool auth xero` to launch the consent flow. The host must request offline_access so it can refresh the 30-minute access token (refresh tokens last 60 days and rotate on each use). The granular accounting.* scopes above were mandatory for new apps from 2 March 2026; confirm the exact scope names for the operations you enable against https://developer.xero.com/documentation/guides/oauth2/scopes/ before going live."
+    },
+    "env_var": "XERO_OAUTH_TOKEN",
+    "setup_url": "https://developer.xero.com/app/manage",
+    "instructions": "1. Sign in at https://developer.xero.com/app/manage and click New app. Choose Web app, name it (e.g. IronClaw Xero Tool), set the company URL, and set the OAuth 2.0 redirect URI to http://localhost:9876/callback.\n2. Open the app's Configuration, copy the Client ID, then Generate a secret and copy it.\n3. On the IronClaw host export both values:\n\n   ```sh\n   export XERO_OAUTH_CLIENT_ID=<client id>\n   export XERO_OAUTH_CLIENT_SECRET=<client secret>\n   ```\n\n4. Run `ironclaw tool auth xero` to complete the consent flow. Approve the organisation(s) you want the tool to reach; a user can grant access to several.\n5. After auth, call the tool's list_connections action to get the tenant id for each authorized organisation, then pass tenant_id on every other action.\n6. Access tokens expire after 30 minutes; the host refreshes them using the refresh token (valid 60 days, rotated on each refresh) granted by the offline_access scope. Re-authenticate only if the user revokes the connection.",
+    "notes": "Create and update actions are write operations against live financial records. Invoices are created as DRAFT unless an explicit Status is supplied. Pass an idempotency_key on create actions so a retried call does not post a duplicate invoice or payment."
+  },
+  "setup": {
+    "fields": [
+      {
+        "name": "XERO_OAUTH_CLIENT_ID",
+        "label": "Xero OAuth Client ID",
+        "kind": "secret",
+        "required": true
+      },
+      {
+        "name": "XERO_OAUTH_CLIENT_SECRET",
+        "label": "Xero OAuth Client Secret",
+        "kind": "secret",
+        "required": true
+      }
+    ]
+  }
+}

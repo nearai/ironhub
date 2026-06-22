@@ -1,0 +1,571 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "XeroAction",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_connections"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_organisation"
+        },
+        "tenant_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "tenant_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_contacts"
+        },
+        "order": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "search_term": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "tenant_id": {
+          "type": "string"
+        },
+        "where_filter": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "tenant_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_contact"
+        },
+        "contact_id": {
+          "type": "string"
+        },
+        "tenant_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "tenant_id",
+        "contact_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_contact"
+        },
+        "contact": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "idempotency_key": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "tenant_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "tenant_id",
+        "contact"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "update_contact"
+        },
+        "contact": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "contact_id": {
+          "type": "string"
+        },
+        "idempotency_key": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "tenant_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "tenant_id",
+        "contact_id",
+        "contact"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_invoices"
+        },
+        "order": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "statuses": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "tenant_id": {
+          "type": "string"
+        },
+        "where_filter": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "tenant_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_invoice"
+        },
+        "invoice_id": {
+          "type": "string"
+        },
+        "tenant_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "tenant_id",
+        "invoice_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_invoice"
+        },
+        "idempotency_key": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "invoice": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "tenant_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "tenant_id",
+        "invoice"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "update_invoice"
+        },
+        "idempotency_key": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "invoice": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "invoice_id": {
+          "type": "string"
+        },
+        "tenant_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "tenant_id",
+        "invoice_id",
+        "invoice"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_accounts"
+        },
+        "order": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "tenant_id": {
+          "type": "string"
+        },
+        "where_filter": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "tenant_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_payments"
+        },
+        "order": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "tenant_id": {
+          "type": "string"
+        },
+        "where_filter": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "tenant_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_payment"
+        },
+        "idempotency_key": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "payment": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "tenant_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "tenant_id",
+        "payment"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_bank_transactions"
+        },
+        "order": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "tenant_id": {
+          "type": "string"
+        },
+        "where_filter": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "tenant_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_items"
+        },
+        "order": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "tenant_id": {
+          "type": "string"
+        },
+        "where_filter": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "tenant_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_credit_notes"
+        },
+        "order": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "tenant_id": {
+          "type": "string"
+        },
+        "where_filter": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "tenant_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_report"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        },
+        "report": {
+          "$ref": "#/$defs/XeroReport"
+        },
+        "tenant_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "tenant_id",
+        "report"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "xero_request"
+        },
+        "body": {
+          "default": null
+        },
+        "method": {
+          "$ref": "#/$defs/HttpMethod"
+        },
+        "path": {
+          "type": "string"
+        },
+        "tenant_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "method",
+        "path"
+      ]
+    }
+  ],
+  "$defs": {
+    "HttpMethod": {
+      "type": "string",
+      "enum": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ]
+    },
+    "XeroReport": {
+      "type": "string",
+      "enum": [
+        "profit_and_loss",
+        "balance_sheet",
+        "trial_balance",
+        "aged_receivables_by_contact",
+        "aged_payables_by_contact",
+        "bank_summary",
+        "executive_summary"
+      ]
+    }
+  }
+}

@@ -1,0 +1,1 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","description":"Raw JSON returned by the Xero Accounting API. Shape varies by action; passed through unmodified. List responses wrap results in a resource-named array (Invoices, Contacts, and so on) and may include a Pagination object; the connections action returns an array of tenant objects."}
