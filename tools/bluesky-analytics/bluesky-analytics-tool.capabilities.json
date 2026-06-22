@@ -1,0 +1,21 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "Read-only Bluesky (AT Protocol) analytics. Browse public accounts and engagement via the unauthenticated AppView 'public.api.bsky.app'. Actions: 'get_profile' (follower/follows/post counts + bio), 'get_author_feed' (an account's posts with like/repost/reply/quote counts), 'get_post_thread' (a post and its reply/comment tree), 'get_followers' and 'get_follows' (social graph), 'get_likes' and 'get_reposted_by' (who engaged with a post), 'search_actors' (find accounts by keyword). All data is public; no authentication, secret, or login is required. Posting, replying, liking and other writes are NOT supported (they require an authenticated session, which a stateless WASM tool cannot perform).",
+  "capabilities": {
+    "http": {
+      "allowlist": [
+        {
+          "host": "public.api.bsky.app",
+          "path_prefix": "/xrpc/",
+          "methods": ["GET"]
+        }
+      ],
+      "rate_limit": {
+        "requests_per_minute": 60,
+        "requests_per_hour": 1500
+      },
+      "timeout_secs": 30
+    }
+  }
+}
