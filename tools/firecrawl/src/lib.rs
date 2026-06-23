@@ -315,9 +315,10 @@ fn shape_map(url: &str, resp: &Value) -> Result<String, String> {
 }
 
 fn shape_crawl_start(url: &str, resp: &Value) -> Result<String, String> {
-    let id = resp.get("id").and_then(Value::as_str).ok_or(
-        "Firecrawl crawl did not return a job id; cannot track this crawl",
-    )?;
+    let id = resp
+        .get("id")
+        .and_then(Value::as_str)
+        .ok_or("Firecrawl crawl did not return a job id; cannot track this crawl")?;
     let out = json!({
         "source_url": url,
         "crawl_id": id,
@@ -376,9 +377,8 @@ fn request(method: &str, url: &str, headers: &str, body: Option<Vec<u8>>) -> Res
     let response = loop {
         attempt += 1;
         // Authorization (Bearer) is injected by the host credential config.
-        let resp =
-            near::agent::host::http_request(method, url, headers, body.as_deref(), None)
-                .map_err(|e| format!("HTTP request failed: {e}"))?;
+        let resp = near::agent::host::http_request(method, url, headers, body.as_deref(), None)
+            .map_err(|e| format!("HTTP request failed: {e}"))?;
 
         if (200..300).contains(&resp.status) {
             break resp;
@@ -435,7 +435,9 @@ fn validate_url(url: &str) -> Result<&str, String> {
         return Err("'url' must not be empty".into());
     }
     if url.len() > MAX_URL_LEN {
-        return Err(format!("'url' exceeds maximum length of {MAX_URL_LEN} characters"));
+        return Err(format!(
+            "'url' exceeds maximum length of {MAX_URL_LEN} characters"
+        ));
     }
     if !(url.starts_with("http://") || url.starts_with("https://")) {
         return Err(format!(
@@ -454,7 +456,10 @@ fn validate_job_id(id: &str) -> Result<&str, String> {
     if id.len() > 128 {
         return Err("'id' exceeds maximum length of 128 characters".into());
     }
-    if !id.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_')) {
+    if !id
+        .bytes()
+        .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_'))
+    {
         return Err(format!(
             "Invalid crawl 'id' '{id}': only letters, digits, '-', and '_' are allowed"
         ));
@@ -581,7 +586,10 @@ mod tests {
 
     #[test]
     fn validate_url_accepts_http_and_https() {
-        assert_eq!(validate_url("https://example.com"), Ok("https://example.com"));
+        assert_eq!(
+            validate_url("https://example.com"),
+            Ok("https://example.com")
+        );
         assert_eq!(validate_url("  http://x.io/p  "), Ok("http://x.io/p"));
     }
 
@@ -661,7 +669,8 @@ mod tests {
                 "links": ["https://x.com/a"]
             }
         });
-        let out: Value = serde_json::from_str(&shape_scrape("https://x.com", &resp).unwrap()).unwrap();
+        let out: Value =
+            serde_json::from_str(&shape_scrape("https://x.com", &resp).unwrap()).unwrap();
         assert_eq!(out["markdown"], "# Hello");
         assert_eq!(out["metadata"]["title"], "T");
         assert_eq!(out["source_url"], "https://x.com");
@@ -692,7 +701,8 @@ mod tests {
     #[test]
     fn shape_crawl_start_requires_id() {
         let ok = json!({ "success": true, "id": "job-1" });
-        let out: Value = serde_json::from_str(&shape_crawl_start("https://x.com", &ok).unwrap()).unwrap();
+        let out: Value =
+            serde_json::from_str(&shape_crawl_start("https://x.com", &ok).unwrap()).unwrap();
         assert_eq!(out["crawl_id"], "job-1");
         assert_eq!(out["status"], "started");
 
@@ -702,14 +712,17 @@ mod tests {
 
     #[test]
     fn shape_crawl_status_truncates_pages() {
-        let pages: Vec<Value> = (0..40).map(|i| json!({ "markdown": format!("p{i}") })).collect();
+        let pages: Vec<Value> = (0..40)
+            .map(|i| json!({ "markdown": format!("p{i}") }))
+            .collect();
         let resp = json!({
             "status": "scraping",
             "total": 40,
             "completed": 40,
             "data": pages
         });
-        let out: Value = serde_json::from_str(&shape_crawl_status("job-1", &resp).unwrap()).unwrap();
+        let out: Value =
+            serde_json::from_str(&shape_crawl_status("job-1", &resp).unwrap()).unwrap();
         assert_eq!(out["pages_returned"], MAX_CRAWL_PAGES);
         assert_eq!(out["pages_truncated"], true);
         assert_eq!(out["status"], "scraping");
