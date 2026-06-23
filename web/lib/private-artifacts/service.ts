@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto"
 
 import { prisma } from "../db"
+import { Prisma } from "../prisma/client"
 
 const ARTIFACT_TYPES = ["skill", "tool"] as const
 const VISIBILITIES = ["private", "public"] as const
@@ -44,20 +45,33 @@ export async function createPrivateArtifact(
     ? assertEnum(input.visibility, VISIBILITIES, "visibility")
     : "private"
 
-  return prisma.privateArtifact.create({
-    data: {
-      id: randomUUID(),
-      organizationId,
-      createdById: userId,
-      type,
-      name: input.name,
-      title: input.title,
-      version: input.version,
-      visibility,
-      description: input.description,
-      sourceUrl: input.sourceUrl,
-    },
-  })
+  try {
+    return await prisma.privateArtifact.create({
+      data: {
+        id: randomUUID(),
+        organizationId,
+        createdById: userId,
+        type,
+        name: input.name,
+        title: input.title,
+        version: input.version,
+        visibility,
+        description: input.description,
+        sourceUrl: input.sourceUrl,
+      },
+    })
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      throw new Response(
+        "An artifact with this name and version already exists in this organization.",
+        { status: 409 }
+      )
+    }
+    throw error
+  }
 }
 
 function assertEnum<T extends string>(
