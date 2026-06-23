@@ -21,6 +21,7 @@ model User {
   invitations          Invitation[]
   members              Member[]
   nearAccounts         NearAccount[]
+  privateArtifacts     PrivateArtifact[]
   relayedTransactions  RelayedTransaction[]
   sessions             Session[]
 
@@ -165,14 +166,15 @@ model InstallIntentRecord {
 }
 
 model Organization {
-  id          String       @id
-  name        String
-  slug        String       @unique
-  logo        String?
-  metadata    String?
-  createdAt   DateTime     @map("created_at")
-  members     Member[]
-  invitations Invitation[]
+  id               String            @id
+  name             String
+  slug             String            @unique
+  logo             String?
+  metadata         String?
+  createdAt        DateTime          @map("created_at")
+  members          Member[]
+  invitations      Invitation[]
+  privateArtifacts PrivateArtifact[]
 
   @@map("organization")
 }
@@ -206,4 +208,27 @@ model Invitation {
   @@index([organizationId])
   @@index([email])
   @@map("invitation")
+}
+
+model PrivateArtifact {
+  id             String       @id
+  organizationId String       @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdById    String?      @map("created_by_id")
+  createdBy      User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  type           String
+  name           String
+  title          String
+  version        String
+  visibility     String       @default("private")
+  status         String       @default("draft")
+  description    String?
+  sourceUrl      String?      @map("source_url")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  @@unique([organizationId, name, version])
+  @@index([organizationId])
+  @@index([organizationId, visibility])
+  @@map("private_artifact")
 }
