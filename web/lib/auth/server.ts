@@ -1,8 +1,10 @@
 import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
 import { nextCookies } from "better-auth/next-js"
+import { organization } from "better-auth/plugins"
 import { siwn } from "better-near-auth"
 import { prisma } from "../db"
+import { getInitialOrganization } from "./organization"
 
 const trustedOrigins = Array.from(
   new Set(
@@ -34,11 +36,32 @@ export const auth = betterAuth({
       disableImplicitLinking: true,
     },
   },
+  session: {
+    cookieCache: {
+      enabled: true,
+      maxAge: 60 * 60 * 24 * 30,
+    },
+  },
+  databaseHooks: {
+    session: {
+      create: {
+        before: async (session) => ({
+          data: {
+            ...session,
+            activeOrganizationId: (
+              await getInitialOrganization(session.userId)
+            ).id,
+          },
+        }),
+      },
+    },
+  },
   plugins: [
     siwn({
       recipient: process.env.BETTER_AUTH_URL!,
       requireFullAccessKey: false,
     }),
+    organization(),
     nextCookies(),
   ],
 })
