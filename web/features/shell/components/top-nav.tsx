@@ -25,9 +25,9 @@ export function TopNav() {
   const isMvp = pathname?.startsWith("/mvp")
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--ironhub-line)] bg-background/82 shadow-[0_2px_24px_rgb(43_130_212_/_0.1)] backdrop-blur-xl">
-      <div className="px-4 sm:px-6 lg:px-4">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-4">
+    <header className="sticky top-0 z-40 border-b border-[var(--ironhub-line)] bg-[var(--ih-nav-bg)] backdrop-blur-xl">
+      <div className="ih-container">
+        <div className="flex h-16 items-center gap-6">
           <BrandMark />
 
           <nav className="hidden items-center gap-1 lg:flex">
@@ -60,25 +60,22 @@ export function TopNav() {
                 </Button>
               </>
             ) : (
-              visibleNavItems.map(([label, href, Icon]) => {
+              visibleNavItems.map(([label, href]) => {
                 const isActive = isNavItemActive(pathname, href)
 
                 return (
-                  <Button
+                  <Link
                     key={href}
-                    asChild
-                    variant={isActive ? "default" : "ghost"}
-                    size="sm"
-                    className="rounded-full"
+                    href={href}
+                    aria-current={isActive ? "page" : undefined}
+                    className={`text-sm font-medium transition-colors ${
+                      isActive
+                        ? "text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
                   >
-                    <Link
-                      href={href}
-                      aria-current={isActive ? "page" : undefined}
-                    >
-                      <Icon />
-                      {label}
-                    </Link>
-                  </Button>
+                    {label}
+                  </Link>
                 )
               })
             )}
@@ -101,8 +98,8 @@ export function TopNav() {
                 <Button
                   asChild
                   variant="outline"
-                  size="icon"
-                  className="hidden rounded-full sm:inline-flex"
+                  size="sm"
+                  className="hidden gap-1.5 rounded-full border-primary/40 text-primary hover:bg-primary/5 sm:inline-flex"
                 >
                   <a
                     href={links.docs}
@@ -110,7 +107,8 @@ export function TopNav() {
                     rel="noreferrer"
                     aria-label="IronClaw docs"
                   >
-                    <IconBook />
+                    <IconBook className="size-4" />
+                    <span>Docs</span>
                   </a>
                 </Button>
               </>

@@ -23,6 +23,7 @@ lib/prisma
 # misc
 .DS_Store
 *.pem
+.rtk
 
 # debug
 npm-debug.log*

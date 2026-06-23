@@ -1,9 +1,22 @@
 import type { Metadata } from "next"
+import { Geist, Geist_Mono } from "next/font/google"
 
 import { SiteShell } from "@/features/shell/components/site-shell"
 import { ThemeProvider } from "@/features/shell/components/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import "./globals.css"
+
+const geistSans = Geist({
+  subsets: ["latin"],
+  variable: "--font-sans-geist",
+  display: "swap",
+})
+
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono-geist",
+  display: "swap",
+})
 
 export const metadata: Metadata = {
   title: {
@@ -48,7 +61,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className="font-sans antialiased">
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
+    >
       <body>
         <TooltipProvider>
           <ThemeProvider defaultTheme="light">

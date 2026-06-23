@@ -21,7 +21,7 @@ export function CatalogIcon({ item }: CatalogIconProps) {
           : IconCube
 
   return (
-    <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/20">
+    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm shadow-primary/20">
       <Icon aria-label={`${item.name} icon`} className="size-5" />
     </div>
   )

@@ -44,7 +44,7 @@ export function CatalogCard({
 
   return (
     <Card
-      className="group relative flex h-full flex-col overflow-hidden border-border/60 bg-card transition-all duration-300 hover:-translate-y-1 hover:bg-card hover:shadow-[0_20px_50px_rgba(43,130,212,0.15)]"
+      className="group relative flex h-full flex-col overflow-hidden border-border bg-card transition-colors duration-200 hover:border-primary/40"
       size="sm"
     >
       <CardHeader className="pb-2">
@@ -85,45 +85,50 @@ export function CatalogCard({
         )}
       </CardContent>
 
-      <CardFooter className="flex-col items-stretch gap-4 border-t border-border/40 pt-4">
-        <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5 opacity-80">
-            <IconUserCircle className="size-3.5" />
-            {item.author}
-          </span>
-          <span className="inline-flex items-center gap-1.5 opacity-80">
-            <IconKey className="size-3.5" />
-            {metric}
-          </span>
-        </div>
-
+      <CardFooter className="flex-col items-stretch gap-3 border-t border-border/40 pt-4">
         {onSelect ? (
-          <Button
-            onClick={() => !disabled && onSelect(item)}
-            disabled={disabled}
-            className={cn(
-              "w-full cursor-pointer gap-2 rounded-full font-semibold transition-all",
-              disabled
-                ? "cursor-not-allowed border border-border/40 bg-muted text-muted-foreground opacity-70"
-                : isSelected
-                  ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 hover:border-destructive/20 hover:bg-destructive/10 hover:text-destructive dark:text-emerald-400"
-                  : "bg-primary text-primary-foreground hover:bg-primary/90"
-            )}
-          >
-            {selectText || "Select"}
-            <IconArrowRight className={cn("size-4", isSelected && "hidden")} />
-          </Button>
+          <>
+            <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 opacity-80">
+                <IconUserCircle className="size-3.5" />
+                {item.author}
+              </span>
+              <span className="inline-flex items-center gap-1.5 opacity-80">
+                <IconKey className="size-3.5" />
+                {metric}
+              </span>
+            </div>
+            <Button
+              onClick={() => !disabled && onSelect(item)}
+              disabled={disabled}
+              className={cn(
+                "w-full cursor-pointer gap-2 rounded-full font-semibold transition-all",
+                disabled
+                  ? "cursor-not-allowed border border-border/40 bg-muted text-muted-foreground opacity-70"
+                  : isSelected
+                    ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 hover:border-destructive/20 hover:bg-destructive/10 hover:text-destructive dark:text-emerald-400"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+              )}
+            >
+              {selectText || "Select"}
+              <IconArrowRight className={cn("size-4", isSelected && "hidden")} />
+            </Button>
+          </>
         ) : (
-          <Button
-            asChild
-            variant="outline"
-            className="w-full gap-2 rounded-full border-border/60 bg-transparent font-semibold text-foreground transition-all hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
-          >
-            <Link href={`/marketplace/${item.slug}`}>
+          <div className="flex items-center justify-between gap-3 text-xs font-medium text-muted-foreground">
+            <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
+              <span className="truncate">{item.author}</span>
+              <span aria-hidden="true">·</span>
+              <span className="whitespace-nowrap">{metric}</span>
+            </span>
+            <Link
+              href={`/marketplace/${item.slug}`}
+              className="inline-flex shrink-0 items-center gap-1 font-semibold text-primary transition-colors hover:text-primary/80"
+            >
               View setup
-              <IconArrowRight className="size-4" />
+              <IconArrowRight className="size-3.5" />
             </Link>
-          </Button>
+          </div>
         )}
       </CardFooter>
     </Card>

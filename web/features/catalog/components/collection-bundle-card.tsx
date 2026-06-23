@@ -26,7 +26,7 @@ export function CollectionBundleCard({
   return (
     <Card
       id={bundle.slug}
-      className="group relative flex h-full flex-col overflow-hidden border-border/60 bg-card transition-all duration-300 hover:-translate-y-1 hover:bg-card hover:shadow-[0_20px_50px_rgba(43,130,212,0.15)]"
+      className="group relative flex h-full flex-col overflow-hidden border-border bg-card transition-colors duration-200 hover:border-primary/40"
       size="sm"
     >
       <CardHeader className="pb-4">
@@ -95,7 +95,8 @@ export function CollectionBundleCard({
       <CardFooter className="mt-auto border-t border-border/40 pt-4">
         <Button
           asChild
-          className="w-fit gap-2 rounded-full bg-primary px-6 font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.98]"
+          variant="outline"
+          className="w-full gap-2 rounded-full border-border bg-transparent font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
         >
           <Link href={`/collections/${bundle.slug}`}>
             Open Collection
