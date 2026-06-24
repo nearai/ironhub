@@ -211,24 +211,40 @@ model Invitation {
 }
 
 model PrivateArtifact {
-  id             String       @id
-  organizationId String       @map("organization_id")
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  createdById    String?      @map("created_by_id")
-  createdBy      User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  id             String                   @id
+  organizationId String                   @map("organization_id")
+  organization   Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdById    String?                  @map("created_by_id")
+  createdBy      User?                    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  content        PrivateArtifactContent[]
   type           String
   name           String
   title          String
   version        String
-  visibility     String       @default("private")
-  status         String       @default("draft")
+  visibility     String                   @default("private")
+  status         String                   @default("draft")
   description    String?
-  sourceUrl      String?      @map("source_url")
-  createdAt      DateTime     @default(now()) @map("created_at")
-  updatedAt      DateTime     @updatedAt @map("updated_at")
+  sourceUrl      String?                  @map("source_url")
+  createdAt      DateTime                 @default(now()) @map("created_at")
+  updatedAt      DateTime                 @updatedAt @map("updated_at")
 
   @@unique([organizationId, name, version])
   @@index([organizationId])
   @@index([organizationId, visibility])
   @@map("private_artifact")
+}
+
+model PrivateArtifactContent {
+  id         String          @id
+  artifactId String          @map("artifact_id")
+  artifact   PrivateArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+  kind       String
+  bytes      Bytes
+  sha256     String
+  sizeBytes  Int             @map("size_bytes")
+  createdAt  DateTime        @default(now()) @map("created_at")
+
+  @@unique([artifactId, kind])
+  @@index([artifactId])
+  @@map("private_artifact_content")
 }

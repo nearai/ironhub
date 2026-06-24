@@ -24,6 +24,7 @@ import {
 import { getMarketplaceCatalogItem } from "@/lib/catalog/server"
 import { buildUnifiedManifest } from "@/lib/catalog/manifest.server"
 import { prisma } from "@/lib/db"
+import { mintArtifactToken } from "@/lib/private-artifacts/token"
 
 type AgentInstallationRow = {
   id: string
@@ -48,6 +49,15 @@ type InstallRedirectInput = {
   nonce: string
   sig: string
   artifactDigest: string
+  privateManifestUrl?: string
+  manifestToken?: string
+}
+
+type ResolvedInstallArtifact = {
+  slug: string
+  version: string
+  digest: string
+  privateManifest?: { url: string; token: string }
 }
 
 export function toAgentInstallationView(
@@ -188,25 +198,9 @@ export async function createInstallIntent(input: {
   userId: string
   slug: string
   agentInstallationId?: string
+  organizationId?: string
 }) {
-  const item = await getMarketplaceCatalogItem(input.slug)
-
-  if (!item) {
-    throw new Error("Marketplace Entry not found.")
-  }
-
-  const manifest = await buildUnifiedManifest()
-  const manifestTool = manifest.tools.find((t) => t.name === item.slug)
-  const manifestSkill = manifest.skills.find((s) => s.name === item.slug)
-  const digest = manifestTool
-    ? artifactDigest([manifestTool.wasm.sha256, manifestTool.capabilities.sha256])
-    : manifestSkill
-      ? artifactDigest([manifestSkill.skill_md.sha256])
-      : null
-  if (!digest) {
-    throw new Error("Marketplace Entry is not in the installable manifest.")
-  }
-
+  const target = await resolveInstallArtifact(input)
   const installation = await getInstallTarget(input)
 
   if (!installation.verifiedAt) {
@@ -218,24 +212,26 @@ export async function createInstallIntent(input: {
   const ts = Math.floor(Date.now() / 1000)
   const expiresAt = new Date((ts + 300) * 1000)
   const payload = createInstallPayload({
-    slug: item.slug,
-    version: item.version,
+    slug: target.slug,
+    version: target.version,
     userId: input.userId,
     agentInstallationId: installation.id,
     ts,
     nonce,
-    artifactDigest: digest,
+    artifactDigest: target.digest,
   })
   const sig = signInstallPayload(sharedKey, payload)
-  const redirectInput = {
-    slug: item.slug,
-    version: item.version,
+  const redirectInput: InstallRedirectInput = {
+    slug: target.slug,
+    version: target.version,
     userId: input.userId,
     agentInstallationId: installation.id,
     ts,
     nonce,
     sig,
-    artifactDigest: digest,
+    artifactDigest: target.digest,
+    privateManifestUrl: target.privateManifest?.url,
+    manifestToken: target.privateManifest?.token,
   }
   const redirectUrl = buildInstallRedirectUrl(
     installation.agentUrl,
@@ -247,8 +243,8 @@ export async function createInstallIntent(input: {
       id: createRecordId(),
       userId: input.userId,
       agentInstallationId: installation.id,
-      marketplaceSlug: item.slug,
-      marketplaceVersion: item.version,
+      marketplaceSlug: target.slug,
+      marketplaceVersion: target.version,
       nonceHash: hashNonce(nonce),
       expiresAt,
       redirectUrl: buildAuditRedirectUrl(installation.agentUrl, redirectInput),
@@ -257,6 +253,100 @@ export async function createInstallIntent(input: {
   })
 
   return { redirectUrl, message: payload, expiresAt: expiresAt.toISOString() }
+}
+
+async function resolveInstallArtifact(input: {
+  slug: string
+  userId: string
+  organizationId?: string
+}): Promise<ResolvedInstallArtifact> {
+  const item = await getMarketplaceCatalogItem(input.slug)
+  if (item) {
+    const manifest = await buildUnifiedManifest()
+    const manifestTool = manifest.tools.find((t) => t.name === item.slug)
+    const manifestSkill = manifest.skills.find((s) => s.name === item.slug)
+    const digest = manifestTool
+      ? artifactDigest([
+          manifestTool.wasm.sha256,
+          manifestTool.capabilities.sha256,
+        ])
+      : manifestSkill
+        ? artifactDigest([manifestSkill.skill_md.sha256])
+        : null
+    if (!digest) {
+      throw new Error("Marketplace Entry is not in the installable manifest.")
+    }
+    return { slug: item.slug, version: item.version, digest }
+  }
+
+  if (input.organizationId) {
+    const privateTarget = await resolvePrivateInstall(
+      input.userId,
+      input.organizationId,
+      input.slug
+    )
+    if (privateTarget) {
+      return privateTarget
+    }
+  }
+
+  throw new Error("Marketplace Entry not found.")
+}
+
+async function resolvePrivateInstall(
+  userId: string,
+  organizationId: string,
+  slug: string
+): Promise<ResolvedInstallArtifact | null> {
+  const artifact = await prisma.privateArtifact.findFirst({
+    where: {
+      name: slug,
+      organizationId,
+      organization: { members: { some: { userId } } },
+    },
+    orderBy: { updatedAt: "desc" },
+    include: { content: { select: { kind: true, sha256: true } } },
+  })
+  if (!artifact) {
+    return null
+  }
+
+  const sha = new Map(artifact.content.map((c) => [c.kind, c.sha256]))
+  let digest: string
+  if (artifact.type === "tool") {
+    const wasm = sha.get("wasm")
+    const capabilities = sha.get("capabilities")
+    if (!wasm || !capabilities) {
+      throw new Error("Private tool is missing installable content.")
+    }
+    digest = artifactDigest([wasm, capabilities])
+  } else if (artifact.type === "skill") {
+    const skillMd = sha.get("skill_md")
+    if (!skillMd) {
+      throw new Error("Private skill is missing installable content.")
+    }
+    digest = artifactDigest([skillMd])
+  } else {
+    throw new Error(`Unsupported private artifact type: ${artifact.type}`)
+  }
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL
+  if (!baseUrl) {
+    throw new Error("Application URL is not configured.")
+  }
+  const token = mintArtifactToken({
+    organizationId,
+    artifactId: artifact.id,
+    ttlSeconds: 300,
+  })
+  const url = `${baseUrl}/api/private-artifacts/manifest?token=${encodeURIComponent(token)}`
+
+  return {
+    slug: artifact.name,
+    version: artifact.version,
+    digest,
+    privateManifest: { url, token },
+  }
 }
 
 async function getInstallTarget(input: {
@@ -350,6 +440,11 @@ function buildInstallRedirectUrl(
     artifact_digest: input.artifactDigest,
   })
 
+  if (input.privateManifestUrl && input.manifestToken) {
+    params.set("private_manifest_url", input.privateManifestUrl)
+    params.set("manifest_token", input.manifestToken)
+  }
+
   return `${agentUrl}/#/install/${input.slug}?${params.toString()}`
 }
 
@@ -367,6 +462,11 @@ function buildAuditRedirectUrl(
     sig: "redacted",
     artifact_digest: input.artifactDigest,
   })
+
+  if (input.privateManifestUrl) {
+    params.set("private_manifest_url", input.privateManifestUrl)
+    params.set("manifest_token", "redacted")
+  }
 
   return `${agentUrl}/#/install/${input.slug}?${params.toString()}`
 }

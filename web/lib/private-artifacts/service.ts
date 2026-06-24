@@ -40,6 +40,7 @@ export async function createPrivateArtifact(
   userId: string,
   input: CreatePrivateArtifactInput
 ) {
+  assertValidArtifactName(input.name)
   const type = assertEnum(input.type, ARTIFACT_TYPES, "type")
   const visibility = input.visibility
     ? assertEnum(input.visibility, VISIBILITIES, "visibility")
@@ -71,6 +72,15 @@ export async function createPrivateArtifact(
       )
     }
     throw error
+  }
+}
+
+function assertValidArtifactName(name: string) {
+  if (!/^[a-z0-9][a-z0-9_-]*$/.test(name)) {
+    throw new Response(
+      "name must start with a lowercase letter or digit and contain only lowercase letters, digits, '-', and '_'",
+      { status: 400 }
+    )
   }
 }
 

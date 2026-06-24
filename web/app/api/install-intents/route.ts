@@ -10,13 +10,14 @@ import {
 
 export async function POST(request: Request) {
   try {
-    const { user } = await requireAuthSession()
+    const { user, session } = await requireAuthSession()
     assertJsonMutationRequest(request)
     const body = parseJsonObject(await request.json())
     const intent = await createInstallIntent({
       userId: user.id,
       slug: readString(body, "slug"),
       agentInstallationId: readOptionalString(body, "agentInstallationId"),
+      organizationId: session.activeOrganizationId ?? undefined,
     })
 
     return Response.json(intent)
