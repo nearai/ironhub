@@ -1,0 +1,11 @@
+{
+  "positive": [
+    "Scan this week's expense reports for missing receipts",
+    "Review expense submissions and follow up on missing receipts",
+    "Audit expense submission compliance and draft follow-ups"
+  ],
+  "negative": [
+    "Help me write a smart contract for receipt verification",
+    "Generate a presentation about our budget"
+  ]
+}

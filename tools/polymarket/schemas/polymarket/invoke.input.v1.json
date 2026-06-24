@@ -1,0 +1,1076 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PolymarketAction",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_markets"
+        },
+        "active": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
+        },
+        "ascending": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
+        },
+        "clob_token_ids": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "type": "string"
+          }
+        },
+        "closed": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
+        },
+        "condition_ids": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "type": "string"
+          }
+        },
+        "end_date_max": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "id": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          }
+        },
+        "limit": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "liquidity_num_min": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "default": null
+        },
+        "offset": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "order": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "related_tags": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
+        },
+        "slug": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "type": "string"
+          }
+        },
+        "start_date_min": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "tag_id": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        },
+        "volume_num_min": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_market_by_id"
+        },
+        "market_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "market_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_market_by_slug"
+        },
+        "slug": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "slug"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_clob_market_info"
+        },
+        "condition_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "condition_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_events"
+        },
+        "active": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
+        },
+        "ascending": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
+        },
+        "closed": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
+        },
+        "id": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          }
+        },
+        "limit": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "offset": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "order": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "related_tags": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
+        },
+        "slug": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "type": "string"
+          }
+        },
+        "tag_id": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_event_by_id"
+        },
+        "event_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action",
+        "event_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_event_by_slug"
+        },
+        "slug": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "slug"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_tags"
+        },
+        "limit": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "offset": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_tag_by_id"
+        },
+        "tag_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action",
+        "tag_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_tag_by_slug"
+        },
+        "slug": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "slug"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_related_tags_by_tag_id"
+        },
+        "tag_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action",
+        "tag_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_related_tags_by_tag_slug"
+        },
+        "slug": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "slug"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_sports_metadata"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_teams"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "search"
+        },
+        "limit": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "q": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "q"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_orderbook"
+        },
+        "token_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "token_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_orderbooks"
+        },
+        "token_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "action",
+        "token_ids"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_market_price"
+        },
+        "side": {
+          "type": "string"
+        },
+        "token_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "token_id",
+        "side"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_midpoint_price"
+        },
+        "token_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "token_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_midpoint_prices"
+        },
+        "token_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "action",
+        "token_ids"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_last_trade_price"
+        },
+        "token_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "token_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_last_trade_prices"
+        },
+        "token_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "action",
+        "token_ids"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_spread"
+        },
+        "token_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "token_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_spreads"
+        },
+        "token_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "action",
+        "token_ids"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_tick_size"
+        },
+        "token_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "token_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_fee_rate"
+        },
+        "token_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "token_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_server_time"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_prices_history"
+        },
+        "end_ts": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        },
+        "fidelity": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "interval": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "market": {
+          "type": "string"
+        },
+        "start_ts": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action",
+        "market"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_batch_prices_history"
+        },
+        "end_ts": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        },
+        "fidelity": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "interval": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "markets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "start_ts": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action",
+        "markets"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_current_positions"
+        },
+        "event_id": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          }
+        },
+        "limit": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "market": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "type": "string"
+          }
+        },
+        "mergeable": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
+        },
+        "offset": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "redeemable": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
+        },
+        "size_threshold": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "default": null
+        },
+        "sort_by": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "sort_direction": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "user": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "user"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_closed_positions"
+        },
+        "limit": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "offset": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "user": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "user"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_user_activity"
+        },
+        "limit": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "offset": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "user": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "user"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_trades"
+        },
+        "limit": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "market": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "offset": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "user": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_trader_leaderboard"
+        },
+        "limit": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "period": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_public_profile"
+        },
+        "address": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "address"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_comments"
+        },
+        "limit": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "offset": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "parent_entity_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "parent_entity_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    }
+  ]
+}

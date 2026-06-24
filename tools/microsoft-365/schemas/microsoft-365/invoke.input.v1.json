@@ -1,0 +1,443 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MicrosoftAction",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "me"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "send_mail"
+        },
+        "bcc": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "body": {
+          "type": "string"
+        },
+        "body_is_html": {
+          "type": "boolean",
+          "default": false
+        },
+        "cc": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "save_to_sent_items": {
+          "type": "boolean",
+          "default": true
+        },
+        "subject": {
+          "type": "string"
+        },
+        "to": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "action",
+        "to",
+        "subject",
+        "body"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_recent_messages"
+        },
+        "filter": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 25,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "send_channel_message"
+        },
+        "channel_id": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "content_is_html": {
+          "type": "boolean",
+          "default": false
+        },
+        "team_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "team_id",
+        "channel_id",
+        "content"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_teams"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_channels"
+        },
+        "team_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "team_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "read_excel_range"
+        },
+        "range": {
+          "type": "string"
+        },
+        "workbook_id": {
+          "type": "string"
+        },
+        "worksheet": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "workbook_id",
+        "worksheet",
+        "range"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "write_excel_range"
+        },
+        "range": {
+          "type": "string"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": true
+          }
+        },
+        "workbook_id": {
+          "type": "string"
+        },
+        "worksheet": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "workbook_id",
+        "worksheet",
+        "range",
+        "values"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_drive"
+        },
+        "folder_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "upload_file"
+        },
+        "content_base64": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "parent_folder_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "name",
+        "content_base64"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_calendar_events"
+        },
+        "end": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "start": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_calendar_event"
+        },
+        "attendees": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "body": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "end": {
+          "type": "string"
+        },
+        "location": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "start": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "subject",
+        "start",
+        "end"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_word_document"
+        },
+        "name": {
+          "type": "string"
+        },
+        "parent_folder_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/WordSection"
+          }
+        },
+        "subtitle": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "name",
+        "title"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_powerpoint"
+        },
+        "name": {
+          "type": "string"
+        },
+        "parent_folder_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "slides": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PowerpointSlide"
+          }
+        }
+      },
+      "required": [
+        "action",
+        "name",
+        "slides"
+      ]
+    }
+  ],
+  "$defs": {
+    "PowerpointSlide": {
+      "type": "object",
+      "properties": {
+        "bullets": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "title"
+      ]
+    },
+    "WordSection": {
+      "type": "object",
+      "properties": {
+        "heading": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "paragraphs": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "table": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

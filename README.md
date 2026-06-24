@@ -16,6 +16,7 @@ Use cases, WASM tools, and SKILL.md skills for the IronClaw agent runtime.
 - `tools/whatsapp`. WhatsApp Cloud API via the Meta Graph API. Send messages (text, template, image, video, document, audio, location, contacts, interactive buttons and lists, reactions, read receipts), manage the business profile, read phone number metadata, and manage message templates. Permanent system-user access token via Bearer.
 - `tools/nova-submit`. Self-contained submission tool for IronClaw Hackathon: based on NOVA decentralized file-sharing, it allows the agent to submit to the hackathon in one command using the ironclaw-hackathon skill. Replicable by all NEAR Legion city nodes or any IronClaw hackathon organizer.
 - `skills/microsoft-365-workflow`. Business workflow patterns for the agent when operating inside the Microsoft 365 surface.
+- `skills/pr-triage-digest`. Cross-repo GitHub PR triage. Scores every open PR on CI, mergeability, staleness, size, and review state, then emits a single ranked digest grouped into Blockers, Quick wins, First contributors, Aging, and Normal. Silent-tier; uses the built-in `http` tool — no new tool dependency. Ships a deterministic Node.js reference implementation.
 
 See `tracking.md` for the full status table.
 

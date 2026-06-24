@@ -56,9 +56,9 @@ It declares no host-injected credentials: the NOVA API key is passed as a call p
 - **Encryption layout.** Output is `nonce(12) ‖ ciphertext ‖ tag(16)`, base64-encoded — byte-compatible with the NOVA SDK's `encrypt`/`decrypt` (`iv = bytes[:12]`). A file uploaded by this tool retrieves and decrypts correctly via the NOVA JS SDK and vice versa.
 - **NOVA MCP hostname.** The capabilities file allowlists the NOVA MCP host at `5a5223f7d1bfe777433c496b9d52ff851e927259-8000.dstack-prod5.phala.network`. This is a [Phala dstack](https://docs.phala.network/) deployment, and the hostname embeds the dstack instance's verification hash — proof the MCP server is the exact build NOVA published. If NOVA redeploys the MCP server, the hash changes and so does the hostname; this tool then stops working until `nova-submit-tool.capabilities.json` is bumped and a new release is cut. The live hostname is tracked at [`github.com/jcarbonnell/nova`](https://github.com/jcarbonnell/nova).
 
-## Layout
+## Reborn extension format
 
-This crate lives at `tools/nova-submit/` and follows the ironhub layout: the WIT contract is shared at the repo root and referenced via a relative path, with no per-tool build script.
+This tool also ships as a [Reborn](https://github.com/nearai/ironclaw) extension (`schema_version = "reborn.extension_manifest.v2"`). The extension manifest, JSON schemas, and LLM prompt docs live alongside the source:
 
 ```
 ironhub/
@@ -67,8 +67,18 @@ ironhub/
     Cargo.toml
     src/lib.rs                                            ← `path: "../../wit/tool.wit"`
     nova-submit-tool.capabilities.json
+    manifest.toml                                         ← Reborn extension manifest
+    schemas/nova-submit/submit_file.input.v1.json         ← input schema
+    schemas/nova-submit/raw_output.v1.json                ← output schema
+    prompts/nova-submit/submit_file.md                    ← LLM prompt doc
     README.md
 ```
+
+The WIT interface (`near:agent@0.3.0`) is identical for v1 and Reborn, so the same `.wasm` binary works in both runtimes. The Reborn manifest declares a single capability (`nova-submit.submit_file`) with `effects = ["network"]` — no host-injected credentials since the NOVA API key is passed as a tool parameter.
+
+## Layout
+
+This crate follows the ironhub layout: the WIT contract is shared at the repo root and referenced via a relative path, with no per-tool build script.
 
 The canonical standalone layout — with `wit/tool.wit` and `build.sh` inside the crate — lives at [`github.com/jcarbonnell/nova/nova-submit-tool`](https://github.com/jcarbonnell/nova/tree/main/nova-submit-tool) and is the development home of the tool.
 

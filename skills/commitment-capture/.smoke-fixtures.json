@@ -1,0 +1,15 @@
+{
+  "positive": [
+    "Capture this commitment for me",
+    "Track this commitment from the last meeting",
+    "I just committed to send the proposal Tuesday",
+    "Log what I just committed to in that email",
+    "Remember this commitment: I promised to loop in legal"
+  ],
+  "negative": [
+    "What's in the smart contract code",
+    "Read the contractual commitment in section 4",
+    "Send a tweet",
+    "What's the weather"
+  ]
+}

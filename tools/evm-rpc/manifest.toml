@@ -1,0 +1,27 @@
+schema_version = "reborn.extension_manifest.v2"
+id = "evm-rpc"
+name = "EVM RPC"
+version = "0.1.0"
+description = "EVM JSON-RPC integration: read balances, contract code and storage, call view functions, fetch blocks, transactions, receipts, and event logs across Ethereum, Polygon, Arbitrum, Optimism, Base, BNB Chain, Avalanche, or any custom EVM RPC endpoint. Read-only."
+trust = "third_party"
+
+[runtime]
+kind = "wasm"
+module = "wasm/evm_rpc_tool.wasm"
+
+[[host_api]]
+id = "ironclaw.capability_provider/v1"
+section = "capability_provider.tools"
+
+[capability_provider.tools]
+
+[[capability_provider.tools.capabilities]]
+id = "evm-rpc.invoke"
+description = "Execute an EVM JSON-RPC read action. The action name and its fields are passed in params; the input schema is a tagged union of the supported actions."
+effects = ["dispatch_capability", "network"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/evm-rpc/invoke.input.v1.json"
+output_schema_ref = "schemas/evm-rpc/raw_output.v1.json"
+prompt_doc_ref = "prompts/evm-rpc/invoke.md"
+required_host_ports = ["host.runtime.http_egress"]

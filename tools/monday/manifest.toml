@@ -1,0 +1,30 @@
+schema_version = "reborn.extension_manifest.v2"
+id = "monday"
+name = "monday.com"
+version = "0.1.0"
+description = "monday.com API v2 (GraphQL) integration: reads the current account, boards, items, groups, users, and workspaces, writes items/groups/subitems/updates and column values, and proxies raw GraphQL queries."
+trust = "third_party"
+
+[runtime]
+kind = "wasm"
+module = "wasm/monday_tool.wasm"
+
+[[host_api]]
+id = "ironclaw.capability_provider/v1"
+section = "capability_provider.tools"
+
+[capability_provider.tools]
+
+[[capability_provider.tools.capabilities]]
+id = "monday.invoke"
+description = "Execute a monday.com API v2 (GraphQL) action. The action name and its fields are passed in params; the input schema is a tagged union of the supported actions."
+effects = ["dispatch_capability", "network", "use_secret"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/monday/invoke.input.v1.json"
+output_schema_ref = "schemas/monday/raw_output.v1.json"
+prompt_doc_ref = "prompts/monday/invoke.md"
+required_host_ports = ["host.runtime.http_egress"]
+runtime_credentials = [
+  { handle = "monday_api_token", source = { type = "product_auth_account", provider = "monday", setup = { kind = "oauth", scopes = [] } }, audience = { scheme = "https", host_pattern = "api.monday.com" }, target = { type = "header", name = "authorization" } },
+]

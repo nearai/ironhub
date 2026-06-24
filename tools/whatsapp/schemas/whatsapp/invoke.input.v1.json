@@ -1,0 +1,693 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WhatsappAction",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "send_text"
+        },
+        "body": {
+          "type": "string"
+        },
+        "context_message_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "phone_number_id": {
+          "type": "string"
+        },
+        "preview_url": {
+          "type": "boolean",
+          "default": false
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "phone_number_id",
+        "to",
+        "body"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "send_template"
+        },
+        "components": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": true
+        },
+        "language_code": {
+          "type": "string"
+        },
+        "phone_number_id": {
+          "type": "string"
+        },
+        "template_name": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "phone_number_id",
+        "to",
+        "template_name",
+        "language_code"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "send_image"
+        },
+        "caption": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "context_message_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "image_link": {
+          "type": "string"
+        },
+        "phone_number_id": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "phone_number_id",
+        "to",
+        "image_link"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "send_video"
+        },
+        "caption": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "context_message_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "phone_number_id": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "video_link": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "phone_number_id",
+        "to",
+        "video_link"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "send_document"
+        },
+        "caption": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "context_message_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "document_link": {
+          "type": "string"
+        },
+        "filename": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "phone_number_id": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "phone_number_id",
+        "to",
+        "document_link"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "send_audio"
+        },
+        "audio_link": {
+          "type": "string"
+        },
+        "context_message_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "phone_number_id": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "phone_number_id",
+        "to",
+        "audio_link"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "send_location"
+        },
+        "address": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "latitude": {
+          "type": "number",
+          "format": "double"
+        },
+        "longitude": {
+          "type": "number",
+          "format": "double"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "phone_number_id": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "phone_number_id",
+        "to",
+        "latitude",
+        "longitude"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "send_contacts"
+        },
+        "contacts": {
+          "type": "array",
+          "items": true
+        },
+        "phone_number_id": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "phone_number_id",
+        "to",
+        "contacts"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "send_interactive_buttons"
+        },
+        "body": {
+          "type": "string"
+        },
+        "buttons": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/InteractiveButton"
+          }
+        },
+        "footer": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "header_text": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "phone_number_id": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "phone_number_id",
+        "to",
+        "body",
+        "buttons"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "send_interactive_list"
+        },
+        "body": {
+          "type": "string"
+        },
+        "button_text": {
+          "type": "string"
+        },
+        "footer": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "header_text": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "phone_number_id": {
+          "type": "string"
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/InteractiveListSection"
+          }
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "phone_number_id",
+        "to",
+        "body",
+        "button_text",
+        "sections"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "send_reaction"
+        },
+        "emoji": {
+          "type": "string"
+        },
+        "message_id": {
+          "type": "string"
+        },
+        "phone_number_id": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "phone_number_id",
+        "to",
+        "message_id",
+        "emoji"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "mark_message_read"
+        },
+        "message_id": {
+          "type": "string"
+        },
+        "phone_number_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "phone_number_id",
+        "message_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_phone_number_info"
+        },
+        "phone_number_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "phone_number_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_business_profile"
+        },
+        "phone_number_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "phone_number_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "about": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "action": {
+          "type": "string",
+          "const": "update_business_profile"
+        },
+        "address": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "email": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "phone_number_id": {
+          "type": "string"
+        },
+        "profile_picture_handle": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "vertical": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "websites": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "action",
+        "phone_number_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_templates"
+        },
+        "business_account_id": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 25,
+          "minimum": 0
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "business_account_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_template"
+        },
+        "business_account_id": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "components": {
+          "type": "array",
+          "items": true
+        },
+        "language": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "business_account_id",
+        "name",
+        "language",
+        "category",
+        "components"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "delete_template"
+        },
+        "business_account_id": {
+          "type": "string"
+        },
+        "hsm_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "business_account_id",
+        "name"
+      ]
+    }
+  ],
+  "$defs": {
+    "InteractiveButton": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title"
+      ]
+    },
+    "InteractiveListRow": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title"
+      ]
+    },
+    "InteractiveListSection": {
+      "type": "object",
+      "properties": {
+        "rows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/InteractiveListRow"
+          }
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "rows"
+      ]
+    }
+  }
+}

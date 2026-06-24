@@ -1,0 +1,27 @@
+schema_version = "reborn.extension_manifest.v2"
+id = "near-rpc"
+name = "NEAR RPC"
+version = "0.1.0"
+description = "NEAR Protocol JSON-RPC integration: read account state, access keys, contract code and storage, call view functions, read blocks, chunks, validators, transactions and state changes, check gas and protocol config, and submit signed transactions across mainnet, testnet, archival, and custom endpoints."
+trust = "third_party"
+
+[runtime]
+kind = "wasm"
+module = "wasm/near_rpc_tool.wasm"
+
+[[host_api]]
+id = "ironclaw.capability_provider/v1"
+section = "capability_provider.tools"
+
+[capability_provider.tools]
+
+[[capability_provider.tools.capabilities]]
+id = "near-rpc.invoke"
+description = "Execute a NEAR Protocol JSON-RPC action. The action name and its fields are passed in params; the input schema is a tagged union of the supported actions (view_account, view_function, get_block, send_tx, and so on)."
+effects = ["dispatch_capability", "network"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/near-rpc/invoke.input.v1.json"
+output_schema_ref = "schemas/near-rpc/raw_output.v1.json"
+prompt_doc_ref = "prompts/near-rpc/invoke.md"
+required_host_ports = ["host.runtime.http_egress"]

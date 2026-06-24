@@ -1,0 +1,446 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HubspotAction",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_contacts"
+        },
+        "after": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 20,
+          "minimum": 0
+        },
+        "properties": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_companies"
+        },
+        "after": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 20,
+          "minimum": 0
+        },
+        "properties": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_deals"
+        },
+        "after": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 20,
+          "minimum": 0
+        },
+        "properties": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_tickets"
+        },
+        "after": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 20,
+          "minimum": 0
+        },
+        "properties": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "search_objects"
+        },
+        "after": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "filter_groups": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": true
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 10,
+          "minimum": 0
+        },
+        "object_type": {
+          "$ref": "#/$defs/HubspotObjectType"
+        },
+        "properties": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "query": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "object_type"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "object_type": {
+          "$ref": "#/$defs/HubspotObjectType"
+        },
+        "properties": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "action",
+        "object_type",
+        "id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_object"
+        },
+        "associations": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": true
+        },
+        "object_type": {
+          "$ref": "#/$defs/HubspotObjectType"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "action",
+        "object_type",
+        "properties"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "update_object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "object_type": {
+          "$ref": "#/$defs/HubspotObjectType"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "action",
+        "object_type",
+        "id",
+        "properties"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "archive_object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "object_type": {
+          "$ref": "#/$defs/HubspotObjectType"
+        }
+      },
+      "required": [
+        "action",
+        "object_type",
+        "id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_lists"
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 20,
+          "minimum": 0
+        },
+        "offset": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 0,
+          "minimum": 0
+        },
+        "query": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_list_members"
+        },
+        "after": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 20,
+          "minimum": 0
+        },
+        "list_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "list_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_owners"
+        },
+        "after": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "archived": {
+          "type": "boolean",
+          "default": false
+        },
+        "email": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 20,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_properties"
+        },
+        "archived": {
+          "type": "boolean",
+          "default": false
+        },
+        "object_type": {
+          "$ref": "#/$defs/HubspotObjectType"
+        }
+      },
+      "required": [
+        "action",
+        "object_type"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "hubspot_request"
+        },
+        "body": {
+          "default": null
+        },
+        "method": {
+          "$ref": "#/$defs/HttpMethod"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "method",
+        "path"
+      ]
+    }
+  ],
+  "$defs": {
+    "HttpMethod": {
+      "type": "string",
+      "enum": [
+        "GET",
+        "POST",
+        "PATCH",
+        "PUT",
+        "DELETE"
+      ]
+    },
+    "HubspotObjectType": {
+      "type": "string",
+      "enum": [
+        "contacts",
+        "companies",
+        "deals",
+        "tickets"
+      ]
+    }
+  }
+}

@@ -1,0 +1,1041 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClickupAction",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_authenticated_user"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_workspaces"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_spaces"
+        },
+        "archived": {
+          "type": "boolean",
+          "default": false
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "workspace_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_space"
+        },
+        "space_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "space_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_folders"
+        },
+        "archived": {
+          "type": "boolean",
+          "default": false
+        },
+        "space_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "space_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_folder"
+        },
+        "folder_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "folder_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_lists"
+        },
+        "archived": {
+          "type": "boolean",
+          "default": false
+        },
+        "folder_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "folder_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_folderless_lists"
+        },
+        "archived": {
+          "type": "boolean",
+          "default": false
+        },
+        "space_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "space_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_list"
+        },
+        "list_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "list_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_list"
+        },
+        "assignee": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        },
+        "content": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "due_date": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64",
+          "default": null
+        },
+        "due_date_time": {
+          "type": "boolean",
+          "default": false
+        },
+        "folder_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "priority": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "folder_id",
+        "name"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_tasks"
+        },
+        "archived": {
+          "type": "boolean",
+          "default": false
+        },
+        "assignees": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          }
+        },
+        "due_date_gt": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64",
+          "default": null
+        },
+        "due_date_lt": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64",
+          "default": null
+        },
+        "include_closed": {
+          "type": "boolean",
+          "default": false
+        },
+        "list_id": {
+          "type": "string"
+        },
+        "order_by": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 0,
+          "minimum": 0
+        },
+        "reverse": {
+          "type": "boolean",
+          "default": false
+        },
+        "statuses": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "subtasks": {
+          "type": "boolean",
+          "default": false
+        },
+        "tags": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "action",
+        "list_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_filtered_team_tasks"
+        },
+        "assignees": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          }
+        },
+        "date_created_gt": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64",
+          "default": null
+        },
+        "date_created_lt": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64",
+          "default": null
+        },
+        "date_updated_gt": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64",
+          "default": null
+        },
+        "date_updated_lt": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64",
+          "default": null
+        },
+        "due_date_gt": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64",
+          "default": null
+        },
+        "due_date_lt": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64",
+          "default": null
+        },
+        "include_closed": {
+          "type": "boolean",
+          "default": false
+        },
+        "list_ids": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "order_by": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 0,
+          "minimum": 0
+        },
+        "project_ids": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "reverse": {
+          "type": "boolean",
+          "default": false
+        },
+        "space_ids": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "statuses": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "subtasks": {
+          "type": "boolean",
+          "default": false
+        },
+        "tags": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "workspace_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_task"
+        },
+        "custom_task_ids": {
+          "type": "boolean",
+          "default": false
+        },
+        "include_subtasks": {
+          "type": "boolean",
+          "default": false
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "task_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_task"
+        },
+        "assignees": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          }
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "due_date": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64",
+          "default": null
+        },
+        "due_date_time": {
+          "type": "boolean",
+          "default": false
+        },
+        "list_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "notify_all": {
+          "type": "boolean",
+          "default": true
+        },
+        "parent": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "priority": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "start_date": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64",
+          "default": null
+        },
+        "start_date_time": {
+          "type": "boolean",
+          "default": false
+        },
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "tags": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "action",
+        "list_id",
+        "name"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "update_task"
+        },
+        "archived": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
+        },
+        "assignees_add": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          }
+        },
+        "assignees_rem": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          }
+        },
+        "custom_task_ids": {
+          "type": "boolean",
+          "default": false
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "due_date": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64",
+          "default": null
+        },
+        "due_date_time": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "priority": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "start_date": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64",
+          "default": null
+        },
+        "start_date_time": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
+        },
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "task_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "delete_task"
+        },
+        "custom_task_ids": {
+          "type": "boolean",
+          "default": false
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "task_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "add_task_tag"
+        },
+        "custom_task_ids": {
+          "type": "boolean",
+          "default": false
+        },
+        "tag_name": {
+          "type": "string"
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "task_id",
+        "tag_name"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "remove_task_tag"
+        },
+        "custom_task_ids": {
+          "type": "boolean",
+          "default": false
+        },
+        "tag_name": {
+          "type": "string"
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "task_id",
+        "tag_name"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_task_comments"
+        },
+        "custom_task_ids": {
+          "type": "boolean",
+          "default": false
+        },
+        "start": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64",
+          "default": null
+        },
+        "start_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "task_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_task_comment"
+        },
+        "assignee": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        },
+        "comment_text": {
+          "type": "string"
+        },
+        "custom_task_ids": {
+          "type": "boolean",
+          "default": false
+        },
+        "notify_all": {
+          "type": "boolean",
+          "default": true
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "task_id",
+        "comment_text"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "update_comment"
+        },
+        "assignee": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        },
+        "comment_id": {
+          "type": "string"
+        },
+        "comment_text": {
+          "type": "string"
+        },
+        "resolved": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "comment_id",
+        "comment_text"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "delete_comment"
+        },
+        "comment_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "comment_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_time_entries"
+        },
+        "assignees": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          }
+        },
+        "end_date": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64",
+          "default": null
+        },
+        "folder_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "include_location_names": {
+          "type": "boolean",
+          "default": false
+        },
+        "include_task_tags": {
+          "type": "boolean",
+          "default": false
+        },
+        "list_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "space_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "start_date": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64",
+          "default": null
+        },
+        "task_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "workspace_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_running_time_entry"
+        },
+        "assignee": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "workspace_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_goals"
+        },
+        "include_completed": {
+          "type": "boolean",
+          "default": false
+        },
+        "workspace_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "workspace_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_goal"
+        },
+        "goal_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "goal_id"
+      ]
+    }
+  ]
+}

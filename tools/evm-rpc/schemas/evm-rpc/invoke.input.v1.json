@@ -1,0 +1,536 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EvmRpcAction",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "eth_block_number"
+        },
+        "chain": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "eth_chain_id"
+        },
+        "chain": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "eth_gas_price"
+        },
+        "chain": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "eth_get_balance"
+        },
+        "address": {
+          "type": "string"
+        },
+        "block": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "chain": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "address"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "eth_get_transaction_count"
+        },
+        "address": {
+          "type": "string"
+        },
+        "block": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "chain": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "address"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "eth_get_code"
+        },
+        "address": {
+          "type": "string"
+        },
+        "block": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "chain": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "address"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "eth_get_storage_at"
+        },
+        "address": {
+          "type": "string"
+        },
+        "block": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "chain": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "slot": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "address",
+        "slot"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "eth_call"
+        },
+        "block": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "chain": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "data": {
+          "type": "string"
+        },
+        "from": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "to": {
+          "type": "string"
+        },
+        "value": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "to",
+        "data"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "eth_estimate_gas"
+        },
+        "chain": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "data": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "from": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "to": {
+          "type": "string"
+        },
+        "value": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "to"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "eth_get_block_by_number"
+        },
+        "block": {
+          "type": "string"
+        },
+        "chain": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "full": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "block"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "eth_get_block_by_hash"
+        },
+        "block_hash": {
+          "type": "string"
+        },
+        "chain": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "full": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "block_hash"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "eth_get_transaction_by_hash"
+        },
+        "chain": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "tx_hash": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "tx_hash"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "eth_get_transaction_receipt"
+        },
+        "chain": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "tx_hash": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "tx_hash"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "eth_get_logs"
+        },
+        "address": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "chain": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "from_block": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "to_block": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "topics": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "required": [
+        "action"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,532 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MondayAction",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "me"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_boards"
+        },
+        "board_kind": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BoardKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 25,
+          "minimum": 0
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "state": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BoardState"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workspace_ids": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          }
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_board"
+        },
+        "board_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action",
+        "board_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_groups"
+        },
+        "board_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action",
+        "board_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "items_by_board"
+        },
+        "board_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          }
+        },
+        "cursor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 25,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action",
+        "board_ids"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_item"
+        },
+        "item_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action",
+        "item_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "search_items_by_column"
+        },
+        "board_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "column_id": {
+          "type": "string"
+        },
+        "column_values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 25,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action",
+        "board_id",
+        "column_id",
+        "column_values"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_updates"
+        },
+        "item_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 25,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action",
+        "item_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_users"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UserKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 25,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_workspaces"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkspaceKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 25,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_item"
+        },
+        "board_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "column_values": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": true,
+          "default": null
+        },
+        "group_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "item_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "board_id",
+        "item_name"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "update_item_column_values"
+        },
+        "board_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "column_values": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "item_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action",
+        "board_id",
+        "item_id",
+        "column_values"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "archive_item"
+        },
+        "item_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action",
+        "item_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "delete_item"
+        },
+        "item_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action",
+        "item_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "move_item_to_group"
+        },
+        "group_id": {
+          "type": "string"
+        },
+        "item_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action",
+        "item_id",
+        "group_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_group"
+        },
+        "board_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "group_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "board_id",
+        "group_name"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_subitem"
+        },
+        "column_values": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": true,
+          "default": null
+        },
+        "item_name": {
+          "type": "string"
+        },
+        "parent_item_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action",
+        "parent_item_id",
+        "item_name"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_update"
+        },
+        "body": {
+          "type": "string"
+        },
+        "item_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action",
+        "item_id",
+        "body"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "monday_graphql_query"
+        },
+        "query": {
+          "type": "string"
+        },
+        "variables": {
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "query"
+      ]
+    }
+  ],
+  "$defs": {
+    "BoardKind": {
+      "type": "string",
+      "enum": [
+        "public",
+        "private",
+        "share"
+      ]
+    },
+    "BoardState": {
+      "type": "string",
+      "enum": [
+        "all",
+        "active",
+        "archived",
+        "deleted"
+      ]
+    },
+    "UserKind": {
+      "type": "string",
+      "enum": [
+        "all",
+        "non_guests",
+        "guests",
+        "non_pending"
+      ]
+    },
+    "WorkspaceKind": {
+      "type": "string",
+      "enum": [
+        "open",
+        "closed"
+      ]
+    }
+  }
+}

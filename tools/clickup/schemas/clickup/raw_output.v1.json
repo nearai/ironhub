@@ -1,0 +1,4 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Raw JSON returned by the ClickUp v2 REST API. Shape varies by action; the tool passes the API response through unmodified."
+}

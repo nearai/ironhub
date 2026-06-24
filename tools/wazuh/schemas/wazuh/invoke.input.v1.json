@@ -1,0 +1,324 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WazuhAction",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "search_alerts"
+        },
+        "agent_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "hours_back": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 24,
+          "minimum": 0
+        },
+        "min_rule_level": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
+        "size": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 20,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "search_vulnerabilities"
+        },
+        "agent_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "severity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VulnerabilitySeverity"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "size": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 20,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "top_alert_rules"
+        },
+        "hours_back": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 24,
+          "minimum": 0
+        },
+        "size": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 10,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "cluster_health"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_indices"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_agents"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AgentStatus"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "agent_summary"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "restart_agent"
+        },
+        "agent_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "agent_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "add_agent"
+        },
+        "ip": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "name"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "remove_agent"
+        },
+        "agent_id": {
+          "type": "string"
+        },
+        "purge": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "action",
+        "agent_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "move_agent_to_group"
+        },
+        "agent_id": {
+          "type": "string"
+        },
+        "group": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "agent_id",
+        "group"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "trigger_active_response"
+        },
+        "agent_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "arguments": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "command": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "command"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "restart_manager"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "update_cdb_list"
+        },
+        "content": {
+          "type": "string"
+        },
+        "list_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "list_name",
+        "content"
+      ]
+    }
+  ],
+  "$defs": {
+    "AgentStatus": {
+      "type": "string",
+      "enum": [
+        "active",
+        "disconnected",
+        "pending",
+        "never_connected"
+      ]
+    },
+    "VulnerabilitySeverity": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    }
+  }
+}

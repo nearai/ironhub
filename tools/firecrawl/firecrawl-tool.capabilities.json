@@ -1,0 +1,47 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "Scrape, search, map, and crawl the web with Firecrawl (v2 API). 'scrape' returns clean markdown for one URL; 'search' finds pages by query; 'map' lists every URL on a site; 'crawl' + 'crawl_status' recursively scrape a whole site. Authentication uses the 'firecrawl_api_key' secret injected by the host as a Bearer token.",
+  "capabilities": {
+    "http": {
+      "allowlist": [
+        {
+          "host": "api.firecrawl.dev",
+          "path_prefix": "/v2/",
+          "methods": ["GET", "POST"]
+        }
+      ],
+      "credentials": {
+        "firecrawl_api_key": {
+          "secret_name": "firecrawl_api_key",
+          "location": { "type": "bearer" },
+          "host_patterns": ["api.firecrawl.dev"]
+        }
+      },
+      "rate_limit": {
+        "requests_per_minute": 30,
+        "requests_per_hour": 500
+      },
+      "timeout_secs": 120
+    },
+    "secrets": {
+      "allowed_names": ["firecrawl_api_key"]
+    }
+  },
+  "auth": {
+    "secret_name": "firecrawl_api_key",
+    "display_name": "Firecrawl",
+    "instructions": "Create an API key at firecrawl.dev/app/api-keys, then paste it here.",
+    "setup_url": "https://www.firecrawl.dev/app/api-keys",
+    "token_hint": "Starts with 'fc-'",
+    "env_var": "FIRECRAWL_API_KEY"
+  },
+  "setup": {
+    "required_secrets": [
+      {
+        "name": "firecrawl_api_key",
+        "prompt": "Firecrawl API key (from firecrawl.dev/app/api-keys, starts with 'fc-')"
+      }
+    ]
+  }
+}

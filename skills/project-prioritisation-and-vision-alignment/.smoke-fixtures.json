@@ -1,0 +1,15 @@
+{
+  "positive": [
+    "Run the project prioritisation for Q3",
+    "Build the prioritization brief",
+    "Vision alignment check on active projects",
+    "Quarterly planning brief",
+    "Rank our projects against the strategic priorities"
+  ],
+  "negative": [
+    "What's the ticket priority",
+    "Alert priority routing rules",
+    "What time is it",
+    "Send a quick email"
+  ]
+}

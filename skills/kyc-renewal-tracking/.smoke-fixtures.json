@@ -1,0 +1,11 @@
+{
+  "positive": [
+    "Show me upcoming KYC renewals this month",
+    "Track KYB renewal status for our counterparties",
+    "Run entity verification check on overdue renewals"
+  ],
+  "negative": [
+    "Help me write a KYC smart contract",
+    "Schedule a meeting with the legal team"
+  ]
+}

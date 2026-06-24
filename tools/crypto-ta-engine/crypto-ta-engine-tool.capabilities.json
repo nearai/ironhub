@@ -1,0 +1,30 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "Deterministic technical-analysis engine. Fetches Binance Spot klines (public market data, no key) and computes indicators + multi-timeframe confluence scoring.",
+  "capabilities": {
+    "http": {
+      "allowlist": [
+        {
+          "host": "api.binance.com",
+          "path_prefix": "/api/v3/",
+          "methods": [
+            "GET"
+          ]
+        },
+        {
+          "host": "api.binance.us",
+          "path_prefix": "/api/v3/",
+          "methods": [
+            "GET"
+          ]
+        }
+      ],
+      "rate_limit": {
+        "requests_per_minute": 60,
+        "requests_per_hour": 1200
+      },
+      "timeout_secs": 15
+    }
+  }
+}

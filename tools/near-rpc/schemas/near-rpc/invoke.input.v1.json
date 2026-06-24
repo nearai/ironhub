@@ -1,0 +1,1026 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NearRpcAction",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "account_id": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string",
+          "const": "view_account"
+        },
+        "block_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "block_height": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "account_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "account_id": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string",
+          "const": "view_account_balance"
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "account_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "account_id": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string",
+          "const": "view_access_key"
+        },
+        "block_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "block_height": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "public_key": {
+          "type": "string"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "account_id",
+        "public_key"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "account_id": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string",
+          "const": "view_access_key_list"
+        },
+        "block_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "block_height": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "account_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "account_id": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string",
+          "const": "view_state"
+        },
+        "block_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "block_height": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        },
+        "include_proof": {
+          "type": "boolean",
+          "default": false
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "prefix_base64": {
+          "type": "string",
+          "default": ""
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "account_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "account_id": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string",
+          "const": "view_code"
+        },
+        "block_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "block_height": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "account_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "account_id": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string",
+          "const": "view_function"
+        },
+        "args_base64": {
+          "type": "string",
+          "default": "e30="
+        },
+        "block_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "block_height": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        },
+        "method_name": {
+          "type": "string"
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "account_id",
+        "method_name"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_block"
+        },
+        "block_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "block_height": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_chunk"
+        },
+        "block_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "block_height": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        },
+        "chunk_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "shard_id": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_recent_blocks"
+        },
+        "count": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 5,
+          "minimum": 0
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_transaction"
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "sender_account_id": {
+          "type": "string"
+        },
+        "tx_hash": {
+          "type": "string"
+        },
+        "wait_until": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "tx_hash",
+        "sender_account_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "tx_status"
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "sender_account_id": {
+          "type": "string"
+        },
+        "tx_hash": {
+          "type": "string"
+        },
+        "wait_until": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "tx_hash",
+        "sender_account_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "send_tx"
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "signed_tx_base64": {
+          "type": "string"
+        },
+        "wait_until": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "signed_tx_base64"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "broadcast_tx_async"
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "signed_tx_base64": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "signed_tx_base64"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "broadcast_tx_commit"
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "signed_tx_base64": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "signed_tx_base64"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "status"
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "health"
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "network_info"
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "client_config"
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "validators"
+        },
+        "block_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "block_height": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "gas_price"
+        },
+        "block_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "block_height": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "protocol_config"
+        },
+        "block_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "block_height": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        },
+        "epoch_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "genesis_config"
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "account_ids": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "action": {
+          "type": "string",
+          "const": "changes"
+        },
+        "block_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "block_height": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        },
+        "changes_type": {
+          "type": "string"
+        },
+        "key_prefix_base64": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "public_key": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "changes_type"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "changes_in_block"
+        },
+        "block_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "block_height": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "light_client_proof"
+        },
+        "light_client_head": {
+          "type": "string"
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "proof_type": {
+          "type": "string"
+        },
+        "receipt_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "receiver_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "sender_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "transaction_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "proof_type",
+        "light_client_head"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "next_light_client_block"
+        },
+        "last_block_hash": {
+          "type": "string"
+        },
+        "network": {
+          "type": "string",
+          "default": "mainnet"
+        },
+        "rpc_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "last_block_hash"
+      ]
+    }
+  ]
+}

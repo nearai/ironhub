@@ -62,7 +62,7 @@ export function signInstallPayload(sharedKey: string, payload: string) {
 }
 
 export function artifactDigest(parts: string[]) {
-  return createHash("sha256").update(parts.join(":")).digest("hex")
+  return `sha256:${createHash("sha256").update(parts.join(":")).digest("hex")}`
 }
 
 export function hashNonce(nonce: string) {

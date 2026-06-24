@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{PRESENTATION_TITLE}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-black: #000000;
+  --brand-white: #FFFFFF;
+  --brand-green: #00EC97;
+  --brand-teal: #17D9D4;
+  --brand-lavender: #9797FF;
+  --brand-coral: #FF7966;
+  --bg: #FFFFFF;
+  --bg-alt: #F2F1E9;
+  --fg: #171717;
+  --fg-muted: #5C5C5C;
+  --border: #E5E5E0;
+  --accent: var(--brand-green);
+  --accent-secondary: var(--brand-teal);
+}
+[data-theme="dark"] {
+  --bg: #0a0a0a;
+  --bg-alt: #141414;
+  --fg: #ededed;
+  --fg-muted: #A0A0A0;
+  --border: #1F1F1F;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'FKGrotesk', 'Geist', 'Mona Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 400;
+  font-feature-settings: 'ss01', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+section.slide {
+  min-height: 100vh;
+  padding: 88px 112px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+}
+section.slide + section.slide { border-top: 1px solid var(--border); }
+section.slide.surface-cream { background: var(--bg-alt); }
+.wordmark {
+  position: absolute;
+  top: 44px;
+  left: 112px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.slide-number {
+  position: absolute;
+  bottom: 44px;
+  right: 112px;
+  font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg-muted);
+  letter-spacing: 0.04em;
+}
+.caption {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 24px;
+}
+.title {
+  font-size: 72px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.04;
+  max-width: 1100px;
+}
+.section-headline {
+  font-size: 48px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.12;
+  max-width: 1000px;
+}
+.subtitle {
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--fg);
+  margin-top: 24px;
+  max-width: 880px;
+  line-height: 1.4;
+}
+.body-text {
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--fg-muted);
+  line-height: 1.5;
+  max-width: 820px;
+}
+.accent-line {
+  width: 64px;
+  height: 3px;
+  background: var(--accent);
+  margin: 32px 0;
+}
+section.slide-title .body-text { margin-top: 8px; }
+section.slide-agenda ol {
+  list-style: none;
+  counter-reset: agenda;
+  margin-top: 48px;
+  max-width: 940px;
+}
+section.slide-agenda ol li {
+  counter-increment: agenda;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: baseline;
+  gap: 40px;
+  font-size: 28px;
+  font-weight: 500;
+  color: var(--fg);
+}
+section.slide-agenda ol li::before {
+  content: '0' counter(agenda);
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  color: var(--accent);
+  font-size: 18px;
+  font-weight: 500;
+  min-width: 56px;
+  letter-spacing: 0.04em;
+}
+section.slide-content > * + * { margin-top: 24px; }
+section.slide-content .two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 88px;
+  align-items: start;
+  margin-top: 16px;
+}
+section.slide-content .two-col h3 {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--fg);
+  margin-bottom: 16px;
+}
+section.slide-content .single-col .body-text { max-width: 1000px; }
+section.slide-metric {
+  align-items: center;
+  text-align: center;
+}
+.metric-value {
+  font-size: 144px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+}
+.metric-label {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-top: 18px;
+}
+.metric-context {
+  font-size: 20px;
+  color: var(--fg-muted);
+  max-width: 680px;
+  margin-top: 36px;
+  line-height: 1.5;
+}
+section.slide-metric .metric-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 56px;
+  margin-top: 16px;
+  width: 100%;
+  max-width: 1200px;
+}
+section.slide-metric .metric-row .metric-value { font-size: 96px; }
+section.slide-metric .metric-row .metric-label { margin-top: 12px; }
+section.slide-quote blockquote {
+  font-size: 44px;
+  font-weight: 400;
+  line-height: 1.28;
+  max-width: 960px;
+  letter-spacing: -0.012em;
+  color: var(--fg);
+}
+section.slide-quote blockquote::before {
+  content: '\201C';
+  color: var(--accent);
+  font-size: 88px;
+  line-height: 0;
+  margin-right: 12px;
+  vertical-align: -0.22em;
+}
+section.slide-quote .attribution {
+  margin-top: 40px;
+  font-size: 16px;
+  color: var(--fg-muted);
+}
+section.slide-quote .attribution .name {
+  color: var(--fg);
+  font-weight: 600;
+}
+section.slide-divider {
+  background: var(--bg-alt);
+  text-align: center;
+  align-items: center;
+}
+.chapter-number {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+}
+.chapter-title {
+  font-size: 64px;
+  font-weight: 700;
+  letter-spacing: -0.022em;
+  margin-top: 32px;
+  max-width: 1000px;
+}
+.chapter-subtitle {
+  font-size: 18px;
+  color: var(--fg-muted);
+  margin-top: 24px;
+  max-width: 720px;
+  line-height: 1.5;
+}
+section.slide-cta {
+  background: var(--bg-alt);
+}
+section.slide-cta .cta-action {
+  display: inline-block;
+  margin-top: 40px;
+  padding: 18px 36px;
+  background: var(--fg);
+  color: var(--bg);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 18px;
+  letter-spacing: 0.01em;
+}
+section.slide-cta .cta-link {
+  display: block;
+  margin-top: 28px;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+@media print {
+  section.slide { min-height: 100vh; page-break-after: always; padding: 64px 80px; }
+}
+@media (max-width: 1024px) {
+  section.slide { padding: 56px 48px; }
+  .wordmark { left: 48px; top: 32px; }
+  .slide-number { right: 48px; bottom: 32px; }
+  .title { font-size: 52px; }
+  .section-headline { font-size: 36px; }
+  .body-text { font-size: 18px; }
+  .metric-value { font-size: 104px; }
+  .metric-row .metric-value { font-size: 64px; }
+  .chapter-title { font-size: 48px; }
+  section.slide-content .two-col { grid-template-columns: 1fr; gap: 40px; }
+  section.slide-metric .metric-row { grid-template-columns: 1fr; gap: 40px; }
+}
+</style>
+</head>
+<body>
+
+<section class="slide slide-title">
+  <span class="wordmark">NEAR Foundation</span>
+  <p class="caption">{{SECTION_LABEL}}</p>
+  <h1 class="title">{{PRESENTATION_TITLE}}</h1>
+  <div class="accent-line"></div>
+  <p class="subtitle">{{PRESENTATION_SUBTITLE}}</p>
+  <span class="slide-number">01</span>
+</section>
+
+<section class="slide slide-agenda surface-cream">
+  <span class="wordmark">NEAR Foundation</span>
+  <p class="caption">Agenda</p>
+  <h2 class="section-headline">{{AGENDA_HEADLINE}}</h2>
+  <ol>
+    <li>{{AGENDA_ITEM_1}}</li>
+    <li>{{AGENDA_ITEM_2}}</li>
+    <li>{{AGENDA_ITEM_3}}</li>
+    <li>{{AGENDA_ITEM_4}}</li>
+  </ol>
+  <span class="slide-number">02</span>
+</section>
+
+<section class="slide slide-content">
+  <span class="wordmark">NEAR Foundation</span>
+  <p class="caption">{{CONTENT_LABEL}}</p>
+  <h2 class="section-headline">{{CONTENT_HEADLINE}}</h2>
+  <div class="accent-line"></div>
+  <div class="two-col">
+    <div>
+      <h3>{{CONTENT_LEFT_TITLE}}</h3>
+      <p class="body-text">{{CONTENT_LEFT_BODY}}</p>
+    </div>
+    <div>
+      <h3>{{CONTENT_RIGHT_TITLE}}</h3>
+      <p class="body-text">{{CONTENT_RIGHT_BODY}}</p>
+    </div>
+  </div>
+  <span class="slide-number">03</span>
+</section>
+
+<section class="slide slide-content">
+  <span class="wordmark">NEAR Foundation</span>
+  <p class="caption">{{CONTENT_LABEL_SINGLE}}</p>
+  <h2 class="section-headline">{{CONTENT_HEADLINE_SINGLE}}</h2>
+  <div class="accent-line"></div>
+  <div class="single-col">
+    <p class="body-text">{{CONTENT_SINGLE_BODY}}</p>
+  </div>
+  <span class="slide-number">04</span>
+</section>
+
+<section class="slide slide-metric">
+  <p class="caption">{{METRIC_LABEL}}</p>
+  <div>
+    <div class="metric-value">{{METRIC_VALUE}}</div>
+    <div class="metric-label">{{METRIC_UNIT}}</div>
+  </div>
+  <p class="metric-context">{{METRIC_CONTEXT}}</p>
+  <span class="slide-number">05</span>
+</section>
+
+<section class="slide slide-metric surface-cream">
+  <p class="caption">{{METRIC_ROW_LABEL}}</p>
+  <div class="metric-row">
+    <div>
+      <div class="metric-value">{{METRIC_A_VALUE}}</div>
+      <div class="metric-label">{{METRIC_A_LABEL}}</div>
+    </div>
+    <div>
+      <div class="metric-value">{{METRIC_B_VALUE}}</div>
+      <div class="metric-label">{{METRIC_B_LABEL}}</div>
+    </div>
+    <div>
+      <div class="metric-value">{{METRIC_C_VALUE}}</div>
+      <div class="metric-label">{{METRIC_C_LABEL}}</div>
+    </div>
+  </div>
+  <p class="metric-context">{{METRIC_ROW_CONTEXT}}</p>
+  <span class="slide-number">06</span>
+</section>
+
+<section class="slide slide-quote">
+  <blockquote>{{QUOTE_TEXT}}</blockquote>
+  <div class="attribution">
+    <span class="name">{{QUOTE_SPEAKER}}</span>, {{QUOTE_ROLE}}
+  </div>
+  <span class="slide-number">07</span>
+</section>
+
+<section class="slide slide-divider">
+  <span class="chapter-number">{{CHAPTER_NUMBER}}</span>
+  <h2 class="chapter-title">{{CHAPTER_TITLE}}</h2>
+  <p class="chapter-subtitle">{{CHAPTER_SUBTITLE}}</p>
+</section>
+
+<section class="slide slide-cta">
+  <span class="wordmark">NEAR Foundation</span>
+  <p class="caption">{{CTA_LABEL}}</p>
+  <h2 class="section-headline">{{CTA_HEADLINE}}</h2>
+  <div class="accent-line"></div>
+  <p class="body-text">{{CTA_DESCRIPTION}}</p>
+  <a href="{{CTA_LINK_URL}}" class="cta-action">{{CTA_ACTION_TEXT}}</a>
+  <span class="cta-link">{{CTA_CONTACT_LINE}}</span>
+  <span class="slide-number">09</span>
+</section>
+
+</body>
+</html>

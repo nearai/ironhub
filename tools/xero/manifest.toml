@@ -1,0 +1,30 @@
+schema_version = "reborn.extension_manifest.v2"
+id = "xero"
+name = "Xero"
+version = "0.1.0"
+description = "Xero Accounting API integration: list and fetch contacts, invoices, accounts, payments, bank transactions, items, and credit notes; create and update contacts, invoices, and payments; and run financial reports against a user-authorized Xero organisation."
+trust = "third_party"
+
+[runtime]
+kind = "wasm"
+module = "wasm/xero_tool.wasm"
+
+[[host_api]]
+id = "ironclaw.capability_provider/v1"
+section = "capability_provider.tools"
+
+[capability_provider.tools]
+
+[[capability_provider.tools.capabilities]]
+id = "xero.invoke"
+description = "Execute a Xero Accounting API action. The action name and its fields are passed in params; the input schema is a tagged union of the supported actions (list_invoices, create_invoice, list_contacts, get_report, and so on). Every action except list_connections requires a tenant_id naming the organisation."
+effects = ["dispatch_capability", "network", "use_secret"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/xero/invoke.input.v1.json"
+output_schema_ref = "schemas/xero/raw_output.v1.json"
+prompt_doc_ref = "prompts/xero/invoke.md"
+required_host_ports = ["host.runtime.http_egress"]
+runtime_credentials = [
+  { handle = "xero_oauth_token", source = { type = "product_auth_account", provider = "xero", setup = { kind = "oauth", scopes = ["offline_access", "accounting.settings.read", "accounting.contacts", "accounting.invoices", "accounting.payments", "accounting.banktransactions", "accounting.reports.profitandloss.read", "accounting.reports.balancesheet.read", "accounting.reports.trialbalance.read", "accounting.reports.aged.read"] } }, audience = { scheme = "https", host_pattern = "api.xero.com" }, target = { type = "header", name = "authorization", prefix = "Bearer " } },
+]

@@ -1,0 +1,30 @@
+schema_version = "reborn.extension_manifest.v2"
+id = "hubspot"
+name = "HubSpot"
+version = "0.1.0"
+description = "HubSpot CRM v3 read and write integration: lists, searches, fetches, creates, updates, and archives contacts, companies, deals, and tickets, plus lists, owners, properties, and a raw CRM v3 request escape hatch."
+trust = "third_party"
+
+[runtime]
+kind = "wasm"
+module = "wasm/hubspot_tool.wasm"
+
+[[host_api]]
+id = "ironclaw.capability_provider/v1"
+section = "capability_provider.tools"
+
+[capability_provider.tools]
+
+[[capability_provider.tools.capabilities]]
+id = "hubspot.invoke"
+description = "Execute a HubSpot CRM v3 action. The action name and its fields are passed in params; the input schema is a tagged union of the supported actions."
+effects = ["dispatch_capability", "network", "use_secret"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/hubspot/invoke.input.v1.json"
+output_schema_ref = "schemas/hubspot/raw_output.v1.json"
+prompt_doc_ref = "prompts/hubspot/invoke.md"
+required_host_ports = ["host.runtime.http_egress"]
+runtime_credentials = [
+  { handle = "hubspot_private_app_token", source = { type = "product_auth_account", provider = "hubspot", setup = { kind = "oauth", scopes = [] } }, audience = { scheme = "https", host_pattern = "api.hubapi.com" }, target = { type = "header", name = "authorization", prefix = "Bearer " } },
+]
