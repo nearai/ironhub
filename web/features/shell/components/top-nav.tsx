@@ -30,7 +30,7 @@ export function TopNav() {
         <div className="flex h-16 items-center gap-6">
           <BrandMark />
 
-          <nav className="hidden items-center gap-1 lg:flex">
+          <nav className="hidden items-center gap-7 lg:flex">
             {isMvp ? (
               <>
                 <Button asChild variant="ghost" size="sm" className="rounded-full">

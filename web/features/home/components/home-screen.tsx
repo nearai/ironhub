@@ -40,7 +40,7 @@ export async function HomeScreen() {
             action={
               <Link
                 href="/marketplace"
-                className="inline-flex items-center gap-1 font-mono text-xs font-semibold tracking-widest text-primary uppercase underline underline-offset-4 transition-colors hover:text-primary/80"
+                className="inline-flex items-center gap-1 border-b border-primary pb-1 font-mono text-[0.8rem] tracking-[0.1em] whitespace-nowrap text-primary uppercase transition-colors hover:text-primary/80"
               >
                 View all entries +
               </Link>

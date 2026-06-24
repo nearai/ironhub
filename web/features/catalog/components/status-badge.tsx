@@ -11,7 +11,7 @@ export function StatusBadge({ item }: StatusBadgeProps) {
   return (
     <Badge
       variant="outline"
-      className="rounded-full border-primary/40 bg-transparent px-2.5 py-0.5 font-mono text-[0.65rem] font-semibold tracking-widest text-primary uppercase"
+      className="rounded-full border border-primary/45 bg-primary/10 px-[11px] py-[5px] font-mono text-[0.66rem] font-medium tracking-[0.12em] text-[#0072c9] uppercase dark:text-[#83dcff]"
     >
       {label}
       {item.origin === "iliad" ? " · Iliad" : ""}

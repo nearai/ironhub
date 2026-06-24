@@ -21,17 +21,17 @@ export function HomeMarquee({ total, skills, tools }: HomeMarqueeProps) {
 
   return (
     <div
-      className="ih-bleed overflow-hidden border-y border-black/10 bg-[var(--marquee-bg)] py-3 select-none"
+      className="ih-bleed overflow-hidden border-y border-white/[0.08] bg-[var(--marquee-bg)] py-[11px] select-none"
       aria-hidden="true"
     >
       <div className="near-marquee-track">
         {loop.map((label, i) => (
           <span
             key={i}
-            className="flex items-center font-mono text-xs tracking-wider text-[var(--marquee-fg)] uppercase"
+            className="flex items-center font-mono text-[0.82rem] tracking-[0.2em] text-[var(--marquee-fg)] uppercase"
           >
             <span className="px-6">{label}</span>
-            <span className="text-[var(--marquee-fg)] opacity-30">|||</span>
+            <span className="opacity-40">|||</span>
           </span>
         ))}
       </div>

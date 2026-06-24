@@ -69,14 +69,14 @@ export function CatalogCard({
           {item.description ?? "No description."}
         </p>
         {!compact && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-[7px]">
             {(item.valueTags?.length ? item.valueTags : item.tags)
               .slice(0, 4)
               .map((tag) => (
                 <Badge
                   key={tag}
                   variant="outline"
-                  className="rounded-full border-primary/10 bg-primary/5 text-[0.7rem] font-medium text-muted-foreground"
+                  className="rounded-[4px] border-border bg-transparent px-[9px] py-[4px] font-mono text-[0.66rem] font-normal tracking-[0.04em] text-muted-foreground"
                 >
                   {tag}
                 </Badge>
@@ -115,15 +115,17 @@ export function CatalogCard({
             </Button>
           </>
         ) : (
-          <div className="flex items-center justify-between gap-3 text-xs font-medium text-muted-foreground">
-            <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
+          <div className="flex items-center justify-between gap-3 font-mono text-[0.74rem]">
+            <span className="inline-flex min-w-0 items-center gap-1.5 truncate text-muted-foreground">
               <span className="truncate">{item.author}</span>
-              <span aria-hidden="true">·</span>
+              <span aria-hidden="true" className="opacity-60">
+                ·
+              </span>
               <span className="whitespace-nowrap">{metric}</span>
             </span>
             <Link
               href={`/marketplace/${item.slug}`}
-              className="inline-flex shrink-0 items-center gap-1 font-semibold text-primary transition-colors hover:text-primary/80"
+              className="inline-flex shrink-0 items-center gap-1 text-primary transition-colors hover:text-primary/80"
             >
               View setup
               <IconArrowRight className="size-3.5" />
