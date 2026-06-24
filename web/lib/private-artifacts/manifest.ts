@@ -9,7 +9,7 @@ import type {
 import { prisma } from "../db"
 import type { ContentKind } from "./content"
 
-const PRIVATE_PROVENANCE: Provenance = "new"
+const PRIVATE_PROVENANCE: Provenance = "private"
 
 function contentUrl(
   baseUrl: string,
