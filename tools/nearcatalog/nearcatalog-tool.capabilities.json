@@ -1,0 +1,46 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "Explore the NEAR ecosystem: keyword-search projects, browse/filter the catalog by status and phase, look up full project profiles, find related projects, browse categories and groupings like trending, find people building on NEAR, and list awesome-near OSS libraries. All data sources are public; no authentication required.",
+  "capabilities": {
+    "http": {
+      "allowlist": [
+        {
+          "host": "api.nearcatalog.xyz",
+          "path_prefix": "/projects",
+          "methods": ["GET"]
+        },
+        {
+          "host": "api.nearcatalog.xyz",
+          "path_prefix": "/project",
+          "methods": ["GET"]
+        },
+        {
+          "host": "api.nearcatalog.xyz",
+          "path_prefix": "/related-projects",
+          "methods": ["GET"]
+        },
+        {
+          "host": "api.nearcatalog.xyz",
+          "path_prefix": "/search",
+          "methods": ["GET"]
+        },
+        {
+          "host": "api.nearcatalog.xyz",
+          "path_prefix": "/categories",
+          "methods": ["GET"]
+        },
+        {
+          "host": "raw.githubusercontent.com",
+          "path_prefix": "/nearcatalog/",
+          "methods": ["GET"]
+        }
+      ],
+      "rate_limit": {
+        "requests_per_minute": 30,
+        "requests_per_hour": 500
+      },
+      "timeout_secs": 30
+    }
+  }
+}
