@@ -48,18 +48,18 @@ export function CatalogCard({
       size="sm"
     >
       <CardHeader className="pb-2">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
           <CatalogIcon item={item} />
-          <CardTitle className="text-lg font-bold">
+          <CardTitle className="min-w-0 text-[0.95rem] leading-snug font-bold">
             <Link
               href={`/marketplace/${item.slug}`}
-              className="transition-colors hover:text-primary"
+              className="line-clamp-2 transition-colors hover:text-primary"
             >
               {item.name}
             </Link>
           </CardTitle>
         </div>
-        <CardAction>
+        <CardAction className="self-start">
           <StatusBadge item={item} />
         </CardAction>
       </CardHeader>
@@ -101,13 +101,14 @@ export function CatalogCard({
             <Button
               onClick={() => !disabled && onSelect(item)}
               disabled={disabled}
+              variant="outline"
               className={cn(
-                "w-full cursor-pointer gap-2 rounded-full font-semibold transition-all",
+                "w-full cursor-pointer gap-2 font-semibold transition-all",
                 disabled
                   ? "cursor-not-allowed border border-border/40 bg-muted text-muted-foreground opacity-70"
                   : isSelected
-                    ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 hover:border-destructive/20 hover:bg-destructive/10 hover:text-destructive dark:text-emerald-400"
-                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+                    ? "border-primary bg-primary/10 text-[#0072c9] hover:bg-primary/20 hover:text-[#0072c9]"
+                    : "border-primary bg-transparent text-foreground hover:bg-primary/5 hover:text-primary"
               )}
             >
               {selectText || "Select"}

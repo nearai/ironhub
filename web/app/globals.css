@@ -88,8 +88,8 @@
   --near-glow-blue: 0 0 0 1px rgba(0, 145, 253, 0.5), 0 8px 32px rgba(0, 145, 253, 0.28);
 
   /* Type scale */
-  --font-heading-family: var(--font-sans-geist), "Helvetica Neue", Arial, sans-serif;
-  --font-sans-family: var(--font-sans-geist), "Helvetica Neue", Arial, sans-serif;
+  --font-heading-family: var(--font-sans-fk), "Helvetica Neue", Arial, sans-serif;
+  --font-sans-family: var(--font-sans-fk), "Helvetica Neue", Arial, sans-serif;
   --font-mono-family: var(--font-mono-geist), ui-monospace, SFMono-Regular, monospace;
   --fs-display: clamp(3rem, 7vw, 6.5rem);
   --fs-title: 1.25rem;

@@ -17,7 +17,7 @@ export function IronClawHero({ total, skills, tools }: IronClawHeroProps) {
           <p className="font-mono text-[var(--fs-eyebrow)] font-semibold tracking-[0.22em] text-primary uppercase">
             {">> "}The extension hub for IronClaw
           </p>
-          <h1 className="font-sans text-[clamp(2.4rem,6vw,4.2rem)] leading-[1.04] font-extrabold tracking-tight">
+          <h1 className="font-sans text-[clamp(2.4rem,6vw,4.2rem)] leading-[1.04] font-black tracking-tight">
             IronHub for IronClaw{" "}
             <span className="near-gradient-text">Skills</span> and{" "}
             <span className="near-gradient-text">Tools</span>.
@@ -28,12 +28,19 @@ export function IronClawHero({ total, skills, tools }: IronClawHeroProps) {
           <p className="text-sm font-semibold text-muted-foreground">
             {total.toLocaleString("en-US")} Skills and Tools available
           </p>
-          <div className="flex flex-wrap gap-3 pt-1">
-            <ActionLink href="/marketplace" variant="default">
+          <div className="flex flex-wrap gap-4 pt-1">
+            <ActionLink
+              href="/marketplace"
+              variant="default"
+              className="h-11 px-[26px] text-base"
+            >
               Skill Library
               <IconArrowRight />
             </ActionLink>
-            <ActionLink href="/developer">
+            <ActionLink
+              href="/developer"
+              className="h-11 px-[26px] text-base"
+            >
               <IconPencil />
               Contribute
             </ActionLink>

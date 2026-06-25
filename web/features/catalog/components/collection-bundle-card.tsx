@@ -21,7 +21,7 @@ export function CollectionBundleCard({
   bundle,
   compact = false,
 }: CollectionBundleCardProps) {
-  const previewItems = bundle.items.slice(0, compact ? 4 : 8)
+  const previewItems = bundle.items.slice(0, compact ? 4 : 5)
 
   return (
     <Card
@@ -90,7 +90,7 @@ export function CollectionBundleCard({
         <Button
           asChild
           variant="outline"
-          className="w-full gap-2 font-medium"
+          className="h-11 w-full gap-2 text-[0.94rem] font-medium"
         >
           <Link href={`/collections/${bundle.slug}`}>
             Open Collection
