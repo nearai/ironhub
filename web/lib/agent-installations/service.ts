@@ -339,7 +339,7 @@ async function resolvePrivateInstall(
     artifactId: artifact.id,
     ttlSeconds: 300,
   })
-  const url = `${baseUrl}/api/private-artifacts/manifest?token=${encodeURIComponent(token)}`
+  const url = `${baseUrl}/api/private-artifacts/manifest/${encodeURIComponent(token)}`
 
   return {
     slug: artifact.name,
