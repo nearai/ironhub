@@ -35,7 +35,7 @@ export default function DashboardPage() {
   }
 
   const summaryChips: { key: string; label: string; value: number; tone: string }[] = [
-    { key: "all", label: "Total", value: counts.all, tone: "border-[var(--ironhub-line)] text-foreground" },
+    { key: "all", label: "Total Items", value: counts.all, tone: "border-[var(--ironhub-line)] text-foreground" },
     { key: "approved", label: "Approved", value: counts.approved, tone: "border-emerald-500/25 text-emerald-600 dark:text-emerald-400" },
     { key: "in_review", label: "In Review", value: counts.in_review, tone: "border-amber-500/25 text-amber-600 dark:text-amber-400" },
     { key: "rejected", label: "Rejected", value: counts.rejected, tone: "border-destructive/25 text-destructive" },
@@ -43,8 +43,8 @@ export default function DashboardPage() {
 
   // Filter submissions
   const filteredSubmissions = submissions.filter((sub) => {
-    const matchesSearch = sub.title.toLowerCase().includes(search.toLowerCase()) || 
-      sub.repoUrl.toLowerCase().includes(search.toLowerCase())
+    const matchesSearch = sub.title.toLowerCase().includes(search.toLowerCase()) ||
+      sub.sourceDetail.toLowerCase().includes(search.toLowerCase())
     const matchesStatus = statusFilter === "all" || sub.status === statusFilter
     const matchesVisibility = visibilityFilter === "all" || sub.visibility === visibilityFilter
 
@@ -56,19 +56,19 @@ export default function DashboardPage() {
     switch (status) {
       case "approved":
         return (
-          <Badge className="border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider text-[10px] px-2 py-0.5 rounded-full">
+          <Badge className="border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider text-xs px-2 py-0.5 rounded-full">
             ● Approved
           </Badge>
         )
       case "in_review":
         return (
-          <Badge className="border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider text-[10px] px-2 py-0.5 rounded-full">
+          <Badge className="border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider text-xs px-2 py-0.5 rounded-full">
             ● In Review
           </Badge>
         )
       case "rejected":
         return (
-          <Badge variant="destructive" className="font-semibold uppercase tracking-wider text-[10px] px-2 py-0.5 rounded-full">
+          <Badge variant="destructive" className="font-semibold uppercase tracking-wider text-xs px-2 py-0.5 rounded-full">
             ● Rejected
           </Badge>
         )
@@ -83,24 +83,24 @@ export default function DashboardPage() {
       <Card className="relative overflow-hidden border border-[var(--ironhub-line)] bg-card/60 p-6 shadow-sm sm:p-8">
         {/* Ambient background glow */}
         <div className="absolute right-0 top-0 -z-10 h-32 w-64 bg-primary/5 blur-3xl rounded-full" />
-        
+
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1 sm:space-y-2">
-            <span className="text-[10px] font-bold tracking-widest text-primary uppercase sm:text-xs">
-              Developer Dashboard
+            <span className="text-xs font-bold tracking-widest text-primary uppercase sm:text-sm">
+              Private Space Dashboard
             </span>
             <h1 className="font-heading text-2xl font-bold leading-tight sm:text-4xl text-foreground">
-              Submissions
+              Internal Catalog
             </h1>
             <p className="max-w-xl text-xs text-muted-foreground sm:text-sm leading-relaxed">
-              Manage, track, and configure your enterprise integrations on IronHub.
+              Manage and deploy skills and tools for your organization.
             </p>
           </div>
 
           <Button asChild className="shrink-0 rounded-full shadow-md transition-all duration-300 hover:shadow-lg self-start sm:self-center">
             <Link href="/mvp/new-submit">
               <IconPlus className="size-4" />
-              New Submission
+              Add Skill / Tool
             </Link>
           </Button>
         </div>
@@ -115,14 +115,13 @@ export default function DashboardPage() {
                 type="button"
                 onClick={() => setStatusFilter(chip.key)}
                 aria-pressed={isActive}
-                className={`flex items-center gap-2 rounded-2xl border px-3.5 py-1.5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${chip.tone} ${
-                  isActive 
-                    ? "bg-primary/5 ring-1 ring-primary/40 border-primary/30" 
-                    : "bg-background/40 hover:bg-background/80"
-                }`}
+                className={`flex items-center gap-2 rounded-2xl border px-3.5 py-1.5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${chip.tone} ${isActive
+                  ? "bg-primary/5 ring-1 ring-primary/40 border-primary/30"
+                  : "bg-background/40 hover:bg-background/80"
+                  }`}
               >
                 <span className="text-sm font-bold tabular-nums">{chip.value}</span>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
                   {chip.label}
                 </span>
               </button>
@@ -134,11 +133,12 @@ export default function DashboardPage() {
       {/* Filter Toolbar */}
       <div className="flex flex-col gap-3 rounded-2xl border border-[var(--ironhub-line)] bg-background/50 p-4 shadow-sm sm:flex-row sm:items-center">
         {/* Search */}
-        <div className="relative flex-1">
-          <IconSearch className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search your skills or repos..."
-            className="pl-9 rounded-full bg-background/70"
+        <div className="relative flex-1 flex items-center bg-[#f5f4ef] dark:bg-slate-950/80 border border-[#cbdfe6] dark:border-slate-800 rounded-full px-3.5 py-1.5 focus-within:ring-2 focus-within:ring-[#0072f5]/20 focus-within:border-[#0072f5] transition-all">
+          <IconSearch className="size-4 text-muted-foreground shrink-0" />
+          <input
+            type="text"
+            placeholder="Search your skills and tools..."
+            className="flex-1 bg-transparent border-0 outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:outline-none text-sm text-slate-800 dark:text-slate-100 placeholder:text-muted-foreground/80 px-2.5 py-0.5"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -206,21 +206,22 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Subtitle & Metadata */}
-                <div className="mt-4 flex flex-col gap-1 text-[11px] text-muted-foreground">
+                <div className="mt-4 flex flex-col gap-1 text-xs text-muted-foreground">
                   <p>
                     <span className="font-semibold text-foreground">{sub.version}</span>
                     <span className="mx-1.5">•</span>
                     <span>Updated {sub.updatedAt}</span>
                   </p>
-                  <p className="truncate">
-                    Repository: <span className="font-mono text-foreground/80">{sub.repoUrl}</span>
+                  <p className="truncate text-muted-foreground/90">
+                    <span className="font-semibold text-foreground/80">{sub.sourceType === "upload" ? "File: " : "Prompt: "}</span>
+                    <span className="font-mono text-xs">{sub.sourceDetail}</span>
                   </p>
                 </div>
               </div>
 
               {/* Card Footer Actions */}
               <div className="mt-6 flex items-center justify-between border-t border-[var(--ironhub-line)]/50 pt-3">
-                <Badge variant="outline" className="text-[10px] gap-1 px-2 py-0.5 rounded-full">
+                <Badge variant="outline" className="text-xs gap-1 px-2 py-0.5 rounded-full">
                   {sub.visibility === "public" ? (
                     <>
                       <IconWorld className="size-3 text-muted-foreground" />
@@ -251,17 +252,17 @@ export default function DashboardPage() {
               <IconPlus className="size-4" />
             </div>
             <h3 className="mt-3 text-sm font-bold text-foreground">
-              New Submission
+              Add Skill or Tool
             </h3>
             <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
-              Start a new integration release pipeline via GitHub webhook syncing or manual ZIP payload upload.
+              Publish a new tool or skill for your organization via package upload or custom prompt configurations.
             </p>
           </div>
 
           <div className="mt-6 pt-3">
             <Button asChild variant="outline" size="sm" className="w-full rounded-full text-xs font-semibold">
               <Link href="/mvp/new-submit">
-                Create Submission
+                Create Item
                 <IconArrowRight className="size-3 ml-1" />
               </Link>
             </Button>
@@ -272,7 +273,7 @@ export default function DashboardPage() {
       {filteredSubmissions.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-[var(--ironhub-line)] py-16 text-center">
           <p className="text-sm font-semibold text-muted-foreground">
-            No submissions match your filters.
+            No items match your filters.
           </p>
           <Button variant="link" size="sm" onClick={() => { setSearch(""); setStatusFilter("all"); setVisibilityFilter("all"); }}>
             Clear Search & Filters

@@ -71,40 +71,40 @@ ${skillsList}`
       <Card className="w-full h-full flex flex-col transition-all duration-300 border-[var(--ironhub-line)] bg-card overflow-hidden group-hover:-translate-y-1 group-hover:shadow-2xl group-hover:border-primary/30 pb-0">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
         <CardHeader className="pb-3 gap-2 relative z-10">
-          <div className="flex flex-wrap gap-2 mb-2">
+          <div className="flex flex-wrap gap-1.5 mb-2">
             {useCase.categories.map((category) => (
-              <Badge key={category} variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 border-transparent font-medium rounded-full">
+              <Badge key={category} variant="secondary" className="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-[2px] text-[0.66rem] font-medium tracking-[0.02em] text-[#0072c9] hover:bg-primary/15 dark:text-[#83dcff]">
                 {category}
               </Badge>
             ))}
           </div>
-          <CardTitle className="text-xl leading-tight font-semibold tracking-tight group-hover:text-primary transition-colors">
+          <CardTitle className="text-lg leading-snug font-black tracking-[-0.01em] group-hover:text-primary transition-colors">
             {useCase.title}
           </CardTitle>
         </CardHeader>
         
         <CardContent className="flex flex-col gap-5 flex-grow pb-4 relative z-10">
           {/* The Prompt / Chat Bubble */}
-          <div 
+          <div
             title={useCase.examplePrompt}
-            className="bg-gradient-to-r from-zinc-900 to-zinc-800 dark:from-zinc-900 dark:to-zinc-950 rounded-2xl rounded-tl-sm p-4 text-sm text-zinc-100 relative mt-2 shadow-md selection-dark border border-zinc-800/50 cursor-help"
+            className="bg-[var(--near-dark-grey)] rounded-[16px] rounded-tl-sm p-4 text-sm text-white/90 relative mt-2 shadow-md selection-dark border border-white/[0.08] cursor-help"
           >
             <div className="absolute -top-3 -left-1">
               <div className="bg-primary text-primary-foreground rounded-full p-1.5 shadow-sm">
                 <IconMessageCircle className="w-3.5 h-3.5" />
               </div>
             </div>
-            <p className="font-medium tracking-tight leading-relaxed line-clamp-3">&ldquo;{useCase.examplePrompt}&rdquo;</p>
+            <p className="leading-relaxed line-clamp-3">&ldquo;{useCase.examplePrompt}&rdquo;</p>
           </div>
 
           {/* What the agent does */}
-          <div 
+          <div
             className="flex flex-col gap-2 mt-1 cursor-help"
             title={stripMarkdownAndHtml(useCase.agentDoes)}
           >
             <div className="flex items-center gap-1.5 text-primary">
-              <IconLayersLinked className="w-4 h-4" />
-              <span className="text-xs font-bold uppercase tracking-wider">How it works</span>
+              <IconLayersLinked className="w-3.5 h-3.5" />
+              <span className="font-mono text-[0.66rem] font-medium uppercase tracking-[0.14em]">How it works</span>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
               {stripMarkdownAndHtml(useCase.agentDoes)}
@@ -114,15 +114,15 @@ ${skillsList}`
 
         <CardFooter className="flex flex-col items-start gap-4 mt-auto border-t border-[var(--ironhub-line)]/50 pt-5 pb-6 bg-muted/40 relative z-10">
           <div className="flex flex-col gap-2.5 w-full">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/80">Skills & Tools</span>
+            <span className="font-mono text-[0.62rem] font-medium uppercase tracking-[0.12em] text-muted-foreground">Skills & Tools</span>
             <div className="flex flex-wrap gap-1.5 items-center">
               {visibleSkills.map((skill, index) => (
-                <Badge key={index} variant="outline" className="text-xs bg-background/80 hover:bg-background border-border/80 transition-colors">
+                <Badge key={index} variant="outline" className="rounded-[4px] border-border bg-transparent px-2 py-[2.5px] text-[0.66rem] font-medium tracking-normal text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary">
                   {skill.name.replace(/`/g, "")}
                 </Badge>
               ))}
               {extraSkillsCount > 0 && (
-                <span className="text-xs text-muted-foreground font-semibold pl-1">
+                <span className="text-[0.66rem] font-medium text-muted-foreground pl-0.5">
                   +{extraSkillsCount} more
                 </span>
               )}
@@ -143,7 +143,7 @@ ${skillsList}`
           </Button>
           
           {useCase.authorHandle && (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-2 w-full justify-between">
+            <div className="flex items-center gap-1.5 font-mono text-[0.72rem] text-muted-foreground mt-2 w-full justify-between">
               <div className="flex items-center gap-1.5">
                 <IconUserCircle className="w-3.5 h-3.5" />
                 <span>By {useCase.authorHandle}</span>

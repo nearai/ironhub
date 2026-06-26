@@ -21,12 +21,12 @@ export function CollectionBundleCard({
   bundle,
   compact = false,
 }: CollectionBundleCardProps) {
-  const previewItems = bundle.items.slice(0, compact ? 4 : 8)
+  const previewItems = bundle.items.slice(0, compact ? 4 : 5)
 
   return (
     <Card
       id={bundle.slug}
-      className="group relative flex h-full flex-col overflow-hidden border-border/60 bg-card transition-all duration-300 hover:-translate-y-1 hover:bg-card hover:shadow-[0_20px_50px_rgba(43,130,212,0.15)]"
+      className="group relative flex h-full flex-col overflow-hidden border-border bg-card transition-colors duration-200 hover:border-primary/40"
       size="sm"
     >
       <CardHeader className="pb-4">
@@ -46,31 +46,25 @@ export function CollectionBundleCard({
       </CardHeader>
 
       <CardContent className="flex flex-1 flex-col gap-6">
-        <div className="grid grid-cols-3 gap-3">
-          <div className="rounded-xl border border-border/50 bg-background/50 p-3 text-center shadow-sm transition-colors group-hover:border-primary/20 group-hover:bg-background">
-            <div className="text-xl font-bold text-primary">
-              {bundle.items.length}
+        <div className="grid grid-cols-3 divide-x divide-border border-y border-border">
+          {[
+            { value: bundle.items.length, label: "Included", accent: true },
+            { value: bundle.toolCount, label: "Tools", accent: false },
+            { value: bundle.skillCount, label: "Skills", accent: false },
+          ].map((stat) => (
+            <div key={stat.label} className="px-2 py-[18px] text-center">
+              <div
+                className={`text-[1.7rem] leading-none font-black ${
+                  stat.accent ? "text-primary" : "text-foreground"
+                }`}
+              >
+                {stat.value}
+              </div>
+              <div className="mt-1.5 font-mono text-[0.62rem] tracking-[0.12em] text-muted-foreground uppercase">
+                {stat.label}
+              </div>
             </div>
-            <div className="text-[0.65rem] font-bold tracking-wider text-muted-foreground uppercase opacity-70">
-              Included
-            </div>
-          </div>
-          <div className="rounded-xl border border-border/50 bg-background/50 p-3 text-center shadow-sm transition-colors group-hover:border-primary/20 group-hover:bg-background">
-            <div className="text-xl font-bold text-primary">
-              {bundle.toolCount}
-            </div>
-            <div className="text-[0.65rem] font-bold tracking-wider text-muted-foreground uppercase opacity-70">
-              Tools
-            </div>
-          </div>
-          <div className="rounded-xl border border-border/50 bg-background/50 p-3 text-center shadow-sm transition-colors group-hover:border-primary/20 group-hover:bg-background">
-            <div className="text-xl font-bold text-primary">
-              {bundle.skillCount}
-            </div>
-            <div className="text-[0.65rem] font-bold tracking-wider text-muted-foreground uppercase opacity-70">
-              Skills
-            </div>
-          </div>
+          ))}
         </div>
 
         {!compact && (
@@ -79,12 +73,12 @@ export function CollectionBundleCard({
           </p>
         )}
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-[7px]">
           {previewItems.map((item) => (
             <Badge
               key={item.slug}
               variant="outline"
-              className="rounded-full border-border/60 bg-transparent px-2 py-0.5 text-[0.7rem] font-medium text-muted-foreground transition-colors hover:border-primary/20 hover:bg-primary/5 hover:text-primary"
+              className="rounded-[4px] border-border bg-transparent px-[9px] py-[4px] font-mono text-[0.66rem] font-normal tracking-[0.04em] text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
             >
               {item.name}
             </Badge>
@@ -95,7 +89,8 @@ export function CollectionBundleCard({
       <CardFooter className="mt-auto border-t border-border/40 pt-4">
         <Button
           asChild
-          className="w-fit gap-2 rounded-full bg-primary px-6 font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.98]"
+          variant="outline"
+          className="h-11 w-full gap-2 text-[0.94rem] font-medium"
         >
           <Link href={`/collections/${bundle.slug}`}>
             Open Collection

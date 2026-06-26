@@ -20,17 +20,23 @@ export interface Submission {
   updatedAt: string
   visibility: SubmissionVisibility
   status: SubmissionStatus
-  repoUrl: string
-  branch: string
-  webhookActive: boolean
-  entryPoint: string
+  sourceType: "upload" | "prompt"
+  sourceDetail: string // File name (e.g. circle-payments.zip) or prompt preview
+  activationKeyword?: string
   reviews: ReviewCheck[]
+  useCases?: string[]
+  valueProp?: string
+  valueTags?: string[]
+  activationKeywords?: string[]
+  activationTags?: string[]
+  markdownContent?: string
 }
 
 export interface TeamMember {
   name: string
-  githubHandle: string
-  status: string
+  email: string
+  role: "Admin" | "Editor" | "Member"
+  status: "Active" | "Invited"
 }
 
 export interface ActivityLog {
@@ -40,25 +46,14 @@ export interface ActivityLog {
   action: string
 }
 
-export interface WebhookLog {
-  id: string
-  time: string
-  method: string
-  endpoint: string
-  status: string
-  details: string
-}
-
 interface PartnerState {
   submissions: Submission[]
   teamMembers: TeamMember[]
   activities: ActivityLog[]
   orgName: string
   contactEmail: string
-  githubOrg: string
-  payloadUrl: string
-  secretKey: string
-  webhookLogs: WebhookLog[]
+  installToken: string
+  inviteDomains: string
 }
 
 export interface Toast {
@@ -72,10 +67,10 @@ interface PartnerContextType {
   addSubmission: (submission: Omit<Submission, "id" | "updatedAt" | "reviews">) => void
   updateSubmission: (id: string, updates: Partial<Submission>) => void
   removeSubmission: (id: string) => void
-  addWebhookLog: (log: Omit<WebhookLog, "id" | "time">) => void
-  unlinkGithub: () => void
-  linkGithub: (org: string) => void
-  regenerateSecret: () => void
+  inviteMember: (name: string, email: string, role: TeamMember["role"]) => void
+  removeMember: (email: string) => void
+  regenerateInstallToken: () => void
+  updateInviteDomains: (domains: string) => void
   notify: (message: string, tone?: Toast["tone"]) => void
 }
 
@@ -89,32 +84,48 @@ const defaultState: PartnerState = {
       updatedAt: "2h ago",
       visibility: "public",
       status: "approved",
-      repoUrl: "github.com/circle-org/usdc-payments",
-      branch: "main",
-      webhookActive: true,
-      entryPoint: "main.wasm",
+      sourceType: "upload",
+      sourceDetail: "usdc-payments-v1.0.2.zip",
+      activationKeyword: "pay",
       reviews: [
-        { name: "Security Scan", status: "passed", details: "All WASM sandbox constraints verified. No unsafe memory operations detected." },
-        { name: "Manifest Validation", status: "passed", details: "JSON manifest structured correctly. Required fields are present." },
-        { name: "Dependency Check", status: "passed", details: "0 vulnerability alerts found in upstream modules." }
+        { name: "Safety & Policy Scan", status: "passed", details: "All WASM sandbox constraints verified. No unsafe operations detected." },
+        { name: "Configuration Check", status: "passed", details: "JSON structure validated. Correct metadata fields and permissions are present." },
+        { name: "Component Quality Check", status: "passed", details: "0 verification issues found in compilation." }
       ]
     },
     {
       id: "api-auth",
       type: "skill",
-      title: "API Auth",
+      title: "API Auth Agent",
       version: "v0.9.0",
       updatedAt: "1d ago",
       visibility: "private",
       status: "in_review",
-      repoUrl: "github.com/circle-org/api-auth-skill",
-      branch: "main",
-      webhookActive: true,
-      entryPoint: "index.js",
+      sourceType: "prompt",
+      sourceDetail: "You are a helpful API authentication assistant. Help the user configure their API keys securely...",
+      activationKeyword: "auth",
+      useCases: [
+        "Securely store and retrieve API keys",
+        "Generate authorization header signatures",
+        "Validate JWT token expiry times"
+      ],
+      valueProp: "A helpdesk automation utility to verify developer credentials securely.",
+      valueTags: ["Authentication", "Security", "Helper"],
+      activationKeywords: ["auth", "authenticate", "login"],
+      activationTags: ["credential-verify", "api-security"],
+      markdownContent: `## Persona
+
+The agent operates as a **helpful API authentication assistant**. It helps organization members configure, audit, and debug API keys and OAuth parameters in secure sandboxes.
+
+## When to Use
+
+- When developer credentials require validation.
+- When generating secure headers for internal service calls.
+`,
       reviews: [
-        { name: "Security Scan", status: "passed", details: "WASM sandbox parameters verified. Execution boundaries restricted." },
-        { name: "Manifest Validation", status: "passed", details: "Manifest details extracted. Scope parameters under review." },
-        { name: "Dependency Check", status: "passed", details: "Dependencies linked. Awaiting manual reviewer signature." }
+        { name: "Safety & Policy Scan", status: "passed", details: "Prompt injection analysis passed. No forbidden system-override sequences detected." },
+        { name: "Configuration Check", status: "passed", details: "Title, description, and model constraints parsed and validated." },
+        { name: "Component Quality Check", status: "passed", details: "Dependencies linked. Awaiting manual reviewer signature." }
       ]
     },
     {
@@ -125,42 +136,36 @@ const defaultState: PartnerState = {
       updatedAt: "5d ago",
       visibility: "public",
       status: "rejected",
-      repoUrl: "github.com/circle-org/gas-station-tool",
-      branch: "main",
-      webhookActive: true,
-      entryPoint: "main.py",
+      sourceType: "upload",
+      sourceDetail: "gas-station-tool-v1.0.0.zip",
+      activationKeyword: "gas",
       reviews: [
-        { name: "Security Scan", status: "failed", details: "Hardcoded API key found in `utils.py` line 42.", fix: "Use environment variables or IronClaw secret vault." },
-        { name: "Manifest Validation", status: "failed", details: "Missing `required_permissions` field in manifest.", fix: "Include `required_permissions` in manifest.json to document endpoint boundaries." },
-        { name: "Dependency Check", status: "passed", details: "Dependencies check passed. 0 security alerts." }
+        { name: "Safety & Policy Scan", status: "failed", details: "Hardcoded API key detected in package configuration line 42.", fix: "Use environment variables or custom prompt parameters." },
+        { name: "Configuration Check", status: "failed", details: "Missing custom parameter definitions.", fix: "Define parameter boundaries in settings to document user inputs." },
+        { name: "Component Quality Check", status: "passed", details: "Compilation checks passed. 0 security alerts." }
       ]
     }
   ],
   teamMembers: [
-    { name: "Cameron", githubHandle: "@cameron_circle", status: "Active" },
-    { name: "Brandon", githubHandle: "@brandon_dev", status: "Active" },
-    { name: "Alice", githubHandle: "@alice_sec", status: "Active" }
+    { name: "Cameron", email: "cameron@circle.com", role: "Admin", status: "Active" },
+    { name: "Brandon", email: "brandon@circle.com", role: "Editor", status: "Active" },
+    { name: "Alice", email: "alice@circle.com", role: "Member", status: "Active" }
   ],
   activities: [
-    { id: "act-1", time: "10 mins ago", user: "@brandon_dev", action: "Updated `USDC Payments` v1.0.2" },
-    { id: "act-2", time: "2 hours ago", user: "@cameron_circle", action: "Submitted `Gas Station Tool`" },
-    { id: "act-3", time: "1 day ago", user: "@cameron_circle", action: "Updated `API Auth` v0.9.0" },
-    { id: "act-4", time: "5 days ago", user: "@alice_sec", action: "Created `Gas Station Tool` submission" }
+    { id: "act-1", time: "10 mins ago", user: "brandon@circle.com", action: "Updated `USDC Payments` to v1.0.2" },
+    { id: "act-2", time: "2 hours ago", user: "cameron@circle.com", action: "Added `Gas Station Tool` to Private Space" },
+    { id: "act-3", time: "1 day ago", user: "cameron@circle.com", action: "Updated `API Auth Agent` prompt" },
+    { id: "act-4", time: "5 days ago", user: "alice@circle.com", action: "Drafted `Gas Station Tool` package" }
   ],
   orgName: "Circle Integration Team",
   contactEmail: "partner-support@circle.com",
-  githubOrg: "@circle-org",
-  payloadUrl: "https://hub.ironclaw.com/api/v1/webhooks/github/circle-org",
-  secretKey: "circle_webhook_sec_8f902ba9dc74",
-  webhookLogs: [
-    { id: "log-1", time: "2026-05-31 10:00:00", method: "POST", endpoint: "/v1/webhooks/github/circle-org", status: "200 OK", details: "v1.0.2 triggered and successfully parsed." },
-    { id: "log-2", time: "2026-05-30 14:21:00", method: "POST", endpoint: "/v1/webhooks/github/circle-org", status: "400 Bad Request", details: "Manifest file missing in commit payload." }
-  ]
+  installToken: "ih_tok_circle_8f902ba9dc74f26b52c",
+  inviteDomains: "@circle.com"
 }
 
 const PartnerContext = createContext<PartnerContextType | undefined>(undefined)
 
-const SESSION_STORAGE_KEY = "ironhub_partner_state"
+const SESSION_STORAGE_KEY = "ironhub_partner_state_v2"
 
 // Monotonic counter for client-only unique ids (avoids Date.now/Math.random collisions)
 let uidCounter = 0
@@ -209,10 +214,9 @@ export function PartnerProvider({ children }: { children: React.ReactNode }) {
   }, [state, isLoaded])
 
   const addSubmission = (submission: Omit<Submission, "id" | "updatedAt" | "reviews">) => {
-    const baseSlug = submission.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "submission"
+    const baseSlug = submission.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "item"
 
     setState((prev) => {
-      // Ensure id uniqueness against existing submissions (avoids dup React keys + route clashes)
       const taken = new Set(prev.submissions.map((s) => s.id))
       let id = baseSlug
       let n = 2
@@ -225,9 +229,9 @@ export function PartnerProvider({ children }: { children: React.ReactNode }) {
         id,
         updatedAt: "Just now",
         reviews: [
-          { name: "Security Scan", status: "passed", details: "Static analysis check finished. All constraints verified." },
-          { name: "Manifest Validation", status: "passed", details: "Manifest parsed successfully." },
-          { name: "Dependency Check", status: "passed", details: "No security issues discovered." }
+          { name: "Safety & Policy Scan", status: "passed", details: "All safety rules successfully verified." },
+          { name: "Configuration Check", status: "passed", details: "Configuration file and settings verified." },
+          { name: "Component Quality Check", status: "passed", details: "Deployment quality checks passed." }
         ]
       }
 
@@ -236,8 +240,8 @@ export function PartnerProvider({ children }: { children: React.ReactNode }) {
         {
           id: `act-${nextUid()}`,
           time: "Just now",
-          user: "@cameron_circle",
-          action: `Submitted \`${submission.title}\` ${submission.version}`
+          user: "cameron@circle.com",
+          action: `Added \`${submission.title}\` (${submission.version})`
         },
         ...prev.activities
       ]
@@ -254,8 +258,8 @@ export function PartnerProvider({ children }: { children: React.ReactNode }) {
         {
           id: `act-${nextUid()}`,
           time: "Just now",
-          user: "@cameron_circle",
-          action: `Deleted \`${target.title}\` submission`
+          user: "cameron@circle.com",
+          action: `Deleted \`${target.title}\` from Private Space`
         },
         ...prev.activities
       ]
@@ -273,15 +277,15 @@ export function PartnerProvider({ children }: { children: React.ReactNode }) {
       })
 
       const target = prev.submissions.find((sub) => sub.id === id)
-      const title = target ? target.title : "Submission"
+      const title = target ? target.title : "Item"
       const versionStr = updates.version || (target ? target.version : "")
 
       const activities: ActivityLog[] = [
         {
           id: `act-${nextUid()}`,
           time: "Just now",
-          user: "@cameron_circle",
-          action: `Updated \`${title}\` ${versionStr}`
+          user: "cameron@circle.com",
+          action: `Updated \`${title}\` to ${versionStr}`
         },
         ...prev.activities
       ]
@@ -290,51 +294,59 @@ export function PartnerProvider({ children }: { children: React.ReactNode }) {
     })
   }
 
-  const addWebhookLog = (log: Omit<WebhookLog, "id" | "time">) => {
-    const pad = (n: number) => String(n).padStart(2, "0")
-    const now = new Date()
-    const timeStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
-
-    const newLog: WebhookLog = {
-      ...log,
-      id: `log-${Date.now()}`,
-      time: timeStr
-    }
-
-    setState((prev) => ({
-      ...prev,
-      webhookLogs: [newLog, ...prev.webhookLogs]
-    }))
-  }
-
-  const unlinkGithub = () => {
-    setState((prev) => ({
-      ...prev,
-      githubOrg: "",
-      payloadUrl: "",
-      secretKey: ""
-    }))
-  }
-
-  const linkGithub = (org: string) => {
-    const formattedOrg = org.startsWith("@") ? org : `@${org}`
-    const orgNameOnly = org.replace("@", "")
-    setState((prev) => ({
-      ...prev,
-      githubOrg: formattedOrg,
-      payloadUrl: `https://hub.ironclaw.com/api/v1/webhooks/github/${orgNameOnly}`,
-      secretKey: `circle_webhook_sec_${Math.random().toString(16).slice(2, 14)}`
-    }))
-  }
-
-  const regenerateSecret = () => {
+  const inviteMember = (name: string, email: string, role: TeamMember["role"]) => {
     setState((prev) => {
-      if (!prev.githubOrg) return prev
+      const newMember: TeamMember = {
+        name,
+        email,
+        role,
+        status: "Invited"
+      }
+      const activities: ActivityLog[] = [
+        {
+          id: `act-${nextUid()}`,
+          time: "Just now",
+          user: "cameron@circle.com",
+          action: `Invited \`${email}\` as ${role}`
+        },
+        ...prev.activities
+      ]
       return {
         ...prev,
-        secretKey: `circle_webhook_sec_${Math.random().toString(16).slice(2, 14)}`
+        teamMembers: [...prev.teamMembers, newMember],
+        activities
       }
     })
+  }
+
+  const removeMember = (email: string) => {
+    setState((prev) => {
+      const teamMembers = prev.teamMembers.filter((m) => m.email !== email)
+      const activities: ActivityLog[] = [
+        {
+          id: `act-${nextUid()}`,
+          time: "Just now",
+          user: "cameron@circle.com",
+          action: `Removed \`${email}\` from organization`
+        },
+        ...prev.activities
+      ]
+      return { ...prev, teamMembers, activities }
+    })
+  }
+
+  const regenerateInstallToken = () => {
+    setState((prev) => ({
+      ...prev,
+      installToken: `ih_tok_circle_${Math.random().toString(16).slice(2, 18)}`
+    }))
+  }
+
+  const updateInviteDomains = (domains: string) => {
+    setState((prev) => ({
+      ...prev,
+      inviteDomains: domains
+    }))
   }
 
   return (
@@ -344,10 +356,10 @@ export function PartnerProvider({ children }: { children: React.ReactNode }) {
         addSubmission,
         updateSubmission,
         removeSubmission,
-        addWebhookLog,
-        unlinkGithub,
-        linkGithub,
-        regenerateSecret,
+        inviteMember,
+        removeMember,
+        regenerateInstallToken,
+        updateInviteDomains,
         notify,
       }}
     >

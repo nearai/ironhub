@@ -1,6 +1,7 @@
 "use client"
 
-import { IconMenu2 } from "@tabler/icons-react"
+import { IconMenu2, IconPlus } from "@tabler/icons-react"
+import Link from "next/link"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -29,7 +30,7 @@ export function PartnerLayoutShell({ children }: PartnerLayoutShellProps) {
           <div className="sticky top-16 flex h-[calc(100vh-4rem)] flex-col gap-6 p-6">
             <div>
               <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                Partner Portal
+                Private Space
               </p>
               <h2 className="mt-1 text-sm font-semibold text-foreground">
                 Circle Org Space
@@ -37,6 +38,12 @@ export function PartnerLayoutShell({ children }: PartnerLayoutShellProps) {
             </div>
 
             <PartnerNav />
+            <Button asChild className="w-full rounded-xl shadow-sm bg-primary text-primary-foreground hover:bg-primary/95 transition-all duration-200 mt-auto font-semibold shrink-0">
+              <Link href="/mvp/new-submit">
+                <IconPlus className="size-4 mr-1.5" />
+                Add Skill / Tool
+              </Link>
+            </Button>
             <PartnerSupportCard />
           </div>
         </aside>
@@ -57,18 +64,24 @@ export function PartnerLayoutShell({ children }: PartnerLayoutShellProps) {
               <SheetContent side="left" className="w-72 p-6">
                 <SheetHeader className="p-0">
                   <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                    Partner Portal
+                    Private Space
                   </p>
                   <SheetTitle className="text-sm">Circle Org Space</SheetTitle>
                 </SheetHeader>
                 <div className="mt-6 flex h-full flex-col gap-6">
                   <PartnerNav onNavigate={() => setMobileNavOpen(false)} />
+                  <Button asChild className="w-full rounded-xl shadow-sm bg-primary text-primary-foreground hover:bg-primary/95 transition-all duration-200 mt-auto font-semibold shrink-0">
+                    <Link href="/mvp/new-submit" onClick={() => setMobileNavOpen(false)}>
+                      <IconPlus className="size-4 mr-1.5" />
+                      Add Skill / Tool
+                    </Link>
+                  </Button>
                   <PartnerSupportCard />
                 </div>
               </SheetContent>
             </Sheet>
             <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-              Partner Portal
+              Private Space
             </span>
           </div>
 

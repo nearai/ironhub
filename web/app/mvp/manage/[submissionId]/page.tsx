@@ -1,6 +1,6 @@
 "use client"
 
-import React, { use, useState } from "react"
+import React, { use, useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { usePartnerStore } from "@/features/partner/store/partner-store"
@@ -14,7 +14,6 @@ import {
   IconX,
   IconChevronDown,
   IconChevronUp,
-  IconExternalLink,
   IconSettings,
   IconActivity,
   IconTrash,
@@ -25,6 +24,10 @@ import {
   IconClock,
   IconWorld,
   IconLock,
+  IconBox,
+  IconUpload,
+  IconFileZip,
+  IconCopy,
 } from "@tabler/icons-react"
 import {
   Dialog,
@@ -44,44 +47,43 @@ export default function ManageSubmissionPage({ params }: PageProps) {
   const { submissionId } = use(params)
   const router = useRouter()
   const { state, updateSubmission, removeSubmission, notify } = usePartnerStore()
-  const { submissions } = state
+  const { submissions, installToken } = state
 
   const submission = submissions.find((sub) => sub.id === submissionId)
 
   // Accordion state for check items
   const [expandedChecks, setExpandedChecks] = useState<Record<string, boolean>>({
-    "Security Scan": true,
-    "Manifest Validation": true,
-    "Dependency Check": false,
+    "Safety & Policy Scan": true,
+    "Configuration Check": true,
+    "Component Quality Check": false,
   })
 
   // Dialog state for mock updating
-  const [isUpdateOpen, setIsUpdateOpen] = useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [isRerunning, setIsRerunning] = useState(false)
-  const [newVersion, setNewVersion] = useState("")
-  const [newBranch, setNewBranch] = useState("")
-  const [newVisibility, setNewVisibility] = useState<"public" | "private">("private")
-
-  // Seed the form whenever the dialog opens
-  const handleOpenChange = (open: boolean) => {
-    if (open && submission) {
-      setNewVersion(submission.version)
-      setNewBranch(submission.branch)
-      setNewVisibility(submission.visibility)
-    }
-    setIsUpdateOpen(open)
-  }
+  const [copiedInstall, setCopiedInstall] = useState(false)
 
   if (!submission) {
     return (
       <div className="text-center py-16">
-        <h3 className="text-lg font-bold text-foreground">Submission not found</h3>
+        <h3 className="text-lg font-bold text-foreground">Item not found</h3>
         <Button asChild variant="link" className="mt-2">
           <Link href="/mvp/dashboard">Back to Dashboard</Link>
         </Button>
       </div>
     )
+  }
+
+  const handleCopyInstall = async () => {
+    const cmd = `ironclaw hub install ${submission.id}${submission.visibility === "private" ? ` --token ${installToken}` : ""}`
+    try {
+      await navigator.clipboard.writeText(cmd)
+      setCopiedInstall(true)
+      setTimeout(() => setCopiedInstall(false), 2000)
+      notify("Install command copied", "info")
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   const toggleCheck = (name: string) => {
@@ -91,44 +93,22 @@ export default function ManageSubmissionPage({ params }: PageProps) {
     }))
   }
 
-  const handleUpdateSubmission = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newVersion) return
 
-    // Perform state update
-    updateSubmission(submission.id, {
-      version: newVersion,
-      branch: newBranch || submission.branch,
-      visibility: newVisibility,
-      status: "approved", // Automatically fix rejection in MVP
-      reviews: [
-        { name: "Security Scan", status: "passed", details: "All WASM sandbox constraints verified. Re-scan completed with 0 errors." },
-        { name: "Manifest Validation", status: "passed", details: "Manifest formatting rules passed. Correct permissions set." },
-        { name: "Dependency Check", status: "passed", details: "0 security vulnerabilities found in libraries." }
-      ]
-    })
-
-    setIsUpdateOpen(false)
-    setNewVersion("")
-    setNewBranch("")
-    notify(`${submission.title} updated → approved`)
-  }
 
   const handleRerunChecks = () => {
     if (!submission || isRerunning) return
     setIsRerunning(true)
-    // Simulate the automated pipeline re-running
     setTimeout(() => {
       updateSubmission(submission.id, {
         status: "approved",
         reviews: [
-          { name: "Security Scan", status: "passed", details: "Re-scan completed. All WASM sandbox constraints verified with 0 errors." },
-          { name: "Manifest Validation", status: "passed", details: "Manifest re-validated. Required permissions present." },
-          { name: "Dependency Check", status: "passed", details: "0 security vulnerabilities found in libraries." },
+          { name: "Safety & Policy Scan", status: "passed", details: "Safety re-scan passed successfully. Prompt constraints verified." },
+          { name: "Configuration Check", status: "passed", details: "All configuration elements correctly structured and validated." },
+          { name: "Component Quality Check", status: "passed", details: "0 verification issues found in compilation." }
         ],
       })
       setIsRerunning(false)
-      notify(`${submission.title} re-checked → approved`)
+      notify(`${submission.title} safety check completed → approved`)
     }, 1200)
   }
 
@@ -141,24 +121,26 @@ export default function ManageSubmissionPage({ params }: PageProps) {
     router.push("/mvp/dashboard")
   }
 
+
+
   // Helper for status badge style
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved":
         return (
-          <Badge className="border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider text-[10px] px-2 py-0.5 rounded-full">
+          <Badge className="border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider text-xs px-2 py-0.5 rounded-full">
             Approved
           </Badge>
         )
       case "in_review":
         return (
-          <Badge className="border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider text-[10px] px-2 py-0.5 rounded-full">
+          <Badge className="border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider text-xs px-2 py-0.5 rounded-full">
             In Review
           </Badge>
         )
       case "rejected":
         return (
-          <Badge variant="destructive" className="font-semibold uppercase tracking-wider text-[10px] px-2 py-0.5 rounded-full">
+          <Badge variant="destructive" className="font-semibold uppercase tracking-wider text-xs px-2 py-0.5 rounded-full">
             Rejected
           </Badge>
         )
@@ -179,155 +161,93 @@ export default function ManageSubmissionPage({ params }: PageProps) {
         </Button>
 
         <div className="flex items-center gap-2">
-        {/* Re-run checks — only for rejected submissions */}
-        {submission.status === "rejected" && (
+          {/* Re-run checks — only for rejected items */}
+          {submission.status === "rejected" && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleRerunChecks}
+              disabled={isRerunning}
+              className="rounded-full"
+            >
+              <IconRefresh className={`size-4 ${isRerunning ? "animate-spin" : ""}`} />
+              {isRerunning ? "Running Checks..." : "Re-run Policy Scan"}
+            </Button>
+          )}
+
+          {/* CLI Install Copy Button */}
           <Button
             type="button"
             variant="outline"
-            onClick={handleRerunChecks}
-            disabled={isRerunning}
-            className="rounded-full"
+            onClick={handleCopyInstall}
+            className="rounded-full shadow-sm hover:shadow-md"
           >
-            <IconRefresh className={`size-4 ${isRerunning ? "animate-spin" : ""}`} />
-            {isRerunning ? "Re-running..." : "Re-run Checks"}
+            {copiedInstall ? (
+              <>
+                <IconCheck className="size-4 mr-1.5 text-emerald-500" />
+                Copied!
+              </>
+            ) : (
+              <>
+                <IconCopy className="size-4 mr-1.5 text-muted-foreground" />
+                Copy Install Command
+              </>
+            )}
           </Button>
-        )}
 
-        {/* Update Trigger */}
-        <Dialog open={isUpdateOpen} onOpenChange={handleOpenChange}>
-          <DialogTrigger asChild>
-            <Button className="rounded-full shadow-sm hover:shadow-md">
-              Update Submission
+          {/* Conditional Trigger based on item type */}
+          {submission.type === "skill" ? (
+            <Button asChild className="rounded-full shadow-sm hover:shadow-md">
+              <Link href={`/mvp/edit-skill/${submission.id}`}>
+                Update Skill
+              </Link>
             </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Update {submission.title}</DialogTitle>
-              <DialogDescription>
-                Trigger a new release checks run by modifying the release parameters.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleUpdateSubmission} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase">
-                  Release Version / Tag
-                </label>
-                <Input
-                  required
-                  placeholder="e.g., v1.0.3"
-                  value={newVersion}
-                  onChange={(e) => setNewVersion(e.target.value)}
-                />
-              </div>
+          ) : (
+            <Button asChild className="rounded-full shadow-sm hover:shadow-md">
+              <Link href={`/mvp/edit-tool/${submission.id}`}>
+                Update Tool
+              </Link>
+            </Button>
+          )}
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase">
-                  Repository Branch
-                </label>
-                <Input
-                  placeholder="e.g., main"
-                  value={newBranch}
-                  onChange={(e) => setNewBranch(e.target.value)}
-                />
-              </div>
-
-              {/* Visibility selector */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase">
-                  Visibility
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setNewVisibility("public")}
-                    aria-pressed={newVisibility === "public"}
-                    className={`flex flex-col items-start gap-0.5 rounded-xl border p-3 text-left transition-all ${
-                      newVisibility === "public"
-                        ? "border-primary bg-primary/5 text-foreground"
-                        : "border-[var(--ironhub-line)]/50 bg-background/30 text-muted-foreground hover:bg-muted/10"
-                    }`}
-                  >
-                    <span className="text-xs font-bold flex items-center gap-1.5">
-                      <IconWorld className="size-3.5 text-muted-foreground" />
-                      Public
-                    </span>
-                    <span className="text-[10px] leading-normal">
-                      Listed on the IronHub Marketplace.
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setNewVisibility("private")}
-                    aria-pressed={newVisibility === "private"}
-                    className={`flex flex-col items-start gap-0.5 rounded-xl border p-3 text-left transition-all ${
-                      newVisibility === "private"
-                        ? "border-primary bg-primary/5 text-foreground"
-                        : "border-[var(--ironhub-line)]/50 bg-background/30 text-muted-foreground hover:bg-muted/10"
-                    }`}
-                  >
-                    <span className="text-xs font-bold flex items-center gap-1.5">
-                      <IconLock className="size-3.5 text-muted-foreground" />
-                      Private
-                    </span>
-                    <span className="text-[10px] leading-normal">
-                      Internal to your organization only.
-                    </span>
-                  </button>
-                </div>
-              </div>
-
+          {/* Delete confirmation */}
+          <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+            <DialogTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                aria-label="Delete submission"
+                className="rounded-full border-destructive/30 text-destructive hover:bg-destructive/10"
+              >
+                <IconTrash className="size-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Delete {submission.title}?</DialogTitle>
+                <DialogDescription>
+                  This permanently removes the item from your organization's Private Space. Members will lose access to run it.
+                </DialogDescription>
+              </DialogHeader>
               <div className="mt-2 flex gap-3">
                 <DialogClose asChild>
                   <Button type="button" variant="outline" className="flex-1 rounded-full">
                     Cancel
                   </Button>
                 </DialogClose>
-                <Button type="submit" className="flex-1 rounded-full">
-                  Trigger Build
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleDelete}
+                  className="flex-1 rounded-full"
+                >
+                  <IconTrash className="size-4" />
+                  Delete Item
                 </Button>
               </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete confirmation */}
-        <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-          <DialogTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label="Delete submission"
-              className="rounded-full border-destructive/30 text-destructive hover:bg-destructive/10"
-            >
-              <IconTrash className="size-4" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Delete {submission.title}?</DialogTitle>
-              <DialogDescription>
-                This permanently removes the submission and its review history. This cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="mt-2 flex gap-3">
-              <DialogClose asChild>
-                <Button type="button" variant="outline" className="flex-1 rounded-full">
-                  Cancel
-                </Button>
-              </DialogClose>
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={handleDelete}
-                className="flex-1 rounded-full"
-              >
-                <IconTrash className="size-4" />
-                Delete
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -335,8 +255,8 @@ export default function ManageSubmissionPage({ params }: PageProps) {
       <Card className="border border-[var(--ironhub-line)] bg-card/60 p-6 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <span className="text-[10px] font-bold tracking-widest text-primary uppercase">
-              {submission.type} Submissions
+            <span className="text-xs font-bold tracking-widest text-primary uppercase">
+              {submission.type} Catalog Item
             </span>
             <h1 className="mt-1 text-2xl font-bold text-foreground flex items-center gap-2">
               {submission.title}
@@ -346,16 +266,16 @@ export default function ManageSubmissionPage({ params }: PageProps) {
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="gap-1 px-2 py-0.5 rounded-full text-[10px]">
+            <Badge variant="outline" className="gap-1 px-2 py-0.5 rounded-full text-xs">
               {submission.visibility === "public" ? (
                 <>
                   <IconWorld className="size-3 text-muted-foreground" />
-                  Public
+                  Public Hub
                 </>
               ) : (
                 <>
                   <IconLock className="size-3 text-muted-foreground" />
-                  Private
+                  Private Space
                 </>
               )}
             </Badge>
@@ -363,11 +283,17 @@ export default function ManageSubmissionPage({ params }: PageProps) {
           </div>
         </div>
 
+        {submission.valueProp && (
+          <p className="text-xs text-muted-foreground mt-2 leading-relaxed max-w-xl">
+            {submission.valueProp}
+          </p>
+        )}
+
         {/* Telemetry Metrics Grid */}
         <div className="mt-6 grid gap-4 grid-cols-2 sm:grid-cols-4 border-t border-[var(--ironhub-line)]/50 pt-6">
           <div className="rounded-xl border border-[var(--ironhub-line)]/45 bg-muted/5 p-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Downloads</span>
+              <span className="text-xs font-bold tracking-widest text-muted-foreground uppercase">Downloads</span>
               <IconDownload className="size-4 text-muted-foreground" />
             </div>
             <div className="mt-2.5 flex items-baseline gap-1.5">
@@ -375,7 +301,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
                 {submission.status === "approved" ? "1,248" : "0"}
               </span>
               {submission.status === "approved" && (
-                <span className="text-[10px] text-emerald-500 font-semibold">
+                <span className="text-xs text-emerald-500 font-semibold">
                   +12%
                 </span>
               )}
@@ -384,7 +310,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
 
           <div className="rounded-xl border border-[var(--ironhub-line)]/45 bg-muted/5 p-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Active Installs</span>
+              <span className="text-xs font-bold tracking-widest text-muted-foreground uppercase">Active Installs</span>
               <IconUsers className="size-4 text-muted-foreground" />
             </div>
             <div className="mt-2.5 flex items-baseline gap-1.5">
@@ -392,7 +318,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
                 {submission.status === "approved" ? "412" : "0"}
               </span>
               {submission.status === "approved" && (
-                <span className="text-[10px] text-emerald-500 font-semibold">
+                <span className="text-xs text-emerald-500 font-semibold">
                   98%
                 </span>
               )}
@@ -401,7 +327,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
 
           <div className="rounded-xl border border-[var(--ironhub-line)]/45 bg-muted/5 p-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Success Rate</span>
+              <span className="text-xs font-bold tracking-widest text-muted-foreground uppercase">Success Rate</span>
               <IconCircleCheck className="size-4 text-muted-foreground" />
             </div>
             <div className="mt-2.5 flex items-baseline gap-1.5">
@@ -409,7 +335,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
                 {submission.status === "approved" ? "99.98%" : "--"}
               </span>
               {submission.status === "approved" && (
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   24k runs
                 </span>
               )}
@@ -418,7 +344,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
 
           <div className="rounded-xl border border-[var(--ironhub-line)]/45 bg-muted/5 p-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Avg Latency</span>
+              <span className="text-xs font-bold tracking-widest text-muted-foreground uppercase">Avg Latency</span>
               <IconClock className="size-4 text-muted-foreground" />
             </div>
             <div className="mt-2.5 flex items-baseline gap-1.5">
@@ -426,7 +352,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
                 {submission.status === "approved" ? "14.2ms" : "--"}
               </span>
               {submission.status === "approved" && (
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   p95: 22ms
                 </span>
               )}
@@ -439,8 +365,8 @@ export default function ManageSubmissionPage({ params }: PageProps) {
             <IconActivity className="size-4" />
             Review Report
           </h2>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            Reviewed on: 2026-05-30 14:22 UTC by Ironclaw Auto-Check Pipeline
+          <p className="mt-1 text-xs text-muted-foreground">
+            Reviewed on: 2026-05-30 14:22 UTC by IronHub Safety & Scan Engine
           </p>
 
           {/* Audit Logs Accordions */}
@@ -484,8 +410,8 @@ export default function ManageSubmissionPage({ params }: PageProps) {
                         {check.details}
                       </div>
                       {check.fix && (
-                        <div className="mt-2.5 rounded-lg border border-primary/20 bg-primary/5 p-2 text-primary font-mono text-[10px]">
-                          <span className="font-sans font-bold uppercase tracking-wider text-[9px] mr-1 block">Recommended Fix:</span>
+                        <div className="mt-2.5 rounded-lg border border-primary/20 bg-primary/5 p-2 text-primary font-mono text-xs">
+                          <span className="font-sans font-bold uppercase tracking-wider text-xs mr-1 block">Recommended Correction:</span>
                           {check.fix}
                         </div>
                       )}
@@ -498,56 +424,45 @@ export default function ManageSubmissionPage({ params }: PageProps) {
         </div>
 
         {/* Configuration Section */}
-        <div className="mt-6 border-t border-[var(--ironhub-line)]/50 pt-6">
+        {/* <div className="mt-6 border-t border-[var(--ironhub-line)]/50 pt-6">
           <h2 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5">
             <IconSettings className="size-4" />
-            Configuration & Webhook Link
+            Item Details & Source Parameters
           </h2>
 
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="rounded-xl border border-[var(--ironhub-line)]/40 bg-muted/10 p-4">
-              <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                GitHub Repository
+              <span className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                Source Type
               </span>
-              <p className="mt-1 font-mono text-xs text-foreground/90 flex items-center gap-1">
-                {submission.repoUrl}
-                <a href={`https://${submission.repoUrl}`} target="_blank" rel="noreferrer" className="text-primary hover:text-primary-deep">
-                  <IconExternalLink className="size-3.5 inline" />
-                </a>
+              <p className="mt-1 font-semibold text-xs text-foreground/90 flex items-center gap-1">
+                <IconBox className="size-3.5 text-primary" />
+                {submission.sourceType === "upload" ? "Packaged Archive Upload" : "In-Browser Custom Prompt"}
               </p>
-              <div className="mt-3 flex gap-4 text-[11px] text-muted-foreground">
-                <div>
-                  Branch: <span className="font-semibold text-foreground">{submission.branch}</span>
+              <div className="mt-3 flex flex-col gap-1.5 text-xs text-muted-foreground">
+                <div className="truncate">
+                  Source: <span className="font-mono text-foreground font-bold">{submission.sourceDetail}</span>
                 </div>
                 <div>
-                  Entrypoint: <span className="font-mono text-foreground">{submission.entryPoint}</span>
+                  Trigger Keyword: <span className="font-semibold text-foreground bg-primary/10 px-1 rounded">@{submission.activationKeyword || "trigger"}</span>
                 </div>
               </div>
             </div>
 
             <div className="rounded-xl border border-[var(--ironhub-line)]/40 bg-muted/10 p-4">
-              <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                Sync Connection
+              <span className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                Entitlement & Install Token
               </span>
               <div className="mt-1 flex items-center gap-2">
-                {submission.webhookActive ? (
-                  <>
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-xs font-semibold text-foreground">Webhook Active</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
-                    <span className="text-xs font-semibold text-foreground">Webhook Inactive</span>
-                  </>
-                )}
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xs font-semibold text-foreground">Available to Install</span>
               </div>
-              <p className="mt-2.5 text-[11px] text-muted-foreground leading-normal">
-                Webhook receives status notifications on git pushes. Configure webhooks in the Settings console.
+              <p className="mt-2.5 text-xs text-muted-foreground leading-normal">
+                Members can install this item into their IronClaw agent workspace. Authentication token in settings is active: <code className="font-mono bg-background/50 px-1 text-xs">{installToken.slice(0, 12)}...</code>.
               </p>
             </div>
           </div>
-        </div>
+        </div> */}
       </Card>
     </div>
   )
