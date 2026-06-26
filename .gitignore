@@ -16,3 +16,7 @@ web/docs/
 .superpowers/
 openspec/
 .agent/
+# scrubbed from history, keep local only
+CLAUDE.md
+web/CLAUDE.md
+.rtk/
