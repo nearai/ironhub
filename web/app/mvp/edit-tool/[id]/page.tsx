@@ -38,6 +38,7 @@ export default function EditToolPage({ params }: PageProps) {
   // Seed form values when submission is loaded
   useEffect(() => {
     if (submission) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTitle(submission.title)
       setDescription(submission.valueProp || "")
       setVersion(submission.version)

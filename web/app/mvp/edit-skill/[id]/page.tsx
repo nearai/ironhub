@@ -18,7 +18,6 @@ import {
   IconEdit,
   IconCode,
 } from "@tabler/icons-react"
-import { PageHeader } from "@/features/shell/components/page-header"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -51,6 +50,7 @@ export default function EditSkillPage({ params }: PageProps) {
   // Seed form values when submission is loaded
   useEffect(() => {
     if (submission) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTitle(submission.title)
       setSlug(submission.id)
       setVersion(submission.version)
@@ -191,9 +191,9 @@ export default function EditSkillPage({ params }: PageProps) {
       {/* Seamless unified Header Card */}
       <Card className="border border-[var(--ironhub-line)] bg-card/60 p-5 shadow-sm">
         <div className="space-y-1">
-          <span className="text-xs font-bold tracking-widest text-primary uppercase">
+          {/* <span className="text-xs font-bold tracking-widest text-primary uppercase">
             Internal Catalog
-          </span>
+          </span> */}
           <h1 className="mt-0.5 font-heading text-2xl font-bold leading-tight text-foreground">
             Edit {submission.title}
           </h1>

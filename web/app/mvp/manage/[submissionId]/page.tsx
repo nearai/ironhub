@@ -1,20 +1,18 @@
 "use client"
 
-import React, { use, useState, useEffect } from "react"
+import React, { use, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { usePartnerStore } from "@/features/partner/store/partner-store"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import {
   IconArrowLeft,
   IconCheck,
   IconX,
   IconChevronDown,
   IconChevronUp,
-  IconSettings,
   IconActivity,
   IconTrash,
   IconRefresh,
@@ -24,9 +22,6 @@ import {
   IconClock,
   IconWorld,
   IconLock,
-  IconBox,
-  IconUpload,
-  IconFileZip,
   IconCopy,
 } from "@tabler/icons-react"
 import {
@@ -227,7 +222,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
               <DialogHeader>
                 <DialogTitle>Delete {submission.title}?</DialogTitle>
                 <DialogDescription>
-                  This permanently removes the item from your organization's Private Space. Members will lose access to run it.
+                  This permanently removes the item from your organization&apos;s Private Space. Members will lose access to run it.
                 </DialogDescription>
               </DialogHeader>
               <div className="mt-2 flex gap-3">
@@ -256,7 +251,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <span className="text-xs font-bold tracking-widest text-primary uppercase">
-              {submission.type} Catalog Item
+              Manage {submission.type}
             </span>
             <h1 className="mt-1 text-2xl font-bold text-foreground flex items-center gap-2">
               {submission.title}
@@ -342,7 +337,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
             </div>
           </div>
 
-          <div className="rounded-xl border border-[var(--ironhub-line)]/45 bg-muted/5 p-4 shadow-sm">
+          {/* <div className="rounded-xl border border-[var(--ironhub-line)]/45 bg-muted/5 p-4 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold tracking-widest text-muted-foreground uppercase">Avg Latency</span>
               <IconClock className="size-4 text-muted-foreground" />
@@ -357,7 +352,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
                 </span>
               )}
             </div>
-          </div>
+          </div> */}
         </div>
 
         <div className="mt-6 border-t border-[var(--ironhub-line)]/50 pt-6">

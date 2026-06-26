@@ -233,9 +233,9 @@ export default function NewSubmitPage() {
       <Card className="border border-[var(--ironhub-line)] bg-card/60 p-5 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="space-y-1">
-            <span className="text-xs font-bold tracking-widest text-primary uppercase">
+            {/* <span className="text-xs font-bold tracking-widest text-primary uppercase">
               Internal Catalog
-            </span>
+            </span> */}
             <h1 className="mt-0.5 font-heading text-2xl font-bold leading-tight text-foreground">
               Add new Item
             </h1>

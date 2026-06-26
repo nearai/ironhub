@@ -4,7 +4,6 @@ import React, { useState } from "react"
 import Link from "next/link"
 import { usePartnerStore } from "@/features/partner/store/partner-store"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -89,9 +88,9 @@ export default function DashboardPage() {
             <span className="text-xs font-bold tracking-widest text-primary uppercase sm:text-sm">
               Private Space Dashboard
             </span>
-            <h1 className="font-heading text-2xl font-bold leading-tight sm:text-4xl text-foreground">
+            {/* <h1 className="font-heading text-2xl font-bold leading-tight sm:text-4xl text-foreground">
               Internal Catalog
-            </h1>
+            </h1> */}
             <p className="max-w-xl text-xs text-muted-foreground sm:text-sm leading-relaxed">
               Manage and deploy skills and tools for your organization.
             </p>

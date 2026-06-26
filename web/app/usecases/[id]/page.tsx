@@ -154,7 +154,7 @@ export default async function UseCaseDetailPage({ params }: PageProps) {
                       ul: ({ ...props }) => <ul className="list-disc pl-5 mb-4 text-sm space-y-1.5 text-muted-foreground" {...props} />,
                       ol: ({ ...props }) => <ol className="list-decimal pl-5 mb-4 text-sm space-y-1.5 text-muted-foreground" {...props} />,
                       li: ({ ...props }) => <li className="pl-1" {...props} />,
-                      code: ({ className, children, ...props }) => (
+                      code: ({ children, ...props }) => (
                         <code className="rounded-[5px] border border-primary/30 bg-primary/10 px-1.5 py-0.5 font-mono text-[0.8em] font-medium text-[#0072c9] dark:text-[#83dcff]" {...props}>
                           {children}
                         </code>
