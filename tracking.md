@@ -2,12 +2,12 @@
 
 Status of every tool and skill currently in this repository. Updated in the same commit that adds, modifies, or removes an entry.
 
-Last updated: 2026-06-16
+Last updated: 2026-06-29
 
 ## Summary
 
 - 3 tools live
-- 2 skills live
+- 3 skills live
 - 0 open bugs against shipped integrations
 
 ## Tools
@@ -25,6 +25,7 @@ Last updated: 2026-06-16
 |---|---|---|---|---|---|---|---|
 | `microsoft-365-workflow` | live | 1.0.0 | Automate Outlook email drafts and replies, Read and write Excel range data directly, Post status updates to Teams channels | Automation, Productivity | Microsoft 365 business workflow patterns. 18 activation keywords, 6 regex patterns, 6,500 token budget. | `microsoft-365` | Brandon |
 | `pr-triage-digest` | live | 1.0.0 | Morning PR-review triage across one or more repos, Cross-repo backlog ranking, Stale-PR sweep before release, First-contributor surfacing for friendly review | Engineering, Productivity, Code-review | Triages open GitHub pull requests across one or more repos. Scores each on CI status, mergeability, staleness, size, and review state, then groups into Blockers, Quick wins, First contributors, Aging, and Normal. Silent-tier (read-only). 19 activation keywords, 6 regex patterns, 4,000 token budget. Ships a deterministic Node.js reference implementation. | `http` | Skytonet2 |
+| `xquik-x-data` | live | 1.0.0 | Search and summarize public X posts, Export followers after estimation, Set up Xquik MCP, Monitor X accounts or keywords with approval, Draft confirmation-gated X actions | X Data, Social Listening, Automation | Routes Xquik X data requests across REST, MCP setup, extraction estimates, monitors, webhooks, exports, and confirmation-gated write workflows. API-key only, read-only by default, and isolates X-authored content before analysis. 10 activation keywords, 4 regex patterns, 4,000 token budget. | `http` | Xquik |
 
 ## Open work
 
