@@ -6,6 +6,8 @@
     "Set up X monitoring and send matching events to my webhook."
   ],
   "negative": [
+    "Analyze this matrix data.",
+    "Compare Linux API alternatives.",
     "Summarize this local PDF.",
     "Reconcile this spreadsheet.",
     "Book travel for next week."

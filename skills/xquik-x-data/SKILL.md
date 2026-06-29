@@ -5,18 +5,19 @@ description: "Routes Xquik X data requests across REST, MCP setup, extraction es
 activation:
   keywords:
     - "xquik"
-    - "x data"
+    - "xquik api"
+    - "twitter data"
     - "twitter scraper"
     - "tweet search"
     - "follower export"
-    - "x monitoring"
-    - "x webhook"
-    - "x api alternative"
+    - "twitter monitoring"
+    - "twitter webhook"
+    - "twitter api alternative"
     - "xquik mcp"
     - "social listening"
   patterns:
     - "(?i)\\bxquik\\b"
-    - "(?i)(twitter|x)\\s+(scraper|data|api|monitor|webhook)"
+    - "(?i)\\b(?:twitter|x)\\b\\s+(scraper|data|api|monitor|monitoring|webhook)"
     - "(?i)(tweet|follower|following|profile)\\s+(search|lookup|export|extraction)"
     - "(?i)social\\s+listening"
   tags:
