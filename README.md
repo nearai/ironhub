@@ -32,7 +32,8 @@ Use cases, WASM tools, and SKILL.md skills for the IronClaw agent runtime.
 - `tools/wordpress`. WordPress and WooCommerce operations for posts, media, comments, products, orders, and customers with host-injected credentials.
 - `tools/youtube`. YouTube Data API v3 analytics plus transcript extraction for videos, comments, channels, uploads, and search.
 - `skills/microsoft-365-workflow`. Business workflow patterns for the agent when operating inside the Microsoft 365 surface.
-- `skills/pr-triage-digest`. Cross-repo GitHub PR triage. Scores every open PR on CI, mergeability, staleness, size, and review state, then emits a single ranked digest grouped into Blockers, Quick wins, First contributors, Aging, and Normal. Silent-tier; uses the built-in `http` tool — no new tool dependency. Ships a deterministic Node.js reference implementation.
+- `skills/pr-triage-digest`. Cross-repo GitHub PR triage. Scores every open PR on CI, mergeability, staleness, size, and review state, then emits a single ranked digest grouped into Blockers, Quick wins, First contributors, Aging, and Normal. Silent-tier; uses the built-in `http` tool, with no new tool dependency. Ships a deterministic Node.js reference implementation.
+- `skills/xquik-x-data`. Xquik X data workflow patterns for tweet search, user lookup, follower export, monitors, webhooks, exports, MCP setup, and confirmation-gated X actions. API-key only; requires approval before private reads, writes, persistent monitors, webhook delivery, or bulk extraction jobs.
 
 See `tracking.md` for the full status table.
 

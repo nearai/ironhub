@@ -1,0 +1,13 @@
+{
+  "positive": [
+    "Search recent tweets about this launch with Xquik.",
+    "Export followers for this account using a Twitter scraper API.",
+    "Set up Xquik MCP for my coding agent.",
+    "Set up X monitoring and send matching events to my webhook."
+  ],
+  "negative": [
+    "Summarize this local PDF.",
+    "Reconcile this spreadsheet.",
+    "Book travel for next week."
+  ]
+}
