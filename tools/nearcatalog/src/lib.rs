@@ -569,46 +569,153 @@ fn serialize(value: &Value) -> Result<String, String> {
     serde_json::to_string(value).map_err(|e| format!("Failed to serialize output: {e}"))
 }
 
+// NOTE: This schema uses the top-level `required` + `oneOf` (per-action branch)
+// shape, matching the github and firecrawl tools. The host forwards only the fields
+// named in the matching branch; a flat schema with `required: ["action"]` alone
+// causes every other argument (query, slug, category, limit, ...) to be stripped
+// before the tool sees it — so param actions like get_project and search would fail
+// with "missing field". Each branch therefore re-lists `action` plus that action's
+// mandatory fields. Do NOT add a top-level `additionalProperties: false`: with
+// per-branch properties it would reject every real argument.
 const SCHEMA: &str = r#"{
     "type": "object",
-    "properties": {
-        "action": {
-            "type": "string",
-            "enum": ["list_projects", "search", "get_project", "related_projects", "list_categories", "projects_by_category", "trending", "search_people", "list_oss"],
-            "description": "Which NEAR Catalog operation to perform."
-        },
-        "query": {
-            "type": "string",
-            "description": "Keyword/filter. REQUIRED for 'search' (server-side keyword match across project profiles — best for finding projects by topic). For 'list_projects' it is a client-side filter over name/tagline/tags. For 'search_people' it matches name/organization/job title/description. For 'list_oss' it keeps matching library lines plus section headers."
-        },
-        "status": {
-            "type": "string",
-            "enum": ["active", "inactive"],
-            "description": "Optional server-side filter for 'list_projects': operational status."
-        },
-        "phase": {
-            "type": "string",
-            "enum": ["mainnet", "testnet"],
-            "description": "Optional server-side filter for 'list_projects': ecosystem phase."
-        },
-        "slug": {
-            "type": "string",
-            "description": "Project slug for 'get_project' and 'related_projects' (e.g. 'ref-finance'). Lowercase letters, digits, '-', '_', '.'. Discover slugs with 'list_projects' or 'search'."
-        },
-        "category": {
-            "type": "string",
-            "description": "For 'projects_by_category': a category slug (e.g. 'ai', 'defi', 'infrastructure') discovered via 'list_categories'. For trending projects use the 'trending' action instead."
-        },
-        "limit": {
-            "type": "integer",
-            "description": "Maximum results to return (1-100, default 25). Applies to list_projects, search, related_projects, projects_by_category, trending, and search_people.",
-            "minimum": 1,
-            "maximum": 100,
-            "default": 25
-        }
-    },
     "required": ["action"],
-    "additionalProperties": false
+    "oneOf": [
+        {
+            "properties": {
+                "action": { "const": "list_projects" },
+                "query": {
+                    "type": "string",
+                    "description": "Client-side filter over project name/tagline/tags."
+                },
+                "status": {
+                    "type": "string",
+                    "enum": ["active", "inactive"],
+                    "description": "Optional server-side filter for 'list_projects': operational status."
+                },
+                "phase": {
+                    "type": "string",
+                    "enum": ["mainnet", "testnet"],
+                    "description": "Optional server-side filter for 'list_projects': ecosystem phase."
+                },
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 25,
+                    "description": "Maximum results to return (1-100, default 25)."
+                }
+            },
+            "required": ["action"]
+        },
+        {
+            "properties": {
+                "action": { "const": "search" },
+                "query": {
+                    "type": "string",
+                    "description": "Server-side keyword match across project profiles (name/tagline/tags). Best for finding projects by topic."
+                },
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 25,
+                    "description": "Maximum results to return (1-100, default 25)."
+                }
+            },
+            "required": ["action", "query"]
+        },
+        {
+            "properties": {
+                "action": { "const": "get_project" },
+                "slug": {
+                    "type": "string",
+                    "description": "Project slug (e.g. 'ref-finance'). Lowercase letters, digits, '-', '_', '.'. Discover slugs with 'list_projects' or 'search'."
+                }
+            },
+            "required": ["action", "slug"]
+        },
+        {
+            "properties": {
+                "action": { "const": "related_projects" },
+                "slug": {
+                    "type": "string",
+                    "description": "Project slug (e.g. 'ref-finance'). Lowercase letters, digits, '-', '_', '.'. Discover slugs with 'list_projects' or 'search'."
+                },
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 25,
+                    "description": "Maximum results to return (1-100, default 25)."
+                }
+            },
+            "required": ["action", "slug"]
+        },
+        {
+            "properties": {
+                "action": { "const": "list_categories" }
+            },
+            "required": ["action"]
+        },
+        {
+            "properties": {
+                "action": { "const": "projects_by_category" },
+                "category": {
+                    "type": "string",
+                    "description": "A category slug (e.g. 'ai', 'defi', 'infrastructure') discovered via 'list_categories'. For trending projects use the 'trending' action instead."
+                },
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 25,
+                    "description": "Maximum results to return (1-100, default 25)."
+                }
+            },
+            "required": ["action", "category"]
+        },
+        {
+            "properties": {
+                "action": { "const": "trending" },
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 25,
+                    "description": "Maximum results to return (1-100, default 25)."
+                }
+            },
+            "required": ["action"]
+        },
+        {
+            "properties": {
+                "action": { "const": "search_people" },
+                "query": {
+                    "type": "string",
+                    "description": "Filter matching name/organization/job title/description."
+                },
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 25,
+                    "description": "Maximum results to return (1-100, default 25)."
+                }
+            },
+            "required": ["action"]
+        },
+        {
+            "properties": {
+                "action": { "const": "list_oss" },
+                "query": {
+                    "type": "string",
+                    "description": "Filter keeping matching library lines plus section headers."
+                }
+            },
+            "required": ["action"]
+        }
+    ]
 }"#;
 
 export!(NearCatalogTool);
@@ -622,7 +729,17 @@ mod tests {
     fn schema_is_valid_json() {
         let v: Value = serde_json::from_str(SCHEMA).expect("schema must be valid JSON");
         assert_eq!(v["type"], "object");
-        assert!(v["properties"]["action"]["enum"].is_array());
+        assert_eq!(v["required"][0], "action");
+        // Per-action `oneOf` branches each re-list their mandatory fields so the host
+        // forwards them (a flat `required: ["action"]` strips every other argument).
+        let branches = v["oneOf"].as_array().expect("oneOf must be an array");
+        assert_eq!(branches.len(), 9);
+        for b in branches {
+            let req = b["required"].as_array().expect("branch needs required[]");
+            assert_eq!(req[0], "action");
+            // action is pinned to a const matching one tool action.
+            assert!(b["properties"]["action"]["const"].is_string());
+        }
     }
 
     #[test]

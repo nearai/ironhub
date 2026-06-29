@@ -446,51 +446,264 @@ fn arr<'a>(v: &'a Value, key: &str) -> &'a [Value] {
         .unwrap_or(&[])
 }
 
+// NOTE: This schema uses the top-level `required` + `oneOf` (per-action branch)
+// shape, matching the github tool. The host forwards only the fields named in the
+// matching branch's `properties`/`required` set; a flat schema with
+// `required: ["action"]` alone causes every other argument (actor, uri, q, ...) to
+// be stripped before the tool sees it, so actions fail with "missing field X".
+// Each branch therefore re-lists `action` plus that action's mandatory fields. Do
+// NOT add a top-level `additionalProperties: false`: with per-branch properties it
+// would reject every real argument.
 const SCHEMA: &str = r#"{
     "type": "object",
-    "properties": {
-        "action": {
-            "type": "string",
-            "enum": ["get_profile", "get_author_feed", "get_post_thread", "get_followers", "get_follows", "get_likes", "get_reposted_by", "search_actors"],
-            "description": "Which read-only Bluesky operation to perform."
-        },
-        "actor": {
-            "type": "string",
-            "description": "Account identifier: a handle (e.g. 'alice.bsky.social') or DID (e.g. 'did:plc:...'). REQUIRED for get_profile, get_author_feed, get_followers, get_follows."
-        },
-        "uri": {
-            "type": "string",
-            "description": "Post at-uri (e.g. 'at://did:plc:.../app.bsky.feed.post/<rkey>'). REQUIRED for get_post_thread, get_likes, get_reposted_by. Obtain one from get_author_feed output."
-        },
-        "q": {
-            "type": "string",
-            "description": "Keyword query. REQUIRED for search_actors (matches handle/display name/bio)."
-        },
-        "limit": {
-            "type": "integer",
-            "description": "Max results for list actions (1-100, default 50). Applies to get_author_feed, get_followers, get_follows, get_likes, get_reposted_by, search_actors.",
-            "minimum": 1,
-            "maximum": 100,
-            "default": 50
-        },
-        "cursor": {
-            "type": "string",
-            "description": "Opaque pagination cursor from a previous response. Pass it back to fetch the next page."
-        },
-        "filter": {
-            "type": "string",
-            "description": "Optional server-side filter for get_author_feed: 'posts_with_replies', 'posts_no_replies', 'posts_with_media', or 'posts_and_author_threads'.",
-            "enum": ["posts_with_replies", "posts_no_replies", "posts_with_media", "posts_and_author_threads"]
-        },
-        "depth": {
-            "type": "integer",
-            "description": "Reply-tree depth for get_post_thread (default 6, max 100).",
-            "minimum": 0,
-            "maximum": 100
-        }
-    },
     "required": ["action"],
-    "additionalProperties": false
+    "oneOf": [
+        {
+            "properties": {
+                "action": { "const": "get_profile" },
+                "actor": {
+                    "type": "string",
+                    "description": "Account identifier: a handle (e.g. 'alice.bsky.social') or DID (e.g. 'did:plc:...')."
+                }
+            },
+            "required": ["action", "actor"]
+        },
+        {
+            "properties": {
+                "action": { "const": "get_author_feed" },
+                "actor": {
+                    "type": "string",
+                    "description": "Account identifier: a handle (e.g. 'alice.bsky.social') or DID (e.g. 'did:plc:...')."
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max results (1-100, default 50).",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 50
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "Opaque pagination cursor from a previous response. Pass it back to fetch the next page."
+                },
+                "filter": {
+                    "type": "string",
+                    "description": "Optional server-side filter: 'posts_with_replies', 'posts_no_replies', 'posts_with_media', or 'posts_and_author_threads'.",
+                    "enum": ["posts_with_replies", "posts_no_replies", "posts_with_media", "posts_and_author_threads"]
+                }
+            },
+            "required": ["action", "actor"]
+        },
+        {
+            "properties": {
+                "action": { "const": "get_post_thread" },
+                "uri": {
+                    "type": "string",
+                    "description": "Post at-uri (e.g. 'at://did:plc:.../app.bsky.feed.post/<rkey>'). Obtain one from get_author_feed output."
+                },
+                "depth": {
+                    "type": "integer",
+                    "description": "Reply-tree depth (default 6, max 100).",
+                    "minimum": 0,
+                    "maximum": 100
+                }
+            },
+            "required": ["action", "uri"]
+        },
+        {
+            "properties": {
+                "action": { "const": "get_followers" },
+                "actor": {
+                    "type": "string",
+                    "description": "Account identifier: a handle (e.g. 'alice.bsky.social') or DID (e.g. 'did:plc:...')."
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max results (1-100, default 50).",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 50
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "Opaque pagination cursor from a previous response. Pass it back to fetch the next page."
+                }
+            },
+            "required": ["action", "actor"]
+        },
+        {
+            "properties": {
+                "action": { "const": "get_follows" },
+                "actor": {
+                    "type": "string",
+                    "description": "Account identifier: a handle (e.g. 'alice.bsky.social') or DID (e.g. 'did:plc:...')."
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max results (1-100, default 50).",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 50
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "Opaque pagination cursor from a previous response. Pass it back to fetch the next page."
+                }
+            },
+            "required": ["action", "actor"]
+        },
+        {
+            "properties": {
+                "action": { "const": "get_likes" },
+                "uri": {
+                    "type": "string",
+                    "description": "Post at-uri (e.g. 'at://did:plc:.../app.bsky.feed.post/<rkey>'). Obtain one from get_author_feed output."
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max results (1-100, default 50).",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 50
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "Opaque pagination cursor from a previous response. Pass it back to fetch the next page."
+                }
+            },
+            "required": ["action", "uri"]
+        },
+        {
+            "properties": {
+                "action": { "const": "get_reposted_by" },
+                "uri": {
+                    "type": "string",
+                    "description": "Post at-uri (e.g. 'at://did:plc:.../app.bsky.feed.post/<rkey>'). Obtain one from get_author_feed output."
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max results (1-100, default 50).",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 50
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "Opaque pagination cursor from a previous response. Pass it back to fetch the next page."
+                }
+            },
+            "required": ["action", "uri"]
+        },
+        {
+            "properties": {
+                "action": { "const": "search_actors" },
+                "q": {
+                    "type": "string",
+                    "description": "Keyword query (matches handle/display name/bio)."
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max results (1-100, default 50).",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 50
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "Opaque pagination cursor from a previous response. Pass it back to fetch the next page."
+                }
+            },
+            "required": ["action", "q"]
+        }
+    ]
 }"#;
 
 export!(BlueskyAnalyticsTool);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn schema_is_valid_json() {
+        let v: Value = serde_json::from_str(SCHEMA).expect("schema must be valid JSON");
+        assert_eq!(v["type"], "object");
+        assert_eq!(v["required"][0], "action");
+        // Per-action `oneOf` branches each re-list their mandatory fields so the host
+        // forwards them (a flat `required: ["action"]` strips every other argument).
+        let branches = v["oneOf"].as_array().expect("oneOf must be an array");
+        assert_eq!(branches.len(), 8);
+        for b in branches {
+            let req = b["required"].as_array().expect("branch needs required[]");
+            assert_eq!(req[0], "action");
+            // action is pinned to a const matching one tool action.
+            assert!(b["properties"]["action"]["const"].is_string());
+        }
+    }
+
+    #[test]
+    fn action_deserializes_each_variant() {
+        assert!(matches!(
+            serde_json::from_str::<Action>(r#"{"action":"get_profile","actor":"alice.bsky.social"}"#),
+            Ok(Action::GetProfile { .. })
+        ));
+        assert!(matches!(
+            serde_json::from_str::<Action>(r#"{"action":"get_author_feed","actor":"alice.bsky.social"}"#),
+            Ok(Action::GetAuthorFeed { .. })
+        ));
+        assert!(matches!(
+            serde_json::from_str::<Action>(r#"{"action":"get_post_thread","uri":"at://x"}"#),
+            Ok(Action::GetPostThread { .. })
+        ));
+        assert!(matches!(
+            serde_json::from_str::<Action>(r#"{"action":"get_followers","actor":"alice.bsky.social"}"#),
+            Ok(Action::GetFollowers { .. })
+        ));
+        assert!(matches!(
+            serde_json::from_str::<Action>(r#"{"action":"get_follows","actor":"alice.bsky.social"}"#),
+            Ok(Action::GetFollows { .. })
+        ));
+        assert!(matches!(
+            serde_json::from_str::<Action>(r#"{"action":"get_likes","uri":"at://x"}"#),
+            Ok(Action::GetLikes { .. })
+        ));
+        assert!(matches!(
+            serde_json::from_str::<Action>(r#"{"action":"get_reposted_by","uri":"at://x"}"#),
+            Ok(Action::GetRepostedBy { .. })
+        ));
+        assert!(matches!(
+            serde_json::from_str::<Action>(r#"{"action":"search_actors","q":"rust"}"#),
+            Ok(Action::SearchActors { .. })
+        ));
+    }
+
+    #[test]
+    fn actions_require_their_mandatory_fields() {
+        assert!(serde_json::from_str::<Action>(r#"{"action":"get_profile"}"#).is_err());
+        assert!(serde_json::from_str::<Action>(r#"{"action":"get_post_thread"}"#).is_err());
+        assert!(serde_json::from_str::<Action>(r#"{"action":"search_actors"}"#).is_err());
+    }
+
+    #[test]
+    fn schema_branch_consts_cover_every_action() {
+        let v: Value = serde_json::from_str(SCHEMA).unwrap();
+        let consts: Vec<String> = v["oneOf"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|b| b["properties"]["action"]["const"].as_str().unwrap().to_string())
+            .collect();
+        for expected in [
+            "get_profile",
+            "get_author_feed",
+            "get_post_thread",
+            "get_followers",
+            "get_follows",
+            "get_likes",
+            "get_reposted_by",
+            "search_actors",
+        ] {
+            assert!(consts.contains(&expected.to_string()), "missing branch for {expected}");
+        }
+    }
+}
