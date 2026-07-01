@@ -1,3 +1,4 @@
+import type { LookupAddress } from "node:dns"
 import { lookup } from "node:dns/promises"
 import net from "node:net"
 
@@ -20,7 +21,7 @@ export async function validateAgentUrl(value: string) {
     throw new Error("Agent URL must use https.")
   }
 
-  await assertPublicHost(url.hostname)
+  await resolvePublicAddresses(url.hostname)
 
   return url.origin
 }
@@ -58,16 +59,17 @@ export function validateLabel(value: string) {
   return label
 }
 
-async function assertPublicHost(hostname: string) {
+export async function resolvePublicAddresses(
+  hostname: string
+): Promise<LookupAddress[]> {
   const literal = hostname.startsWith("[") ? hostname.slice(1, -1) : hostname
-  let addresses: string[]
+  let addresses: LookupAddress[]
 
   if (net.isIP(literal) !== 0) {
-    addresses = [literal]
+    addresses = [{ address: literal, family: net.isIP(literal) }]
   } else {
     try {
-      const resolved = await lookup(hostname, { all: true })
-      addresses = resolved.map((entry) => entry.address)
+      addresses = await lookup(hostname, { all: true })
     } catch {
       throw new Error("Agent URL host could not be resolved.")
     }
@@ -77,11 +79,13 @@ async function assertPublicHost(hostname: string) {
     throw new Error("Agent URL host could not be resolved.")
   }
 
-  for (const address of addresses) {
+  for (const { address } of addresses) {
     if (!isPublicUnicast(address)) {
       throw new Error("Agent URL must resolve to a public address.")
     }
   }
+
+  return addresses
 }
 
 function isPublicUnicast(address: string) {

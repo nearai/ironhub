@@ -1,3 +1,5 @@
+import https from "node:https"
+
 import {
   artifactDigest,
   createKeyFingerprint,
@@ -17,6 +19,7 @@ import type {
   AgentInstallationView,
 } from "@/lib/agent-installations/types"
 import {
+  resolvePublicAddresses,
   validateAgentUrl,
   validateLabel,
   validateSharedKey,
@@ -406,23 +409,57 @@ async function registerAgentInstallation(input: {
     ts,
     nonce,
   })
-  const res = await fetch(new URL("/api/ironhub/register", input.agentUrl), {
-    method: "POST",
-    redirect: "manual",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      uid: input.userId,
-      aid: input.id,
-      ts,
-      nonce,
-      sig,
-    }),
-    signal: AbortSignal.timeout(8000),
+  const body = JSON.stringify({
+    uid: input.userId,
+    aid: input.id,
+    ts,
+    nonce,
+    sig,
   })
 
-  if (!res.ok) {
+  if (!(await postAgentRegistration(input.agentUrl, body))) {
     throw new Error("Agent registration failed.")
   }
+}
+
+async function postAgentRegistration(
+  agentUrl: string,
+  body: string
+): Promise<boolean> {
+  const target = new URL("/api/ironhub/register", agentUrl)
+  const vetted = await resolvePublicAddresses(target.hostname)
+
+  return new Promise<boolean>((resolve, reject) => {
+    const request = https.request(
+      {
+        hostname: target.hostname,
+        servername: target.hostname,
+        port: target.port || 443,
+        path: `${target.pathname}${target.search}`,
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "content-length": Buffer.byteLength(body),
+        },
+        timeout: 8000,
+        lookup: (_hostname, options, callback) =>
+          options.all
+            ? callback(null, vetted)
+            : callback(null, vetted[0].address, vetted[0].family),
+      },
+      (response) => {
+        response.resume()
+        const status = response.statusCode ?? 0
+        resolve(status >= 200 && status < 300)
+      }
+    )
+
+    request.on("timeout", () => {
+      request.destroy(new Error("Agent registration timed out."))
+    })
+    request.on("error", reject)
+    request.end(body)
+  })
 }
 
 function buildInstallRedirectUrl(
