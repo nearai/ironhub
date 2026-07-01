@@ -13,7 +13,7 @@ import { cn } from "@/lib/shared/utils"
 
 const menuItems = [
   { label: "Dashboard", href: "/mvp/dashboard", icon: IconLayoutDashboard },
-  { label: "Team Members", href: "/mvp/team", icon: IconUsers },
+  { label: "Members & Access", href: "/mvp/team", icon: IconUsers },
   { label: "Settings", href: "/mvp/settings", icon: IconSettings },
 ]
 
@@ -30,7 +30,7 @@ export function PartnerNav({ onNavigate }: PartnerNavProps) {
         const isActive =
           pathname === item.href ||
           (item.href === "/mvp/dashboard" &&
-            pathname.startsWith("/mvp/manage"))
+            (pathname.startsWith("/mvp/manage") || pathname.startsWith("/mvp/edit-skill")))
         const Icon = item.icon
 
         return (

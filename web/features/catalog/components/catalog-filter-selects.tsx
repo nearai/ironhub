@@ -33,8 +33,8 @@ export function CatalogFilterSelects({
       <Select value={category} onValueChange={onCategoryChange}>
         <SelectTrigger
           className={cn(
-            "h-10 w-auto gap-2 px-4 transition-all duration-300 lg:h-11 lg:w-[180px]",
-            compact && "lg:h-9 lg:w-[145px] lg:px-3 lg:text-xs"
+            "h-9 w-auto gap-2 px-3 transition-all duration-300 lg:h-9 lg:w-[168px]",
+            compact && "lg:h-9 lg:w-[150px] lg:px-3 lg:text-xs"
           )}
         >
           <IconCategory
@@ -61,7 +61,7 @@ export function CatalogFilterSelects({
       >
         <SelectTrigger
           className={cn(
-            "h-10 w-auto gap-2 px-4 transition-all duration-300 lg:h-11 lg:w-[160px]",
+            "h-9 w-auto gap-2 px-3 transition-all duration-300 lg:h-9 lg:w-[140px]",
             compact && "lg:h-9 lg:w-[125px] lg:px-3 lg:text-xs"
           )}
         >

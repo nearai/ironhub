@@ -1,5 +1,3 @@
-import { IconSparkles, IconTool } from "@tabler/icons-react"
-
 import { Badge } from "@/components/ui/badge"
 import type { CatalogItem } from "@/lib/catalog/types"
 
@@ -8,22 +6,15 @@ type StatusBadgeProps = {
 }
 
 export function StatusBadge({ item }: StatusBadgeProps) {
-  const Icon = item.kind === "skill" ? IconSparkles : IconTool
-  const iconClass = "size-3.5 -ml-0.5 mr-1"
-
-  if (item.origin === "iliad") {
-    return (
-      <Badge variant="secondary">
-        <Icon className={iconClass} aria-hidden="true" />
-        {item.kind === "skill" ? "Skill" : "Tool"} · Iliad
-      </Badge>
-    )
-  }
+  const label = item.kind === "skill" ? "Skill" : "Tool"
 
   return (
-    <Badge variant={item.kind === "skill" ? "secondary" : "default"}>
-      <Icon className={iconClass} aria-hidden="true" />
-      {item.kind === "skill" ? "Skill" : "Tool"}
+    <Badge
+      variant="outline"
+      className="shrink-0 rounded-full border border-primary/40 bg-primary/10 px-2 py-[2px] font-mono text-[0.58rem] font-medium tracking-[0.06em] whitespace-nowrap text-[#0072c9] uppercase dark:text-[#83dcff]"
+    >
+      {label}
+      {item.origin === "iliad" ? " · Iliad" : ""}
     </Badge>
   )
 }
