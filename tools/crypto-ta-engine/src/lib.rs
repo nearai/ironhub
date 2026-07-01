@@ -22,8 +22,71 @@ mod indicators;
 mod logic;
 mod scoring;
 
+// NOTE: This schema uses the top-level `required` + `oneOf` (per-command branch)
+// shape, matching the working `github` tool. The host forwards only the fields
+// named in the matching branch's `properties`/`required`; a flat schema with
+// `required: ["command","symbol"]` causes every OPTIONAL argument (intervals,
+// interval, limit) to be stripped before the tool sees it — so callers could
+// never override the defaults. Each branch therefore lists `command` plus that
+// command's own fields. Do NOT add a top-level `additionalProperties: false`:
+// with per-branch properties it would reject every real argument.
+//
+// Consumed by the wasm host glue (and the native `schema_tests`); marked
+// allow(dead_code) for the plain native build where neither is compiled.
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+const SCHEMA: &str = r#"{
+    "type": "object",
+    "required": ["command"],
+    "oneOf": [
+        {
+            "properties": {
+                "command": {
+                    "const": "analyze",
+                    "description": "Weighted multi-timeframe confluence verdict"
+                },
+                "symbol": {
+                    "type": "string",
+                    "description": "Trading pair, e.g. BTCUSDT. Separators (/, -) are stripped automatically."
+                },
+                "intervals": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Timeframes top-down. Default ['4h','1h','15m']. Valid: 1m,3m,5m,15m,30m,1h,2h,4h,6h,8h,12h,1d,3d,1w,1M"
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Candles per timeframe (default 300, max 1000). Use >=200 for reliable EMA200/ADX/ATR."
+                }
+            },
+            "required": ["command", "symbol"]
+        },
+        {
+            "properties": {
+                "command": {
+                    "const": "indicators",
+                    "description": "Single-timeframe raw indicator snapshot"
+                },
+                "symbol": {
+                    "type": "string",
+                    "description": "Trading pair, e.g. BTCUSDT. Separators (/, -) are stripped automatically."
+                },
+                "interval": {
+                    "type": "string",
+                    "description": "Single timeframe, e.g. '1h'. Valid: 1m,3m,5m,15m,30m,1h,2h,4h,6h,8h,12h,1d,3d,1w,1M"
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Candles (default 300, max 1000). Use >=200 for reliable EMA200/ADX/ATR."
+                }
+            },
+            "required": ["command", "symbol", "interval"]
+        }
+    ]
+}"#;
+
 #[cfg(target_arch = "wasm32")]
 mod wasm {
+    use super::SCHEMA;
     use crate::logic::{
         analyze_timeframe, build_analysis_output, build_klines_url, handle_klines_response,
         parse_command, validate_interval, Command, TimeframeReport, BASE_URL, DEFAULT_INTERVALS,
@@ -132,35 +195,28 @@ mod wasm {
         }
     }
 
-    const SCHEMA: &str = r#"{
-        "type": "object",
-        "properties": {
-            "command": {
-                "type": "string",
-                "enum": ["analyze", "indicators"],
-                "description": "'analyze' = weighted multi-timeframe confluence verdict; 'indicators' = single-timeframe snapshot"
-            },
-            "symbol": {
-                "type": "string",
-                "description": "Trading pair, e.g. BTCUSDT. Separators (/, -) are stripped automatically."
-            },
-            "intervals": {
-                "type": "array",
-                "items": { "type": "string" },
-                "description": "For 'analyze': timeframes top-down. Default ['4h','1h','15m']. Valid: 1m,3m,5m,15m,30m,1h,2h,4h,6h,8h,12h,1d,3d,1w,1M"
-            },
-            "interval": {
-                "type": "string",
-                "description": "For 'indicators': single timeframe, e.g. '1h'"
-            },
-            "limit": {
-                "type": "integer",
-                "description": "Candles per timeframe (default 300, max 1000). Use >=200 for reliable EMA200/ADX/ATR."
-            }
-        },
-        "required": ["command", "symbol"],
-        "additionalProperties": false
-    }"#;
-
     export!(TaEngine);
+}
+
+#[cfg(test)]
+mod schema_tests {
+    use super::SCHEMA;
+    use serde_json::Value;
+
+    #[test]
+    fn schema_is_valid_oneof() {
+        let v: Value = serde_json::from_str(SCHEMA).expect("schema must be valid JSON");
+        assert_eq!(v["type"], "object");
+        assert_eq!(v["required"][0], "command");
+        // Per-command `oneOf` branches each re-list their fields so the host forwards
+        // them (a flat `required: ["command","symbol"]` strips every optional argument).
+        let branches = v["oneOf"].as_array().expect("oneOf must be an array");
+        assert_eq!(branches.len(), 2, "one branch per Command variant");
+        for b in branches {
+            let req = b["required"].as_array().expect("branch needs required[]");
+            assert_eq!(req[0], "command");
+            // command is pinned to a const matching one variant's command string.
+            assert!(b["properties"]["command"]["const"].is_string());
+        }
+    }
 }
