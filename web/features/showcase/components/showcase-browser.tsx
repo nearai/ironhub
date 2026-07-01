@@ -194,7 +194,7 @@ export function ShowcaseBrowser({
           <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search use cases..."
-            className="pl-9 bg-muted/50 border-transparent focus:border-primary/50 focus:bg-background transition-all"
+            className="pl-9 h-10 transition-all"
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value)
@@ -243,7 +243,7 @@ export function ShowcaseBrowser({
               <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search use cases..."
-                className="pl-9 bg-muted/50 border-transparent focus:border-primary/50 focus:bg-background transition-all"
+                className="pl-9 h-10 transition-all"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value)

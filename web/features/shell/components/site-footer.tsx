@@ -19,10 +19,12 @@ export function SiteFooter() {
     return null
   }
 
+  const isHome = pathname === "/"
+
   return (
     <footer className="pt-10 pb-8">
       <div className="ih-container">
-        <Separator className="mb-6 bg-[var(--ironhub-line)]" />
+        {!isHome && <Separator className="mb-6 bg-[var(--ironhub-line)]" />}
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 text-sm text-muted-foreground">
           <BrandMark />
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">

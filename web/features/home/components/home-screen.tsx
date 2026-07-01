@@ -17,7 +17,7 @@ export async function HomeScreen() {
   const collections = buildCollectionBundles(items).slice(0, 3)
 
   return (
-    <HubLayout>
+    <HubLayout className="pb-0 sm:pb-0">
       <div className="ih-fade-up">
         <IronClawHero
           total={stats.total}

@@ -143,7 +143,7 @@
   --ih-bg-soft: #e7e7e3;
   --ih-surface: var(--near-white);
   --ih-surface-muted: var(--near-white);
-  --ih-nav-bg: rgba(238, 238, 235, 0.88);
+  --ih-nav-bg: rgba(255, 255, 255, 0.8);
   --ih-ink: var(--near-navy);
   --ih-ink-soft: #5c5c57;
   --ih-accent: var(--near-blue);
