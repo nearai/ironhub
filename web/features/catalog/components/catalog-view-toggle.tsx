@@ -24,7 +24,7 @@ export function CatalogViewToggle({
         variant={value === "grid" ? "default" : "outline"}
         size="icon"
         className={cn(
-          "h-11 w-11 rounded-full transition-all duration-300",
+          "h-9 w-9 rounded-full border-[1.5px] transition-all duration-300",
           compact && "lg:h-9 lg:w-9"
         )}
         onClick={() => onChange("grid")}
@@ -42,7 +42,7 @@ export function CatalogViewToggle({
         variant={value === "list" ? "default" : "outline"}
         size="icon"
         className={cn(
-          "h-11 w-11 rounded-full transition-all duration-300",
+          "h-9 w-9 rounded-full border-[1.5px] transition-all duration-300",
           compact && "lg:h-9 lg:w-9"
         )}
         onClick={() => onChange("list")}

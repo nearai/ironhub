@@ -16,3 +16,5 @@ web/docs/
 .superpowers/
 openspec/
 .agent/
+.rtk/
+CLAUDE.md

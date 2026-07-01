@@ -219,6 +219,7 @@ let cache: UseCase[] | null = null
 
 export async function getUseCasesCached(force = false): Promise<UseCase[]> {
   if (process.env.NODE_ENV === "development") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const g = globalThis as any
     if (force || !g.__useCasesCache) {
       g.__useCasesCache = await getUseCases()

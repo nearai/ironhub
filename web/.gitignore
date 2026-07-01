@@ -18,11 +18,13 @@ lib/prisma
 /out/
 
 # production
-/build
+# /build
 
 # misc
 .DS_Store
 *.pem
+.rtk/
+CLAUDE.md
 
 # debug
 npm-debug.log*

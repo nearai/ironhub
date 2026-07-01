@@ -47,8 +47,8 @@ export function CatalogKindTabs({
             type="button"
             variant={value === option ? "default" : "outline"}
             className={cn(
-              "h-10 rounded-full px-4 transition-all duration-300 lg:h-11 lg:px-5",
-              compact && "lg:h-9 lg:px-3.5"
+              "h-9 rounded-full border-[1.5px] px-3 transition-all duration-300 lg:h-9 lg:px-3.5",
+              compact && "lg:h-9 lg:px-3"
             )}
             onClick={() => onChange(option)}
           >

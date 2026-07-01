@@ -1,7 +1,7 @@
 ---
 name: firecrawl
 version: 0.1.0
-description: Web scraping, search, site-mapping, and crawling for Ironclaw via the Firecrawl v2 API. Extracts clean markdown/HTML from pages, finds pages by query across web/news/images, lists every URL on a site, and runs recursive crawls.
+description: Web scraping, search, site-mapping, and crawling for Ironclaw via the Firecrawl v2 API. Extracts clean markdown/HTML from pages, finds pages by query across web/news/images, lists every URL on a site, and runs recursive crawls. The host injects the API key as a Bearer token — the tool never sees the raw secret.
 use_cases:
   - Scrape a web page into clean LLM-ready markdown
   - Search the web/news for pages matching a query
@@ -21,6 +21,8 @@ site-mapping, and crawling via the [Firecrawl v2 API](https://docs.firecrawl.dev
 The host injects the API key as a Bearer token — the tool code never sees the
 raw secret — and network access is restricted to `api.firecrawl.dev` as declared
 in `firecrawl-tool.capabilities.json`.
+
+![firecrawl tool](screenshot.png)
 
 ## Actions
 
