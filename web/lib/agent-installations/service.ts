@@ -222,6 +222,7 @@ export async function createInstallIntent(input: {
     ts,
     nonce,
     artifactDigest: target.digest,
+    privateManifestUrl: target.privateManifest?.url,
   })
   const sig = signInstallPayload(sharedKey, payload)
   const redirectInput: InstallRedirectInput = {
@@ -501,7 +502,10 @@ function buildAuditRedirectUrl(
   })
 
   if (input.privateManifestUrl) {
-    params.set("private_manifest_url", input.privateManifestUrl)
+    params.set(
+      "private_manifest_url",
+      input.privateManifestUrl.replace(/[^/]*$/, "redacted")
+    )
     params.set("manifest_token", "redacted")
   }
 
