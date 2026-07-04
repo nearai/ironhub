@@ -10,7 +10,7 @@
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
-    "signing:check": "node scripts/check-manifest-signing.mjs",
+    "signing:check": "node scripts/check-manifest-signing.mjs && node scripts/check-install-payload-signing.mjs",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:deploy": "prisma migrate deploy",
