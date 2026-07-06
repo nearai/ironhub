@@ -8,6 +8,7 @@ type ActionLinkProps = {
   external?: boolean
   variant?: React.ComponentProps<typeof Button>["variant"]
   size?: React.ComponentProps<typeof Button>["size"]
+  className?: string
 }
 
 export function ActionLink({
@@ -16,10 +17,11 @@ export function ActionLink({
   external,
   variant = "outline",
   size,
+  className,
 }: ActionLinkProps) {
   if (external) {
     return (
-      <Button asChild variant={variant} size={size}>
+      <Button asChild variant={variant} size={size} className={className}>
         <a href={href} target="_blank" rel="noreferrer">
           {children}
           <IconExternalLink />
@@ -29,7 +31,7 @@ export function ActionLink({
   }
 
   return (
-    <Button asChild variant={variant} size={size}>
+    <Button asChild variant={variant} size={size} className={className}>
       <Link href={href}>{children}</Link>
     </Button>
   )

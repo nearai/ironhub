@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { ButtonGroup } from "@/components/ui/button-group"
 import { CatalogCard } from "@/features/catalog/components/catalog-card"
 import {
   filterCatalog,
@@ -237,25 +238,25 @@ export function UniversalSelectionDrawer({
       >
         <div className="flex h-full w-[85vw] max-w-[400px] flex-col lg:w-[400px]">
           {/* Header container */}
-          <div className="relative flex flex-col justify-center border-b border-border/40 px-4 py-3 md:px-5 md:py-3.5">
-            <h2 className="font-heading text-lg leading-none font-bold tracking-tight text-foreground md:text-xl">
+          <div className="relative flex flex-col justify-center border-b border-border/40 px-4 py-2 md:px-5 md:py-2.5">
+            <h2 className="text-base font-black tracking-tight text-foreground md:text-lg">
               Equip Your Agent
             </h2>
-            <p className="mt-1 text-[11px] leading-normal font-medium text-slate-500 dark:text-slate-400">
+            <p className="mt-0.5 text-[10px] leading-none font-medium text-muted-foreground">
               Select the skills, tools, and collections to equip.
             </p>
             <Button
               variant="ghost"
               size="icon-sm"
               onClick={onClose}
-              className="absolute top-4 right-4 text-muted-foreground hover:bg-muted lg:hidden"
+              className="absolute top-3 right-4 text-muted-foreground hover:bg-muted lg:hidden"
             >
               <IconX className="size-4" />
             </Button>
           </div>
 
           {/* Toolbar & Segmented Tabs Control */}
-          <div className="flex flex-col gap-3 border-b border-border/30 bg-muted/20 px-4 py-3 md:gap-4 md:px-5 md:py-4">
+          <div className="flex flex-col gap-3 border-b border-border/30 bg-muted/20 px-4 py-2.5 md:gap-3 md:px-5 md:py-3">
             {/* Search bar */}
             <InputGroup className="h-10">
               <InputGroupAddon>
@@ -270,43 +271,37 @@ export function UniversalSelectionDrawer({
             </InputGroup>
 
             {/* Segmented Control / Tabs */}
-            <div className="flex flex-nowrap gap-0 overflow-hidden rounded-full border border-primary/20 bg-muted/40 p-0.5 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/40">
-              {TABS.map((tab, idx) => {
+            <ButtonGroup className="w-full flex shrink-0">
+              {TABS.map((tab) => {
                 const isActive = activeTab === tab.id
+                const Icon =
+                  tab.id === "all"
+                    ? IconLayoutGrid
+                    : tab.id === "skill"
+                      ? IconSparkles
+                      : tab.id === "tool"
+                        ? IconTool
+                        : IconBoxMultiple
+
                 return (
-                  <button
+                  <Button
                     key={tab.id}
+                    type="button"
+                    variant={isActive ? "default" : "outline"}
                     onClick={() => {
                       setActiveTab(tab.id)
                       setCategory("all") // reset category filter
                     }}
-                    className={cn(
-                      "relative flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full px-1 py-1.5 text-[10px] font-extrabold whitespace-nowrap transition-all duration-300 md:text-[11px]",
-                      isActive
-                        ? "bg-primary font-black text-primary-foreground shadow-sm"
-                        : "text-muted-foreground hover:bg-background/25 hover:text-foreground dark:hover:bg-zinc-800/40",
-                      // Delicate divider lines between adjacent inactive tabs
-                      idx < TABS.length - 1 &&
-                        activeTab !== tab.id &&
-                        activeTab !== TABS[idx + 1].id &&
-                        "after:absolute after:top-1/4 after:right-0 after:h-1/2 after:w-[1px] after:bg-border/60 after:content-['']"
-                    )}
+                    className="flex-1 h-9 rounded-full border-[1.5px] px-2 text-xs font-semibold transition-all duration-300"
                   >
-                    {tab.id === "all" && (
-                      <IconLayoutGrid className="size-3.5" />
-                    )}
-                    {tab.id === "skill" && (
-                      <IconSparkles className="size-3.5" />
-                    )}
-                    {tab.id === "tool" && <IconTool className="size-3.5" />}
-                    {tab.id === "collection" && (
-                      <IconBoxMultiple className="size-3.5" />
-                    )}
-                    <span>{tab.label}</span>
-                  </button>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <Icon className="size-3.5 transition-all duration-300" />
+                      <span>{tab.label}</span>
+                    </div>
+                  </Button>
                 )
               })}
-            </div>
+            </ButtonGroup>
 
             {/* Filters */}
             {activeTab !== "collection" && (
@@ -362,19 +357,12 @@ export function UniversalSelectionDrawer({
                         className={cn(
                           "group relative overflow-hidden border border-border/60 bg-card p-4 transition-all duration-300 hover:shadow-md",
                           equipped
-                            ? "border-emerald-500/30 bg-emerald-500/[0.02] dark:bg-emerald-500/[0.01]"
+                            ? "border-primary/30 bg-primary/5 dark:bg-primary/[0.02]"
                             : "hover:border-primary/30 hover:bg-card"
                         )}
                       >
                         <div className="flex items-start gap-3">
-                          <span
-                            className={cn(
-                              "flex size-10 shrink-0 items-center justify-center rounded-xl border shadow-sm",
-                              equipped
-                                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                                : "border-primary/20 bg-primary/10 text-primary"
-                            )}
-                          >
+                          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary shadow-sm">
                             <IconBoxMultiple className="size-5" />
                           </span>
                           <div className="min-w-0 flex-1">
@@ -384,12 +372,12 @@ export function UniversalSelectionDrawer({
                               </h4>
                               <Button
                                 size="xs"
-                                variant={equipped ? "secondary" : "default"}
+                                variant="outline"
                                 className={cn(
-                                  "h-7 shrink-0 cursor-pointer rounded-lg px-3 text-[11px] font-extrabold transition-all",
+                                  "h-7 shrink-0 cursor-pointer px-3 text-[11px] font-extrabold transition-all",
                                   equipped
-                                    ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 hover:border-destructive/20 hover:bg-destructive/10 hover:text-destructive dark:text-emerald-400"
-                                    : "bg-primary text-primary-foreground shadow-sm shadow-primary/10 hover:bg-primary/95"
+                                    ? "border-primary bg-primary/10 text-[#0072c9] hover:bg-primary/20 hover:text-[#0072c9]"
+                                    : "border-primary bg-transparent text-foreground hover:bg-primary/5 hover:text-primary"
                                 )}
                                 onClick={() => onToggle(collection)}
                               >

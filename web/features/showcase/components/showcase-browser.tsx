@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect, useRef } from "react"
+import { useState, useEffect, useRef } from "react"
 import type { UseCase, UsecaseCategory } from "@/lib/usecases/types"
 import { UseCaseCard } from "./use-case-card"
 import { cn } from "@/lib/shared/utils"
@@ -123,7 +123,6 @@ export function ShowcaseBrowser({
   
   const [useCases, setUseCases] = useState<UseCase[]>(initialUseCases)
   const [page, setPage] = useState(1)
-  const [totalCount, setTotalCount] = useState(initialTotal)
   const [hasMore, setHasMore] = useState(initialHasMore)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -134,8 +133,8 @@ export function ShowcaseBrowser({
     // Skip initial fetch on mount if filters are empty
     const isInitial = selectedCategory === "All" && debouncedSearchQuery.trim() === "" && page === 1
     if (isInitial) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUseCases(initialUseCases)
-      setTotalCount(initialTotal)
       setHasMore(initialHasMore)
       return
     }
@@ -149,7 +148,7 @@ export function ShowcaseBrowser({
         const data = await res.json()
         if (active) {
           setUseCases(data.useCases)
-          setTotalCount(data.total)
+          // setTotalCount(data.total)
           setHasMore(data.hasMore)
           setPage(1)
         }
@@ -165,7 +164,7 @@ export function ShowcaseBrowser({
     return () => {
       active = false
     }
-  }, [selectedCategory, debouncedSearchQuery, initialUseCases, initialTotal, initialHasMore])
+  }, [selectedCategory, debouncedSearchQuery, initialUseCases, initialTotal, initialHasMore, page])
 
   const handleLoadMore = async () => {
     if (isLoading || !hasMore) return
@@ -177,7 +176,7 @@ export function ShowcaseBrowser({
       )
       const data = await res.json()
       setUseCases((prev) => [...prev, ...data.useCases])
-      setTotalCount(data.total)
+      // setTotalCount(data.total)
       setHasMore(data.hasMore)
       setPage(nextPage)
     } catch (err) {
@@ -195,7 +194,7 @@ export function ShowcaseBrowser({
           <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search use cases..."
-            className="pl-9 bg-muted/50 border-transparent focus:border-primary/50 focus:bg-background transition-all"
+            className="pl-9 h-10 transition-all"
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value)
@@ -244,7 +243,7 @@ export function ShowcaseBrowser({
               <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search use cases..."
-                className="pl-9 bg-muted/50 border-transparent focus:border-primary/50 focus:bg-background transition-all"
+                className="pl-9 h-10 transition-all"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value)

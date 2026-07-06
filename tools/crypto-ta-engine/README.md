@@ -18,6 +18,8 @@ value_tags:
 Pairs with the **binance-ta-expert-v2** skill. The skill decides *what* to analyze and
 *narrates* the result; this tool does the *math*.
 
+![ta-engine tool](screenshot.png)
+
 ## Why
 
 LLMs are unreliable at multi-step arithmetic. The v1 trading skill asked the model to compute
