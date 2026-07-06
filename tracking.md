@@ -2,11 +2,11 @@
 
 Status of every tool and skill currently in this repository. Updated in the same commit that adds, modifies, or removes an entry.
 
-Last updated: 2026-07-01
+Last updated: 2026-07-06
 
 ## Summary
 
-- 8 tools live
+- 9 tools live
 - 2 skills live
 - 0 open bugs against shipped integrations
 
@@ -22,6 +22,7 @@ Last updated: 2026-07-01
 | `firecrawl` | live | 0.1.0 | Scrape a web page into clean LLM-ready markdown, Search the web/news for pages matching a query, Map every URL on a site, or crawl a docs section recursively | WebScraping, Search, Research | Web scraping, search, site-mapping, and crawling for Ironclaw via the Firecrawl v2 API. Extracts clean markdown/HTML from pages, finds pages by query across web/news/images, lists every URL on a site, and runs recursive crawls. The host injects the API key as a Bearer token — the tool never sees the raw secret. | Search limit 1–100 (default 10). Scrape timeout 1000–300000 ms, wait_for ≤ 60000 ms. crawl_status returns at most 25 pages. | Kent |
 | `nearcatalog` | live | 0.1.0 | Keyword-search NEAR projects or surface what's trending, Look up a project's full profile and discover related projects, Find people building on NEAR or curated awesome-near OSS libraries | Web3, NEAR, Research | Explore the NEAR ecosystem from public NEAR Catalog data. Keyword-search projects, browse and filter the catalog by status/phase, list trending projects, look up full project profiles and related projects, browse categories, find people building on NEAR, and list awesome-near OSS libraries. No authentication required. | Read-only access to public API endpoints. Limit clamped to 1–100 (default 25). | Kent |
 | `nova-submit` | live | 0.1.0 | | | IronClaw Hackathon submission tool. Encrypts a file with AES-256-GCM and uploads to a NOVA group on NEAR. Built as the trunk that the ironclaw-hackathon skill calls to submit hackathon entries. Replicable by any IronClaw hackathon organizer. | Need to create an account at https://nova-sdk.com and collect account-id and api key. | Julien |
+| `wordpress` | live | 0.1.2 | Draft, schedule and update WordPress blog posts or pages from an agent, List and fulfil WooCommerce orders and update order status, Create and update Woocommerce products, inspect customers, moderate content | CMS, WordPress, Woocommerce, E-commerce, Productivity | Read and write a self-hosted WordPress + WooCommerce site over REST for Ironclaw. Manage posts, pages, media and comments (WordPress core) and products, orders and customers (WooCommerce), plus a raw wp_request passthrough to any /wp-json/* route. The host injects credentials (Application Password via Basic for WordPress, consumer key/secret via query params for WooCommerce) — the tool and LLM NEVER see the raw secrets. | Requires HTTPS and pretty permalinks (/wp-json/). The target site host is baked into the capabilities file at install via configure.py. Application Password used for WP core routes, consumer key/secret for WooCommerce. | cuongdcdev |
 
 ## Skills
 

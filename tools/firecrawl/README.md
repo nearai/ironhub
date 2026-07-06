@@ -61,7 +61,7 @@ Numeric inputs are clamped: search `limit` 1–100 (default 10), scrape `timeout
 ## Authentication
 
 ```bash
-ironclaw secret set firecrawl_api_key fc-...   # or `ironclaw tool auth firecrawl-tool`
+ironclaw tool setup firecrawl-tool   # or `ironclaw tool auth firecrawl-tool`; stores firecrawl_api_key (fc-...)
 ```
 
 Get a key at <https://www.firecrawl.dev/app/api-keys> (keys start with `fc-`).

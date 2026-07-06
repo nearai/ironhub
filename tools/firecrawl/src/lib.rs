@@ -10,7 +10,7 @@
 //!
 //! # Authentication
 //!
-//! Store your Firecrawl API key: `ironclaw secret set firecrawl_api_key <key>`.
+//! Store your Firecrawl API key: `ironclaw tool setup firecrawl-tool`.
 //! The host injects it as a Bearer token; this tool never sees the raw value.
 //! Get a key at <https://www.firecrawl.dev/app/api-keys>.
 
@@ -121,7 +121,7 @@ fn execute_inner(params: &str) -> Result<String, String> {
     // Pre-flight: verify the API key is configured before any network call.
     if !near::agent::host::secret_exists(SECRET_NAME) {
         return Err(format!(
-            "Firecrawl API key not found. Set it with: ironclaw secret set {SECRET_NAME} <key>. \
+            "Firecrawl API key not found. Set it with: ironclaw tool setup firecrawl-tool. \
              Get a key at https://www.firecrawl.dev/app/api-keys"
         ));
     }
