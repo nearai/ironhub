@@ -1,0 +1,30 @@
+schema_version = "reborn.extension_manifest.v2"
+id = "attio"
+name = "Attio"
+version = "0.1.0"
+description = "Attio CRM API v2 integration: query, fetch, create, update, assert, and delete records for any object; read object and attribute schemas; list lists and query list entries; and list and create notes and tasks. Record writes take Attio-shaped attribute values; a raw v2 request escape hatch is bounded by the same host allowlist."
+trust = "third_party"
+
+[runtime]
+kind = "wasm"
+module = "wasm/attio_tool.wasm"
+
+[[host_api]]
+id = "ironclaw.capability_provider/v1"
+section = "capability_provider.tools"
+
+[capability_provider.tools]
+
+[[capability_provider.tools.capabilities]]
+id = "attio.invoke"
+description = "Execute an Attio CRM API v2 action. The action name and its fields are passed in params; the input schema is a tagged union of the supported actions (list_records, create_record, list_attributes, create_note, and so on). Record write actions take a values object shaped as Attio attribute values."
+effects = ["dispatch_capability", "network", "use_secret"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/attio/invoke.input.v1.json"
+output_schema_ref = "schemas/attio/raw_output.v1.json"
+prompt_doc_ref = "prompts/attio/invoke.md"
+required_host_ports = ["host.runtime.http_egress"]
+runtime_credentials = [
+  { handle = "attio_api_key", source = { type = "product_auth_account", provider = "attio", setup = { kind = "oauth", scopes = [] } }, audience = { scheme = "https", host_pattern = "api.attio.com" }, target = { type = "header", name = "authorization", prefix = "Bearer " } },
+]

@@ -1,0 +1,59 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "Attio CRM API v2 read and write access. Queries, fetches, creates, updates, asserts, and deletes records for any object (people, companies, deals, users, workspaces, or custom), reads the object catalog and per-object attribute schemas, lists lists and queries list entries, and lists and creates notes and tasks. Exposes a raw attio_request action for any v2 endpoint bounded by the same host allowlist. Authenticated with an Attio workspace API key presented as a Bearer header against api.attio.com.",
+  "http": {
+    "allowlist": [
+      {
+        "host": "api.attio.com",
+        "path_prefix": "/v2/",
+        "methods": [
+          "GET",
+          "POST",
+          "PATCH",
+          "PUT",
+          "DELETE"
+        ]
+      }
+    ],
+    "credentials": {
+      "attio_api_key": {
+        "secret_name": "attio_api_key",
+        "location": {
+          "type": "bearer"
+        },
+        "host_patterns": [
+          "api.attio.com"
+        ],
+        "path_patterns": [
+          "/v2/"
+        ]
+      }
+    },
+    "rate_limit": {
+      "requests_per_minute": 120,
+      "requests_per_hour": 5000
+    },
+    "timeout_secs": 60
+  },
+  "secrets": {
+    "allowed_names": [
+      "attio_api_key"
+    ]
+  },
+  "auth": {
+    "secret_name": "attio_api_key",
+    "display_name": "Attio",
+    "instructions": "In Attio, open Workspace Settings > Developers, create an access token (or an API key on an integration), and grant the record, object-configuration, list, note, and task scopes this tool uses. Copy the token value and store it as the secret below.",
+    "setup_url": "https://app.attio.com/settings/developers",
+    "env_var": "ATTIO_API_KEY"
+  },
+  "setup": {
+    "required_secrets": [
+      {
+        "name": "attio_api_key",
+        "prompt": "Attio workspace API key (from Workspace Settings > Developers)"
+      }
+    ]
+  }
+}
