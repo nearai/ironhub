@@ -6,9 +6,9 @@ export function createInstallPayload(input: {
   ts: number
   nonce: string
   artifactDigest: string
+  privateManifestUrl?: string
 }) {
-  return [
-    "install",
+  const fields = [
     input.slug,
     input.version,
     input.userId,
@@ -16,5 +16,11 @@ export function createInstallPayload(input: {
     String(input.ts),
     input.nonce,
     input.artifactDigest,
-  ].join(":")
+    input.privateManifestUrl ?? "",
+  ]
+
+  return fields.reduce(
+    (payload, field) => `${payload}:${Buffer.byteLength(field, "utf8")}:${field}`,
+    "install"
+  )
 }
