@@ -22,7 +22,7 @@
     "@prisma/adapter-pg": "7.8.0",
     "@prisma/client": "7.8.0",
     "@tabler/icons-react": "^3.41.1",
-    "better-auth": "1.6.11",
+    "better-auth": "1.6.13",
     "better-near-auth": "1.5.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
