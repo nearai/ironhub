@@ -23,6 +23,8 @@ No authentication is required. All data comes from public endpoints, and network
 access is restricted to the hosts declared in
 `nearcatalog-tool.capabilities.json`.
 
+![nearcatalog tool](screenshot.png)
+
 ## Actions
 
 The tool exposes a single parameter, `action`, plus a few optional fields.

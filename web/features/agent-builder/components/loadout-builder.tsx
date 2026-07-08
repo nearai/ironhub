@@ -432,7 +432,7 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
               <p className="text-xs font-bold tracking-wider text-primary uppercase">
                 Agents / Loadout Builder
               </p>
-              <h1 className="font-heading text-3xl font-bold text-foreground sm:text-4xl">
+              <h1 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl leading-tight">
                 Assemble Agent Loadout
               </h1>
               <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
@@ -456,7 +456,7 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
                       key={preset.id}
                       type="button"
                       onClick={() => handleApplyPreset(preset)}
-                      className="flex h-11 shrink-0 cursor-pointer items-center gap-3 rounded-xl border border-slate-300 bg-white px-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-500 hover:bg-blue-50/5 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-blue-400"
+                      className="flex h-11 shrink-0 cursor-pointer items-center gap-3 rounded-xl border border-border bg-card px-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary/5 hover:shadow-md"
                     >
                       <div
                         className={cn(
@@ -466,7 +466,7 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
                       >
                         <Icon className="size-3.5" />
                       </div>
-                      <span className="text-xs font-bold text-slate-800 dark:text-zinc-200">
+                      <span className="text-xs font-bold text-foreground">
                         {preset.label}
                       </span>
                     </button>
@@ -477,7 +477,7 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
                   <button
                     type="button"
                     onClick={() => setPresetModalOpen(true)}
-                    className="flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-transparent px-4 text-xs font-bold text-slate-600 transition-all duration-200 hover:border-slate-400 hover:bg-slate-100 hover:text-slate-800 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100"
+                    className="flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-dashed border-border bg-transparent px-4 text-xs font-bold text-muted-foreground transition-all duration-200 hover:border-primary/50 hover:bg-primary/5 hover:text-primary"
                   >
                     + {HIGH_FIDELITY_PRESETS.length - 3} More
                   </button>
@@ -493,7 +493,7 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
               {/* IDENTITY CARD */}
               <Card className="border border-[var(--ironhub-line)] bg-card/70 shadow-[var(--ironhub-shadow)] backdrop-blur-xl">
                 <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 font-heading text-base font-bold tracking-wider text-primary uppercase">
+                  <CardTitle className="flex items-center gap-2 font-heading text-base font-bold text-foreground">
                     <IconRobot className="size-4 text-primary" />
                     Identity
                   </CardTitle>
@@ -531,7 +531,7 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
               {/* SOUL CARD */}
               <Card className="border border-[var(--ironhub-line)] bg-card/70 shadow-[var(--ironhub-shadow)] backdrop-blur-xl">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 font-heading text-base font-bold tracking-wider text-primary uppercase">
+                  <CardTitle className="flex items-center gap-2 font-heading text-base font-bold text-foreground">
                     <IconBrain className="size-4 text-primary" />
                     Soul Configuration
                   </CardTitle>
@@ -655,8 +655,8 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
               <Card className="border border-[var(--ironhub-line)] bg-card/70 shadow-[var(--ironhub-shadow)] backdrop-blur-xl">
                 <CardHeader className="flex flex-row items-center justify-between pb-3">
                   <div>
-                    <CardTitle className="flex items-center gap-2 font-heading text-base font-bold tracking-wider text-primary uppercase">
-                      <IconSparkles className="size-4" />
+                    <CardTitle className="flex items-center gap-2 font-heading text-base font-bold text-foreground">
+                      <IconSparkles className="size-4 text-primary" />
                       Select Skills
                     </CardTitle>
                     <CardDescription className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
@@ -734,8 +734,8 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
               <Card className="border border-[var(--ironhub-line)] bg-card/70 shadow-[var(--ironhub-shadow)] backdrop-blur-xl">
                 <CardHeader className="flex flex-row items-center justify-between pb-3">
                   <div>
-                    <CardTitle className="flex items-center gap-2 font-heading text-base font-bold tracking-wider text-primary uppercase">
-                      <IconTool className="size-4 text-sky-500" />
+                    <CardTitle className="flex items-center gap-2 font-heading text-base font-bold text-foreground">
+                      <IconTool className="size-4 text-primary" />
                       Select Tools
                     </CardTitle>
                     <CardDescription className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
@@ -813,8 +813,8 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
               <Card className="border border-[var(--ironhub-line)] bg-card/70 shadow-[var(--ironhub-shadow)] backdrop-blur-xl">
                 <CardHeader className="flex flex-row items-center justify-between pb-3">
                   <div>
-                    <CardTitle className="flex items-center gap-2 font-heading text-base font-bold tracking-wider text-primary uppercase">
-                      <IconBoxMultiple className="size-4 text-sky-500" />
+                    <CardTitle className="flex items-center gap-2 font-heading text-base font-bold text-foreground">
+                      <IconBoxMultiple className="size-4 text-primary" />
                       Select Collections
                     </CardTitle>
                     <CardDescription className="mt-0.5 text-xs leading-relaxed text-muted-foreground">

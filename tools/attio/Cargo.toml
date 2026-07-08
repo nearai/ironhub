@@ -1,0 +1,25 @@
+[package]
+name = "attio-tool"
+version = "0.1.0"
+edition = "2021"
+description = "Attio CRM API v2 read and write access for the IronClaw agent runtime. Queries, fetches, creates, updates, asserts, and deletes records, reads object and attribute schemas, lists and queries lists, and manages notes and tasks, authenticated with an Attio workspace API key against api.attio.com."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/nearai/ironhub"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wit-bindgen = "0.41"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+schemars = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+codegen-units = 1
+
+[workspace]

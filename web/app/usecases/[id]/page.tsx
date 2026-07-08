@@ -93,12 +93,12 @@ export default async function UseCaseDetailPage({ params }: PageProps) {
           <div className="flex flex-col gap-3.5 flex-1 min-w-0">
             <div className="flex flex-wrap gap-2">
               {useCase.categories.map((category) => (
-                <Badge key={category} variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 border-transparent font-semibold rounded-full text-xs py-0.5 px-3">
+                <Badge key={category} variant="secondary" className="rounded-full border border-primary/40 bg-primary/10 px-3 py-0.5 text-xs font-medium tracking-[0.02em] text-[#0072c9] hover:bg-primary/15 dark:text-[#83dcff]">
                   {category}
                 </Badge>
               ))}
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground leading-tight">
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground leading-tight">
               {useCase.title}
             </h1>
             
@@ -154,13 +154,13 @@ export default async function UseCaseDetailPage({ params }: PageProps) {
                       ul: ({ ...props }) => <ul className="list-disc pl-5 mb-4 text-sm space-y-1.5 text-muted-foreground" {...props} />,
                       ol: ({ ...props }) => <ol className="list-decimal pl-5 mb-4 text-sm space-y-1.5 text-muted-foreground" {...props} />,
                       li: ({ ...props }) => <li className="pl-1" {...props} />,
-                      code: ({ className, children, ...props }) => (
-                        <code className="bg-zinc-850 dark:bg-zinc-900 px-1.5 py-0.5 rounded text-xs font-mono text-zinc-200 border border-zinc-700/30" {...props}>
+                      code: ({ children, ...props }) => (
+                        <code className="rounded-[5px] border border-primary/30 bg-primary/10 px-1.5 py-0.5 font-mono text-[0.8em] font-medium text-[#0072c9] dark:text-[#83dcff]" {...props}>
                           {children}
                         </code>
                       ),
                       pre: ({ ...props }) => (
-                        <pre className="bg-zinc-950 dark:bg-zinc-950/80 p-4 rounded-xl overflow-x-auto my-4 text-xs font-mono text-zinc-200 border border-zinc-800" {...props} />
+                        <pre className="my-4 overflow-x-auto rounded-xl border border-white/10 bg-[var(--near-dark-grey)] p-4 text-xs font-mono text-white/90 selection-dark [&_code]:border-0 [&_code]:bg-transparent [&_code]:p-0 [&_code]:text-white/90" {...props} />
                       ),
                       img: ({ ...props }) => (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -199,8 +199,8 @@ export default async function UseCaseDetailPage({ params }: PageProps) {
                 </h3>
               </div>
               <CardContent className="p-6">
-                <div className="bg-gradient-to-r from-zinc-900 to-zinc-800 dark:from-zinc-900 dark:to-zinc-950 rounded-2xl rounded-tl-sm p-5 text-zinc-100 shadow-md border border-zinc-800/50">
-                  <p className="font-medium text-sm sm:text-base tracking-tight leading-relaxed whitespace-pre-wrap select-all">
+                <div className="rounded-[16px] rounded-tl-sm border border-white/10 bg-[var(--near-dark-grey)] p-5 text-white/90 shadow-md selection-dark">
+                  <p className="text-sm leading-relaxed tracking-tight whitespace-pre-wrap select-all sm:text-base">
                     &ldquo;{useCase.examplePrompt}&rdquo;
                   </p>
                 </div>

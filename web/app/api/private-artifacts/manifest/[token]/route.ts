@@ -5,12 +5,13 @@ import { verifyArtifactToken } from "@/lib/private-artifacts/token"
 
 export const dynamic = "force-dynamic"
 
-export async function GET(request: Request) {
+type Params = {
+  params: Promise<{ token: string }>
+}
+
+export async function GET(_request: Request, { params }: Params) {
   try {
-    const token = new URL(request.url).searchParams.get("token")
-    if (!token) {
-      throw new Response("Missing artifact token", { status: 401 })
-    }
+    const { token } = await params
 
     const claims = verifyArtifactToken(token)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL

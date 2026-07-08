@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { IconMessageCircle, IconLayersLinked, IconCopy, IconCheck } from "@tabler/icons-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -98,7 +97,7 @@ export function UsecaseTabsCard({ examplePrompt, agentDoes }: UsecaseTabsCardPro
                 ul: ({ ...props }) => <ul className="list-disc pl-5 mb-4 text-sm space-y-1.5 text-muted-foreground" {...props} />,
                 ol: ({ ...props }) => <ol className="list-decimal pl-5 mb-4 text-sm space-y-1.5 text-muted-foreground" {...props} />,
                 li: ({ ...props }) => <li className="pl-1" {...props} />,
-                code: ({ className, children, ...props }) => (
+                code: ({ children, ...props }) => (
                   <code className="bg-zinc-850 dark:bg-zinc-900 px-1.5 py-0.5 rounded text-xs font-mono text-zinc-200 border border-zinc-700/30" {...props}>
                     {children}
                   </code>

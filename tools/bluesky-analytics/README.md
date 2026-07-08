@@ -29,6 +29,8 @@ that host as declared in `bluesky-analytics-tool.capabilities.json`.
 > one into a body, so writes are impossible in this lane — they belong on the
 > stateful IronClaw Reborn Script lane (a future phase).
 
+![bluesky-analytics tool](screenshot.png)
+
 ## Actions
 
 The tool exposes a single parameter, `action`, plus a few optional fields.

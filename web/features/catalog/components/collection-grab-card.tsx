@@ -16,7 +16,7 @@ export function CollectionGrabCard({ bundle }: CollectionGrabCardProps) {
     <Card id="bundle-manifest" className="bg-primary/8">
       <CardHeader>
         <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
             <IconBoxMultiple className="size-5" />
           </span>
           <div>
