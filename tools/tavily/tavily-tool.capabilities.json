@@ -1,0 +1,76 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "Search the web, search social media platforms (Reddit, X, LinkedIn, etc.), extract clean page content, map sites, and crawl domains with Tavily. Authentication uses the 'tavily_api_key' secret injected by the IronClaw host as a Bearer token, the LLM never knows the credentials",
+  "capabilities": {
+    "http": {
+      "allowlist": [
+        {
+          "host": "api.tavily.com",
+          "path_prefix": "/search",
+          "methods": [
+            "POST"
+          ]
+        },
+        {
+          "host": "api.tavily.com",
+          "path_prefix": "/extract",
+          "methods": [
+            "POST"
+          ]
+        },
+        {
+          "host": "api.tavily.com",
+          "path_prefix": "/crawl",
+          "methods": [
+            "POST"
+          ]
+        },
+        {
+          "host": "api.tavily.com",
+          "path_prefix": "/map",
+          "methods": [
+            "POST"
+          ]
+        }
+      ],
+      "credentials": {
+        "tavily_api_key": {
+          "secret_name": "tavily_api_key",
+          "location": {
+            "type": "bearer"
+          },
+          "host_patterns": [
+            "api.tavily.com"
+          ]
+        }
+      },
+      "rate_limit": {
+        "requests_per_minute": 30,
+        "requests_per_hour": 500
+      },
+      "timeout_secs": 120
+    },
+    "secrets": {
+      "allowed_names": [
+        "tavily_api_key"
+      ]
+    }
+  },
+  "auth": {
+    "secret_name": "tavily_api_key",
+    "display_name": "Tavily",
+    "instructions": "Create an API key at tavily.com, then paste it here.",
+    "setup_url": "https://tavily.com/",
+    "token_hint": "Starts with 'tvly-'",
+    "env_var": "TAVILY_API_KEY"
+  },
+  "setup": {
+    "required_secrets": [
+      {
+        "name": "tavily_api_key",
+        "prompt": "Tavily API key (from tavily.com, starts with 'tvly-')"
+      }
+    ]
+  }
+}

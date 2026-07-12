@@ -1,0 +1,26 @@
+[package]
+name = "defillama-tool"
+version = "0.1.0"
+edition = "2021"
+description = "DefiLlama API tool for IronClaw (WASM component)"
+license = "MIT OR Apache-2.0"
+authors = ["kent <account@gfigroup.io>"]
+repository = "https://github.com/cuongdcdev/ironclaw-skills-tools"
+publish = false
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+wit-bindgen = "0.41.0"
+flate2 = { version = "1.0", default-features = false, features = ["rust_backend"] }
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+codegen-units = 1
+
+[workspace]
