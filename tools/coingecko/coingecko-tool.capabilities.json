@@ -1,0 +1,75 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "Universal cryptocurrency crypto price and market tool for CoinGecko. Support for both free Demo API key (api.coingecko.com) and Pro API key (pro-api.coingecko.com).",
+  "capabilities": {
+    "http": {
+      "allowlist": [
+        {
+          "host": "api.coingecko.com",
+          "path_prefix": "/api/v3",
+          "methods": [
+            "GET"
+          ]
+        },
+        {
+          "host": "pro-api.coingecko.com",
+          "path_prefix": "/api/v3",
+          "methods": [
+            "GET"
+          ]
+        }
+      ],
+      "credentials": {
+        "coingecko_demo": {
+          "secret_name": "coingecko_api_key",
+          "location": {
+            "type": "header",
+            "name": "x-cg-demo-api-key"
+          },
+          "host_patterns": [
+            "api.coingecko.com"
+          ],
+          "optional": true
+        },
+        "coingecko_pro": {
+          "secret_name": "coingecko_api_key",
+          "location": {
+            "type": "header",
+            "name": "x-cg-pro-api-key"
+          },
+          "host_patterns": [
+            "pro-api.coingecko.com"
+          ],
+          "optional": true
+        }
+      },
+      "rate_limit": {
+        "requests_per_minute": 30,
+        "requests_per_hour": 500
+      },
+      "timeout_secs": 30
+    },
+    "secrets": {
+      "allowed_names": [
+        "coingecko_api_key"
+      ]
+    }
+  },
+  "auth": {
+    "secret_name": "coingecko_api_key",
+    "display_name": "CoinGecko API",
+    "instructions": "Create a free Demo API key (or Pro API key) at coingecko.com, then paste it here.",
+    "setup_url": "https://www.coingecko.com/en/api",
+    "token_hint": "CoinGecko API Key",
+    "env_var": "COINGECKO_API_KEY"
+  },
+  "setup": {
+    "required_secrets": [
+      {
+        "name": "coingecko_api_key",
+        "prompt": "CoinGecko API Key (starts with CG- or custom Pro key)"
+      }
+    ]
+  }
+}

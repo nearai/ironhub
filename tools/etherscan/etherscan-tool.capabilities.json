@@ -1,0 +1,66 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "Allows queries to the Etherscan v2 API across 60+ EVM-compatible chains. Supports balances, transaction histories, ERC-20/721/1155 token transfers, contract ABIs/source code, and transaction statuses.",
+  "capabilities": {
+    "http": {
+      "allowlist": [
+        {
+          "host": "api.etherscan.io",
+          "path_prefix": "/v2/api",
+          "methods": [
+            "GET"
+          ]
+        },
+        {
+          "host": "api.etherscan.io",
+          "path_prefix": "/v2/chainlist",
+          "methods": [
+            "GET"
+          ]
+        }
+      ],
+      "credentials": {
+        "etherscan_api_key": {
+          "secret_name": "etherscan_api_key",
+          "location": {
+            "type": "query_param",
+            "name": "apikey"
+          },
+          "host_patterns": [
+            "api.etherscan.io"
+          ],
+          "path_patterns": [
+            "/v2/api"
+          ],
+          "optional": true
+        }
+      },
+      "rate_limit": {
+        "requests_per_minute": 300
+      },
+      "timeout_secs": 30
+    },
+    "secrets": {
+      "allowed_names": [
+        "etherscan_api_key"
+      ]
+    }
+  },
+  "auth": {
+    "secret_name": "etherscan_api_key",
+    "display_name": "Etherscan API",
+    "instructions": "Create an Etherscan v2 API key at etherscan.io (free), then paste it here.",
+    "setup_url": "https://etherscan.io/apis",
+    "token_hint": "Etherscan API Key",
+    "env_var": "ETHERSCAN_API_KEY"
+  },
+  "setup": {
+    "required_secrets": [
+      {
+        "name": "etherscan_api_key",
+        "prompt": "Etherscan API Key (v2)"
+      }
+    ]
+  }
+}
