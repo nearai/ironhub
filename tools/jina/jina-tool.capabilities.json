@@ -1,0 +1,74 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "Read web content via Jina AI - r.jina.ai (converts URLs to markdown), capture screenshots, or search via s.jina.ai / svip.jina.ai (performs general web, arXiv, SSRN, and image searches). Authentication uses the 'jina_api_key' secret injected by the host as a Bearer token.",
+  "capabilities": {
+    "http": {
+      "allowlist": [
+        {
+          "host": "r.jina.ai",
+          "path_prefix": "/",
+          "methods": [
+            "GET",
+            "POST"
+          ]
+        },
+        {
+          "host": "s.jina.ai",
+          "path_prefix": "/",
+          "methods": [
+            "GET",
+            "POST"
+          ]
+        },
+        {
+          "host": "svip.jina.ai",
+          "path_prefix": "/",
+          "methods": [
+            "GET",
+            "POST"
+          ]
+        }
+      ],
+      "credentials": {
+        "jina_api_key": {
+          "secret_name": "jina_api_key",
+          "location": {
+            "type": "bearer"
+          },
+          "host_patterns": [
+            "r.jina.ai",
+            "s.jina.ai",
+            "svip.jina.ai"
+          ]
+        }
+      },
+      "rate_limit": {
+        "requests_per_minute": 60,
+        "requests_per_hour": 1000
+      },
+      "timeout_secs": 60
+    },
+    "secrets": {
+      "allowed_names": [
+        "jina_api_key"
+      ]
+    }
+  },
+  "auth": {
+    "secret_name": "jina_api_key",
+    "display_name": "Jina AI Reader",
+    "instructions": "Create an API key on https://jina.ai/ dashboard, then paste it here.",
+    "setup_url": "https://jina.ai/",
+    "token_hint": "jina_...",
+    "env_var": "JINA_API_KEY"
+  },
+  "setup": {
+    "required_secrets": [
+      {
+        "name": "jina_api_key",
+        "prompt": "Jina AI API Key (starts with 'jina_')"
+      }
+    ]
+  }
+}

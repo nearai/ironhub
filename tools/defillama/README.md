@@ -18,6 +18,8 @@ A sandboxed WASM tool that gives an IronClaw agent access to
 [DefiLlama](https://defillama.com) — TVL, prices, stablecoins, yields, volumes,
 and fees — via the **free open API**. No API key, no credentials, no setup.
 
+![Defillama tool](screenshot.png)
+
 > **Why no Pro support?** DefiLlama Pro puts the API key in the **URL path**
 > (`pro-api.llama.fi/<KEY>/...` — both official SDKs; no header or query
 > alternative exists, verified 2026-07-11), and the IronClaw *tools* lane does

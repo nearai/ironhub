@@ -1,0 +1,63 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "Pikespeak is the  on-chain data analytics platform and portfolio tracker designed for NEAR. Exposes detailed portfolio staking/DeFi and general hundreds of features like wallet explorer, NEAR Intents, Network stats...",
+  "capabilities": {
+    "http": {
+      "allowlist": [
+        {
+          "host": "api.pikespeak.ai",
+          "path_prefix": "/",
+          "methods": [
+            "GET"
+          ]
+        },
+        {
+          "host": "pikespeak.ai",
+          "path_prefix": "/",
+          "methods": [
+            "GET"
+          ]
+        }
+      ],
+      "credentials": {
+        "pikespeak": {
+          "secret_name": "pikespeak_api_key",
+          "location": {
+            "type": "header",
+            "name": "x-api-key"
+          },
+          "host_patterns": [
+            "api.pikespeak.ai"
+          ]
+        }
+      },
+      "rate_limit": {
+        "requests_per_minute": 60,
+        "requests_per_hour": 1000
+      },
+      "timeout_secs": 30
+    },
+    "secrets": {
+      "allowed_names": [
+        "pikespeak_api_key"
+      ]
+    }
+  },
+  "auth": {
+    "secret_name": "pikespeak_api_key",
+    "display_name": "Pikespeak API",
+    "instructions": "Create an API key at https://pikespeak.ai (Sign in -> API key section), then paste it here.",
+    "setup_url": "https://pikespeak.ai",
+    "token_hint": "Pikespeak API Key",
+    "env_var": "PIKESPEAK_API_KEY"
+  },
+  "setup": {
+    "required_secrets": [
+      {
+        "name": "pikespeak_api_key",
+        "prompt": "Pikespeak API Key"
+      }
+    ]
+  }
+}
