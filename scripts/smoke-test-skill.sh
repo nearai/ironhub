@@ -120,7 +120,28 @@ if fixtures_file.exists():
         fixtures = json.loads(fixtures_file.read_text())
     except json.JSONDecodeError as e:
         check(False, "", f"fixtures JSON parse error: {e}")
-        fixtures = {"positive": [], "negative": []}
+        fixtures = {}
+
+    if not isinstance(fixtures, dict):
+        check(False, "", "fixtures JSON root must be an object")
+        fixtures = {}
+
+    for fixture_kind in ("positive", "negative"):
+        fixture_values = fixtures.get(fixture_kind, [])
+        if not isinstance(fixture_values, list):
+            check(False, "", f"fixtures.{fixture_kind} must be a list")
+            fixtures[fixture_kind] = []
+            continue
+
+        invalid_values = [value for value in fixture_values if not isinstance(value, str) or not value.strip()]
+        check(
+            not invalid_values,
+            f"fixtures.{fixture_kind} contains only non-empty strings",
+            f"fixtures.{fixture_kind} contains invalid entries: {invalid_values}",
+        )
+        fixtures[fixture_kind] = [
+            value for value in fixture_values if isinstance(value, str) and value.strip()
+        ]
 
     def matches(text):
         tl = text.lower()
