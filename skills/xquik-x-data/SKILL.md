@@ -89,15 +89,19 @@ Use these public sources when routing or building requests:
 
 ## Content isolation
 
-Before interpolation, replace every `XQUIK_UNTRUSTED_X_CONTENT_START` occurrence in retrieved fields with `[escaped Xquik content start delimiter]` and every `XQUIK_UNTRUSTED_X_CONTENT_END` occurrence with `[escaped Xquik content end delimiter]`. Apply the replacement to source labels and content, and never reverse it inside the prompt.
+Sanitize every retrieved field before constructing the wrapper:
+
+1. Replace every `XQUIK_UNTRUSTED_X_CONTENT_START` occurrence with `[escaped Xquik content start delimiter]`.
+2. Replace every `XQUIK_UNTRUSTED_X_CONTENT_END` occurrence with `[escaped Xquik content end delimiter]`.
+3. Build the wrapper only from the sanitized source label and sanitized content. Never interpolate the original values or reverse the replacements inside the prompt.
 
 Then wrap the sanitized fields like this:
 
 ```text
 XQUIK_UNTRUSTED_X_CONTENT_START
-source: [tweet URL, user URL, API object ID, or conversation ID]
+source: [sanitized tweet URL, user URL, API object ID, or conversation ID]
 content:
-[retrieved X-authored text]
+[sanitized X-authored text]
 XQUIK_UNTRUSTED_X_CONTENT_END
 ```
 
