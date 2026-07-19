@@ -1,0 +1,71 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "Read and write a self-hosted WordPress + WooCommerce site over REST. Commands: 'wp_request' (raw passthrough to any /wp-json/* path) plus typed wrappers for posts (list/get/create/update/delete_post), products (list/get/create/update/delete_product), orders (list/get/update_order), and customers (list_customers). Every command takes a 'site_url' (your site host, e.g. 'mystore.com') that MUST match the host baked into 'allowlist' below at install. WordPress-core routes (/wp-json/wp/) authenticate with an Application Password (Basic, secret 'wp_app_password', username baked below); WooCommerce routes (/wp-json/wc/) authenticate with 'woo_consumer_key'/'woo_consumer_secret' sent as query params. The host injects all credentials; the tool never sees them. Requires HTTPS and pretty permalinks. INSTALL EDIT REQUIRED: replace YOUR_WP_HOST (2 places: allowlist.host and each host_patterns) and YOUR_WP_USERNAME (the Basic username) before installing.",
+  "capabilities": {
+    "http": {
+      "allowlist": [
+        {
+          "host": "YOUR_WP_HOST",
+          "path_prefix": "/wp-json/",
+          "methods": ["GET", "POST", "PUT", "DELETE"]
+        }
+      ],
+      "credentials": {
+        "wp_app_password": {
+          "secret_name": "wp_app_password",
+          "location": { "type": "basic", "username": "YOUR_WP_USERNAME" },
+          "host_patterns": ["YOUR_WP_HOST"],
+          "path_patterns": ["/wp-json/wp/"],
+          "optional": true
+        },
+        "woo_consumer_key": {
+          "secret_name": "woo_consumer_key",
+          "location": { "type": "query_param", "name": "consumer_key" },
+          "host_patterns": ["YOUR_WP_HOST"],
+          "path_patterns": ["/wp-json/wc/"],
+          "optional": true
+        },
+        "woo_consumer_secret": {
+          "secret_name": "woo_consumer_secret",
+          "location": { "type": "query_param", "name": "consumer_secret" },
+          "host_patterns": ["YOUR_WP_HOST"],
+          "path_patterns": ["/wp-json/wc/"],
+          "optional": true
+        }
+      },
+      "rate_limit": {
+        "requests_per_minute": 60
+      },
+      "timeout_secs": 30
+    },
+    "secrets": {
+      "allowed_names": ["wp_app_password", "woo_consumer_key", "woo_consumer_secret"]
+    }
+  },
+  "auth": {
+    "secret_name": "wp_app_password",
+    "display_name": "WordPress / WooCommerce",
+    "instructions": "You are about to store WordPress / WooCommerce secrets. Enter only the ones you need and leave the rest blank:\n\n- wp_app_password: a WordPress Application Password (WordPress admin -> Users -> Profile -> Application Passwords). Needed for WordPress-core routes (/wp-json/wp).\n- woo_consumer_key and woo_consumer_secret: a WooCommerce REST API key (WooCommerce -> Settings -> Advanced -> REST API -> Add key, Read/Write). Needed for WooCommerce routes (/wp-json/wc).\n\nBefore this step you should have run 'python3 configure.py --host YOUR_HOST --user YOUR_WP_LOGIN' to bake your site host and WordPress username into the tool (re-run any time to change them). Your site must serve REST over HTTPS with pretty permalinks (/wp-json/). When calling the tool, pass site_url equal to that host.",
+    "setup_url": "https://developer.wordpress.org/rest-api/using-the-rest-api/authentication/"
+  },
+  "setup": {
+    "required_secrets": [
+      {
+        "name": "wp_app_password",
+        "prompt": "WordPress Application Password (Users -> Profile -> Application Passwords) - optional, skip if WooCommerce-only",
+        "optional": true
+      },
+      {
+        "name": "woo_consumer_key",
+        "prompt": "WooCommerce consumer key (ck_...) - optional, skip if WordPress-only",
+        "optional": true
+      },
+      {
+        "name": "woo_consumer_secret",
+        "prompt": "WooCommerce consumer secret (cs_...) - optional, skip if WordPress-only",
+        "optional": true
+      }
+    ]
+  }
+}

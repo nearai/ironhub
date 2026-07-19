@@ -17,7 +17,7 @@ function contentUrl(
   kind: ContentKind,
   token: string
 ): string {
-  return `${baseUrl}/api/private-artifacts/${artifactId}/content/${kind}?token=${encodeURIComponent(token)}`
+  return `${baseUrl}/api/private-artifacts/${artifactId}/content/${kind}/${encodeURIComponent(token)}`
 }
 
 export async function buildPrivateArtifactManifest(input: {

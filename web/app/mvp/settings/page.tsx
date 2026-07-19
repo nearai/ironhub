@@ -12,10 +12,9 @@ import {
   IconEye,
   IconEyeOff,
   IconRefresh,
-  IconSend,
-  IconBrandGithub,
   IconBuildings,
   IconBolt,
+  IconShieldLock,
 } from "@tabler/icons-react"
 import {
   Dialog,
@@ -28,73 +27,49 @@ import {
 } from "@/components/ui/dialog"
 
 export default function SettingsPage() {
-  const { state, addWebhookLog, unlinkGithub, linkGithub, regenerateSecret, notify } = usePartnerStore()
-  const { orgName, contactEmail, githubOrg, payloadUrl, secretKey, webhookLogs } = state
+  const { state, regenerateInstallToken, updateInviteDomains, notify } = usePartnerStore()
+  const { orgName, contactEmail, installToken, inviteDomains } = state
 
   // Form states
   const [profileName, setProfileName] = useState(orgName)
   const [profileEmail, setProfileEmail] = useState(contactEmail)
-  const [newGithubInput, setNewGithubInput] = useState("")
+  const [domainsInput, setDomainsInput] = useState(inviteDomains)
 
   // Copy status
-  const [copiedPayload, setCopiedPayload] = useState(false)
-  const [copiedSecret, setCopiedSecret] = useState(false)
+  const [copiedToken, setCopiedToken] = useState(false)
 
-  // Reveal secret
-  const [revealSecret, setRevealSecret] = useState(false)
+  // Reveal token
+  const [revealToken, setRevealToken] = useState(false)
 
-  // Simulated syncing animation
-  const [isSyncing, setIsSyncing] = useState(false)
+  // Save invite domains
+  const [isSavingDomains, setIsSavingDomains] = useState(false)
 
-  const handleCopy = async (text: string, type: "payload" | "secret") => {
+  const handleCopyToken = async () => {
     try {
-      await navigator.clipboard.writeText(text)
-      if (type === "payload") {
-        setCopiedPayload(true)
-        setTimeout(() => setCopiedPayload(false), 2000)
-      } else {
-        setCopiedSecret(true)
-        setTimeout(() => setCopiedSecret(false), 2000)
-      }
-      notify(type === "payload" ? "Payload URL copied" : "Secret key copied", "info")
+      await navigator.clipboard.writeText(installToken)
+      setCopiedToken(true)
+      setTimeout(() => setCopiedToken(false), 2000)
+      notify("Install token copied to clipboard", "info")
     } catch (e) {
       console.error("Failed to copy text:", e)
       notify("Copy failed — check clipboard permissions", "error")
     }
   }
 
-  const handleTestWebhook = () => {
-    setIsSyncing(true)
-    setTimeout(() => {
-      addWebhookLog({
-        method: "POST",
-        endpoint: "/v1/webhooks/github/circle-org",
-        status: "200 OK",
-        details: `Auto-sync pipeline triggered. Synced 1 modification: release v${(1 + Math.random() * 9).toFixed(1)} verified.`,
-      })
-      setIsSyncing(false)
-      notify("Test webhook delivered → 200 OK")
-    }, 1200)
-  }
-
-  const handleLinkGithub = (e: React.FormEvent) => {
+  const handleSaveDomains = (e: React.FormEvent) => {
     e.preventDefault()
-    if (newGithubInput) {
-      linkGithub(newGithubInput)
-      setNewGithubInput("")
-      notify(`Linked GitHub org @${newGithubInput.replace(/^@/, "")}`)
-    }
+    setIsSavingDomains(true)
+    setTimeout(() => {
+      updateInviteDomains(domainsInput)
+      setIsSavingDomains(false)
+      notify("Invitation whitelist domains updated")
+    }, 500)
   }
 
-  const handleUnlink = () => {
-    unlinkGithub()
-    notify("GitHub organization unlinked", "info")
-  }
-
-  const handleRegenerate = () => {
-    regenerateSecret()
-    setRevealSecret(true)
-    notify("Webhook secret regenerated")
+  const handleRegenerateToken = () => {
+    regenerateInstallToken()
+    setRevealToken(true)
+    notify("Private install token regenerated successfully")
   }
 
   return (
@@ -102,11 +77,11 @@ export default function SettingsPage() {
       <PageHeader
         eyebrow="Console Settings"
         title="Organization Settings"
-        description="Configure organization identifiers, repository link webhooks, and sync keys."
+        description="Configure organization identifiers, whitelisted domains, and private agent install tokens."
       />
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Left Column: Organization & Credentials */}
+        {/* Left Column: Organization Profile & Whitelists */}
         <div className="flex flex-col gap-6">
           {/* Org Profile */}
           <Card className="border border-[var(--ironhub-line)] bg-card/60 p-5 shadow-sm flex flex-col gap-4">
@@ -118,12 +93,12 @@ export default function SettingsPage() {
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-muted-foreground uppercase">
-                  Organization Name
+                  Organization Space Name
                 </label>
                 <Input
                   value={profileName}
                   onChange={(e) => setProfileName(e.target.value)}
-                  className="rounded-full bg-background/50"
+                  className="rounded-full bg-background/50 text-xs"
                 />
               </div>
 
@@ -135,123 +110,77 @@ export default function SettingsPage() {
                   type="email"
                   value={profileEmail}
                   onChange={(e) => setProfileEmail(e.target.value)}
-                  className="rounded-full bg-background/50"
+                  className="rounded-full bg-background/50 text-xs"
                 />
               </div>
 
-              {/* GitHub Link Handler */}
-              <div className="border-t border-[var(--ironhub-line)]/50 pt-4 flex flex-col gap-2.5">
-                <span className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1">
-                  <IconBrandGithub className="size-3.5" />
-                  GitHub Organization Connection
-                </span>
-
-                {githubOrg ? (
-                  <div className="flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
-                    <span className="text-xs font-semibold text-foreground">
-                      Linked to: <code className="font-mono text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">{githubOrg}</code>
-                    </span>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          className="h-7 rounded-full text-[10px]"
-                        >
-                          Unlink Org
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-sm">
-                        <DialogHeader>
-                          <DialogTitle>Unlink {githubOrg}?</DialogTitle>
-                          <DialogDescription>
-                            This clears the webhook endpoint and secret key, and suspends member sync. You will need to re-link and reconfigure your GitHub repository webhook.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="mt-2 flex gap-3">
-                          <DialogClose asChild>
-                            <Button type="button" variant="outline" className="flex-1 rounded-full">
-                              Cancel
-                            </Button>
-                          </DialogClose>
-                          <DialogClose asChild>
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              onClick={handleUnlink}
-                              className="flex-1 rounded-full"
-                            >
-                              Unlink
-                            </Button>
-                          </DialogClose>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                ) : (
-                  <form onSubmit={handleLinkGithub} className="flex gap-2">
-                    <Input
-                      placeholder="e.g. circle-org"
-                      value={newGithubInput}
-                      onChange={(e) => setNewGithubInput(e.target.value)}
-                      className="rounded-full flex-1 bg-background/50 text-xs"
-                      required
-                    />
-                    <Button type="submit" size="sm" className="rounded-full text-xs">
-                      Link GitHub
-                    </Button>
-                  </form>
-                )}
-              </div>
+              {/* WHitelist Domain Link */}
+              <form onSubmit={handleSaveDomains} className="border-t border-[var(--ironhub-line)]/50 pt-4 flex flex-col gap-2">
+                <label className="text-xs font-bold text-muted-foreground uppercase">
+                  Whitelisted Email Domains
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="e.g. @circle.com, @circle-partner.com"
+                    value={domainsInput}
+                    onChange={(e) => setDomainsInput(e.target.value)}
+                    className="rounded-full flex-1 bg-background/50 text-sm"
+                    required
+                  />
+                  <Button type="submit" size="sm" disabled={isSavingDomains} className="rounded-full text-sm">
+                    {isSavingDomains ? "Saving..." : "Save Rules"}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground leading-normal">
+                  Restricts member invitations to these domains. Separate multiple domains with commas.
+                </p>
+              </form>
             </div>
           </Card>
+        </div>
 
-          {/* Webhook keys */}
+        {/* Right Column: Security and Install Token */}
+        <div className="flex flex-col gap-6">
           <Card className="border border-[var(--ironhub-line)] bg-card/60 p-5 shadow-sm flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5">
-                <IconBolt className="size-4" />
-                Webhook Triggers
-              </h3>
-              {githubOrg && (
-                <Button
-                  onClick={handleTestWebhook}
-                  disabled={isSyncing}
-                  size="sm"
-                  className="h-8 rounded-full text-xs font-semibold flex items-center gap-1 shadow-sm"
-                >
-                  <IconSend className="size-3" />
-                  {isSyncing ? "Triggering..." : "Send Test Webhook"}
-                </Button>
-              )}
-            </div>
+            <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5">
+              <IconShieldLock className="size-4 text-primary" />
+              Private Install Token
+            </h3>
 
-            <p className="text-xs text-muted-foreground leading-normal">
-              To trigger automated rebuilds and security checks, configure this webhook in your GitHub Organization {"->"} Settings {"->"} Webhooks.
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Use this private install token in your IronClaw config to authenticate your local developer environments. This allows members to pull and run private organization tools safely.
             </p>
 
-            {githubOrg ? (
-              <div className="flex flex-col gap-4 mt-2">
-                {/* Payload URL */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase">
-                    Payload URL
-                  </label>
-                  <div className="relative flex gap-2">
-                    <Input
-                      readOnly
-                      value={payloadUrl}
-                      className="font-mono text-xs pr-10 rounded-full bg-background/70"
-                    />
+            <div className="flex flex-col gap-4 mt-2">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-muted-foreground uppercase">
+                  Space Connection Token
+                </label>
+                <div className="relative flex gap-2">
+                  <Input
+                    type={revealToken ? "text" : "password"}
+                    readOnly
+                    value={installToken}
+                    className="font-mono text-sm pr-20 rounded-full bg-background/70"
+                  />
+                  <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleCopy(payloadUrl, "payload")}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full"
+                      onClick={() => setRevealToken(!revealToken)}
+                      className="h-8 w-8 rounded-full"
                     >
-                      {copiedPayload ? (
+                      {revealToken ? <IconEyeOff className="size-4" /> : <IconEye className="size-4" />}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleCopyToken}
+                      className="h-8 w-8 rounded-full"
+                    >
+                      {copiedToken ? (
                         <IconCheck className="size-4 text-emerald-600" />
                       ) : (
                         <IconCopy className="size-4" />
@@ -259,134 +188,91 @@ export default function SettingsPage() {
                     </Button>
                   </div>
                 </div>
+              </div>
 
-                {/* Secret Key */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase">
-                    Secret Key
-                  </label>
-                  <div className="relative flex gap-2">
-                    <Input
-                      type={revealSecret ? "text" : "password"}
-                      readOnly
-                      value={secretKey}
-                      className="font-mono text-xs pr-20 rounded-full bg-background/70"
-                    />
-                    <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+              {/* Regenerate Token trigger */}
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="self-start rounded-full text-xs"
+                  >
+                    <IconRefresh className="size-3" />
+                    Regenerate Install Token
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-sm">
+                  <DialogHeader>
+                    <DialogTitle>Regenerate Space Install Token?</DialogTitle>
+                    <DialogDescription>
+                      The current token will stop working immediately. Any active IronClaw agents pulling private tools with the old token will lose catalog access until they are updated.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="mt-2 flex gap-3">
+                    <DialogClose asChild>
+                      <Button type="button" variant="outline" className="flex-1 rounded-full">
+                        Cancel
+                      </Button>
+                    </DialogClose>
+                    <DialogClose asChild>
                       <Button
                         type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setRevealSecret(!revealSecret)}
-                        className="h-8 w-8 rounded-full"
+                        onClick={handleRegenerateToken}
+                        className="flex-1 rounded-full animate-pulse"
                       >
-                        {revealSecret ? <IconEyeOff className="size-4" /> : <IconEye className="size-4" />}
+                        Regenerate
                       </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleCopy(secretKey, "secret")}
-                        className="h-8 w-8 rounded-full"
-                      >
-                        {copiedSecret ? (
-                          <IconCheck className="size-4 text-emerald-600" />
-                        ) : (
-                          <IconCopy className="size-4" />
-                        )}
-                      </Button>
-                    </div>
+                    </DialogClose>
                   </div>
-                </div>
-
-                {/* Regenerate secret */}
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="self-start rounded-full text-[10px]"
-                    >
-                      <IconRefresh className="size-3" />
-                      Regenerate Secret
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-sm">
-                    <DialogHeader>
-                      <DialogTitle>Regenerate webhook secret?</DialogTitle>
-                      <DialogDescription>
-                        The current secret stops working immediately. You must update the secret in your GitHub repository webhook settings, or deliveries will fail signature verification.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="mt-2 flex gap-3">
-                      <DialogClose asChild>
-                        <Button type="button" variant="outline" className="flex-1 rounded-full">
-                          Cancel
-                        </Button>
-                      </DialogClose>
-                      <DialogClose asChild>
-                        <Button
-                          type="button"
-                          onClick={handleRegenerate}
-                          className="flex-1 rounded-full"
-                        >
-                          Regenerate
-                        </Button>
-                      </DialogClose>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            ) : (
-              <div className="rounded-xl border border-dashed border-[var(--ironhub-line)] p-6 text-center text-xs text-muted-foreground">
-                Please link your organization GitHub above to generate webhook endpoints and secret keys.
-              </div>
-            )}
+                </DialogContent>
+              </Dialog>
+            </div>
           </Card>
-        </div>
 
-        {/* Right Column: Webhook Live logs terminal */}
-        <div className="flex flex-col gap-6">
-          <Card className="border border-[var(--ironhub-line)] bg-card/60 p-5 shadow-sm flex flex-col flex-1">
-            <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5 mb-3">
-              <IconRefresh className={`size-4 text-primary ${isSyncing ? "animate-spin" : ""}`} />
-              Recent Webhook Deliveries
+          {/* Access Policy Configuration */}
+          <Card className="border border-[var(--ironhub-line)] bg-card/60 p-5 shadow-sm flex flex-col gap-4">
+            <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5">
+              <IconBolt className="size-4 text-primary" />
+              Access Control & Invites
             </h3>
 
-            <div className="flex-1 flex flex-col bg-slate-950 font-mono text-[10px] text-slate-300 rounded-2xl p-4 shadow-inner min-h-[300px]">
-              {webhookLogs.length === 0 ? (
-                <div className="text-slate-500 text-center my-auto">
-                  No webhook delivery telemetry received.
+            <div className="flex flex-col gap-3">
+              <label className="flex items-start gap-2.5 rounded-xl border border-[var(--ironhub-line)]/50 bg-background/30 p-3 hover:bg-muted/10 cursor-pointer">
+                <input
+                  type="radio"
+                  name="invitePolicy"
+                  value="admin_only"
+                  defaultChecked
+                  className="mt-0.5"
+                />
+                <div>
+                  <span className="text-xs font-bold text-foreground">
+                    Admin Only Invitations
+                  </span>
+                  <span className="text-xs text-muted-foreground leading-normal block mt-0.5">
+                    Only organization Space Administrators can invite new members to the org.
+                  </span>
                 </div>
-              ) : (
-                <div className="flex flex-col gap-4 overflow-y-auto max-h-[480px] pr-1">
-                  {webhookLogs.map((log) => {
-                    const isSuccess = log.status.includes("200")
-                    return (
-                      <div key={log.id} className="border-b border-slate-900 pb-3 last:border-0 last:pb-0">
-                        <div className="flex flex-wrap items-center justify-between gap-1">
-                          <span className="text-slate-500 font-sans">{log.time}</span>
-                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
-                            isSuccess
-                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                              : "bg-destructive/10 text-red-400 border border-destructive/20"
-                          }`}>
-                            {log.status}
-                          </span>
-                        </div>
-                        <div className="mt-1.5 flex items-center gap-1.5 font-bold">
-                          <span className="text-blue-400">{log.method}</span>
-                          <span className="text-slate-400 truncate">{log.endpoint}</span>
-                        </div>
-                        <p className="mt-1 text-slate-500 font-sans leading-relaxed">
-                          {log.details}
-                        </p>
-                      </div>
-                    )
-                  })}
+              </label>
+
+              <label className="flex items-start gap-2.5 rounded-xl border border-[var(--ironhub-line)]/50 bg-background/30 p-3 hover:bg-muted/10 cursor-pointer">
+                <input
+                  type="radio"
+                  name="invitePolicy"
+                  value="any_member"
+                  className="mt-0.5"
+                />
+                <div>
+                  <span className="text-xs font-bold text-foreground">
+                    Allow Member Invitations
+                  </span>
+                  <span className="text-xs text-muted-foreground leading-normal block mt-0.5">
+                    Any active member can invite additional coworkers from the whitelisted domains.
+                  </span>
                 </div>
-              )}
+              </label>
             </div>
           </Card>
         </div>

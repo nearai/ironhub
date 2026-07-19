@@ -44,22 +44,22 @@ export function CatalogCard({
 
   return (
     <Card
-      className="group relative flex h-full flex-col overflow-hidden border-border/60 bg-card transition-all duration-300 hover:-translate-y-1 hover:bg-card hover:shadow-[0_20px_50px_rgba(43,130,212,0.15)]"
+      className="group relative flex h-full flex-col overflow-hidden border-border bg-card transition-colors duration-200 hover:border-primary/40"
       size="sm"
     >
       <CardHeader className="pb-2">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
           <CatalogIcon item={item} />
-          <CardTitle className="text-lg font-bold">
+          <CardTitle className="min-w-0 text-[0.95rem] leading-snug font-bold">
             <Link
               href={`/marketplace/${item.slug}`}
-              className="transition-colors hover:text-primary"
+              className="line-clamp-2 transition-colors hover:text-primary"
             >
               {item.name}
             </Link>
           </CardTitle>
         </div>
-        <CardAction>
+        <CardAction className="self-start">
           <StatusBadge item={item} />
         </CardAction>
       </CardHeader>
@@ -69,14 +69,14 @@ export function CatalogCard({
           {item.description ?? "No description."}
         </p>
         {!compact && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-[7px]">
             {(item.valueTags?.length ? item.valueTags : item.tags)
               .slice(0, 4)
               .map((tag) => (
                 <Badge
                   key={tag}
                   variant="outline"
-                  className="rounded-full border-primary/10 bg-primary/5 text-[0.7rem] font-medium text-muted-foreground"
+                  className="rounded-[4px] border-border bg-transparent px-[9px] py-[4px] font-mono text-[0.66rem] font-normal tracking-[0.04em] text-muted-foreground"
                 >
                   {tag}
                 </Badge>
@@ -85,45 +85,53 @@ export function CatalogCard({
         )}
       </CardContent>
 
-      <CardFooter className="flex-col items-stretch gap-4 border-t border-border/40 pt-4">
-        <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5 opacity-80">
-            <IconUserCircle className="size-3.5" />
-            {item.author}
-          </span>
-          <span className="inline-flex items-center gap-1.5 opacity-80">
-            <IconKey className="size-3.5" />
-            {metric}
-          </span>
-        </div>
-
+      <CardFooter className="flex-col items-stretch gap-3 border-t border-border/40 pt-4">
         {onSelect ? (
-          <Button
-            onClick={() => !disabled && onSelect(item)}
-            disabled={disabled}
-            className={cn(
-              "w-full cursor-pointer gap-2 rounded-full font-semibold transition-all",
-              disabled
-                ? "cursor-not-allowed border border-border/40 bg-muted text-muted-foreground opacity-70"
-                : isSelected
-                  ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 hover:border-destructive/20 hover:bg-destructive/10 hover:text-destructive dark:text-emerald-400"
-                  : "bg-primary text-primary-foreground hover:bg-primary/90"
-            )}
-          >
-            {selectText || "Select"}
-            <IconArrowRight className={cn("size-4", isSelected && "hidden")} />
-          </Button>
+          <>
+            <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 opacity-80">
+                <IconUserCircle className="size-3.5" />
+                {item.author}
+              </span>
+              <span className="inline-flex items-center gap-1.5 opacity-80">
+                <IconKey className="size-3.5" />
+                {metric}
+              </span>
+            </div>
+            <Button
+              onClick={() => !disabled && onSelect(item)}
+              disabled={disabled}
+              variant="outline"
+              className={cn(
+                "w-full cursor-pointer gap-2 font-semibold transition-all",
+                disabled
+                  ? "cursor-not-allowed border border-border/40 bg-muted text-muted-foreground opacity-70"
+                  : isSelected
+                    ? "border-primary bg-primary/10 text-[#0072c9] hover:bg-primary/20 hover:text-[#0072c9]"
+                    : "border-primary bg-transparent text-foreground hover:bg-primary/5 hover:text-primary"
+              )}
+            >
+              {selectText || "Select"}
+              <IconArrowRight className={cn("size-4", isSelected && "hidden")} />
+            </Button>
+          </>
         ) : (
-          <Button
-            asChild
-            variant="outline"
-            className="w-full gap-2 rounded-full border-border/60 bg-transparent font-semibold text-foreground transition-all hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
-          >
-            <Link href={`/marketplace/${item.slug}`}>
+          <div className="flex items-center justify-between gap-3 font-mono text-[0.74rem]">
+            <span className="inline-flex min-w-0 items-center gap-1.5 truncate text-muted-foreground">
+              <span className="truncate">{item.author}</span>
+              <span aria-hidden="true" className="opacity-60">
+                ·
+              </span>
+              <span className="whitespace-nowrap">{metric}</span>
+            </span>
+            <Link
+              href={`/marketplace/${item.slug}`}
+              className="inline-flex shrink-0 items-center gap-1 text-primary transition-colors hover:text-primary/80"
+            >
               View setup
-              <IconArrowRight className="size-4" />
+              <IconArrowRight className="size-3.5" />
             </Link>
-          </Button>
+          </div>
         )}
       </CardFooter>
     </Card>

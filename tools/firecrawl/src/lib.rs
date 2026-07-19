@@ -10,7 +10,7 @@
 //!
 //! # Authentication
 //!
-//! Store your Firecrawl API key: `ironclaw secret set firecrawl_api_key <key>`.
+//! Store your Firecrawl API key: `ironclaw tool setup firecrawl-tool`.
 //! The host injects it as a Bearer token; this tool never sees the raw value.
 //! Get a key at <https://www.firecrawl.dev/app/api-keys>.
 
@@ -34,6 +34,9 @@ const MIN_TIMEOUT_MS: u32 = 1000;
 const MAX_TIMEOUT_MS: u32 = 300_000;
 const MAX_WAIT_MS: u32 = 60_000;
 const MAX_URL_LEN: usize = 2048;
+/// HTTP client timeout for the host call, capped at the caps `timeout_secs` (120s).
+/// Must exceed any per-request wait the API itself may take (e.g. scrape `waitFor`).
+const HTTP_TIMEOUT_MS: u32 = 120_000;
 /// Cap on crawl pages echoed back by `crawl_status` to keep output bounded.
 const MAX_CRAWL_PAGES: usize = 25;
 
@@ -117,10 +120,11 @@ fn execute_inner(params: &str) -> Result<String, String> {
 
     // Pre-flight: verify the API key is configured before any network call.
     if !near::agent::host::secret_exists(SECRET_NAME) {
-        return Err(format!(
-            "Firecrawl API key not found. Set it with: ironclaw secret set {SECRET_NAME} <key>. \
+        return Err(
+            "Firecrawl API key not found. Set it with: ironclaw tool setup firecrawl-tool. \
              Get a key at https://www.firecrawl.dev/app/api-keys"
-        ));
+                .to_string(),
+        );
     }
 
     match action {
@@ -377,8 +381,17 @@ fn request(method: &str, url: &str, headers: &str, body: Option<Vec<u8>>) -> Res
     let response = loop {
         attempt += 1;
         // Authorization (Bearer) is injected by the host credential config.
-        let resp = near::agent::host::http_request(method, url, headers, body.as_deref(), None)
-            .map_err(|e| format!("HTTP request failed: {e}"))?;
+        // Pass an explicit timeout: the host defaults to 30s, which is shorter than
+        // a scrape's `waitFor`/`timeout` can legitimately run, so slow scrapes would
+        // be killed mid-flight. The host caps this at the caps `timeout_secs`.
+        let resp = near::agent::host::http_request(
+            method,
+            url,
+            headers,
+            body.as_deref(),
+            Some(HTTP_TIMEOUT_MS),
+        )
+        .map_err(|e| format!("HTTP request failed: {e}"))?;
 
         if (200..300).contains(&resp.status) {
             break resp;
@@ -471,73 +484,72 @@ fn serialize(value: &Value) -> Result<String, String> {
     serde_json::to_string(value).map_err(|e| format!("Failed to serialize output: {e}"))
 }
 
+// NOTE: This schema uses the top-level `required` + `oneOf` (per-action branch)
+// shape, matching the github tool. The host forwards only the fields named in the
+// matching branch's `required` set; a flat schema with `required: ["action"]` alone
+// causes every other argument (url, query, id, ...) to be stripped before the tool
+// sees it. Each branch therefore re-lists `action` plus that action's mandatory
+// fields. Do NOT add a top-level `additionalProperties: false`: with per-branch
+// properties it would reject every real argument.
 const SCHEMA: &str = r#"{
     "type": "object",
-    "properties": {
-        "action": {
-            "type": "string",
-            "enum": ["scrape", "search", "map", "crawl", "crawl_status"],
-            "description": "Which Firecrawl operation to perform."
-        },
-        "url": {
-            "type": "string",
-            "description": "Target URL (http/https). Required for scrape, map, and crawl."
-        },
-        "query": {
-            "type": "string",
-            "description": "Search query for 'search' (max 500 chars)."
-        },
-        "formats": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "scrape output formats, e.g. [\"markdown\"], [\"markdown\",\"html\"]. Default [\"markdown\"]."
-        },
-        "only_main_content": {
-            "type": "boolean",
-            "description": "scrape: strip nav/header/footer boilerplate (default true)."
-        },
-        "wait_for": {
-            "type": "integer",
-            "description": "scrape: milliseconds to wait for JS before extracting (max 60000).",
-            "minimum": 0,
-            "maximum": 60000
-        },
-        "timeout": {
-            "type": "integer",
-            "description": "scrape: request timeout in milliseconds (1000-300000).",
-            "minimum": 1000,
-            "maximum": 300000
-        },
-        "limit": {
-            "type": "integer",
-            "description": "Max results: search (1-100, default 10), map (default 1000), crawl pages (default 100).",
-            "minimum": 1
-        },
-        "sources": {
-            "type": "array",
-            "items": { "type": "string", "enum": ["web", "news", "images"] },
-            "description": "search: which result types to return (default [\"web\"])."
-        },
-        "search": {
-            "type": "string",
-            "description": "map: optional query to order discovered URLs by relevance."
-        },
-        "include_subdomains": {
-            "type": "boolean",
-            "description": "map: include subdomains in discovered URLs (default true)."
-        },
-        "max_depth": {
-            "type": "integer",
-            "description": "crawl: maximum link-discovery depth from the start URL.",
-            "minimum": 1
-        },
-        "id": {
-            "type": "string",
-            "description": "crawl_status: the crawl_id returned by a 'crawl' call."
-        }
-    },
     "required": ["action"],
-    "additionalProperties": false
+    "oneOf": [
+        {
+            "properties": {
+                "action": { "const": "scrape" },
+                "url": { "type": "string", "description": "Target URL (http/https) to scrape." },
+                "formats": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Output formats, e.g. [\"markdown\"], [\"markdown\",\"html\"]. Default [\"markdown\"]."
+                },
+                "only_main_content": { "type": "boolean", "description": "Strip nav/header/footer boilerplate (default true)." },
+                "wait_for": { "type": "integer", "minimum": 0, "maximum": 60000, "description": "Milliseconds to wait for JS before extracting (max 60000)." },
+                "timeout": { "type": "integer", "minimum": 1000, "maximum": 300000, "description": "Request timeout in milliseconds (1000-300000)." }
+            },
+            "required": ["action", "url"]
+        },
+        {
+            "properties": {
+                "action": { "const": "search" },
+                "query": { "type": "string", "description": "Search query (max 500 chars)." },
+                "limit": { "type": "integer", "minimum": 1, "maximum": 100, "description": "Max results (1-100, default 10)." },
+                "sources": {
+                    "type": "array",
+                    "items": { "type": "string", "enum": ["web", "news", "images"] },
+                    "description": "Which result types to return (default [\"web\"])."
+                }
+            },
+            "required": ["action", "query"]
+        },
+        {
+            "properties": {
+                "action": { "const": "map" },
+                "url": { "type": "string", "description": "Target site URL (http/https) to map." },
+                "search": { "type": "string", "description": "Optional query to order discovered URLs by relevance." },
+                "limit": { "type": "integer", "minimum": 1, "description": "Max URLs to return (default 1000)." },
+                "include_subdomains": { "type": "boolean", "description": "Include subdomains in discovered URLs (default true)." }
+            },
+            "required": ["action", "url"]
+        },
+        {
+            "properties": {
+                "action": { "const": "crawl" },
+                "url": { "type": "string", "description": "Start URL (http/https) for the recursive crawl." },
+                "limit": { "type": "integer", "minimum": 1, "description": "Max pages to crawl (default 100)." },
+                "max_depth": { "type": "integer", "minimum": 1, "description": "Maximum link-discovery depth from the start URL." }
+            },
+            "required": ["action", "url"]
+        },
+        {
+            "properties": {
+                "action": { "const": "crawl_status" },
+                "id": { "type": "string", "description": "The crawl_id returned by a 'crawl' call." }
+            },
+            "required": ["action", "id"]
+        }
+    ]
 }"#;
 
 export!(FirecrawlTool);
@@ -550,7 +562,17 @@ mod tests {
     fn schema_is_valid_json() {
         let v: Value = serde_json::from_str(SCHEMA).expect("schema must be valid JSON");
         assert_eq!(v["type"], "object");
-        assert!(v["properties"]["action"]["enum"].is_array());
+        assert_eq!(v["required"][0], "action");
+        // Per-action `oneOf` branches each re-list their mandatory fields so the host
+        // forwards them (a flat `required: ["action"]` strips every other argument).
+        let branches = v["oneOf"].as_array().expect("oneOf must be an array");
+        assert_eq!(branches.len(), 5);
+        for b in branches {
+            let req = b["required"].as_array().expect("branch needs required[]");
+            assert_eq!(req[0], "action");
+            // action is pinned to a const matching one tool action.
+            assert!(b["properties"]["action"]["const"].is_string());
+        }
     }
 
     #[test]

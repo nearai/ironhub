@@ -1,8 +1,4 @@
-import {
-  IconArrowRight,
-  IconPencil,
-  IconShieldCheck,
-} from "@tabler/icons-react"
+import { IconArrowRight, IconPencil } from "@tabler/icons-react"
 
 import { MarketplaceInstallCard } from "@/features/marketplace/components/marketplace-install-card"
 import { ActionLink } from "@/features/shell/components/action-link"
@@ -15,15 +11,16 @@ type IronClawHeroProps = {
 
 export function IronClawHero({ total, skills, tools }: IronClawHeroProps) {
   return (
-    <section className="relative overflow-hidden px-4 py-4 sm:px-6 sm:py-10 lg:px-4 lg:py-20">
-      <div className="mx-auto grid max-w-7xl items-center gap-6 md:grid-cols-[1.15fr_1fr] md:gap-10">
-        <div className="flex max-w-4xl flex-col gap-5">
-          <p className="inline-flex w-fit items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-xs font-bold tracking-wide text-primary uppercase">
-            <IconShieldCheck className="size-4" />
-            The extension hub for IronClaw
+    <section className="relative overflow-hidden pt-3 pb-10 sm:py-14 lg:py-20">
+      <div className="grid items-center gap-10 md:grid-cols-[1.15fr_1fr]">
+        <div className="flex max-w-2xl flex-col gap-6">
+          <p className="font-mono text-[var(--fs-eyebrow)] font-semibold tracking-[0.22em] text-primary uppercase">
+            {">> "}The extension hub for IronClaw
           </p>
-          <h1 className="max-w-4xl font-heading text-[clamp(2.2rem,5vw,3.8rem)] leading-[1.08] font-extrabold tracking-normal">
-            IronHub for IronClaw Skills and Tools.
+          <h1 className="font-sans text-[clamp(2.4rem,6vw,4.2rem)] leading-[1.04] font-black tracking-tight">
+            IronHub for IronClaw{" "}
+            <span className="near-gradient-text">Skills</span> and{" "}
+            <span className="near-gradient-text">Tools</span>.
           </h1>
           <p className="max-w-xl text-lg leading-8 text-muted-foreground">
             Browse, install, and publish repo-backed extensions for IronClaw.
@@ -31,12 +28,19 @@ export function IronClawHero({ total, skills, tools }: IronClawHeroProps) {
           <p className="text-sm font-semibold text-muted-foreground">
             {total.toLocaleString("en-US")} Skills and Tools available
           </p>
-          <div className="flex flex-wrap gap-3 pt-2">
-            <ActionLink href="/marketplace" variant="default">
+          <div className="flex flex-wrap gap-4 pt-1">
+            <ActionLink
+              href="/marketplace"
+              variant="default"
+              className="h-11 px-[26px] text-base"
+            >
               Skill Library
               <IconArrowRight />
             </ActionLink>
-            <ActionLink href="/developer">
+            <ActionLink
+              href="/developer"
+              className="h-11 px-[26px] text-base"
+            >
               <IconPencil />
               Contribute
             </ActionLink>

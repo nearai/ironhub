@@ -78,5 +78,11 @@ function getEncryptionKey() {
     throw new Error("IRONHUB_KEY_ENCRYPTION_SECRET is required")
   }
 
+  if (secret.length < 32 || secret === "replace-with-32-byte-random-secret") {
+    throw new Error(
+      "IRONHUB_KEY_ENCRYPTION_SECRET must be at least 32 characters and not the example placeholder"
+    )
+  }
+
   return createHmac("sha256", "ironhub:key-encryption").update(secret).digest()
 }

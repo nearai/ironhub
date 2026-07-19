@@ -34,12 +34,18 @@ export function readOptionalString(body: Record<string, unknown>, key: string) {
 export function assertSameOriginRequest(request: Request) {
   const origin = request.headers.get("origin")
 
-  if (!origin) return
+  if (origin) {
+    const requestHost = request.headers.get("host")
+    const originHost = new URL(origin).host
 
-  const requestHost = request.headers.get("host")
-  const originHost = new URL(origin).host
+    if (!requestHost || originHost !== requestHost) {
+      throw new Error("Cross-origin request blocked.")
+    }
 
-  if (!requestHost || originHost !== requestHost) {
+    return
+  }
+
+  if (request.headers.get("sec-fetch-site") !== "same-origin") {
     throw new Error("Cross-origin request blocked.")
   }
 }

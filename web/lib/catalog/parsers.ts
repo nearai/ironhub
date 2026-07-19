@@ -1,4 +1,3 @@
-import type { CatalogStatus } from "@/lib/catalog/types"
 import type { SkillFrontmatter } from "@/lib/catalog/source-types"
 
 export function parseYamlFrontmatter(text: string) {
