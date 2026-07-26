@@ -1,0 +1,65 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "YouTube Data API v3 integration and video transcript extraction for video metadata, comment threads, channel analytics, channel uploads playlist retrieval, keyword video search, and transcripts.",
+  "capabilities": {
+    "http": {
+      "allowlist": [
+        {
+          "host": "www.googleapis.com",
+          "path_prefix": "/youtube/v3",
+          "methods": [
+            "GET"
+          ]
+        },
+        {
+          "host": "youtube-transcript.ai",
+          "path_prefix": "/transcript/",
+          "methods": [
+            "GET"
+          ]
+        }
+      ],
+      "credentials": {
+        "youtube_api_key": {
+          "secret_name": "youtube_api_key",
+          "location": {
+            "type": "query_param",
+            "name": "key"
+          },
+          "host_patterns": [
+            "www.googleapis.com"
+          ],
+          "path_patterns": [
+            "/youtube/v3"
+          ],
+          "optional": true
+        }
+      },
+      "rate_limit": {
+        "requests_per_minute": 120
+      }
+    },
+    "secrets": {
+      "allowed_names": [
+        "youtube_api_key"
+      ]
+    }
+  },
+  "auth": {
+    "secret_name": "youtube_api_key",
+    "display_name": "YouTube Data API v3",
+    "instructions": "Create an API key in Google Cloud Console with YouTube Data API v3 enabled, then paste it here.",
+    "setup_url": "https://console.cloud.google.com/apis/credentials",
+    "token_hint": "Google API Key (starts with 'AIzaSy...')",
+    "env_var": "YOUTUBE_API_KEY"
+  },
+  "setup": {
+    "required_secrets": [
+      {
+        "name": "youtube_api_key",
+        "prompt": "YouTube Data API Key (from Google Cloud Console, starts with 'AIzaSy...'), guide: https://developers.google.com/youtube/v3/getting-started?hl=en, plz set API type to Public data"
+      }
+    ]
+  }
+}

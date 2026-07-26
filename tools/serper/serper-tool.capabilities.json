@@ -1,0 +1,54 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "Google Search, News, Images, Videos, Places, and Shopping API tool via Serper.dev",
+  "capabilities": {
+    "http": {
+      "allowlist": [
+        {
+          "host": "google.serper.dev",
+          "path_prefix": "/",
+          "methods": ["POST"]
+        }
+      ],
+      "credentials": {
+        "serper_key": {
+          "secret_name": "serper_api_key",
+          "location": {
+            "type": "header",
+            "name": "X-API-KEY"
+          },
+          "host_patterns": [
+            "google.serper.dev"
+          ]
+        }
+      },
+      "rate_limit": {
+        "requests_per_minute": 60,
+        "requests_per_hour": 1000
+      },
+      "timeout_secs": 30
+    },
+    "secrets": {
+      "allowed_names": [
+        "serper_api_key"
+      ]
+    }
+  },
+  "auth": {
+    "secret_name": "serper_api_key",
+    "display_name": "Serper.dev API",
+    "instructions": "Create an API key on https://serper.dev/ dashboard, then paste it here.",
+    "setup_url": "https://serper.dev/",
+    "token_hint": "Serper.dev API Key",
+    "env_var": "SERPER_API_KEY"
+  },
+  "setup": {
+    "required_secrets": [
+      {
+        "name": "serper_api_key",
+        "prompt": "Serper.dev API Key"
+      }
+    ]
+  }
+}
