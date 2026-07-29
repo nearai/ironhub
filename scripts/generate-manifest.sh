@@ -13,6 +13,9 @@
 #   <staging>/<tool-name>.wasm
 #   <staging>/<tool-name>.capabilities.json
 #   <staging>/<skill-name>.SKILL.md
+#
+# Also written here, not expected as input:
+#   <staging>/<tool-name>.manifest.toml    (generated from capabilities.json)
 
 set -euo pipefail
 
@@ -52,6 +55,29 @@ for dir in "$ROOT"/tools/*/; do
   caps_size="$(stat -c '%s' "$caps_staged")"
   caps_sha="$(sha256sum "$caps_staged" | awk '{print $1}')"
 
+  # Publish the extension manifest IronClaw installs from, rather than leaving
+  # it to be reconstructed on the client from capabilities.json.
+  #
+  # A tool whose capabilities.json cannot be expressed as a manifest publishes
+  # no manifest and keeps its other artifacts, so one unmappable tool does not
+  # cost the catalog every other tool's manifest. The hard gate on that lives in
+  # CI (scripts/check-extension-manifests.sh), where the author of the change
+  # sees it; a release is the wrong place to discover it and the wrong place to
+  # fail the whole catalog over it.
+  manifest_staged="${STAGING}/${name}.manifest.toml"
+  if "$ROOT/scripts/generate-extension-manifest.py" \
+      "$caps_file" "$name" "$crate_name" "$version" > "$manifest_staged"; then
+    manifest_json="$(jq -n \
+      --arg url "${base_url}/${name}.manifest.toml" \
+      --argjson size "$(stat -c '%s' "$manifest_staged")" \
+      --arg sha "$(sha256sum "$manifest_staged" | awk '{print $1}')" \
+      '{ url: $url, size_bytes: $size, sha256: $sha }')"
+  else
+    echo "warning: $name publishes no extension manifest (see error above)" >&2
+    rm -f "$manifest_staged"
+    manifest_json="null"
+  fi
+
   if [ $first -eq 0 ]; then
     tools_json+=","
   fi
@@ -68,6 +94,7 @@ for dir in "$ROOT"/tools/*/; do
     --arg caps_url "${base_url}/${name}.capabilities.json" \
     --argjson caps_size "$caps_size" \
     --arg caps_sha "$caps_sha" \
+    --argjson manifest "$manifest_json" \
     '{
       name: $name,
       crate_name: $crate,
@@ -75,7 +102,8 @@ for dir in "$ROOT"/tools/*/; do
       description: $desc,
       wasm: { url: $wasm_url, size_bytes: $wasm_size, sha256: $wasm_sha },
       capabilities: { url: $caps_url, size_bytes: $caps_size, sha256: $caps_sha }
-    }')
+    }
+    + (if $manifest == null then {} else { manifest: $manifest } end)')
 done
 tools_json+="]"
 
