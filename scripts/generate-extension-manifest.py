@@ -34,16 +34,35 @@ import json
 import sys
 
 
+TOML_ESCAPES = {
+    "\\": "\\\\",
+    '"': '\\"',
+    "\b": "\\b",
+    "\t": "\\t",
+    "\n": "\\n",
+    "\f": "\\f",
+    "\r": "\\r",
+}
+
+
 def toml_string(value: str) -> str:
-    """Quote a TOML basic string, escaping what the spec requires."""
-    escaped = (
-        value.replace("\\", "\\\\")
-        .replace('"', '\\"')
-        .replace("\n", "\\n")
-        .replace("\r", "\\r")
-        .replace("\t", "\\t")
-    )
-    return f'"{escaped}"'
+    """Quote a TOML basic string, escaping what the spec requires.
+
+    A basic string may not carry a raw control character, so anything in that
+    range without a named escape is emitted as \\uXXXX. Escaping only the five
+    common ones leaves a description containing, say, a form feed to produce a
+    manifest that fails to parse at install time rather than here.
+    """
+    out = []
+    for char in value:
+        escape = TOML_ESCAPES.get(char)
+        if escape is not None:
+            out.append(escape)
+        elif char < " " or char == "\x7f":
+            out.append(f"\\u{ord(char):04X}")
+        else:
+            out.append(char)
+    return '"{}"'.format("".join(out))
 
 
 def credential_injection(name: str, location: dict, handle: str) -> dict:
