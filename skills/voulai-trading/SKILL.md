@@ -1,6 +1,7 @@
 ---
 name: voulai-trading
 version: 1.0.0
+author: zavodil
 description: >-
   Trade a real on-chain crypto portfolio through the Voulai agent API. One
   per-strategy API key lets you read market data, run backtests, fund the
