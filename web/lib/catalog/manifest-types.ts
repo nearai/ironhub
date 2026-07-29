@@ -19,6 +19,7 @@ export type HubToolEntry = {
   provenance: Provenance
   wasm: HubArtifact
   capabilities: HubArtifact
+  manifest?: HubArtifact
 }
 
 export type HubSkillEntry = {

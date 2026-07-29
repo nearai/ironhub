@@ -54,6 +54,7 @@ type GithubTool = {
   description?: string | null
   wasm: GithubArtifact
   capabilities: GithubArtifact
+  manifest?: GithubArtifact | null
 }
 type GithubSkill = {
   name: string
@@ -130,6 +131,9 @@ async function fetchOfficialManifest(): Promise<{
     provenance: "official" as const,
     wasm: rewriteGithubArtifact(tool.wasm),
     capabilities: rewriteGithubArtifact(tool.capabilities),
+    ...(tool.manifest
+      ? { manifest: rewriteGithubArtifact(tool.manifest) }
+      : {}),
   }))
   const skills = (manifest.skills ?? []).map((skill) => ({
     name: skill.name,
