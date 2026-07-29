@@ -45,7 +45,8 @@ for dir in "$ROOT"/tools/*/; do
   cargo_toml="${dir}Cargo.toml"
 
   if [ ! -f "$caps_file" ] || [ ! -f "$cargo_toml" ]; then
-    echo "warning: $name has no capabilities.json or Cargo.toml, skipping" >&2
+    echo "error: $name has no capabilities.json or Cargo.toml" >&2
+    failed=$((failed + 1))
     continue
   fi
 
