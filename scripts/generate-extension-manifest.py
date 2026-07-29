@@ -68,6 +68,29 @@ def credential_injection(name: str, location: dict, handle: str) -> dict:
     )
 
 
+def setup_copy(name: str, auth: dict) -> list[str]:
+    """Carry the vendor's own account-setup steps into the recipe.
+
+    Without these the host can tell a user a secret is required but not where it
+    comes from, and a model asked to help has no grounded source and invents the
+    steps. `setup_url` must be https because it becomes a link the user is
+    invited to follow.
+    """
+    lines = []
+    instructions = (auth.get("instructions") or "").strip()
+    if instructions:
+        lines.append(f"instructions = {toml_string(instructions)}")
+    setup_url = (auth.get("setup_url") or "").strip()
+    if setup_url:
+        if not setup_url.startswith("https://"):
+            raise SystemExit(
+                f"{name}: auth.setup_url {setup_url!r} is not https; the host only "
+                f"renders https setup links"
+            )
+        lines.append(f"setup_url = {toml_string(setup_url)}")
+    return lines
+
+
 def auth_recipe(name: str, caps: dict, handles: list[str]) -> str:
     """Emit `[auth.<vendor>]`, which v3 requires for every referenced vendor.
 
@@ -102,6 +125,7 @@ def auth_recipe(name: str, caps: dict, handles: list[str]) -> str:
             if client_secret:
                 pair += f", client_secret_handle = {toml_string(client_secret)}"
             lines.append(f"client_credentials = {{ {pair} }}")
+        lines.extend(setup_copy(name, auth))
         # `token_response` is required by the recipe and absent from the
         # capabilities artifact. Unlike a validation probe (a URL only the vendor
         # can know) this shape is fixed by RFC 6749 section 5.1, and the pointers
@@ -123,12 +147,14 @@ def auth_recipe(name: str, caps: dict, handles: list[str]) -> str:
         )
         for h in handles
     )
-    return (
-        f"\n[auth.{name}]\n"
-        'method = "api_key"\n'
-        f"display_name = {toml_string(display_name)}\n"
-        f"fields = [ {fields} ]\n"
-    )
+    lines = [
+        f"\n[auth.{name}]",
+        'method = "api_key"',
+        f"display_name = {toml_string(display_name)}",
+        f"fields = [ {fields} ]",
+    ]
+    lines.extend(setup_copy(name, auth))
+    return "\n".join(lines) + "\n"
 
 
 def main() -> None:
