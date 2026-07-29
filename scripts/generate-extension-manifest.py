@@ -1,0 +1,202 @@
+#!/usr/bin/env python3
+"""Generate a Reborn v3 extension manifest from a tool's capabilities artifact.
+
+IronClaw installs an extension from a `manifest.toml` describing the runtime,
+its model-callable tools, the credentials those tools need, and an auth recipe
+per credential vendor. Until now IronHub published only `<tool>.capabilities.json`
+and IronClaw reconstructed the manifest itself by string-building TOML from a
+schema it does not own. That translation lost fields silently (credentials, then
+the auth recipe, then the OAuth vs API-key distinction) and each loss surfaced as
+a runtime failure in a user's session rather than a build error here.
+
+Emitting the manifest at publish time puts the translation in the repository that
+owns `capabilities.json`, so a mapping gap fails in CI where a tool author can see
+it.
+
+Policy fields (`trust`, `origin_gate_matrix`, `default_permission`, `visibility`)
+ARE emitted, because the v3 parser requires them structurally — omitting
+`default_permission` fails with `missing field default_permission` before any
+semantic check runs. They are emitted at their most restrictive values, and
+IronClaw overrides all four unconditionally after parsing. A published package
+therefore cannot grant itself authority: whatever it writes here is replaced.
+Treat the values below as syntax, not as policy.
+
+Everything else this script emits is a *descriptive* fact: what the tool is and
+which credential it needs.
+
+Usage:
+    generate-extension-manifest.py <capabilities.json> <name> <crate_name> <version>
+"""
+
+from __future__ import annotations
+
+import json
+import sys
+
+
+def toml_string(value: str) -> str:
+    """Quote a TOML basic string, escaping what the spec requires."""
+    escaped = (
+        value.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    )
+    return f'"{escaped}"'
+
+
+def credential_injection(name: str, location: dict, handle: str) -> dict:
+    """Map a published credential location onto the v3 injection contract.
+
+    v3 models header / query-param / path-placeholder / JSON-pointer injection.
+    It has no HTTP Basic variant: Basic needs username + base64(user:secret)
+    composition, which the host cannot express, so a `basic` credential is a hard
+    error here rather than a package that installs and can never authenticate.
+    """
+    kind = location.get("type", "")
+    if kind == "bearer":
+        return {"header": "authorization", "prefix": "Bearer "}
+    if kind == "header":
+        # monday.com sends the raw token as the Authorization value with no
+        # scheme prefix; inventing one would break every request it makes.
+        return {"header": location.get("name", "authorization").lower(), "prefix": None}
+    raise SystemExit(
+        f"{name}: credential {handle!r} declares location type {kind!r}, which the "
+        f"host cannot inject. Supported: 'bearer', 'header'. "
+        f"(v3 injection has no HTTP Basic variant.)"
+    )
+
+
+def auth_recipe(name: str, caps: dict, handles: list[str]) -> str:
+    """Emit `[auth.<vendor>]`, which v3 requires for every referenced vendor.
+
+    The method follows what the tool published rather than a fixed default: a
+    tool carrying `auth.oauth` gets `oauth2_code`; one without gets `api_key`.
+    Forcing `api_key` on an OAuth vendor makes the user paste an access token by
+    hand that then expires with no refresh.
+    """
+    auth = caps.get("auth") or {}
+    display_name = auth.get("display_name") or name
+    oauth = auth.get("oauth")
+
+    if oauth:
+        scopes = ", ".join(toml_string(s) for s in oauth.get("scopes") or [])
+        lines = [
+            f"\n[auth.{name}]",
+            'method = "oauth2_code"',
+            f"display_name = {toml_string(display_name)}",
+            f"authorization_endpoint = {toml_string(oauth.get('authorization_url', ''))}",
+            f"token_endpoint = {toml_string(oauth.get('token_url', ''))}",
+            f"scopes = [ {scopes} ]",
+        ]
+        # PKCE defaults to S256 in the recipe; only an explicit opt-out is declared.
+        if oauth.get("use_pkce", True) is False:
+            lines.append('pkce = "none"')
+        client_id = (oauth.get("client_id_env") or "").lower()
+        client_secret = (oauth.get("client_secret_env") or "").lower()
+        if client_id:
+            # Deployment-level client credentials are referenced by secret HANDLE,
+            # never by value, so no secret material enters the manifest.
+            pair = f"client_id_handle = {toml_string(client_id)}"
+            if client_secret:
+                pair += f", client_secret_handle = {toml_string(client_secret)}"
+            lines.append(f"client_credentials = {{ {pair} }}")
+        # `token_response` is required by the recipe and absent from the
+        # capabilities artifact. Unlike a validation probe (a URL only the vendor
+        # can know) this shape is fixed by RFC 6749 section 5.1, and the pointers
+        # say where to look rather than asserting the fields are present.
+        lines.append(f"\n[auth.{name}.token_response]")
+        lines.append('access_token = "/access_token"')
+        lines.append('refresh_token = "/refresh_token"')
+        lines.append('expires_in = "/expires_in"')
+        return "\n".join(lines) + "\n"
+
+    prompts = {
+        s.get("name"): s.get("prompt")
+        for s in (caps.get("setup") or {}).get("required_secrets") or []
+    }
+    fields = ", ".join(
+        "{{ handle = {handle}, label = {label}, secret = true }}".format(
+            handle=toml_string(h),
+            label=toml_string(prompts.get(h) or h),
+        )
+        for h in handles
+    )
+    return (
+        f"\n[auth.{name}]\n"
+        'method = "api_key"\n'
+        f"display_name = {toml_string(display_name)}\n"
+        f"fields = [ {fields} ]\n"
+    )
+
+
+def main() -> None:
+    if len(sys.argv) != 5:
+        raise SystemExit(f"usage: {sys.argv[0]} <capabilities.json> <name> <crate> <version>")
+    caps_path, name, crate_name, version = sys.argv[1:5]
+
+    with open(caps_path, encoding="utf-8") as handle:
+        caps = json.load(handle)
+
+    description = caps.get("description") or ""
+    credentials = (caps.get("http") or {}).get("credentials") or {}
+
+    blocks = []
+    handles = []
+    for handle_name in sorted(credentials):
+        credential = credentials[handle_name]
+        injection = credential_injection(name, credential.get("location") or {}, handle_name)
+        hosts = credential.get("host_patterns") or []
+        if not hosts:
+            raise SystemExit(
+                f"{name}: credential {handle_name!r} declares no host_patterns; the "
+                f"injection audience cannot be bounded"
+            )
+        prefix = ""
+        if injection["prefix"] is not None:
+            prefix = f", prefix = {toml_string(injection['prefix'])}"
+        blocks.append(
+            f"\n[[tools.credentials]]\n"
+            f"handle = {toml_string(handle_name)}\n"
+            f"vendor = {toml_string(name)}\n"
+            f'audience = {{ scheme = "https", host = {toml_string(hosts[0])} }}\n'
+            f'injection = {{ type = "header", name = {toml_string(injection["header"])}{prefix} }}\n'
+        )
+        handles.append(handle_name)
+
+    effects = '["network", "use_secret"]' if handles else '["network"]'
+
+    manifest = (
+        'schema_version = "reborn.extension_manifest.v3"\n'
+        f"id = {toml_string(name)}\n"
+        f"name = {toml_string(name)}\n"
+        f"version = {toml_string(version)}\n"
+        f"description = {toml_string(description)}\n"
+        # Syntax, not policy: the parser requires these, and IronClaw replaces
+        # them after parsing. Emitted at their most restrictive values so a
+        # manifest is never the reason something is permitted.
+        'trust = "third_party"\n'
+        "\n[runtime]\n"
+        'kind = "wasm"\n'
+        f"module = {toml_string(f'wasm/{crate_name}.wasm')}\n"
+        "\n[[tools]]\n"
+        'origin_gate_matrix = { loop_run = "gated_unless_granted", '
+        'product = "forbidden", automation = "forbidden" }\n'
+        f"id = {toml_string(f'{name}.invoke')}\n"
+        f"description = {toml_string(description)}\n"
+        f"effects = {effects}\n"
+        'default_permission = "ask"\n'
+        'visibility = "model"\n'
+        f"input_schema_ref = {toml_string(f'schemas/{name}/invoke.input.v1.json')}\n"
+        f"output_schema_ref = {toml_string(f'schemas/{name}/raw_output.v1.json')}\n"
+    )
+    manifest += "".join(blocks)
+    if handles:
+        manifest += auth_recipe(name, caps, handles)
+
+    sys.stdout.write(manifest)
+
+
+if __name__ == "__main__":
+    main()
