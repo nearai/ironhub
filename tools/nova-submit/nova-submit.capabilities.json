@@ -1,0 +1,31 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "Encrypt a file with AES-256-GCM and upload it to a NOVA group on NEAR. Self-contained NOVA submission tool for the NEAR Legion IronClaw Hackathon: performs session-token, prepare_upload, client-side encryption, and finalize_upload in a single call. The NOVA account ID and API key are passed as call parameters; no host-injected credentials.",
+  "http": {
+    "allowlist": [
+      {
+        "host": "nova-sdk.com",
+        "path_prefix": "/api/",
+        "methods": ["POST"]
+      },
+      {
+        "host": "5a5223f7d1bfe777433c496b9d52ff851e927259-8000.dstack-prod5.phala.network",
+        "path_prefix": "/tools/",
+        "methods": ["POST"]
+      }
+    ],
+    "credentials": {},
+    "rate_limit": {
+      "requests_per_minute": 30,
+      "requests_per_hour": 200
+    },
+    "timeout_secs": 60
+  },
+  "secrets": {
+    "allowed_names": []
+  },
+  "setup": {
+    "required_secrets": []
+  }
+}
