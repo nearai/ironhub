@@ -18,17 +18,28 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 out_dir="$(mktemp -d)"
 trap 'rm -rf "$out_dir"' EXIT
 
+# Run semantic regression coverage before checking that every real tool can be
+# generated. A syntactically valid manifest is still unusable if translation
+# dropped its network targets or credentials.
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover \
+  -s "$ROOT/scripts" \
+  -p 'test_generate_extension_manifest.py'
+
 # Tools that cannot publish a manifest yet, with the reason. A tool is listed
 # here only when the gap is in the host contract rather than in the tool, and
 # listing it does not make the tool installable — IronClaw refuses an HTTP Basic
 # credential today whether or not a manifest is published. Remove an entry when
 # the underlying gap closes.
 #
-#   wazuh — authenticates with HTTP Basic. v3 credential injection models
-#           header / query-param / path-placeholder / JSON-pointer targets and
-#           has no Basic variant, because Basic needs username + base64(user:pass)
-#           composition that the host cannot express.
-exempt="wazuh"
+#   wazuh     — authenticates with HTTP Basic. v3 credential injection models
+#               header / query-param / path-placeholder / JSON-pointer targets
+#               and has no Basic variant, because Basic needs username +
+#               base64(user:pass) composition that the host cannot express.
+#   wordpress — supports alternative WordPress Basic and WooCommerce query-param
+#               credentials on one tool. Query-param injection is expressible,
+#               but the Basic alternative is not; dropping it would publish a
+#               partially working manifest.
+exempt="wazuh wordpress"
 
 failed=0
 checked=0
