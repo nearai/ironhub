@@ -58,7 +58,7 @@ It declares no host-injected credentials: the NOVA API key is passed as a call p
 
 ## Reborn extension format
 
-This tool also ships as a [Reborn](https://github.com/nearai/ironclaw) extension (`schema_version = "reborn.extension_manifest.v2"`). The extension manifest, JSON schemas, and LLM prompt docs live alongside the source:
+This tool also ships as a [Reborn](https://github.com/nearai/ironclaw) extension. The release generates the extension manifest from the capabilities artifact; the JSON schemas and LLM prompt docs live alongside the source:
 
 ```
 ironhub/
@@ -66,15 +66,14 @@ ironhub/
   tools/nova-submit/
     Cargo.toml
     src/lib.rs                                            ← `path: "../../wit/tool.wit"`
-    nova-submit-tool.capabilities.json
-    manifest.toml                                         ← Reborn extension manifest
+    nova-submit-tool.capabilities.json                    ← the manifest is generated from this
     schemas/nova-submit/submit_file.input.v1.json         ← input schema
     schemas/nova-submit/raw_output.v1.json                ← output schema
     prompts/nova-submit/submit_file.md                    ← LLM prompt doc
     README.md
 ```
 
-The WIT interface (`near:agent@0.3.0`) is identical for v1 and Reborn, so the same `.wasm` binary works in both runtimes. The Reborn manifest declares a single capability (`nova-submit.submit_file`) with `effects = ["network"]` — no host-injected credentials since the NOVA API key is passed as a tool parameter.
+The WIT interface (`near:agent@0.3.0`) is identical for v1 and Reborn, so the same `.wasm` binary works in both runtimes. The Reborn manifest declares a single capability (`nova-submit.invoke`) with `effects = ["network"]` — no host-injected credentials since the NOVA API key is passed as a tool parameter.
 
 ## Layout
 
