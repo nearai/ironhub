@@ -2,6 +2,7 @@
   "version": "0.1.0",
   "wit_version": "0.3.0",
   "description": "EVM JSON-RPC integration. Read account balances, contract code and storage, call view functions, fetch blocks, transactions, receipts, and event logs. Built-in chain shortcuts for Ethereum mainnet, Polygon, Arbitrum, Optimism, Base, BNB Chain, and Avalanche; accepts custom RPC URLs for any EVM-compatible network. Read-only (no transaction signing).",
+  "effects": [],
   "http": {
     "allowlist": [
       { "host": "ethereum-rpc.publicnode.com", "path_prefix": "/", "methods": ["POST"] },

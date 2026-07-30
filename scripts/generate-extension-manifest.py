@@ -34,6 +34,8 @@ import json
 import sys
 
 
+PUBLISHED_EFFECTS = {"external_write", "financial"}
+
 TOML_ESCAPES = {
     "\\": "\\\\",
     '"': '\\"',
@@ -165,6 +167,83 @@ def network_hosts(name: str, http: dict) -> list[str]:
     return hosts
 
 
+def declared_effects(name: str, caps: dict) -> list[str]:
+    """Return security-relevant effects explicitly declared by the publisher."""
+    effects = caps.get("effects")
+    if not isinstance(effects, list):
+        raise SystemExit(
+            f"{name}: effects must be an explicit list (use [] for read-only tools)"
+        )
+
+    seen = set()
+    for effect in effects:
+        if not isinstance(effect, str) or effect not in PUBLISHED_EFFECTS:
+            allowed = ", ".join(sorted(PUBLISHED_EFFECTS))
+            raise SystemExit(
+                f"{name}: unsupported effect {effect!r}; supported: {allowed}"
+            )
+        if effect in seen:
+            raise SystemExit(f"{name}: duplicate effect {effect!r}")
+        seen.add(effect)
+    return effects
+
+
+def oauth_scopes(name: str, caps: dict) -> list[str] | None:
+    """Return OAuth scopes, distinguishing OAuth with no scopes from API keys."""
+    auth = caps.get("auth") or {}
+    if not isinstance(auth, dict):
+        raise SystemExit(f"{name}: auth must be an object")
+    oauth = auth.get("oauth")
+    if oauth is None:
+        return None
+    if not isinstance(oauth, dict):
+        raise SystemExit(f"{name}: auth.oauth must be an object")
+    scopes = oauth.get("scopes", [])
+    if not isinstance(scopes, list):
+        raise SystemExit(f"{name}: auth.oauth.scopes must be a list")
+
+    normalized = []
+    for scope in scopes:
+        if not isinstance(scope, str) or not scope.strip():
+            raise SystemExit(f"{name}: OAuth scopes must be non-empty strings")
+        scope = scope.strip()
+        if scope in normalized:
+            raise SystemExit(f"{name}: duplicate OAuth scope {scope!r}")
+        normalized.append(scope)
+    return normalized
+
+
+def secret_names(name: str, caps: dict) -> list[str]:
+    """Read the supported secrets shape without silently choosing precedence."""
+    root_secrets = caps.get("secrets") if "secrets" in caps else None
+    capabilities = caps.get("capabilities")
+    nested_secrets = (
+        capabilities.get("secrets")
+        if isinstance(capabilities, dict) and "secrets" in capabilities
+        else None
+    )
+    if root_secrets is not None and nested_secrets is not None:
+        raise SystemExit(
+            f"{name}: secrets are declared in both 'secrets' and "
+            f"'capabilities.secrets'; keep exactly one representation"
+        )
+    secrets = root_secrets if root_secrets is not None else nested_secrets
+    if secrets is None:
+        secrets = {}
+    if not isinstance(secrets, dict):
+        raise SystemExit(f"{name}: secrets capability must be an object")
+    allowed_names = secrets.get("allowed_names", [])
+    if not isinstance(allowed_names, list):
+        raise SystemExit(f"{name}: secrets.allowed_names must be a list")
+    if any(not isinstance(secret, str) or not secret.strip() for secret in allowed_names):
+        raise SystemExit(
+            f"{name}: secrets.allowed_names must contain non-empty strings"
+        )
+    if len(set(allowed_names)) != len(allowed_names):
+        raise SystemExit(f"{name}: secrets.allowed_names contains duplicates")
+    return allowed_names
+
+
 def setup_copy(name: str, auth: dict) -> list[str]:
     """Carry the vendor's own account-setup steps into the recipe.
 
@@ -200,8 +279,8 @@ def auth_recipe(name: str, caps: dict, handles: list[str]) -> str:
     display_name = auth.get("display_name") or name
     oauth = auth.get("oauth")
 
-    if oauth:
-        scopes = ", ".join(toml_string(s) for s in oauth.get("scopes") or [])
+    if oauth is not None:
+        scopes = ", ".join(toml_string(s) for s in oauth_scopes(name, caps) or [])
         lines = [
             f"\n[auth.{name}]",
             'method = "oauth2_code"',
@@ -257,18 +336,38 @@ def auth_recipe(name: str, caps: dict, handles: list[str]) -> str:
 def generate_manifest(caps: dict, name: str, crate_name: str, version: str) -> str:
     """Translate a capabilities document into a complete v3 manifest."""
     description = caps.get("description") or ""
+    source_version = caps.get("version")
+    if source_version != version:
+        raise SystemExit(
+            f"{name}: capabilities version {source_version!r} does not match "
+            f"Cargo version {version!r}"
+        )
+    published_effects = declared_effects(name, caps)
+    scopes = oauth_scopes(name, caps)
     http = http_capability(name, caps)
     hosts = network_hosts(name, http)
-    credentials = http.get("credentials") or {}
+    credentials = http.get("credentials", {})
     if not isinstance(credentials, dict):
         raise SystemExit(f"{name}: HTTP credentials must be an object")
+    handles = sorted(credentials)
+    allowed_names = secret_names(name, caps)
+    if sorted(allowed_names) != handles:
+        raise SystemExit(
+            f"{name}: credential handles {handles!r} must exactly match "
+            f"secrets.allowed_names {sorted(allowed_names)!r}"
+        )
 
     blocks = []
-    handles = []
-    for handle_name in sorted(credentials):
+    for handle_name in handles:
         credential = credentials[handle_name]
         if not isinstance(credential, dict):
             raise SystemExit(f"{name}: credential {handle_name!r} must be an object")
+        secret_name = credential.get("secret_name")
+        if secret_name != handle_name:
+            raise SystemExit(
+                f"{name}: credential handle {handle_name!r} must match its "
+                f"secret_name {secret_name!r}"
+            )
         injection = credential_injection(name, credential.get("location") or {}, handle_name)
         credential_hosts = credential.get("host_patterns") or []
         if not isinstance(credential_hosts, list) or not credential_hosts:
@@ -310,17 +409,25 @@ def generate_manifest(caps: dict, name: str, crate_name: str, version: str) -> s
             injection_toml = (
                 f'{{ type = "query_param", name = {toml_string(injection["name"])} }}'
             )
+        scope_line = ""
+        if scopes is not None:
+            scope_values = ", ".join(toml_string(scope) for scope in scopes)
+            scope_line = f"scopes = [ {scope_values} ]\n"
         blocks.append(
             f"\n[[tools.credentials]]\n"
             f"handle = {toml_string(handle_name)}\n"
             f"vendor = {toml_string(name)}\n"
             f'audience = {{ scheme = "https", host = {toml_string(credential_host)} }}\n'
             f"injection = {injection_toml}\n"
+            f"{scope_line}"
             f"required = {'false' if optional else 'true'}\n"
         )
-        handles.append(handle_name)
 
-    effects = '["network", "use_secret"]' if handles else '["network"]'
+    effects = ["network"]
+    if handles:
+        effects.append("use_secret")
+    effects.extend(published_effects)
+    effects_toml = "[{}]".format(", ".join(toml_string(effect) for effect in effects))
     targets = ", ".join(
         f'{{ scheme = "https", host_pattern = {toml_string(host)} }}'
         for host in hosts
@@ -344,7 +451,7 @@ def generate_manifest(caps: dict, name: str, crate_name: str, version: str) -> s
         'product = "forbidden", automation = "forbidden" }\n'
         f"id = {toml_string(f'{name}.invoke')}\n"
         f"description = {toml_string(description)}\n"
-        f"effects = {effects}\n"
+        f"effects = {effects_toml}\n"
         f"network_targets = [ {targets} ]\n"
         'default_permission = "ask"\n'
         'visibility = "model"\n'

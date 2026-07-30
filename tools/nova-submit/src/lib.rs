@@ -45,12 +45,6 @@ struct SubmitParams {
     /// The participant's NOVA account ID, e.g. `alice.nova-sdk.near`.
     /// Used in the x-account-id / x-wallet-id headers and the auth body.
     account_id: String,
-    /// The participant's NOVA API key (from nova-sdk.com). Sent as the
-    /// `X-API-Key` header to the session-token endpoint. The IronClaw
-    /// agent reads this from its own configuration and passes it in;
-    /// it is not host-injected because NOVA uses a custom auth header,
-    /// not a bearer token.
-    api_key: String,
     /// The NOVA group to upload into, e.g. `ironclaw-hackathon-barcelona`.
     group_id: String,
     /// The filename to record for this upload, e.g. `submission.md`.
@@ -104,10 +98,10 @@ impl exports::near::agent::tool::Guest for NovaSubmitTool {
          Performs the full NOVA sequence (session token, prepare_upload, \
          client-side encryption, finalize_upload) internally and returns the \
          IPFS CID. Parameters: account_id (the participant's NOVA account, e.g. \
-         alice.nova-sdk.near), api_key (the participant's NOVA API key from \
-         nova-sdk.com), group_id (the NOVA group, e.g. \
+         alice.nova-sdk.near), group_id (the NOVA group, e.g. \
          ironclaw-hackathon-barcelona), filename (e.g. submission.md), and \
-         file_content (the full text to encrypt and upload)."
+         file_content (the full text to encrypt and upload). The NOVA API key \
+         is a host-managed credential and must not be supplied in parameters."
             .to_string()
     }
 }
@@ -116,12 +110,12 @@ fn execute_inner(params: &str) -> Result<String, String> {
     let p: SubmitParams = serde_json::from_str(params).map_err(|e| {
         host::log(
             host::LogLevel::Warn,
-            &format!("nova-submit parameter parse failed: {} | raw={}", e, params),
+            &format!("nova-submit parameter parse failed: {}", e),
         );
         format!(
             "Invalid parameters for nova-submit: {}. Expected: \
-             {{\"account_id\": \"<acct>.nova-sdk.near\", \"api_key\": \"<nova-api-key>\", \
-             \"group_id\": \"<group>\", \"filename\": \"<name>\", \
+             {{\"account_id\": \"<acct>.nova-sdk.near\", \"group_id\": \"<group>\", \
+             \"filename\": \"<name>\", \
              \"file_content\": \"<text>\"}}.",
             e
         )
@@ -136,7 +130,7 @@ fn execute_inner(params: &str) -> Result<String, String> {
     );
 
     // Step 1 — session token.
-    let token = get_session_token(&p.account_id, &p.api_key)?;
+    let token = get_session_token(&p.account_id)?;
 
     // Step 2 — prepare_upload: get encryption key + upload_id.
     let (upload_id, key_b64) = prepare_upload(&token, &p.account_id, &p.group_id, &p.filename)?;
@@ -242,20 +236,15 @@ fn derive_nonce_from_upload_id(upload_id: &str) -> [u8; 12] {
 /// Step 1: exchange the API key for a short-lived session token.
 ///
 /// NOVA's /api/auth/session-token requires the `X-API-Key` header plus
-/// `account_id` in the body (see nova-landing route.ts, Path 0). NOVA does
-/// not accept the key as a bearer token, so the host credential-injection
-/// mechanism (bearer-only across all known IronClaw tools) cannot be used —
-/// the key is passed in as a tool parameter and set as a header here.
-fn get_session_token(account_id: &str, api_key: &str) -> Result<String, String> {
+/// `account_id` in the body (see nova-landing route.ts, Path 0). The extension
+/// manifest binds the host-managed `nova_api_key` secret to `nova-sdk.com`, so
+/// the guest deliberately omits the secret header.
+fn get_session_token(account_id: &str) -> Result<String, String> {
     let body = serde_json::json!({ "account_id": account_id })
         .to_string()
         .into_bytes();
 
-    let headers = serde_json::json!({
-        "Content-Type": "application/json",
-        "X-API-Key": api_key,
-    })
-    .to_string();
+    let headers = session_headers();
 
     let resp = host::http_request("POST", NOVA_AUTH_URL, &headers, Some(&body), Some(30_000))
         .map_err(|e| format!("session-token request failed: {}", e))?;
@@ -274,6 +263,16 @@ fn get_session_token(account_id: &str, api_key: &str) -> Result<String, String> 
         .and_then(|t| t.as_str())
         .map(|s| s.to_string())
         .ok_or_else(|| "session-token response had no `token` field".to_string())
+}
+
+/// Guest-provided headers for the session exchange.
+///
+/// The host adds `X-API-Key` after the request crosses the credential boundary.
+fn session_headers() -> String {
+    serde_json::json!({
+        "Content-Type": "application/json",
+    })
+    .to_string()
 }
 
 /// Step 2: prepare_upload — returns (upload_id, key_b64).
@@ -434,5 +433,22 @@ mod tests {
         // so each encryption gets a fresh nonce even when the per-group key is reused.
         let c = derive_nonce_from_upload_id("upload-bbb");
         assert_ne!(a, c);
+    }
+
+    #[test]
+    fn model_schema_does_not_expose_api_key() {
+        let schema = serde_json::to_value(schemars::schema_for!(SubmitParams))
+            .expect("serialize submit schema");
+        let properties = schema["properties"].as_object().expect("schema properties");
+        assert!(!properties.contains_key("api_key"));
+    }
+
+    #[test]
+    fn guest_session_headers_do_not_contain_api_key() {
+        let headers: serde_json::Value =
+            serde_json::from_str(&session_headers()).expect("parse session headers");
+        assert_eq!(headers["Content-Type"], "application/json");
+        assert!(headers.get("X-API-Key").is_none());
+        assert!(headers.get("x-api-key").is_none());
     }
 }

@@ -2,6 +2,7 @@
   "version": "0.1.0",
   "wit_version": "0.3.0",
   "description": "GitLab integration via the v4 REST API. Projects (list, get, create), issues (list, get, create, update, comment), merge requests (list, get, create, update, comment, approve, merge), branches (list, get, create, delete), files (read, create or update, delete), search (projects, issues, blobs), pipelines (list, get, jobs), and current_user. OAuth 2.0 user-context authentication against gitlab.com with host-managed token refresh.",
+  "effects": ["external_write"],
   "http": {
     "allowlist": [
       {
