@@ -22,7 +22,7 @@ therefore cannot grant itself authority: whatever it writes here is replaced.
 Treat the values below as syntax, not as policy.
 
 Everything else this script emits is a *descriptive* fact: what the tool is and
-which credential it needs.
+which network targets and credentials it needs.
 
 Usage:
     generate-extension-manifest.py <capabilities.json> <name> <crate_name> <version>
@@ -73,18 +73,96 @@ def credential_injection(name: str, location: dict, handle: str) -> dict:
     composition, which the host cannot express, so a `basic` credential is a hard
     error here rather than a package that installs and can never authenticate.
     """
+    if not isinstance(location, dict):
+        raise SystemExit(f"{name}: credential {handle!r} location must be an object")
     kind = location.get("type", "")
     if kind == "bearer":
-        return {"header": "authorization", "prefix": "Bearer "}
+        return {
+            "type": "header",
+            "name": "authorization",
+            "prefix": "Bearer ",
+        }
     if kind == "header":
         # monday.com sends the raw token as the Authorization value with no
         # scheme prefix; inventing one would break every request it makes.
-        return {"header": location.get("name", "authorization").lower(), "prefix": None}
+        header = location.get("name", "authorization")
+        if not isinstance(header, str) or not header.strip():
+            raise SystemExit(
+                f"{name}: credential {handle!r} declares a header location "
+                f"without a name"
+            )
+        return {
+            "type": "header",
+            "name": header.strip().lower(),
+            "prefix": None,
+        }
+    if kind == "query_param":
+        parameter = location.get("name")
+        if not isinstance(parameter, str) or not parameter.strip():
+            raise SystemExit(
+                f"{name}: credential {handle!r} declares a query_param location "
+                f"without a name"
+            )
+        return {"type": "query_param", "name": parameter.strip()}
     raise SystemExit(
         f"{name}: credential {handle!r} declares location type {kind!r}, which the "
-        f"host cannot inject. Supported: 'bearer', 'header'. "
+        f"host cannot inject. Supported: 'bearer', 'header', 'query_param'. "
         f"(v3 injection has no HTTP Basic variant.)"
     )
+
+
+def http_capability(name: str, caps: dict) -> dict:
+    """Return the HTTP capability without silently choosing between schemas.
+
+    Most tools publish `http` at the document root. Newer component-model tools
+    publish it under `capabilities.http`. Both are supported, but declaring both
+    is ambiguous and must be resolved by the tool author rather than by a
+    precedence rule here.
+    """
+    root_http = caps.get("http") if "http" in caps else None
+    capabilities = caps.get("capabilities")
+    if capabilities is not None and not isinstance(capabilities, dict):
+        raise SystemExit(f"{name}: capabilities must be an object")
+    nested_http = (
+        capabilities.get("http")
+        if isinstance(capabilities, dict) and "http" in capabilities
+        else None
+    )
+
+    if root_http is not None and nested_http is not None:
+        raise SystemExit(
+            f"{name}: HTTP capability is declared in both 'http' and "
+            f"'capabilities.http'; keep exactly one representation"
+        )
+    http = root_http if root_http is not None else nested_http
+    if http is None:
+        raise SystemExit(
+            f"{name}: no HTTP capability found at 'http' or 'capabilities.http'"
+        )
+    if not isinstance(http, dict):
+        raise SystemExit(f"{name}: HTTP capability must be an object")
+    return http
+
+
+def network_hosts(name: str, http: dict) -> list[str]:
+    """Return each allowlisted host once, preserving declaration order."""
+    allowlist = http.get("allowlist")
+    if not isinstance(allowlist, list) or not allowlist:
+        raise SystemExit(f"{name}: HTTP capability must declare a non-empty allowlist")
+
+    hosts = []
+    for index, entry in enumerate(allowlist):
+        if not isinstance(entry, dict):
+            raise SystemExit(f"{name}: HTTP allowlist entry {index} must be an object")
+        host = entry.get("host")
+        if not isinstance(host, str) or not host.strip():
+            raise SystemExit(
+                f"{name}: HTTP allowlist entry {index} must declare a non-empty host"
+            )
+        host = host.strip()
+        if host not in hosts:
+            hosts.append(host)
+    return hosts
 
 
 def setup_copy(name: str, auth: dict) -> list[str]:
@@ -176,41 +254,77 @@ def auth_recipe(name: str, caps: dict, handles: list[str]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def main() -> None:
-    if len(sys.argv) != 5:
-        raise SystemExit(f"usage: {sys.argv[0]} <capabilities.json> <name> <crate> <version>")
-    caps_path, name, crate_name, version = sys.argv[1:5]
-
-    with open(caps_path, encoding="utf-8") as handle:
-        caps = json.load(handle)
-
+def generate_manifest(caps: dict, name: str, crate_name: str, version: str) -> str:
+    """Translate a capabilities document into a complete v3 manifest."""
     description = caps.get("description") or ""
-    credentials = (caps.get("http") or {}).get("credentials") or {}
+    http = http_capability(name, caps)
+    hosts = network_hosts(name, http)
+    credentials = http.get("credentials") or {}
+    if not isinstance(credentials, dict):
+        raise SystemExit(f"{name}: HTTP credentials must be an object")
 
     blocks = []
     handles = []
     for handle_name in sorted(credentials):
         credential = credentials[handle_name]
+        if not isinstance(credential, dict):
+            raise SystemExit(f"{name}: credential {handle_name!r} must be an object")
         injection = credential_injection(name, credential.get("location") or {}, handle_name)
-        hosts = credential.get("host_patterns") or []
-        if not hosts:
+        credential_hosts = credential.get("host_patterns") or []
+        if not isinstance(credential_hosts, list) or not credential_hosts:
             raise SystemExit(
                 f"{name}: credential {handle_name!r} declares no host_patterns; the "
                 f"injection audience cannot be bounded"
             )
-        prefix = ""
-        if injection["prefix"] is not None:
-            prefix = f", prefix = {toml_string(injection['prefix'])}"
+        if len(credential_hosts) != 1:
+            raise SystemExit(
+                f"{name}: credential {handle_name!r} declares {len(credential_hosts)} "
+                f"host_patterns, but a v3 credential has one audience; split the "
+                f"credential or extend the v3 contract instead of dropping hosts"
+            )
+        credential_host = credential_hosts[0]
+        if not isinstance(credential_host, str) or not credential_host.strip():
+            raise SystemExit(
+                f"{name}: credential {handle_name!r} declares an invalid host_pattern"
+            )
+        credential_host = credential_host.strip()
+        if credential_host not in hosts:
+            raise SystemExit(
+                f"{name}: credential {handle_name!r} targets {credential_host!r}, "
+                f"which is absent from the HTTP allowlist"
+            )
+        optional = credential.get("optional", False)
+        if not isinstance(optional, bool):
+            raise SystemExit(
+                f"{name}: credential {handle_name!r} optional must be a boolean"
+            )
+        if injection["type"] == "header":
+            prefix = ""
+            if injection["prefix"] is not None:
+                prefix = f", prefix = {toml_string(injection['prefix'])}"
+            injection_toml = (
+                f'{{ type = "header", name = {toml_string(injection["name"])}'
+                f"{prefix} }}"
+            )
+        else:
+            injection_toml = (
+                f'{{ type = "query_param", name = {toml_string(injection["name"])} }}'
+            )
         blocks.append(
             f"\n[[tools.credentials]]\n"
             f"handle = {toml_string(handle_name)}\n"
             f"vendor = {toml_string(name)}\n"
-            f'audience = {{ scheme = "https", host = {toml_string(hosts[0])} }}\n'
-            f'injection = {{ type = "header", name = {toml_string(injection["header"])}{prefix} }}\n'
+            f'audience = {{ scheme = "https", host = {toml_string(credential_host)} }}\n'
+            f"injection = {injection_toml}\n"
+            f"required = {'false' if optional else 'true'}\n"
         )
         handles.append(handle_name)
 
     effects = '["network", "use_secret"]' if handles else '["network"]'
+    targets = ", ".join(
+        f'{{ scheme = "https", host_pattern = {toml_string(host)} }}'
+        for host in hosts
+    )
 
     manifest = (
         'schema_version = "reborn.extension_manifest.v3"\n'
@@ -231,6 +345,7 @@ def main() -> None:
         f"id = {toml_string(f'{name}.invoke')}\n"
         f"description = {toml_string(description)}\n"
         f"effects = {effects}\n"
+        f"network_targets = [ {targets} ]\n"
         'default_permission = "ask"\n'
         'visibility = "model"\n'
         f"input_schema_ref = {toml_string(f'schemas/{name}/invoke.input.v1.json')}\n"
@@ -240,6 +355,18 @@ def main() -> None:
     if handles:
         manifest += auth_recipe(name, caps, handles)
 
+    return manifest
+
+
+def main() -> None:
+    if len(sys.argv) != 5:
+        raise SystemExit(f"usage: {sys.argv[0]} <capabilities.json> <name> <crate> <version>")
+    caps_path, name, crate_name, version = sys.argv[1:5]
+
+    with open(caps_path, encoding="utf-8") as handle:
+        caps = json.load(handle)
+
+    manifest = generate_manifest(caps, name, crate_name, version)
     sys.stdout.write(manifest)
 
 
