@@ -108,3 +108,9 @@ jobs:
 
       - name: Typecheck
         run: pnpm --filter web typecheck
+
+      - name: Catalog tests
+        run: pnpm --filter web test:catalog
+
+      - name: Signing parity
+        run: pnpm --filter web signing:check
