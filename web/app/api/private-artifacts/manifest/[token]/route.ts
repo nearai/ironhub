@@ -1,4 +1,4 @@
-import { signManifest } from "@/lib/catalog/manifest-signing.server"
+import { signDocument } from "@/lib/catalog/manifest-signing.server"
 import { handleApiError } from "@/lib/http/api"
 import { buildPrivateArtifactManifest } from "@/lib/private-artifacts/manifest"
 import { verifyArtifactToken } from "@/lib/private-artifacts/token"
@@ -27,7 +27,7 @@ export async function GET(_request: Request, { params }: Params) {
       generatedAt: new Date().toISOString(),
     })
 
-    return Response.json(signManifest(manifest), {
+    return Response.json(signDocument(manifest), {
       headers: { "Cache-Control": "no-store" },
     })
   } catch (error) {

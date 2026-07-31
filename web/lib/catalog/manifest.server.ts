@@ -56,12 +56,14 @@ type GithubTool = {
   capabilities: GithubArtifact
   manifest?: GithubArtifact | null
 }
+type GithubSkillFile = GithubArtifact & { path: string }
 type GithubSkill = {
   name: string
   trunk?: string | null
   version: string
   description?: string | null
   skill_md: GithubArtifact
+  files?: GithubSkillFile[] | null
 }
 type GithubManifest = {
   release_tag?: string
@@ -142,8 +144,35 @@ async function fetchOfficialManifest(): Promise<{
     description: skill.description ?? "",
     provenance: "official" as const,
     skill_md: rewriteGithubArtifact(skill.skill_md),
+    ...(skill.files?.length
+      ? {
+          files: skill.files
+            .filter((file) => {
+              if (isPublishableSkillPath(file.path)) {
+                return true
+              }
+              console.error(
+                `Skipping skill file with an unpublishable path: ${skill.name}/${file.path}`
+              )
+              return false
+            })
+            .map((file) => ({
+              path: file.path,
+              ...rewriteGithubArtifact(file),
+            })),
+        }
+      : {}),
   }))
   return { releaseTag: manifest.release_tag ?? "live", tools, skills }
+}
+
+const PUBLISHABLE_SKILL_PATH = /^[A-Za-z0-9._/-]+$/
+
+function isPublishableSkillPath(path: string) {
+  if (!path || path.startsWith("/") || !PUBLISHABLE_SKILL_PATH.test(path)) {
+    return false
+  }
+  return !path.split("/").includes("..")
 }
 
 function rewriteGithubArtifact(artifact: GithubArtifact) {

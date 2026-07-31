@@ -31,6 +31,9 @@ TAG="$2"
 REPO="$3"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
+# shellcheck source=lib/skill-files.sh
+. "$ROOT/scripts/lib/skill-files.sh"
+
 base_url="https://github.com/${REPO}/releases/download/${TAG}"
 generated_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
@@ -132,6 +135,26 @@ if [ -d "$ROOT/skills" ]; then
     skill_size="$(stat -c '%s' "$skill_staged")"
     skill_sha="$(sha256sum "$skill_staged" | awk '{print $1}')"
 
+    files_json="[]"
+    while IFS= read -r -d '' file; do
+      rel="${file#"$dir"}"
+      asset="$(skill_file_asset_name "$name" "$rel")"
+      file_staged="${STAGING}/${asset}"
+
+      if [ ! -f "$file_staged" ]; then
+        echo "error: $name ships '$rel' but ${asset} was never staged" >&2
+        exit 1
+      fi
+
+      files_json="$(jq -n \
+        --argjson acc "$files_json" \
+        --arg path "$rel" \
+        --arg url "${base_url}/${asset}" \
+        --argjson size "$(stat -c '%s' "$file_staged")" \
+        --arg sha "$(sha256sum "$file_staged" | awk '{print $1}')" \
+        '$acc + [{ path: $path, url: $url, size_bytes: $size, sha256: $sha }]')"
+    done < <(find "$dir" -type f ! -name SKILL.md -print0 | sort -z)
+
     if [ $first -eq 0 ]; then
       skills_json+=","
     fi
@@ -145,13 +168,15 @@ if [ -d "$ROOT/skills" ]; then
       --arg skill_url "${base_url}/${name}.SKILL.md" \
       --argjson skill_size "$skill_size" \
       --arg skill_sha "$skill_sha" \
+      --argjson files "$files_json" \
       '{
         name: $name,
         trunk: $trunk,
         version: $version,
         description: $desc,
         skill_md: { url: $skill_url, size_bytes: $skill_size, sha256: $skill_sha }
-      }')
+      }
+      + (if ($files | length) == 0 then {} else { files: $files } end)')
   done
 fi
 skills_json+="]"
