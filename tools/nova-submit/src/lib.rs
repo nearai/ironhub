@@ -444,6 +444,17 @@ mod tests {
     }
 
     #[test]
+    fn published_input_schema_matches_guest_parameters() {
+        let exported = serde_json::to_value(schemars::schema_for!(SubmitParams))
+            .expect("serialize submit schema");
+        let published: serde_json::Value =
+            serde_json::from_str(include_str!("../schemas/nova-submit/invoke.input.v1.json"))
+                .expect("published schema");
+        assert_eq!(published["properties"], exported["properties"]);
+        assert_eq!(published["required"], exported["required"]);
+    }
+
+    #[test]
     fn guest_session_headers_do_not_contain_api_key() {
         let headers: serde_json::Value =
             serde_json::from_str(&session_headers()).expect("parse session headers");

@@ -92,6 +92,9 @@ tools/<tool-name>/
 ├── Cargo.toml
 ├── README.md
 ├── <tool-name>-tool.capabilities.json
+├── schemas/<tool-name>/
+│   ├── invoke.input.v1.json
+│   └── raw_output.v1.json
 └── src/
     ├── lib.rs        # Guest entry point and dispatch
     ├── types.rs      # MyAction tagged enum and schema types
@@ -122,6 +125,11 @@ schemars = "1"
 ```
 
 The tool exports the `sandboxed-tool` world from `wit/tool.wit` (vendored at the repo root). Implement the `Guest::execute`, `Guest::schema`, and `Guest::description` functions in `src/lib.rs`.
+
+The committed input schema must describe the same parameters returned by
+`Guest::schema`. Release generation fails unless the generated extension
+manifest's input/output schema references exactly match the committed files
+under `schemas/`; those files are published as digest-pinned catalog artifacts.
 
 ## Adding a skill
 

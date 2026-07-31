@@ -5,15 +5,15 @@
   "properties": {
     "account_id": {
       "type": "string",
-      "description": "The participant's NOVA account ID, e.g. alice.nova-sdk.near."
+      "description": "The participant's NOVA account ID, e.g. `alice.nova-sdk.near`.\nUsed in the x-account-id / x-wallet-id headers and the auth body."
     },
     "group_id": {
       "type": "string",
-      "description": "The NOVA group to upload into, e.g. ironclaw-hackathon-barcelona."
+      "description": "The NOVA group to upload into, e.g. `ironclaw-hackathon-barcelona`."
     },
     "filename": {
       "type": "string",
-      "description": "The filename to record for this upload, e.g. submission.md."
+      "description": "The filename to record for this upload, e.g. `submission.md`."
     },
     "file_content": {
       "type": "string",

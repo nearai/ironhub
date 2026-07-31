@@ -123,6 +123,30 @@ class ExtensionManifestTranslationTests(unittest.TestCase):
                     bool(expected_credentials),
                 )
 
+    def test_every_published_manifest_has_exact_schema_assets(self) -> None:
+        """Every manifest schema ref must resolve to one committed artifact."""
+        for tool_dir in sorted((ROOT / "tools").iterdir()):
+            if not tool_dir.is_dir() or tool_dir.name in EXEMPT_TOOLS:
+                continue
+            with self.subTest(tool=tool_dir.name):
+                _, manifest = self.generated_tool(tool_dir.name)
+                referenced = set(
+                    re.findall(
+                        r'^(?:input|output)_schema_ref = "([^"]+)"$',
+                        manifest,
+                        re.MULTILINE,
+                    )
+                )
+                published = {
+                    path.relative_to(tool_dir).as_posix()
+                    for path in (tool_dir / "schemas").rglob("*.json")
+                }
+                self.assertEqual(
+                    published,
+                    referenced,
+                    "signed catalog schemas must exactly match manifest refs",
+                )
+
     def test_catalog_sources_are_internally_consistent(self) -> None:
         """Source metadata must agree before any manifest is generated."""
         for tool_dir in sorted((ROOT / "tools").iterdir()):

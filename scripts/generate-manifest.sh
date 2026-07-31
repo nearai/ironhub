@@ -16,6 +16,8 @@
 #
 # Also written here, not expected as input:
 #   <staging>/<tool-name>.manifest.toml    (generated from capabilities.json)
+#   <staging>/<tool-name>.schema.<path-sha256>.json
+#                                          (copied from manifest schema refs)
 
 set -euo pipefail
 
@@ -46,8 +48,8 @@ for dir in "$ROOT"/tools/*/; do
     continue
   fi
 
-  crate_name="$(grep -E '^name\s*=' "$cargo_toml" | head -1 | sed -E 's/^name\s*=\s*"(.+)"\s*$/\1/')"
-  version="$(grep -E '^version\s*=' "$cargo_toml" | head -1 | sed -E 's/^version\s*=\s*"(.+)"\s*$/\1/')"
+  crate_name="$(grep -E '^name[[:space:]]*=' "$cargo_toml" | head -1 | sed -E 's/^name[[:space:]]*=[[:space:]]*"(.+)"[[:space:]]*$/\1/')"
+  version="$(grep -E '^version[[:space:]]*=' "$cargo_toml" | head -1 | sed -E 's/^version[[:space:]]*=[[:space:]]*"(.+)"[[:space:]]*$/\1/')"
   description="$(jq -r '.description // ""' "$caps_file")"
 
   wasm_size="$(stat -c '%s' "$wasm_path")"
@@ -72,10 +74,13 @@ for dir in "$ROOT"/tools/*/; do
       --argjson size "$(stat -c '%s' "$manifest_staged")" \
       --arg sha "$(sha256sum "$manifest_staged" | awk '{print $1}')" \
       '{ url: $url, size_bytes: $size, sha256: $sha }')"
+    schemas_json="$(python3 "$ROOT/scripts/package_tool_schemas.py" \
+      "$dir" "$manifest_staged" "$STAGING" "$base_url")"
   else
     echo "warning: $name publishes no extension manifest (see error above)" >&2
     rm -f "$manifest_staged"
     manifest_json="null"
+    schemas_json="null"
   fi
 
   if [ $first -eq 0 ]; then
@@ -95,6 +100,7 @@ for dir in "$ROOT"/tools/*/; do
     --argjson caps_size "$caps_size" \
     --arg caps_sha "$caps_sha" \
     --argjson manifest "$manifest_json" \
+    --argjson schemas "$schemas_json" \
     '{
       name: $name,
       crate_name: $crate,
@@ -103,7 +109,7 @@ for dir in "$ROOT"/tools/*/; do
       wasm: { url: $wasm_url, size_bytes: $wasm_size, sha256: $wasm_sha },
       capabilities: { url: $caps_url, size_bytes: $caps_size, sha256: $caps_sha }
     }
-    + (if $manifest == null then {} else { manifest: $manifest } end)')
+    + (if $manifest == null then {} else { manifest: $manifest, schemas: $schemas } end)')
 done
 tools_json+="]"
 
