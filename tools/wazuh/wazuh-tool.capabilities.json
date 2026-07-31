@@ -1,7 +1,8 @@
 {
-  "version": "0.2.0",
+  "version": "0.1.0",
   "wit_version": "0.3.0",
   "description": "Wazuh SIEM/XDR read and control. Queries alerts, vulnerabilities, and top rule aggregations from the Wazuh Indexer (OpenSearch) over HTTP Basic auth, and exchanges Basic credentials for a short-lived JWT at /security/user/authenticate to drive the Wazuh Server API. Read actions: search_alerts, search_vulnerabilities, top_alert_rules, cluster_health, list_indices, list_agents, agent_summary. Control actions: restart_agent, add_agent, remove_agent, move_agent_to_group, trigger_active_response (push commands like firewall-drop to one agent or the entire fleet), restart_manager, update_cdb_list (push to CDB block/allow lists that drive the rule engine). Default hostnames assume the operator places `wazuh-indexer.local` and `wazuh-api.local` in /etc/hosts (or behind a local TLS reverse proxy with an mkcert certificate).",
+  "effects": ["external_write"],
   "http": {
     "allowlist": [
       {

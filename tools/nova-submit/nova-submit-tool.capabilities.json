@@ -1,7 +1,8 @@
 {
   "version": "0.1.0",
   "wit_version": "0.3.0",
-  "description": "Encrypt a file with AES-256-GCM and upload it to a NOVA group on NEAR. Self-contained NOVA submission tool for the NEAR Legion IronClaw Hackathon: performs session-token, prepare_upload, client-side encryption, and finalize_upload in a single call. The NOVA account ID and API key are passed as call parameters; no host-injected credentials.",
+  "description": "Encrypt a file with AES-256-GCM and upload it to a NOVA group on NEAR. Self-contained NOVA submission tool for the NEAR Legion IronClaw Hackathon: performs session-token, prepare_upload, client-side encryption, and finalize_upload in a single call. The NOVA API key is stored by the host and injected only into requests to nova-sdk.com.",
+  "effects": ["external_write"],
   "http": {
     "allowlist": [
       {
@@ -15,7 +16,21 @@
         "methods": ["POST"]
       }
     ],
-    "credentials": {},
+    "credentials": {
+      "nova_api_key": {
+        "secret_name": "nova_api_key",
+        "location": {
+          "type": "header",
+          "name": "X-API-Key"
+        },
+        "host_patterns": [
+          "nova-sdk.com"
+        ],
+        "path_patterns": [
+          "/api/auth/session-token"
+        ]
+      }
+    },
     "rate_limit": {
       "requests_per_minute": 30,
       "requests_per_hour": 200
@@ -23,9 +38,23 @@
     "timeout_secs": 60
   },
   "secrets": {
-    "allowed_names": []
+    "allowed_names": [
+      "nova_api_key"
+    ]
   },
   "setup": {
-    "required_secrets": []
+    "required_secrets": [
+      {
+        "name": "nova_api_key",
+        "prompt": "NOVA API key from nova-sdk.com"
+      }
+    ]
+  },
+  "auth": {
+    "secret_name": "nova_api_key",
+    "display_name": "NOVA",
+    "instructions": "Sign in to NOVA, obtain the API key for your account, and store it as the secret below. IronClaw injects it only into the X-API-Key header for requests to nova-sdk.com; the tool uses that host only for the session-token exchange.",
+    "setup_url": "https://nova-sdk.com",
+    "env_var": "NOVA_API_KEY"
   }
 }

@@ -23,7 +23,7 @@ trap 'rm -rf "$out_dir"' EXIT
 # dropped its network targets or credentials.
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover \
   -s "$ROOT/scripts" \
-  -p 'test_generate_extension_manifest.py'
+  -p 'test_*.py'
 
 # Tools that cannot publish a manifest yet, with the reason. A tool is listed
 # here only when the gap is in the host contract rather than in the tool, and

@@ -2,6 +2,7 @@
   "version": "0.1.0",
   "wit_version": "0.3.0",
   "description": "Polymarket public market intelligence integration. Reads markets, events, tags, series, sports, orderbooks, prices, positions, leaderboards, profiles, comments, and rewards configurations across the Polymarket prediction-market platform. No authentication required.",
+  "effects": [],
   "http": {
     "allowlist": [
       {

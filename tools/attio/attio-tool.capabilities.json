@@ -2,6 +2,7 @@
   "version": "0.1.0",
   "wit_version": "0.3.0",
   "description": "Attio CRM API v2 read and write access. Queries, fetches, creates, updates, asserts, and deletes records for any object (people, companies, deals, users, workspaces, or custom), reads the object catalog and per-object attribute schemas, lists lists and queries list entries, and lists and creates notes and tasks. Exposes a raw attio_request action for any v2 endpoint bounded by the same host allowlist. Authenticated with an Attio workspace API key presented as a Bearer header against api.attio.com.",
+  "effects": ["external_write"],
   "http": {
     "allowlist": [
       {

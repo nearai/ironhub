@@ -2,6 +2,7 @@
   "version": "0.1.0",
   "wit_version": "0.3.0",
   "description": "WhatsApp Cloud API via the Meta Graph API. Send messages (text, template, image, video, document, audio, location, contacts, interactive buttons and lists, reactions, and read receipts), manage the business profile, read phone number metadata, and manage message templates per WhatsApp Business Account. Authenticated with a permanent System User access token provisioned at deployment time; the exec does not OAuth into WhatsApp.",
+  "effects": ["external_write"],
   "http": {
     "allowlist": [
       {
