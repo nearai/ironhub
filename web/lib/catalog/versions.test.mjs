@@ -60,6 +60,48 @@ test("a manifest-only change moves the tool digest", () => {
   )
 })
 
+test("a schema-only change moves the tool digest", () => {
+  const path = "schemas/attio/invoke.input.v1.json"
+  const before = toVersionIndex(
+    manifest({
+      tools: [tool({ schemas: { [path]: artifact("1".repeat(64)) } })],
+    })
+  ).entries
+  const after = toVersionIndex(
+    manifest({
+      tools: [tool({ schemas: { [path]: artifact("2".repeat(64)) } })],
+    })
+  ).entries
+
+  assert.notEqual(
+    digestOf(before, "tool", "attio"),
+    digestOf(after, "tool", "attio")
+  )
+})
+
+test("tool schema ordering does not change the digest", () => {
+  const first = {
+    "schemas/attio/a.json": artifact("1".repeat(64)),
+    "schemas/attio/b.json": artifact("2".repeat(64)),
+  }
+  const second = {
+    "schemas/attio/b.json": artifact("2".repeat(64)),
+    "schemas/attio/a.json": artifact("1".repeat(64)),
+  }
+
+  const before = toVersionIndex(
+    manifest({ tools: [tool({ schemas: first })] })
+  ).entries
+  const after = toVersionIndex(
+    manifest({ tools: [tool({ schemas: second })] })
+  ).entries
+
+  assert.equal(
+    digestOf(before, "tool", "attio"),
+    digestOf(after, "tool", "attio")
+  )
+})
+
 test("a script change moves the skill digest while SKILL.md is untouched", () => {
   const files = [{ path: "python_scripts/run.py", ...artifact("1".repeat(64)) }]
   const changed = [
