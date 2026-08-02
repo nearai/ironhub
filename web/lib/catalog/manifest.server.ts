@@ -10,6 +10,12 @@ import type {
   Provenance,
 } from "@/lib/catalog/manifest-types"
 import {
+  isPublishableArtifactPath,
+  officialToolEntry,
+  type GithubArtifact,
+  type GithubTool,
+} from "@/lib/catalog/official-tools"
+import {
   fetchIliadPublicSkill,
   fetchIliadPublicSkillsList,
 } from "@/lib/iliad/public-skills.server"
@@ -46,16 +52,6 @@ export class CatalogManifestError extends Error {
   }
 }
 
-type GithubArtifact = { url: string; size_bytes: number; sha256: string }
-type GithubTool = {
-  name: string
-  crate_name?: string | null
-  version: string
-  description?: string | null
-  wasm: GithubArtifact
-  capabilities: GithubArtifact
-  manifest?: GithubArtifact | null
-}
 type GithubSkillFile = GithubArtifact & { path: string }
 type GithubSkill = {
   name: string
@@ -125,18 +121,9 @@ async function fetchOfficialManifest(): Promise<{
     )
   }
   const manifest = (await response.json()) as GithubManifest
-  const tools = (manifest.tools ?? []).map((tool) => ({
-    name: tool.name,
-    crate_name: tool.crate_name ?? tool.name,
-    version: tool.version,
-    description: tool.description ?? "",
-    provenance: "official" as const,
-    wasm: rewriteGithubArtifact(tool.wasm),
-    capabilities: rewriteGithubArtifact(tool.capabilities),
-    ...(tool.manifest
-      ? { manifest: rewriteGithubArtifact(tool.manifest) }
-      : {}),
-  }))
+  const tools = (manifest.tools ?? []).map((tool) =>
+    officialToolEntry(tool, (url) => hubArtifactUrl(["g", url]))
+  )
   const skills = (manifest.skills ?? []).map((skill) => ({
     name: skill.name,
     trunk: skill.trunk ?? "",
@@ -148,7 +135,7 @@ async function fetchOfficialManifest(): Promise<{
       ? {
           files: skill.files
             .filter((file) => {
-              if (isPublishableSkillPath(file.path)) {
+              if (isPublishableArtifactPath(file.path)) {
                 return true
               }
               console.error(
@@ -164,15 +151,6 @@ async function fetchOfficialManifest(): Promise<{
       : {}),
   }))
   return { releaseTag: manifest.release_tag ?? "live", tools, skills }
-}
-
-const PUBLISHABLE_SKILL_PATH = /^[A-Za-z0-9._/-]+$/
-
-function isPublishableSkillPath(path: string) {
-  if (!path || path.startsWith("/") || !PUBLISHABLE_SKILL_PATH.test(path)) {
-    return false
-  }
-  return !path.split("/").includes("..")
 }
 
 function rewriteGithubArtifact(artifact: GithubArtifact) {

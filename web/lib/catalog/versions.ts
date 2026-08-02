@@ -24,13 +24,24 @@ function byPath(left: { path: string }, right: { path: string }) {
   return left.path.localeCompare(right.path)
 }
 
+function toolSchemaArtifacts(tool: HubManifest["tools"][number]) {
+  return Object.entries(tool.schemas ?? {})
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([, artifact]) => artifact)
+}
+
 export function toVersionEntries(manifest: HubManifest): VersionEntry[] {
   const entries: VersionEntry[] = [
     ...manifest.tools.map((tool) => ({
       kind: "tool" as const,
       name: tool.name,
       version: tool.version,
-      digest: entryDigest([tool.wasm, tool.capabilities, tool.manifest]),
+      digest: entryDigest([
+        tool.wasm,
+        tool.capabilities,
+        tool.manifest,
+        ...toolSchemaArtifacts(tool),
+      ]),
     })),
     ...manifest.skills.map((skill) => ({
       kind: "skill" as const,
