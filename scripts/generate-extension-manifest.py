@@ -70,10 +70,10 @@ def toml_string(value: str) -> str:
 def credential_injection(name: str, location: dict, handle: str) -> dict:
     """Map a published credential location onto the v3 injection contract.
 
-    v3 models header / query-param / path-placeholder / JSON-pointer injection.
-    It has no HTTP Basic variant: Basic needs username + base64(user:secret)
-    composition, which the host cannot express, so a `basic` credential is a hard
-    error here rather than a package that installs and can never authenticate.
+    v3 models header / query-param / path-placeholder / JSON-pointer / basic
+    injection. A `basic` location carries only the username: the host owns the
+    `username:secret` join and the base64 encoding, so a package can never ship
+    a pre-encoded credential or smuggle a second field past the colon.
     """
     if not isinstance(location, dict):
         raise SystemExit(f"{name}: credential {handle!r} location must be an object")
@@ -106,10 +106,23 @@ def credential_injection(name: str, location: dict, handle: str) -> dict:
                 f"without a name"
             )
         return {"type": "query_param", "name": parameter.strip()}
+    if kind == "basic":
+        username = location.get("username")
+        if not isinstance(username, str) or not username.strip():
+            raise SystemExit(
+                f"{name}: credential {handle!r} declares a basic location "
+                f"without a username"
+            )
+        username = username.strip()
+        if ":" in username:
+            raise SystemExit(
+                f"{name}: credential {handle!r} declares a basic username "
+                f"containing ':', which RFC 7617 reserves as the delimiter"
+            )
+        return {"type": "basic", "username": username}
     raise SystemExit(
         f"{name}: credential {handle!r} declares location type {kind!r}, which the "
-        f"host cannot inject. Supported: 'bearer', 'header', 'query_param'. "
-        f"(v3 injection has no HTTP Basic variant.)"
+        f"host cannot inject. Supported: 'bearer', 'header', 'query_param', 'basic'."
     )
 
 
@@ -405,9 +418,18 @@ def generate_manifest(caps: dict, name: str, crate_name: str, version: str) -> s
                 f'{{ type = "header", name = {toml_string(injection["name"])}'
                 f"{prefix} }}"
             )
-        else:
+        elif injection["type"] == "basic":
+            injection_toml = (
+                f'{{ type = "basic", username = {toml_string(injection["username"])} }}'
+            )
+        elif injection["type"] == "query_param":
             injection_toml = (
                 f'{{ type = "query_param", name = {toml_string(injection["name"])} }}'
+            )
+        else:
+            raise SystemExit(
+                f"{name}: credential {handle_name!r} produced an unsupported "
+                f"injection type {injection['type']!r}"
             )
         scope_line = ""
         if scopes is not None:

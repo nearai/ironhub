@@ -23,7 +23,7 @@ SPEC.loader.exec_module(GENERATOR)
 
 # Wazuh and WordPress use HTTP Basic, which the v3 injection contract cannot
 # express. The production check carries the same documented exemptions.
-EXEMPT_TOOLS = {"wazuh", "wordpress"}
+EXEMPT_TOOLS: set[str] = set()
 
 
 def source_http(caps: dict) -> dict:
@@ -61,6 +61,11 @@ def expected_injection(credential: dict) -> dict:
         return {
             "type": "header",
             "name": location.get("name", "authorization").strip().lower(),
+        }
+    if location["type"] == "basic":
+        return {
+            "type": "basic",
+            "username": location["username"].strip(),
         }
     return {
         "type": "query_param",
@@ -394,11 +399,35 @@ class ExtensionManifestTranslationTests(unittest.TestCase):
                     for credential in tool.get("credentials", []):
                         self.assertEqual(credential["scopes"], scopes)
 
-    def test_exempt_tools_fail_for_the_documented_basic_auth_gap(self) -> None:
-        for tool_name in EXEMPT_TOOLS:
+    def test_basic_credentials_publish_the_username_and_never_the_secret(self) -> None:
+        expected = {
+            "wazuh": {"admin", "wazuh-wui"},
+            "wordpress": {"YOUR_WP_USERNAME"},
+        }
+        for tool_name, usernames in expected.items():
             with self.subTest(tool=tool_name):
-                with self.assertRaisesRegex(SystemExit, "no HTTP Basic variant"):
-                    self.generated_tool(tool_name)
+                _, manifest = self.generated_tool(tool_name)
+                published = set(
+                    re.findall(
+                        r'injection = \{ type = "basic", username = "([^"]+)" \}',
+                        manifest,
+                    )
+                )
+                self.assertEqual(published, usernames)
+
+    def test_a_basic_username_containing_the_delimiter_is_rejected(self) -> None:
+        with self.assertRaisesRegex(SystemExit, "RFC 7617 reserves"):
+            GENERATOR.credential_injection(
+                "fixture",
+                {"type": "basic", "username": "user:extra"},
+                "fixture_password",
+            )
+
+    def test_a_basic_location_without_a_username_is_rejected(self) -> None:
+        with self.assertRaisesRegex(SystemExit, "without a username"):
+            GENERATOR.credential_injection(
+                "fixture", {"type": "basic", "username": "  "}, "fixture_password"
+            )
 
 
 if __name__ == "__main__":
