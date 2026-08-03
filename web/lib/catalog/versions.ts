@@ -8,26 +8,33 @@ import type {
   VersionIndexUnchanged,
 } from "@/lib/catalog/manifest-types"
 
-export function entryDigest(artifacts: (HubArtifact | undefined)[]) {
+type DigestArtifact = HubArtifact & { path?: string }
+
+export function entryDigest(artifacts: (DigestArtifact | undefined)[]) {
   const hash = createHash("sha256")
   for (const artifact of artifacts) {
-    const value = artifact?.sha256 ?? ""
-    hash.update(String(Buffer.byteLength(value, "utf8")))
-    hash.update(":")
-    hash.update(value)
-    hash.update(":")
+    for (const value of [artifact?.path ?? "", artifact?.sha256 ?? ""]) {
+      hash.update(String(Buffer.byteLength(value, "utf8")))
+      hash.update(":")
+      hash.update(value)
+      hash.update(":")
+    }
   }
   return `sha256:${hash.digest("hex")}`
 }
 
+function comparePath(left: string, right: string) {
+  return left < right ? -1 : left > right ? 1 : 0
+}
+
 function byPath(left: { path: string }, right: { path: string }) {
-  return left.path.localeCompare(right.path)
+  return comparePath(left.path, right.path)
 }
 
 function toolSchemaArtifacts(tool: HubManifest["tools"][number]) {
   return Object.entries(tool.schemas ?? {})
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([, artifact]) => artifact)
+    .sort(([left], [right]) => comparePath(left, right))
+    .map(([path, artifact]) => ({ ...artifact, path }))
 }
 
 export function toVersionEntries(manifest: HubManifest): VersionEntry[] {

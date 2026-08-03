@@ -46,4 +46,48 @@ test("only relative package asset paths are publishable", () => {
   assert.equal(isPublishableArtifactPath("../secret.json"), false)
   assert.equal(isPublishableArtifactPath("/schemas/input.json"), false)
   assert.equal(isPublishableArtifactPath("schemas/input file.json"), false)
+  assert.equal(isPublishableArtifactPath("schemas/./input.json"), false)
+  assert.equal(isPublishableArtifactPath("schemas//input.json"), false)
+})
+
+test("schema artifacts past the client cap are dropped, not published", () => {
+  const schemas = {}
+  for (let index = 0; index < 40; index += 1) {
+    schemas[`schemas/attio/field${String(index).padStart(2, "0")}.json`] =
+      artifact(`field${index}`)
+  }
+  const tool = officialToolEntry(
+    {
+      name: "attio",
+      version: "0.1.0",
+      wasm: artifact("wasm"),
+      capabilities: artifact("capabilities"),
+      schemas,
+    },
+    (url) => url
+  )
+
+  const published = Object.keys(tool.schemas ?? {})
+  assert.equal(published.length, 32)
+  assert.deepEqual(published, [...published].sort())
+  assert.equal(published[0], "schemas/attio/field00.json")
+})
+
+test("a tool whose schema paths are all unpublishable omits the field", () => {
+  const tool = officialToolEntry(
+    {
+      name: "attio",
+      version: "0.1.0",
+      wasm: artifact("wasm"),
+      capabilities: artifact("capabilities"),
+      schemas: {
+        "../escape.json": artifact("escape"),
+        "schemas/./input.json": artifact("dot"),
+        "schemas//input.json": artifact("empty"),
+      },
+    },
+    (url) => url
+  )
+
+  assert.equal("schemas" in tool, false)
 })
