@@ -43,6 +43,7 @@ for dir in "$ROOT"/tools/*/; do
   name="$(basename "$dir")"
   caps_file="${dir}${name}-tool.capabilities.json"
   cargo_toml="${dir}Cargo.toml"
+  native_manifest="${dir}manifest.toml"
   wasm_path="${STAGING}/${name}.wasm"
   caps_staged="${STAGING}/${name}.capabilities.json"
 
@@ -53,7 +54,11 @@ for dir in "$ROOT"/tools/*/; do
 
   crate_name="$(grep -E '^name[[:space:]]*=' "$cargo_toml" | head -1 | sed -E 's/^name[[:space:]]*=[[:space:]]*"(.+)"[[:space:]]*$/\1/')"
   version="$(grep -E '^version[[:space:]]*=' "$cargo_toml" | head -1 | sed -E 's/^version[[:space:]]*=[[:space:]]*"(.+)"[[:space:]]*$/\1/')"
-  description="$(jq -r '.description // ""' "$caps_file")"
+  if [ -f "$native_manifest" ]; then
+    description="$(python3 -c 'import sys, tomllib; print(tomllib.load(open(sys.argv[1], "rb")).get("description", ""))' "$native_manifest")"
+  else
+    description="$(jq -r '.description // ""' "$caps_file")"
+  fi
 
   wasm_size="$(stat -c '%s' "$wasm_path")"
   wasm_sha="$(sha256sum "$wasm_path" | awk '{print $1}')"
@@ -70,8 +75,16 @@ for dir in "$ROOT"/tools/*/; do
   # sees it; a release is the wrong place to discover it and the wrong place to
   # fail the whole catalog over it.
   manifest_staged="${STAGING}/${name}.manifest.toml"
-  if "$ROOT/scripts/generate-extension-manifest.py" \
+  if [ -f "$native_manifest" ]; then
+    cp "$native_manifest" "$manifest_staged"
+    manifest_ok=1
+  elif "$ROOT/scripts/generate-extension-manifest.py" \
       "$caps_file" "$name" "$crate_name" "$version" > "$manifest_staged"; then
+    manifest_ok=1
+  else
+    manifest_ok=0
+  fi
+  if [ "$manifest_ok" -eq 1 ]; then
     manifest_json="$(jq -n \
       --arg url "${base_url}/${name}.manifest.toml" \
       --argjson size "$(stat -c '%s' "$manifest_staged")" \
