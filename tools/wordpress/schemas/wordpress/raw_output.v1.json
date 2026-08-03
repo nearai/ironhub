@@ -1,0 +1,4 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Command-specific WordPress REST or WooCommerce JSON for post, product, media, order, and customer operations."
+}
