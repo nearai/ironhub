@@ -12,15 +12,15 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-wit-bindgen = "0.59"
+wit-bindgen = "0.60"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 schemars = "1"
-base64 = "0.22"
+base64 = "0.23"
 # RustCrypto AES-GCM — audited, no_std-capable, compiles cleanly to wasm32-wasip2.
 # This is the crypto core; it replaces NOVA's encrypt_nova.py / decrypt_nova.py.
-aes-gcm = "0.10"
-sha2 = "0.10"
+aes-gcm = "0.11"
+sha2 = "0.11"
 hex = "0.4"
 
 [profile.release]
