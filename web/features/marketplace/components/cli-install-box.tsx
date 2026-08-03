@@ -7,7 +7,7 @@ type CLIInstallBoxProps = {
 }
 
 export function CLIInstallBox({ slug }: CLIInstallBoxProps) {
-  const command = `ironclaw hub install ${slug}`
+  const command = `ironclaw ironhub install ${slug}`
 
   return (
     <TerminalBox copyText={command}>
