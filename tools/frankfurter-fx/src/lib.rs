@@ -90,8 +90,7 @@ fn execute_reborn(params: &str, context: Option<&str>) -> Result<String, String>
 
 export!(FrankfurterTool);
 
-/// Tool action enumeration with full description metadata.
-
+// Tool action enumeration with full description metadata.
 fn encode_guest_output(output: String) -> Result<String, String> {
     serde_json::to_string(&output).map_err(|_| "tool_output_encode_failed".to_string())
 }

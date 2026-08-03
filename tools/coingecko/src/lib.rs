@@ -311,6 +311,7 @@ struct CoinMarketEntry {
     price_change_percentage_24h: Option<f64>,
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_coin_markets(
     vs_currency: String,
     ids: Option<String>,
@@ -453,6 +454,7 @@ struct MarketDataSnapshot {
     max_supply: Option<f64>,
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_coin_details(
     id: String,
     localization: bool,
@@ -712,7 +714,7 @@ fn get_json(
     let mut query_parts = Vec::new();
     for (k, v) in query_params {
         if let Some(val) = v {
-            query_parts.push(format!("{}={}", k, url_encode(&val)));
+            query_parts.push(format!("{}={}", k, url_encode(val)));
         }
     }
 
@@ -798,7 +800,7 @@ fn url_encode(input: &str) -> String {
                 encoded.push('+');
             }
             _ => {
-                encoded.push_str(&format!("%{:02X}", byte));
+                encoded.push_str(&format!("%{byte:02X}"));
             }
         }
     }
@@ -1122,7 +1124,7 @@ mod tests {
         {
             assert_eq!(ids, "bitcoin");
             assert_eq!(vs_currencies, "usd");
-            assert_eq!(include_market_cap.unwrap(), true);
+            assert!(include_market_cap.unwrap());
         } else {
             panic!("wrong variant");
         }

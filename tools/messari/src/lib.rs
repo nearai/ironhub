@@ -218,7 +218,7 @@ fn execute_inner(params_json: &str) -> Result<String, String> {
             let limit_val = limit.unwrap_or(20);
             let path = match query {
                 Some(q) => format!("/news/v1/news/feed?query={}&limit={}", q.trim(), limit_val),
-                None => format!("/news/v1/news/feed?limit={}", limit_val),
+                None => format!("/news/v1/news/feed?limit={limit_val}"),
             };
             get_request(&path)?
         }
@@ -230,7 +230,7 @@ fn execute_inner(params_json: &str) -> Result<String, String> {
                     q.trim(),
                     limit_val
                 ),
-                None => format!("/research/v1/reports?limit={}", limit_val),
+                None => format!("/research/v1/reports?limit={limit_val}"),
             };
             get_request(&path)?
         }
@@ -263,7 +263,7 @@ fn execute_inner(params_json: &str) -> Result<String, String> {
             let limit_val = limit.unwrap_or(20);
             let path = match asset_key {
                 Some(key) => format!("/token-unlocks/v1/assets/{}", key.trim()),
-                None => format!("/token-unlocks/v1/assets?limit={}", limit_val),
+                None => format!("/token-unlocks/v1/assets?limit={limit_val}"),
             };
             get_request(&path)?
         }
@@ -275,7 +275,7 @@ fn execute_inner(params_json: &str) -> Result<String, String> {
                     cat.trim(),
                     limit_val
                 ),
-                None => format!("/funding/v1/rounds?limit={}", limit_val),
+                None => format!("/funding/v1/rounds?limit={limit_val}"),
             };
             get_request(&path)?
         }
@@ -283,7 +283,7 @@ fn execute_inner(params_json: &str) -> Result<String, String> {
             let limit_val = limit.unwrap_or(20);
             let path = match asset_key {
                 Some(key) => format!("/intel/v1/events?asset={}&limit={}", key.trim(), limit_val),
-                None => format!("/intel/v1/events?limit={}", limit_val),
+                None => format!("/intel/v1/events?limit={limit_val}"),
             };
             get_request(&path)?
         }
@@ -295,7 +295,7 @@ fn execute_inner(params_json: &str) -> Result<String, String> {
             let limit_val = limit.unwrap_or(20);
             let path = match query {
                 Some(q) => format!("/x-users/v1/users?query={}&limit={}", q.trim(), limit_val),
-                None => format!("/x-users/v1/users?limit={}", limit_val),
+                None => format!("/x-users/v1/users?limit={limit_val}"),
             };
             get_request(&path)?
         }
@@ -402,7 +402,7 @@ fn json_to_yaml(value: &Value, indent_level: usize) -> String {
             if s.contains('\n') {
                 let mut out = "|\n".to_string();
                 for line in s.lines() {
-                    out.push_str(&format!("{}  {}\n", indent, line));
+                    out.push_str(&format!("{indent}  {line}\n"));
                 }
                 out
             } else if s.is_empty() {
@@ -429,10 +429,10 @@ fn json_to_yaml(value: &Value, indent_level: usize) -> String {
             } else {
                 let mut out = "\n".to_string();
                 for item in arr {
-                    out.push_str(&format!("{}- ", indent));
+                    out.push_str(&format!("{indent}- "));
                     let val_str = json_to_yaml(item, indent_level + 1);
-                    if val_str.starts_with('\n') {
-                        out.push_str(&val_str[1..]);
+                    if let Some(stripped) = val_str.strip_prefix('\n') {
+                        out.push_str(stripped);
                     } else {
                         out.push_str(&val_str);
                     }
@@ -446,10 +446,10 @@ fn json_to_yaml(value: &Value, indent_level: usize) -> String {
             } else {
                 let mut out = "\n".to_string();
                 for (k, v) in map {
-                    out.push_str(&format!("{}{}: ", indent, k));
+                    out.push_str(&format!("{indent}{k}: "));
                     let val_str = json_to_yaml(v, indent_level + 1);
-                    if val_str.starts_with('\n') {
-                        out.push_str(&val_str[1..]);
+                    if let Some(stripped) = val_str.strip_prefix('\n') {
+                        out.push_str(stripped);
                     } else {
                         out.push_str(&val_str);
                     }
@@ -464,8 +464,8 @@ fn to_yaml(value: &Value) -> String {
     let mut cloned = value.clone();
     prune_value(&mut cloned);
     let yaml_str = json_to_yaml(&cloned, 0);
-    if yaml_str.starts_with('\n') {
-        yaml_str[1..].to_string()
+    if let Some(stripped) = yaml_str.strip_prefix('\n') {
+        stripped.to_string()
     } else {
         yaml_str
     }

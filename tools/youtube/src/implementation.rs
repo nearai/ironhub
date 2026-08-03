@@ -294,7 +294,7 @@ fn url_encode(input: &str) -> String {
                 encoded.push(b as char);
             }
             _ => {
-                encoded.push_str(&format!("%{:02X}", b));
+                encoded.push_str(&format!("%{b:02X}"));
             }
         }
     }
@@ -355,8 +355,8 @@ fn run_get_video_details(video_id: String) -> Result<String, String> {
                 .unwrap_or("0");
 
             out_yaml.push_str(&format!("  - id: \"{id}\"\n"));
-            out_yaml.push_str(&format!("    title: {:?}\n", title));
-            out_yaml.push_str(&format!("    channel_title: {:?}\n", channel_title));
+            out_yaml.push_str(&format!("    title: {title:?}\n"));
+            out_yaml.push_str(&format!("    channel_title: {channel_title:?}\n"));
             out_yaml.push_str(&format!("    channel_id: \"{channel_id}\"\n"));
             out_yaml.push_str(&format!("    published_at: \"{published_at}\"\n"));
             out_yaml.push_str(&format!("    duration: \"{duration}\"\n"));
@@ -442,8 +442,8 @@ fn run_list_comments(
 
                 let clean_text = text.replace('\n', " ").replace('\r', "");
 
-                out_yaml.push_str(&format!("  - author: {:?}\n", author));
-                out_yaml.push_str(&format!("    text: {:?}\n", clean_text));
+                out_yaml.push_str(&format!("  - author: {author:?}\n"));
+                out_yaml.push_str(&format!("    text: {clean_text:?}\n"));
                 out_yaml.push_str(&format!("    likes: {likes}\n"));
                 out_yaml.push_str(&format!("    published_at: \"{published}\"\n"));
                 out_yaml.push_str(&format!("    reply_count: {reply_count}\n"));
@@ -523,7 +523,7 @@ fn run_get_channel_stats(
                 .unwrap_or("");
 
             out_yaml.push_str(&format!("  - id: \"{id}\"\n"));
-            out_yaml.push_str(&format!("    title: {:?}\n", title));
+            out_yaml.push_str(&format!("    title: {title:?}\n"));
             out_yaml.push_str(&format!("    custom_url: \"{custom_url}\"\n"));
             out_yaml.push_str(&format!("    published_at: \"{published_at}\"\n"));
             out_yaml.push_str(&format!("    views: {views}\n"));
@@ -623,8 +623,8 @@ fn run_get_channel_videos(
                 .unwrap_or("");
 
             out_yaml.push_str(&format!("  - video_id: \"{video_id}\"\n"));
-            out_yaml.push_str(&format!("    title: {:?}\n", title));
-            out_yaml.push_str(&format!("    channel_title: {:?}\n", channel_title));
+            out_yaml.push_str(&format!("    title: {title:?}\n"));
+            out_yaml.push_str(&format!("    channel_title: {channel_title:?}\n"));
             out_yaml.push_str(&format!("    published_at: \"{published_at}\"\n"));
         }
     } else {
@@ -717,10 +717,10 @@ fn run_search_videos(
             if !channel_id.is_empty() {
                 out_yaml.push_str(&format!("    channel_id: \"{channel_id}\"\n"));
             }
-            out_yaml.push_str(&format!("    title: {:?}\n", title));
-            out_yaml.push_str(&format!("    channel_title: {:?}\n", channel_title));
+            out_yaml.push_str(&format!("    title: {title:?}\n"));
+            out_yaml.push_str(&format!("    channel_title: {channel_title:?}\n"));
             out_yaml.push_str(&format!("    published_at: \"{published_at}\"\n"));
-            out_yaml.push_str(&format!("    description: {:?}\n", clean_desc));
+            out_yaml.push_str(&format!("    description: {clean_desc:?}\n"));
         }
     } else {
         out_yaml.push_str("  - note: \"No items returned\"\n");

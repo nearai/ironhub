@@ -51,8 +51,7 @@ impl exports::near::agent::tool::Guest for PikespeakTool {
     }
 }
 
-/// Tool actions. Selected via the `action` field.
-
+// Tool actions. Selected via the `action` field.
 fn encode_guest_output(output: String) -> Result<String, String> {
     serde_json::to_string(&output).map_err(|_| "tool_output_encode_failed".to_string())
 }
@@ -199,7 +198,7 @@ fn get_json(path: &str, query_params: &[(&str, Option<String>)]) -> Result<Value
     let mut query_parts = Vec::new();
     for (k, v) in query_params {
         if let Some(val) = v {
-            query_parts.push(format!("{}={}", k, url_encode(&val)));
+            query_parts.push(format!("{}={}", k, url_encode(val)));
         }
     }
 
@@ -268,7 +267,7 @@ fn url_encode(s: &str) -> String {
                 encoded.push('+');
             }
             _ => {
-                encoded.push_str(&format!("%{:02X}", b));
+                encoded.push_str(&format!("%{b:02X}"));
             }
         }
     }
@@ -311,7 +310,7 @@ fn json_to_yaml(value: &Value, indent_level: usize) -> String {
             if s.contains('\n') {
                 let mut out = "|\n".to_string();
                 for line in s.lines() {
-                    out.push_str(&format!("{}  {}\n", indent, line));
+                    out.push_str(&format!("{indent}  {line}\n"));
                 }
                 out
             } else if s.is_empty() {
@@ -338,10 +337,10 @@ fn json_to_yaml(value: &Value, indent_level: usize) -> String {
             } else {
                 let mut out = "\n".to_string();
                 for item in arr {
-                    out.push_str(&format!("{}- ", indent));
+                    out.push_str(&format!("{indent}- "));
                     let val_str = json_to_yaml(item, indent_level + 1);
-                    if val_str.starts_with('\n') {
-                        out.push_str(&val_str[1..]);
+                    if let Some(stripped) = val_str.strip_prefix('\n') {
+                        out.push_str(stripped);
                     } else {
                         out.push_str(&val_str);
                     }
@@ -355,10 +354,10 @@ fn json_to_yaml(value: &Value, indent_level: usize) -> String {
             } else {
                 let mut out = "\n".to_string();
                 for (k, v) in map {
-                    out.push_str(&format!("{}{}: ", indent, k));
+                    out.push_str(&format!("{indent}{k}: "));
                     let val_str = json_to_yaml(v, indent_level + 1);
-                    if val_str.starts_with('\n') {
-                        out.push_str(&val_str[1..]);
+                    if let Some(stripped) = val_str.strip_prefix('\n') {
+                        out.push_str(stripped);
                     } else {
                         out.push_str(&val_str);
                     }
@@ -373,8 +372,8 @@ fn to_yaml(value: &Value) -> String {
     let mut cloned = value.clone();
     prune_value(&mut cloned);
     let yaml_str = json_to_yaml(&cloned, 0);
-    if yaml_str.starts_with('\n') {
-        yaml_str[1..].to_string()
+    if let Some(stripped) = yaml_str.strip_prefix('\n') {
+        stripped.to_string()
     } else {
         yaml_str
     }

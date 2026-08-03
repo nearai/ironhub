@@ -364,6 +364,7 @@ fn lookup_static_chain(normalized_name: &str) -> Option<u32> {
     }
 }
 
+#[cfg(target_arch = "wasm32")]
 fn fetch_dynamic_chain_id(chain_name: &str) -> Result<u32, String> {
     let url = "https://api.etherscan.io/v2/chainlist";
     let headers = json!({
@@ -410,8 +411,7 @@ fn fetch_dynamic_chain_id(chain_name: &str) -> Result<u32, String> {
     }
 
     Err(format!(
-        "Chain '{}' not found in Etherscan't active chain list.",
-        chain_name
+        "Chain '{chain_name}' not found in Etherscan't active chain list."
     ))
 }
 
@@ -441,7 +441,7 @@ fn resolve_chain(chain_val: &Value) -> Result<u32, String> {
             {
                 near::agent::host::log(
                     near::agent::host::LogLevel::Info,
-                    &format!("Chain '{}' not found in static list. Querying Etherscan chainlist dynamically...", s_trimmed),
+                    &format!("Chain '{s_trimmed}' not found in static list. Querying Etherscan chainlist dynamically..."),
                 );
                 fetch_dynamic_chain_id(s_trimmed)
             }
@@ -449,8 +449,7 @@ fn resolve_chain(chain_val: &Value) -> Result<u32, String> {
             {
                 // In non-wasm (tests), we can mock dynamic check or fallback to error
                 Err(format!(
-                    "Unknown chain name '{}' (dynamic query not available in tests)",
-                    s_trimmed
+                    "Unknown chain name '{s_trimmed}' (dynamic query not available in tests)"
                 ))
             }
         }
@@ -633,6 +632,7 @@ struct InternalTransaction {
     trace_id: String,
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_txlistinternal(
     chainid: u32,
     address: Option<String>,
@@ -695,6 +695,7 @@ struct TokenTransfer {
     value: Option<String>,
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_tokentx(
     chainid: u32,
     address: Option<String>,
@@ -738,6 +739,7 @@ fn run_tokentx(
     serialize(&txs)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_tokennfttx(
     chainid: u32,
     address: Option<String>,
@@ -781,6 +783,7 @@ fn run_tokennfttx(
     serialize(&txs)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_token1155tx(
     chainid: u32,
     address: Option<String>,
@@ -981,8 +984,7 @@ fn get_etherscan(
                     near::agent::host::log(
                         near::agent::host::LogLevel::Warn,
                         &format!(
-                            "Etherscan API rate limit reached (attempt {}/{}); retrying",
-                            attempt, MAX_RETRIES
+                            "Etherscan API rate limit reached (attempt {attempt}/{MAX_RETRIES}); retrying"
                         ),
                     );
                     std::thread::sleep(std::time::Duration::from_millis(attempt as u64 * 500));
@@ -1020,7 +1022,7 @@ fn format_wei_to_ether(wei_str: &str) -> String {
     if let Ok(wei) = wei_str.parse::<u128>() {
         let integer = wei / 1_000_000_000_000_000_000;
         let fraction = wei % 1_000_000_000_000_000_000;
-        let mut frac_str = format!("{:018}", fraction);
+        let mut frac_str = format!("{fraction:018}");
         while frac_str.ends_with('0') {
             frac_str.pop();
         }
@@ -1045,7 +1047,7 @@ fn url_encode(input: &str) -> String {
                 encoded.push('+');
             }
             _ => {
-                encoded.push_str(&format!("%{:02X}", byte));
+                encoded.push_str(&format!("%{byte:02X}"));
             }
         }
     }
@@ -1056,7 +1058,7 @@ fn serialize<T: Serialize>(value: &T) -> Result<String, String> {
     serde_json::to_string(value).map_err(|e| format!("Failed to serialize output: {e}"))
 }
 
-//// ==================== JSON Schema ====================
+// ==================== JSON Schema ====================
 
 const SCHEMA: &str = r#"{
   "type": "object",

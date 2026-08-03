@@ -795,7 +795,7 @@ fn preflight(prefix: &str, endpoint: &str) -> Result<(), String> {
         // Reborn resolves required credential obligations before dispatch and
         // injects them at HTTP egress. Its staged credentials are not exposed
         // through the legacy secret-exists compatibility path.
-        return Ok(());
+        Ok(())
     }
 
     #[cfg(not(feature = "reborn"))]

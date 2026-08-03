@@ -62,8 +62,7 @@ impl exports::near::agent::tool::Guest for JinaTool {
     }
 }
 
-/// Tool actions. The model selects one via the `action` field.
-
+// Tool actions. The model selects one via the `action` field.
 fn encode_guest_output(output: String) -> Result<String, String> {
     serde_json::to_string(&output).map_err(|_| "tool_output_encode_failed".to_string())
 }
@@ -106,9 +105,8 @@ enum Action {
 }
 
 fn execute_inner(params: &str) -> Result<String, String> {
-    let action: Action = serde_json::from_str(params).map_err(|e| {
-        format!("Invalid parameters: {e}. Provide an 'action' field.")
-    })?;
+    let action: Action = serde_json::from_str(params)
+        .map_err(|e| format!("Invalid parameters: {e}. Provide an 'action' field."))?;
 
     // Pre-flight: verify the API key is configured before any network call.
     #[cfg(not(feature = "reborn"))]
@@ -127,14 +125,16 @@ fn execute_inner(params: &str) -> Result<String, String> {
         } => {
             let validated = validate_url(&url)?;
             let body = json!({ "url": validated });
-            
+
             let mut headers = json!({
                 "Accept": "application/json",
                 "Content-Type": "application/json",
                 "User-Agent": "IronClaw-Jina-Tool/0.1",
                 "X-Md-Link-Style": "discarded"
             });
-            let headers_obj = headers.as_object_mut().ok_or("Failed to build headers map")?;
+            let headers_obj = headers
+                .as_object_mut()
+                .ok_or("Failed to build headers map")?;
             if let Some(true) = with_all_links {
                 headers_obj.insert("X-With-Links-Summary".to_string(), json!("all"));
             }
@@ -145,28 +145,29 @@ fn execute_inner(params: &str) -> Result<String, String> {
             }
 
             let resp = make_request("POST", READER_BASE, &body, headers)?;
-            
+
             let data = resp.get("data").ok_or("Invalid response: missing 'data'")?;
             let title = data.get("title").and_then(Value::as_str).unwrap_or("");
             let url_str = data.get("url").and_then(Value::as_str).unwrap_or(validated);
             let content = data.get("content").and_then(Value::as_str).unwrap_or("");
-            
-            let links_vec = if let Some(true) = with_all_links {
-                data.get("links").and_then(Value::as_array).map(|links| {
-                    links.iter().map(|item| {
+
+            let links_vec =
+                if let Some(true) = with_all_links {
+                    data.get("links").and_then(Value::as_array).map(|links| {
+                        links.iter().map(|item| {
                         if let Some(arr) = item.as_array() {
                             json!({
-                                "anchorText": arr.get(0).and_then(Value::as_str).unwrap_or(""),
+                                "anchorText": arr.first().and_then(Value::as_str).unwrap_or(""),
                                 "url": arr.get(1).and_then(Value::as_str).unwrap_or("")
                             })
                         } else {
                             item.clone()
                         }
                     }).collect::<Vec<Value>>()
-                })
-            } else {
-                None
-            };
+                    })
+                } else {
+                    None
+                };
 
             let images_val = if let Some(true) = with_all_images {
                 data.get("images").cloned()
@@ -174,7 +175,13 @@ fn execute_inner(params: &str) -> Result<String, String> {
                 None
             };
 
-            Ok(format_read_result(url_str, title, content, links_vec.as_ref(), images_val.as_ref()))
+            Ok(format_read_result(
+                url_str,
+                title,
+                content,
+                links_vec.as_ref(),
+                images_val.as_ref(),
+            ))
         }
         Action::CaptureScreenshotUrl {
             url,
@@ -182,8 +189,12 @@ fn execute_inner(params: &str) -> Result<String, String> {
         } => {
             let validated = validate_url(&url)?;
             let body = json!({ "url": validated });
-            
-            let return_format = if first_screen_only.unwrap_or(false) { "screenshot" } else { "pageshot" };
+
+            let return_format = if first_screen_only.unwrap_or(false) {
+                "screenshot"
+            } else {
+                "pageshot"
+            };
             let headers = json!({
                 "Accept": "application/json",
                 "Content-Type": "application/json",
@@ -193,13 +204,17 @@ fn execute_inner(params: &str) -> Result<String, String> {
 
             let resp = make_request("POST", READER_BASE, &body, headers)?;
             let data = resp.get("data").ok_or("Invalid response: missing 'data'")?;
-            
-            let screenshot_url = data.get("screenshotUrl")
+
+            let screenshot_url = data
+                .get("screenshotUrl")
                 .or_else(|| data.get("pageshotUrl"))
                 .and_then(Value::as_str)
                 .ok_or("No screenshot URL received from Jina Reader API")?;
 
-            Ok(format!("screenshot_url: {}\n", escape_yaml_string(screenshot_url)))
+            Ok(format!(
+                "screenshot_url: {}\n",
+                escape_yaml_string(screenshot_url)
+            ))
         }
         Action::SearchWeb { query, num } => {
             let body = json!({
@@ -263,12 +278,7 @@ fn execute_inner(params: &str) -> Result<String, String> {
     }
 }
 
-fn make_request(
-    method: &str,
-    url: &str,
-    body: &Value,
-    headers: Value,
-) -> Result<Value, String> {
+fn make_request(method: &str, url: &str, body: &Value, headers: Value) -> Result<Value, String> {
     let body_bytes = serde_json::to_vec(body).map_err(|e| format!("Failed to encode body: {e}"))?;
 
     let mut attempt = 0;
@@ -334,7 +344,9 @@ fn validate_url(url: &str) -> Result<&str, String> {
         return Err("'url' must not be empty".into());
     }
     if url.len() > MAX_URL_LEN {
-        return Err(format!("'url' exceeds maximum length of {MAX_URL_LEN} characters"));
+        return Err(format!(
+            "'url' exceeds maximum length of {MAX_URL_LEN} characters"
+        ));
     }
     if !(url.starts_with("http://") || url.starts_with("https://")) {
         return Err(format!(
@@ -401,7 +413,7 @@ fn format_read_result(
 
     yaml.push_str("content: |\n");
     for line in content.lines() {
-        yaml.push_str(&format!("  {}\n", line));
+        yaml.push_str(&format!("  {line}\n"));
     }
     yaml
 }
@@ -422,20 +434,20 @@ fn format_search_results(query: &str, results: &[Value]) -> String {
                 };
                 if let Some(s) = v.as_str() {
                     if s.contains('\n') {
-                        yaml.push_str(&format!("{}{}: |\n", prefix, k));
+                        yaml.push_str(&format!("{prefix}{k}: |\n"));
                         for line in s.lines() {
-                            yaml.push_str(&format!("      {}\n", line));
+                            yaml.push_str(&format!("      {line}\n"));
                         }
                     } else {
                         yaml.push_str(&format!("{}{}: {}\n", prefix, k, escape_yaml_string(s)));
                     }
                 } else if let Some(n) = v.as_number() {
-                    yaml.push_str(&format!("{}{}: {}\n", prefix, k, n));
+                    yaml.push_str(&format!("{prefix}{k}: {n}\n"));
                 } else if let Some(b) = v.as_bool() {
-                    yaml.push_str(&format!("{}{}: {}\n", prefix, k, b));
+                    yaml.push_str(&format!("{prefix}{k}: {b}\n"));
                 } else if v.is_array() || v.is_object() {
                     let compact = serde_json::to_string(v).unwrap_or_else(|_| "null".to_string());
-                    yaml.push_str(&format!("{}{}: {}\n", prefix, k, compact));
+                    yaml.push_str(&format!("{prefix}{k}: {compact}\n"));
                 }
             }
         }
@@ -449,7 +461,9 @@ fn search_results(response: &Value) -> Result<&[Value], String> {
         .or_else(|| response.get("data"))
         .and_then(Value::as_array)
         .map(Vec::as_slice)
-        .ok_or_else(|| "Invalid Jina Search response: missing 'results' or 'data' array".to_string())
+        .ok_or_else(|| {
+            "Invalid Jina Search response: missing 'results' or 'data' array".to_string()
+        })
 }
 
 const SCHEMA: &str = r#"{
@@ -518,8 +532,8 @@ struct ToolContext {
 #[cfg(feature = "reborn")]
 fn execute_reborn(params: &str, context: Option<&str>) -> Result<String, String> {
     let context = context.ok_or_else(|| "missing_invocation_context".to_string())?;
-    let context: ToolContext = serde_json::from_str(context)
-        .map_err(|_| "invalid_invocation_context".to_string())?;
+    let context: ToolContext =
+        serde_json::from_str(context).map_err(|_| "invalid_invocation_context".to_string())?;
     let operation = match context.capability_id.as_str() {
         "jina.read_url" => "read_url",
         "jina.capture_screenshot_url" => "capture_screenshot_url",
@@ -529,14 +543,18 @@ fn execute_reborn(params: &str, context: Option<&str>) -> Result<String, String>
         "jina.search_images" => "search_images",
         _ => return Err("unsupported_capability".to_string()),
     };
-    let mut params: serde_json::Value = serde_json::from_str(params)
-        .map_err(|_| "invalid_parameters".to_string())?;
-    let object = params.as_object_mut()
+    let mut params: serde_json::Value =
+        serde_json::from_str(params).map_err(|_| "invalid_parameters".to_string())?;
+    let object = params
+        .as_object_mut()
         .ok_or_else(|| "invalid_parameters".to_string())?;
     if object.contains_key("action") {
         return Err("public_selector_is_not_allowed".to_string());
     }
-    object.insert("action".to_string(), serde_json::Value::String(operation.to_string()));
+    object.insert(
+        "action".to_string(),
+        serde_json::Value::String(operation.to_string()),
+    );
     execute_inner(&params.to_string())
 }
 
@@ -577,7 +595,9 @@ mod tests {
             Ok(Action::ReadUrl { .. }) => {}
             _ => return Err("Failed to deserialize ReadUrl".into()),
         }
-        match serde_json::from_str::<Action>(r#"{"action":"capture_screenshot_url","url":"https://x.com"}"#) {
+        match serde_json::from_str::<Action>(
+            r#"{"action":"capture_screenshot_url","url":"https://x.com"}"#,
+        ) {
             Ok(Action::CaptureScreenshotUrl { .. }) => {}
             _ => return Err("Failed to deserialize CaptureScreenshotUrl".into()),
         }
