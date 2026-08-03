@@ -146,12 +146,7 @@ struct ConvertResponse {
     date: String,
 }
 
-fn run_convert(
-    from: &str,
-    to: &str,
-    amount: f64,
-    date: Option<&str>,
-) -> Result<String, String> {
+fn run_convert(from: &str, to: &str, amount: f64, date: Option<&str>) -> Result<String, String> {
     let from_clean = sanitize_currency(from)?;
     let to_clean = sanitize_currency(to)?;
 
@@ -214,11 +209,7 @@ struct BatchConvertResponse {
     conversions: Vec<BatchConversionItem>,
 }
 
-fn run_batch_convert(
-    from: &str,
-    targets: &[String],
-    amount: f64,
-) -> Result<String, String> {
+fn run_batch_convert(from: &str, targets: &[String], amount: f64) -> Result<String, String> {
     let base_clean = sanitize_currency(from)?;
     if targets.is_empty() {
         return Err("batch_convert requires at least one target currency in 'targets'".to_string());
@@ -233,9 +224,9 @@ fn run_batch_convert(
     let url = format!("{API_BASE}/rates?base={base_clean}&quotes={quotes_param}");
 
     let val = http_get_json(&url)?;
-    let rates_arr = val
-        .as_array()
-        .ok_or_else(|| "Unexpected Frankfurter response: expected array of rate records".to_string())?;
+    let rates_arr = val.as_array().ok_or_else(|| {
+        "Unexpected Frankfurter response: expected array of rate records".to_string()
+    })?;
 
     let mut conversions = Vec::new();
     let mut date_found = "latest".to_string();
@@ -252,7 +243,8 @@ fn run_batch_convert(
                 let result = amount * rate;
                 let from_sym = currency_symbol(&base_clean);
                 let to_sym = currency_symbol(quote);
-                let formatted = format!("{from_sym}{amount:.2} {base_clean} = {to_sym}{result:.2} {quote}");
+                let formatted =
+                    format!("{from_sym}{amount:.2} {base_clean} = {to_sym}{result:.2} {quote}");
                 conversions.push(BatchConversionItem {
                     quote: quote.to_string(),
                     rate,
@@ -310,7 +302,9 @@ fn run_historical_trend(
 
     let (from_str, to_str, period_label) = resolve_dates(period, from_date, to_date)?;
 
-    let mut url = format!("{API_BASE}/rates?base={base_clean}&quotes={quote_clean}&from={from_str}&to={to_str}");
+    let mut url = format!(
+        "{API_BASE}/rates?base={base_clean}&quotes={quote_clean}&from={from_str}&to={to_str}"
+    );
     let group_clean = match group {
         Some("week") => "week",
         Some("month") => "month",
@@ -417,10 +411,7 @@ struct SearchCurrenciesResponse {
     currencies: Vec<CurrencyItem>,
 }
 
-fn run_search_currencies(
-    query: Option<&str>,
-    scope: Option<&str>,
-) -> Result<String, String> {
+fn run_search_currencies(query: Option<&str>, scope: Option<&str>) -> Result<String, String> {
     let scope_clean = match scope {
         Some("all") => "all",
         _ => "active",
@@ -457,11 +448,20 @@ fn run_search_currencies(
         if matches_query {
             matches.push(CurrencyItem {
                 iso_code: code.to_string(),
-                iso_numeric: item.get("iso_numeric").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                iso_numeric: item
+                    .get("iso_numeric")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
                 name: name.to_string(),
                 symbol: symbol.to_string(),
-                start_date: item.get("start_date").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                end_date: item.get("end_date").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                start_date: item
+                    .get("start_date")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                end_date: item
+                    .get("end_date")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
             });
         }
     }
@@ -483,7 +483,9 @@ fn run_search_currencies(
 fn sanitize_currency(code: &str) -> Result<String, String> {
     let clean = code.trim().to_uppercase();
     if clean.len() != 3 || !clean.chars().all(|c| c.is_ascii_alphabetic()) {
-        return Err(format!("Invalid ISO currency code '{code}'. Expected 3 letters (e.g. USD, EUR, VND, JPY)."));
+        return Err(format!(
+            "Invalid ISO currency code '{code}'. Expected 3 letters (e.g. USD, EUR, VND, JPY)."
+        ));
     }
     Ok(clean)
 }
@@ -491,7 +493,9 @@ fn sanitize_currency(code: &str) -> Result<String, String> {
 fn sanitize_date(d: &str) -> Result<String, String> {
     let clean = d.trim();
     if clean.len() != 10 || !clean.chars().all(|c| c.is_ascii_digit() || c == '-') {
-        return Err(format!("Invalid date format '{d}'. Expected YYYY-MM-DD format (e.g. 2024-01-15)."));
+        return Err(format!(
+            "Invalid date format '{d}'. Expected YYYY-MM-DD format (e.g. 2024-01-15)."
+        ));
     }
     Ok(clean.to_string())
 }
@@ -599,7 +603,10 @@ fn http_get_json(url: &str) -> Result<Value, String> {
         }
 
         let err_body = String::from_utf8_lossy(&resp.body);
-        return Err(format!("Frankfurter API returned HTTP status {}: {err_body}", resp.status));
+        return Err(format!(
+            "Frankfurter API returned HTTP status {}: {err_body}",
+            resp.status
+        ));
     };
 
     let body_str = String::from_utf8(response.body)
@@ -747,7 +754,10 @@ mod tests {
         let action: Action = serde_json::from_str(json_input)
             .map_err(|e| format!("Failed to parse Convert action: {e}"))?;
 
-        if let Action::Convert { from, to, amount, .. } = action {
+        if let Action::Convert {
+            from, to, amount, ..
+        } = action
+        {
             if from != "USD" || to != "VND" || amount != Some(169.0) {
                 return Err("Action fields mismatch".to_string());
             }
@@ -759,11 +769,17 @@ mod tests {
 
     #[test]
     fn test_parse_batch_convert_action() -> Result<(), String> {
-        let json_input = r#"{"action":"batch_convert","from":"USD","targets":["EUR","VND"],"amount":100.0}"#;
+        let json_input =
+            r#"{"action":"batch_convert","from":"USD","targets":["EUR","VND"],"amount":100.0}"#;
         let action: Action = serde_json::from_str(json_input)
             .map_err(|e| format!("Failed to parse BatchConvert action: {e}"))?;
 
-        if let Action::BatchConvert { from, targets, amount } = action {
+        if let Action::BatchConvert {
+            from,
+            targets,
+            amount,
+        } = action
+        {
             if from != "USD" || targets.len() != 2 || amount != Some(100.0) {
                 return Err("BatchConvert fields mismatch".to_string());
             }

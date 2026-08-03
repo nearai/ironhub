@@ -1015,7 +1015,7 @@ fn decode_base64(input: &str) -> Result<Vec<u8>, String> {
     if cleaned.is_empty() {
         return Err("'content_base64' is empty".into());
     }
-    while !cleaned.len().is_multiple_of(4) {
+    while cleaned.len() % 4 != 0 {
         cleaned.push('=');
     }
     base64::engine::general_purpose::STANDARD

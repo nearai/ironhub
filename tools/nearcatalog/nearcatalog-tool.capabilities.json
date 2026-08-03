@@ -1,8 +1,8 @@
 {
   "version": "0.1.0",
+  "effects": [],
   "wit_version": "0.3.0",
   "description": "Explore the NEAR ecosystem: keyword-search projects, browse/filter the catalog by status and phase, look up full project profiles, find related projects, browse categories and groupings like trending, find people building on NEAR, and list awesome-near OSS libraries. All data sources are public; no authentication required.",
-  "effects": [],
   "capabilities": {
     "http": {
       "allowlist": [

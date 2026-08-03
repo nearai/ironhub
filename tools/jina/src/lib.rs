@@ -95,16 +95,16 @@ enum Action {
 }
 
 fn execute_inner(params: &str) -> Result<String, String> {
-    let action: Action = serde_json::from_str(params).map_err(|e| {
-        format!("Invalid parameters: {e}. Provide an 'action' field.")
-    })?;
+    let action: Action = serde_json::from_str(params)
+        .map_err(|e| format!("Invalid parameters: {e}. Provide an 'action' field."))?;
 
     // Pre-flight: verify the API key is configured before any network call.
     if !near::agent::host::secret_exists(SECRET_NAME) {
-        return Err(format!(
+        return Err(
             "Jina AI API key not found. Set it with: ironclaw tool setup jina-tool. \
              Get a key at https://jina.ai/"
-        ));
+                .to_string(),
+        );
     }
 
     match action {
@@ -115,14 +115,16 @@ fn execute_inner(params: &str) -> Result<String, String> {
         } => {
             let validated = validate_url(&url)?;
             let body = json!({ "url": validated });
-            
+
             let mut headers = json!({
                 "Accept": "application/json",
                 "Content-Type": "application/json",
                 "User-Agent": "IronClaw-Jina-Tool/0.1",
                 "X-Md-Link-Style": "discarded"
             });
-            let headers_obj = headers.as_object_mut().ok_or("Failed to build headers map")?;
+            let headers_obj = headers
+                .as_object_mut()
+                .ok_or("Failed to build headers map")?;
             if let Some(true) = with_all_links {
                 headers_obj.insert("X-With-Links-Summary".to_string(), json!("all"));
             }
@@ -133,28 +135,29 @@ fn execute_inner(params: &str) -> Result<String, String> {
             }
 
             let resp = make_request("POST", READER_BASE, &body, headers)?;
-            
+
             let data = resp.get("data").ok_or("Invalid response: missing 'data'")?;
             let title = data.get("title").and_then(Value::as_str).unwrap_or("");
             let url_str = data.get("url").and_then(Value::as_str).unwrap_or(validated);
             let content = data.get("content").and_then(Value::as_str).unwrap_or("");
-            
-            let links_vec = if let Some(true) = with_all_links {
-                data.get("links").and_then(Value::as_array).map(|links| {
-                    links.iter().map(|item| {
+
+            let links_vec =
+                if let Some(true) = with_all_links {
+                    data.get("links").and_then(Value::as_array).map(|links| {
+                        links.iter().map(|item| {
                         if let Some(arr) = item.as_array() {
                             json!({
-                                "anchorText": arr.get(0).and_then(Value::as_str).unwrap_or(""),
+                                "anchorText": arr.first().and_then(Value::as_str).unwrap_or(""),
                                 "url": arr.get(1).and_then(Value::as_str).unwrap_or("")
                             })
                         } else {
                             item.clone()
                         }
                     }).collect::<Vec<Value>>()
-                })
-            } else {
-                None
-            };
+                    })
+                } else {
+                    None
+                };
 
             let images_val = if let Some(true) = with_all_images {
                 data.get("images").cloned()
@@ -162,7 +165,13 @@ fn execute_inner(params: &str) -> Result<String, String> {
                 None
             };
 
-            Ok(format_read_result(url_str, title, content, links_vec.as_ref(), images_val.as_ref()))
+            Ok(format_read_result(
+                url_str,
+                title,
+                content,
+                links_vec.as_ref(),
+                images_val.as_ref(),
+            ))
         }
         Action::CaptureScreenshotUrl {
             url,
@@ -170,8 +179,12 @@ fn execute_inner(params: &str) -> Result<String, String> {
         } => {
             let validated = validate_url(&url)?;
             let body = json!({ "url": validated });
-            
-            let return_format = if first_screen_only.unwrap_or(false) { "screenshot" } else { "pageshot" };
+
+            let return_format = if first_screen_only.unwrap_or(false) {
+                "screenshot"
+            } else {
+                "pageshot"
+            };
             let headers = json!({
                 "Accept": "application/json",
                 "Content-Type": "application/json",
@@ -181,13 +194,17 @@ fn execute_inner(params: &str) -> Result<String, String> {
 
             let resp = make_request("POST", READER_BASE, &body, headers)?;
             let data = resp.get("data").ok_or("Invalid response: missing 'data'")?;
-            
-            let screenshot_url = data.get("screenshotUrl")
+
+            let screenshot_url = data
+                .get("screenshotUrl")
                 .or_else(|| data.get("pageshotUrl"))
                 .and_then(Value::as_str)
                 .ok_or("No screenshot URL received from Jina Reader API")?;
 
-            Ok(format!("screenshot_url: {}\n", escape_yaml_string(screenshot_url)))
+            Ok(format!(
+                "screenshot_url: {}\n",
+                escape_yaml_string(screenshot_url)
+            ))
         }
         Action::SearchWeb { query, num } => {
             let body = json!({
@@ -200,7 +217,7 @@ fn execute_inner(params: &str) -> Result<String, String> {
                 "User-Agent": "IronClaw-Jina-Tool/0.1"
             });
             let resp = make_request("POST", SEARCH_BASE, &body, headers)?;
-            let results = resp.get("results").and_then(Value::as_array).ok_or("Invalid response: missing 'results' array")?;
+            let results = search_results(&resp)?;
             Ok(format_search_results(&query, results))
         }
         Action::SearchArxiv { query, num } => {
@@ -215,7 +232,7 @@ fn execute_inner(params: &str) -> Result<String, String> {
                 "User-Agent": "IronClaw-Jina-Tool/0.1"
             });
             let resp = make_request("POST", SEARCH_BASE, &body, headers)?;
-            let results = resp.get("results").and_then(Value::as_array).ok_or("Invalid response: missing 'results' array")?;
+            let results = search_results(&resp)?;
             Ok(format_search_results(&query, results))
         }
         Action::SearchSsrn { query, num } => {
@@ -230,7 +247,7 @@ fn execute_inner(params: &str) -> Result<String, String> {
                 "User-Agent": "IronClaw-Jina-Tool/0.1"
             });
             let resp = make_request("POST", SEARCH_BASE, &body, headers)?;
-            let results = resp.get("results").and_then(Value::as_array).ok_or("Invalid response: missing 'results' array")?;
+            let results = search_results(&resp)?;
             Ok(format_search_results(&query, results))
         }
         Action::SearchImages { query, num } => {
@@ -245,18 +262,13 @@ fn execute_inner(params: &str) -> Result<String, String> {
                 "User-Agent": "IronClaw-Jina-Tool/0.1"
             });
             let resp = make_request("POST", SEARCH_BASE, &body, headers)?;
-            let results = resp.get("results").and_then(Value::as_array).ok_or("Invalid response: missing 'results' array")?;
+            let results = search_results(&resp)?;
             Ok(format_search_results(&query, results))
         }
     }
 }
 
-fn make_request(
-    method: &str,
-    url: &str,
-    body: &Value,
-    headers: Value,
-) -> Result<Value, String> {
+fn make_request(method: &str, url: &str, body: &Value, headers: Value) -> Result<Value, String> {
     let body_bytes = serde_json::to_vec(body).map_err(|e| format!("Failed to encode body: {e}"))?;
 
     let mut attempt = 0;
@@ -322,7 +334,9 @@ fn validate_url(url: &str) -> Result<&str, String> {
         return Err("'url' must not be empty".into());
     }
     if url.len() > MAX_URL_LEN {
-        return Err(format!("'url' exceeds maximum length of {MAX_URL_LEN} characters"));
+        return Err(format!(
+            "'url' exceeds maximum length of {MAX_URL_LEN} characters"
+        ));
     }
     if !(url.starts_with("http://") || url.starts_with("https://")) {
         return Err(format!(
@@ -389,7 +403,7 @@ fn format_read_result(
 
     yaml.push_str("content: |\n");
     for line in content.lines() {
-        yaml.push_str(&format!("  {}\n", line));
+        yaml.push_str(&format!("  {line}\n"));
     }
     yaml
 }
@@ -410,22 +424,36 @@ fn format_search_results(query: &str, results: &[Value]) -> String {
                 };
                 if let Some(s) = v.as_str() {
                     if s.contains('\n') {
-                        yaml.push_str(&format!("{}{}: |\n", prefix, k));
+                        yaml.push_str(&format!("{prefix}{k}: |\n"));
                         for line in s.lines() {
-                            yaml.push_str(&format!("      {}\n", line));
+                            yaml.push_str(&format!("      {line}\n"));
                         }
                     } else {
                         yaml.push_str(&format!("{}{}: {}\n", prefix, k, escape_yaml_string(s)));
                     }
                 } else if let Some(n) = v.as_number() {
-                    yaml.push_str(&format!("{}{}: {}\n", prefix, k, n));
+                    yaml.push_str(&format!("{prefix}{k}: {n}\n"));
                 } else if let Some(b) = v.as_bool() {
-                    yaml.push_str(&format!("{}{}: {}\n", prefix, k, b));
+                    yaml.push_str(&format!("{prefix}{k}: {b}\n"));
+                } else if v.is_array() || v.is_object() {
+                    let compact = serde_json::to_string(v).unwrap_or_else(|_| "null".to_string());
+                    yaml.push_str(&format!("{prefix}{k}: {compact}\n"));
                 }
             }
         }
     }
     yaml
+}
+
+fn search_results(response: &Value) -> Result<&[Value], String> {
+    response
+        .get("results")
+        .or_else(|| response.get("data"))
+        .and_then(Value::as_array)
+        .map(Vec::as_slice)
+        .ok_or_else(|| {
+            "Invalid Jina Search response: missing 'results' or 'data' array".to_string()
+        })
 }
 
 const SCHEMA: &str = r#"{
@@ -521,7 +549,9 @@ mod tests {
             Ok(Action::ReadUrl { .. }) => {}
             _ => return Err("Failed to deserialize ReadUrl".into()),
         }
-        match serde_json::from_str::<Action>(r#"{"action":"capture_screenshot_url","url":"https://x.com"}"#) {
+        match serde_json::from_str::<Action>(
+            r#"{"action":"capture_screenshot_url","url":"https://x.com"}"#,
+        ) {
             Ok(Action::CaptureScreenshotUrl { .. }) => {}
             _ => return Err("Failed to deserialize CaptureScreenshotUrl".into()),
         }
@@ -565,6 +595,27 @@ mod tests {
         }
         if validate_url("example.com").is_ok() {
             return Err("relative URL accepted".into());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn parses_search_api_results_array() -> Result<(), String> {
+        let response = json!({
+            "meta": {"engine": "test"},
+            "results": [{
+                "title": "Example result",
+                "url": "https://example.com",
+                "imageUrl": "https://example.com/image.jpg"
+            }]
+        });
+        let results = search_results(&response)?;
+        if results.len() != 1 || results[0]["title"] != "Example result" {
+            return Err("Failed to parse the Jina Search response".into());
+        }
+        let formatted = format_search_results("example", results);
+        if !formatted.contains("https://example.com/image.jpg") {
+            return Err("Nested image summaries were dropped".into());
         }
         Ok(())
     }

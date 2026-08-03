@@ -165,15 +165,19 @@ fn execute_inner(params_json: &str) -> Result<String, String> {
             let limit_val = limit.unwrap_or(20);
             let path = match query {
                 Some(q) => format!("/news/v1/news/feed?query={}&limit={}", q.trim(), limit_val),
-                None => format!("/news/v1/news/feed?limit={}", limit_val),
+                None => format!("/news/v1/news/feed?limit={limit_val}"),
             };
             get_request(&path)?
         }
         Action::Research { query, limit } => {
             let limit_val = limit.unwrap_or(20);
             let path = match query {
-                Some(q) => format!("/research/v1/reports?query={}&limit={}", q.trim(), limit_val),
-                None => format!("/research/v1/reports?limit={}", limit_val),
+                Some(q) => format!(
+                    "/research/v1/reports?query={}&limit={}",
+                    q.trim(),
+                    limit_val
+                ),
+                None => format!("/research/v1/reports?limit={limit_val}"),
             };
             get_request(&path)?
         }
@@ -206,15 +210,19 @@ fn execute_inner(params_json: &str) -> Result<String, String> {
             let limit_val = limit.unwrap_or(20);
             let path = match asset_key {
                 Some(key) => format!("/token-unlocks/v1/assets/{}", key.trim()),
-                None => format!("/token-unlocks/v1/assets?limit={}", limit_val),
+                None => format!("/token-unlocks/v1/assets?limit={limit_val}"),
             };
             get_request(&path)?
         }
         Action::Fundraising { category, limit } => {
             let limit_val = limit.unwrap_or(20);
             let path = match category {
-                Some(cat) => format!("/funding/v1/rounds?category={}&limit={}", cat.trim(), limit_val),
-                None => format!("/funding/v1/rounds?limit={}", limit_val),
+                Some(cat) => format!(
+                    "/funding/v1/rounds?category={}&limit={}",
+                    cat.trim(),
+                    limit_val
+                ),
+                None => format!("/funding/v1/rounds?limit={limit_val}"),
             };
             get_request(&path)?
         }
@@ -222,7 +230,7 @@ fn execute_inner(params_json: &str) -> Result<String, String> {
             let limit_val = limit.unwrap_or(20);
             let path = match asset_key {
                 Some(key) => format!("/intel/v1/events?asset={}&limit={}", key.trim(), limit_val),
-                None => format!("/intel/v1/events?limit={}", limit_val),
+                None => format!("/intel/v1/events?limit={limit_val}"),
             };
             get_request(&path)?
         }
@@ -234,7 +242,7 @@ fn execute_inner(params_json: &str) -> Result<String, String> {
             let limit_val = limit.unwrap_or(20);
             let path = match query {
                 Some(q) => format!("/x-users/v1/users?query={}&limit={}", q.trim(), limit_val),
-                None => format!("/x-users/v1/users?limit={}", limit_val),
+                None => format!("/x-users/v1/users?limit={limit_val}"),
             };
             get_request(&path)?
         }
@@ -259,8 +267,8 @@ fn post_request(path: &str, body: &Value) -> Result<Value, String> {
         "Accept": "application/json",
         "User-Agent": "Ironclaw-Messari-Tool/0.1"
     });
-    let body_bytes = serde_json::to_vec(body)
-        .map_err(|e| format!("Failed to serialize request body: {e}"))?;
+    let body_bytes =
+        serde_json::to_vec(body).map_err(|e| format!("Failed to serialize request body: {e}"))?;
     request("POST", &url, &headers.to_string(), Some(body_bytes))
 }
 
@@ -295,8 +303,8 @@ fn request(method: &str, url: &str, headers: &str, body: Option<Vec<u8>>) -> Res
         return Err(sanitize_error(resp.status, &resp.body));
     };
 
-    let text = String::from_utf8(response.body)
-        .map_err(|e| format!("Invalid UTF-8 response: {e}"))?;
+    let text =
+        String::from_utf8(response.body).map_err(|e| format!("Invalid UTF-8 response: {e}"))?;
     serde_json::from_str(&text).map_err(|e| format!("Failed to parse JSON response: {e}"))
 }
 
@@ -309,9 +317,7 @@ fn sanitize_error(status: u16, body: &[u8]) -> String {
                 .and_then(Value::as_str)
                 .map(str::to_string)
         })
-        .unwrap_or_else(|| {
-            String::from_utf8_lossy(body).chars().take(200).collect()
-        });
+        .unwrap_or_else(|| String::from_utf8_lossy(body).chars().take(200).collect());
 
     format!("Messari API error (HTTP {status}): {detail}")
 }
@@ -343,7 +349,7 @@ fn json_to_yaml(value: &Value, indent_level: usize) -> String {
             if s.contains('\n') {
                 let mut out = "|\n".to_string();
                 for line in s.lines() {
-                    out.push_str(&format!("{}  {}\n", indent, line));
+                    out.push_str(&format!("{indent}  {line}\n"));
                 }
                 out
             } else if s.is_empty() {
@@ -370,10 +376,10 @@ fn json_to_yaml(value: &Value, indent_level: usize) -> String {
             } else {
                 let mut out = "\n".to_string();
                 for item in arr {
-                    out.push_str(&format!("{}- ", indent));
+                    out.push_str(&format!("{indent}- "));
                     let val_str = json_to_yaml(item, indent_level + 1);
-                    if val_str.starts_with('\n') {
-                        out.push_str(&val_str[1..]);
+                    if let Some(stripped) = val_str.strip_prefix('\n') {
+                        out.push_str(stripped);
                     } else {
                         out.push_str(&val_str);
                     }
@@ -387,10 +393,10 @@ fn json_to_yaml(value: &Value, indent_level: usize) -> String {
             } else {
                 let mut out = "\n".to_string();
                 for (k, v) in map {
-                    out.push_str(&format!("{}{}: ", indent, k));
+                    out.push_str(&format!("{indent}{k}: "));
                     let val_str = json_to_yaml(v, indent_level + 1);
-                    if val_str.starts_with('\n') {
-                        out.push_str(&val_str[1..]);
+                    if let Some(stripped) = val_str.strip_prefix('\n') {
+                        out.push_str(stripped);
                     } else {
                         out.push_str(&val_str);
                     }
@@ -405,11 +411,7 @@ fn to_yaml(value: &Value) -> String {
     let mut cloned = value.clone();
     prune_value(&mut cloned);
     let yaml_str = json_to_yaml(&cloned, 0);
-    if yaml_str.starts_with('\n') {
-        yaml_str[1..].to_string()
-    } else {
-        yaml_str
-    }
+    yaml_str.strip_prefix('\n').unwrap_or(&yaml_str).to_string()
 }
 
 const SCHEMA: &str = r#"{
@@ -623,9 +625,9 @@ mod tests {
 
     #[test]
     fn test_schema_valid_json() -> Result<(), String> {
-        let v: Value = serde_json::from_str(SCHEMA)
-            .map_err(|e| format!("Schema is not valid JSON: {e}"))?;
-        
+        let v: Value =
+            serde_json::from_str(SCHEMA).map_err(|e| format!("Schema is not valid JSON: {e}"))?;
+
         let required = v.get("required").and_then(Value::as_array);
         if required.is_none() {
             return Err("Schema missing required field".to_string());
@@ -636,8 +638,8 @@ mod tests {
     #[test]
     fn test_action_deserialization() -> Result<(), String> {
         let raw = r#"{"action": "ask_ai", "prompt": "What is Messari?"}"#;
-        let act: Action = serde_json::from_str(raw)
-            .map_err(|e| format!("Action deserialization failed: {e}"))?;
+        let act: Action =
+            serde_json::from_str(raw).map_err(|e| format!("Action deserialization failed: {e}"))?;
         match act {
             Action::AskAi { prompt } => {
                 if prompt != "What is Messari?" {

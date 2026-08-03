@@ -1,7 +1,7 @@
 ---
 name: jina
 version: 0.1.0
-description: Read web content via Jina AI - r.jina.ai (converts URLs to markdown), capture screenshots, or search via s.jina.ai / svip.jina.ai (performs general web, arXiv, SSRN, and image searches). Authentication uses the 'jina_api_key' secret injected by the host as a Bearer token.
+description: Read web content via Jina AI - r.jina.ai (converts URLs to markdown), capture screenshots, or search via svip.jina.ai (performs general web, arXiv, SSRN, and image searches). Authentication uses the 'jina_api_key' secret injected by the host as a Bearer token.
 use_cases:
   - Scrape and extract clean markdown from any URL or PDF file for LLMs.
   - Capture first-screen or full-page screenshots of webpages.
@@ -105,7 +105,7 @@ The tool requires a Jina API key for production-level rate limits. You can obtai
    ironclaw tool auth jina-tool
    ```
 
-At runtime, the host will intercept all request calls to `r.jina.ai`, `s.jina.ai`, and `svip.jina.ai` and inject your API key as a Bearer token. The API key is securely encrypted on disk and never exposed inside the WASM sandbox.
+At runtime, the host will intercept request calls to `r.jina.ai` and `svip.jina.ai` and inject your API key as a Bearer token. The API key is securely encrypted on disk and never exposed inside the WASM sandbox.
 
 ---
 

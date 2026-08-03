@@ -282,10 +282,9 @@ fn execute_inner(params: &str) -> Result<String, String> {
             query.as_deref(),
             category.as_deref(),
             chain.as_deref(),
-            clamp_limit(limit)),
-        Action::GetProtocol { protocol, points } => {
-            get_protocol(&protocol, clamp_points(points))
-        }
+            clamp_limit(limit),
+        ),
+        Action::GetProtocol { protocol, points } => get_protocol(&protocol, clamp_points(points)),
         Action::ProtocolTvl { protocol } => protocol_tvl(&protocol),
         Action::ListChains { limit } => list_chains(clamp_limit(limit)),
         Action::ChainTvlHistory { chain, points } => {
@@ -296,17 +295,16 @@ fn execute_inner(params: &str) -> Result<String, String> {
             search_width,
         } => coins_get(
             &format!("/prices/current/{}", validate_coins(&coins)?),
-            &[("searchWidth", opt_str(&search_width))]),
+            &[("searchWidth", opt_str(&search_width))],
+        ),
         Action::HistoricalPrices {
             coins,
             timestamp,
             search_width,
         } => coins_get(
-            &format!(
-                "/prices/historical/{timestamp}/{}",
-                validate_coins(&coins)?
-            ),
-            &[("searchWidth", opt_str(&search_width))]),
+            &format!("/prices/historical/{timestamp}/{}", validate_coins(&coins)?),
+            &[("searchWidth", opt_str(&search_width))],
+        ),
         Action::PriceChart {
             coins,
             start,
@@ -326,7 +324,8 @@ fn execute_inner(params: &str) -> Result<String, String> {
                     ("span", span.map(|v| v.to_string())),
                     ("period", opt_str(&period)),
                     ("searchWidth", opt_str(&search_width)),
-                ])
+                ],
+            )
         }
         Action::PricePercentage {
             coins,
@@ -339,13 +338,15 @@ fn execute_inner(params: &str) -> Result<String, String> {
                 ("timestamp", timestamp.map(|v| v.to_string())),
                 ("lookForward", look_forward.map(|v| v.to_string())),
                 ("period", opt_str(&period)),
-            ]),
-        Action::FirstPrices { coins } => coins_get(
-            &format!("/prices/first/{}", validate_coins(&coins)?),
-            &[]),
+            ],
+        ),
+        Action::FirstPrices { coins } => {
+            coins_get(&format!("/prices/first/{}", validate_coins(&coins)?), &[])
+        }
         Action::Block { chain, timestamp } => coins_get(
             &format!("/block/{}/{timestamp}", validate_segment(&chain, "chain")?),
-            &[]),
+            &[],
+        ),
         Action::ListStablecoins { query, limit } => {
             list_stablecoins(query.as_deref(), clamp_limit(limit))
         }
@@ -357,7 +358,8 @@ fn execute_inner(params: &str) -> Result<String, String> {
         } => stablecoin_history(
             chain.as_deref(),
             stablecoin_id.as_deref(),
-            clamp_points(points)),
+            clamp_points(points),
+        ),
         Action::StablecoinChains => {
             let url = service_url(Service::Stablecoins, "/stablecoinchains");
             serialize(&http_get_json(&url)?)
@@ -372,7 +374,8 @@ fn execute_inner(params: &str) -> Result<String, String> {
             chain.as_deref(),
             project.as_deref(),
             symbol.as_deref(),
-            clamp_limit(limit)),
+            clamp_limit(limit),
+        ),
         Action::PoolHistory { pool, points } => pool_history(&pool, clamp_points(points)),
         Action::DexOverview { chain, limit } => {
             adapter_overview("dexs", chain.as_deref(), None, clamp_limit(limit))
@@ -439,7 +442,9 @@ fn clamp_points(points: Option<usize>) -> usize {
 }
 
 fn opt_str(v: &Option<String>) -> Option<String> {
-    v.as_ref().map(|s| s.trim().to_string()).filter(|s| !s.is_empty())
+    v.as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
 }
 
 // ==================== Streaming big-payload machinery ====================
@@ -738,7 +743,10 @@ impl ObjectFieldScanner {
 
 /// Inflate-if-gzipped and feed a body through `sink` in bounded chunks.
 /// Bodies that don't start with the gzip magic pass through as one chunk.
-fn stream_body(body: &[u8], sink: &mut dyn FnMut(&[u8]) -> Result<(), String>) -> Result<(), String> {
+fn stream_body(
+    body: &[u8],
+    sink: &mut dyn FnMut(&[u8]) -> Result<(), String>,
+) -> Result<(), String> {
     use std::io::Read;
     if body.len() >= 2 && body[0] == 0x1f && body[1] == 0x8b {
         let mut decoder = flate2::bufread::MultiGzDecoder::new(body);
@@ -784,8 +792,7 @@ impl<T> TopN<T> {
     }
 
     fn prune(&mut self) {
-        self.rows
-            .sort_unstable_by(|a, b| b.0.total_cmp(&a.0));
+        self.rows.sort_unstable_by(|a, b| b.0.total_cmp(&a.0));
         self.rows.truncate(self.limit);
     }
 
@@ -848,7 +855,9 @@ fn list_protocols(
                 return Ok(()); // tolerate odd rows
             };
             let name_hit = q.as_deref().is_none_or(|q| {
-                opt_contains_ci(&p.name, q) || opt_contains_ci(&p.symbol, q) || opt_contains_ci(&p.slug, q)
+                opt_contains_ci(&p.name, q)
+                    || opt_contains_ci(&p.symbol, q)
+                    || opt_contains_ci(&p.slug, q)
             });
             let cat_hit = cat
                 .as_deref()
@@ -956,7 +965,8 @@ fn protocol_tvl(protocol: &str) -> Result<String, String> {
     let slug = validate_segment(protocol, "protocol")?;
     let value = http_get_json(&service_url(
         Service::Api,
-        &format!("/tvl/{}", url_encode(&slug))))?;
+        &format!("/tvl/{}", url_encode(&slug)),
+    ))?;
     serialize(&json!({ "protocol": slug, "tvl_usd": value }))
 }
 
@@ -1014,10 +1024,7 @@ fn coins_get(path: &str, params: &[(&str, Option<String>)]) -> Result<String, St
     let mut url = service_url(Service::Coins, path);
     let qs: Vec<String> = params
         .iter()
-        .filter_map(|(k, v)| {
-            v.as_ref()
-                .map(|v| format!("{k}={}", url_encode(v)))
-        })
+        .filter_map(|(k, v)| v.as_ref().map(|v| format!("{k}={}", url_encode(v))))
         .collect();
     if !qs.is_empty() {
         url.push('?');
@@ -1069,17 +1076,15 @@ struct StablecoinRow {
 fn fetch_stablecoins() -> Result<Vec<StablecoinRow>, String> {
     let body = http_get_text(&service_url(
         Service::Stablecoins,
-        "/stablecoins?includePrices=true"))?;
+        "/stablecoins?includePrices=true",
+    ))?;
     let list: StablecoinList = serde_json::from_str(&body)
         .map_err(|e| format!("Unexpected /stablecoins response: {e}"))?;
     Ok(list.pegged_assets)
 }
 
 fn stablecoin_circulating(row: &StablecoinRow) -> f64 {
-    row.circulating
-        .as_ref()
-        .map(pegged_amount)
-        .unwrap_or(0.0)
+    row.circulating.as_ref().map(pegged_amount).unwrap_or(0.0)
 }
 
 fn list_stablecoins(query: Option<&str>, limit: usize) -> Result<String, String> {
@@ -1284,13 +1289,11 @@ fn pool_history(pool: &str, points: usize) -> Result<String, String> {
     let pool = validate_segment(pool, "pool")?;
     let value = http_get_json(&service_url(
         Service::Yields,
-        &format!("/chart/{}", url_encode(&pool))))?;
-    let arr = value
-        .get("data")
-        .and_then(Value::as_array)
-        .ok_or_else(|| {
-            format!("No history for pool '{pool}'. Use list_pools to discover pool ids.")
-        })?;
+        &format!("/chart/{}", url_encode(&pool)),
+    ))?;
+    let arr = value.get("data").and_then(Value::as_array).ok_or_else(|| {
+        format!("No history for pool '{pool}'. Use list_pools to discover pool ids.")
+    })?;
     let sampled = downsample(arr, points);
     serialize(&json!({
         "pool": pool,
@@ -1361,7 +1364,10 @@ fn adapter_overview(
     limit: usize,
 ) -> Result<String, String> {
     let mut path = match chain {
-        Some(c) => format!("/overview/{kind}/{}", url_encode(&validate_segment(c, "chain")?)),
+        Some(c) => format!(
+            "/overview/{kind}/{}",
+            url_encode(&validate_segment(c, "chain")?)
+        ),
         None => format!("/overview/{kind}"),
     };
     path.push_str("?excludeTotalDataChart=true&excludeTotalDataChartBreakdown=true");
@@ -1374,8 +1380,11 @@ fn adapter_overview(
     drop(body);
 
     let total = resp.protocols.len();
-    resp.protocols
-        .sort_by(|a, b| b.total24h.unwrap_or(0.0).total_cmp(&a.total24h.unwrap_or(0.0)));
+    resp.protocols.sort_by(|a, b| {
+        b.total24h
+            .unwrap_or(0.0)
+            .total_cmp(&a.total24h.unwrap_or(0.0))
+    });
     resp.protocols.truncate(limit);
     let plist: Vec<Value> = resp
         .protocols
@@ -1592,7 +1601,10 @@ fn validate_segment(s: &str, field: &str) -> Result<String, String> {
 fn validate_coins(coins: &str) -> Result<String, String> {
     let coins = coins.trim();
     if coins.is_empty() {
-        return Err("coins must not be empty (e.g. 'coingecko:ethereum' or 'ethereum:0x...,bsc:0x...')".into());
+        return Err(
+            "coins must not be empty (e.g. 'coingecko:ethereum' or 'ethereum:0x...,bsc:0x...')"
+                .into(),
+        );
     }
     if coins.len() > 2000 {
         return Err("coins list is too long (max 2000 characters)".into());
@@ -1951,7 +1963,10 @@ mod tests {
     #[test]
     fn validate_coins_rules() {
         assert!(validate_coins("coingecko:ethereum").is_ok());
-        assert!(validate_coins("ethereum:0xdF574c24545E5FfEcb9a659c229253D4111d87e1,coingecko:bitcoin").is_ok());
+        assert!(validate_coins(
+            "ethereum:0xdF574c24545E5FfEcb9a659c229253D4111d87e1,coingecko:bitcoin"
+        )
+        .is_ok());
         assert!(validate_coins("").is_err());
         assert!(validate_coins("a b").is_err());
         assert!(validate_coins("x?y=1").is_err());
@@ -2011,14 +2026,20 @@ mod tests {
         assert!(serde_json::from_str::<Action>(r#"{"action":"current_prices"}"#).is_err());
         assert!(serde_json::from_str::<Action>(r#"{"action":"pool_history"}"#).is_err());
         assert!(serde_json::from_str::<Action>(r#"{"action":"pro","path":"api/hacks"}"#).is_err()); // pro removed
-        assert!(serde_json::from_str::<Action>(r#"{"action":"block","chain":"ethereum"}"#).is_err());
+        assert!(
+            serde_json::from_str::<Action>(r#"{"action":"block","chain":"ethereum"}"#).is_err()
+        );
     }
 
     #[test]
     fn validate_choice_data_types() {
         assert_eq!(
-            validate_opt_choice(Some("dailyfees"), "data_type", &["dailyFees", "dailyRevenue"])
-                .unwrap(),
+            validate_opt_choice(
+                Some("dailyfees"),
+                "data_type",
+                &["dailyFees", "dailyRevenue"]
+            )
+            .unwrap(),
             Some("dailyFees".to_string())
         );
         assert_eq!(
@@ -2031,7 +2052,10 @@ mod tests {
     #[test]
     fn url_encode_escapes() {
         assert_eq!(url_encode("a b"), "a%20b");
-        assert_eq!(url_encode("coingecko:ethereum,bsc:0x1"), "coingecko:ethereum,bsc:0x1");
+        assert_eq!(
+            url_encode("coingecko:ethereum,bsc:0x1"),
+            "coingecko:ethereum,bsc:0x1"
+        );
         assert_eq!(url_encode("a&b=c"), "a%26b%3Dc");
     }
 
@@ -2124,8 +2148,7 @@ mod tests {
     fn stream_body_inflates_gzip_and_passes_plain() {
         use std::io::Write;
         let payload = br#"[{"x":1},{"y":2}]"#;
-        let mut enc =
-            flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+        let mut enc = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
         enc.write_all(payload).unwrap();
         let gz = enc.finish().unwrap();
 

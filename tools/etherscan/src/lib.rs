@@ -171,14 +171,15 @@ fn execute_inner(params: &str) -> Result<String, String> {
     // Pre-flight: verify Etherscan capabilities key exists.
     if !near::agent::host::secret_exists(SECRET_NAME) {
         return Err(
-            "Etherscan API key not configured in capabilities. Run setup for the tool."
-                .to_string(),
+            "Etherscan API key not configured in capabilities. Run setup for the tool.".to_string(),
         );
     }
 
     match action {
         Action::Balance { address, chain } => run_balance(address, resolve_chain(&chain)?),
-        Action::BalanceMulti { address, chain } => run_balance_multi(address, resolve_chain(&chain)?),
+        Action::BalanceMulti { address, chain } => {
+            run_balance_multi(address, resolve_chain(&chain)?)
+        }
         Action::Txlist {
             address,
             chain,
@@ -187,7 +188,15 @@ fn execute_inner(params: &str) -> Result<String, String> {
             page,
             offset,
             sort,
-        } => run_txlist(address, resolve_chain(&chain)?, startblock, endblock, page, offset, sort),
+        } => run_txlist(
+            address,
+            resolve_chain(&chain)?,
+            startblock,
+            endblock,
+            page,
+            offset,
+            sort,
+        ),
         Action::Txlistinternal {
             chain,
             address,
@@ -197,7 +206,16 @@ fn execute_inner(params: &str) -> Result<String, String> {
             page,
             offset,
             sort,
-        } => run_txlistinternal(resolve_chain(&chain)?, address, txhash, startblock, endblock, page, offset, sort),
+        } => run_txlistinternal(
+            resolve_chain(&chain)?,
+            address,
+            txhash,
+            startblock,
+            endblock,
+            page,
+            offset,
+            sort,
+        ),
         Action::Tokentx {
             chain,
             address,
@@ -207,7 +225,16 @@ fn execute_inner(params: &str) -> Result<String, String> {
             page,
             offset,
             sort,
-        } => run_tokentx(resolve_chain(&chain)?, address, contractaddress, startblock, endblock, page, offset, sort),
+        } => run_tokentx(
+            resolve_chain(&chain)?,
+            address,
+            contractaddress,
+            startblock,
+            endblock,
+            page,
+            offset,
+            sort,
+        ),
         Action::Tokennfttx {
             chain,
             address,
@@ -217,7 +244,16 @@ fn execute_inner(params: &str) -> Result<String, String> {
             page,
             offset,
             sort,
-        } => run_tokennfttx(resolve_chain(&chain)?, address, contractaddress, startblock, endblock, page, offset, sort),
+        } => run_tokennfttx(
+            resolve_chain(&chain)?,
+            address,
+            contractaddress,
+            startblock,
+            endblock,
+            page,
+            offset,
+            sort,
+        ),
         Action::Token1155tx {
             chain,
             address,
@@ -227,11 +263,24 @@ fn execute_inner(params: &str) -> Result<String, String> {
             page,
             offset,
             sort,
-        } => run_token1155tx(resolve_chain(&chain)?, address, contractaddress, startblock, endblock, page, offset, sort),
+        } => run_token1155tx(
+            resolve_chain(&chain)?,
+            address,
+            contractaddress,
+            startblock,
+            endblock,
+            page,
+            offset,
+            sort,
+        ),
         Action::Getabi { address, chain } => run_getabi(address, resolve_chain(&chain)?),
-        Action::Getsourcecode { address, chain } => run_getsourcecode(address, resolve_chain(&chain)?),
+        Action::Getsourcecode { address, chain } => {
+            run_getsourcecode(address, resolve_chain(&chain)?)
+        }
         Action::Getstatus { txhash, chain } => run_getstatus(txhash, resolve_chain(&chain)?),
-        Action::Gettxreceiptstatus { txhash, chain } => run_gettxreceiptstatus(txhash, resolve_chain(&chain)?),
+        Action::Gettxreceiptstatus { txhash, chain } => {
+            run_gettxreceiptstatus(txhash, resolve_chain(&chain)?)
+        }
     }
 }
 
@@ -308,6 +357,7 @@ fn lookup_static_chain(normalized_name: &str) -> Option<u32> {
     }
 }
 
+#[cfg(target_arch = "wasm32")]
 fn fetch_dynamic_chain_id(chain_name: &str) -> Result<u32, String> {
     let url = "https://api.etherscan.io/v2/chainlist";
     let headers = json!({
@@ -315,11 +365,20 @@ fn fetch_dynamic_chain_id(chain_name: &str) -> Result<u32, String> {
         "User-Agent": "IronClaw-Etherscan-Tool/0.1"
     });
 
-    let resp = near::agent::host::http_request("GET", url, &headers.to_string(), None, Some(HTTP_TIMEOUT_MS))
-        .map_err(|e| format!("Dynamic chain lookup request failed: {e}"))?;
+    let resp = near::agent::host::http_request(
+        "GET",
+        url,
+        &headers.to_string(),
+        None,
+        Some(HTTP_TIMEOUT_MS),
+    )
+    .map_err(|e| format!("Dynamic chain lookup request failed: {e}"))?;
 
     if !(200..300).contains(&resp.status) {
-        return Err(format!("Failed to fetch chain list: HTTP status {}", resp.status));
+        return Err(format!(
+            "Failed to fetch chain list: HTTP status {}",
+            resp.status
+        ));
     }
 
     let body_str = String::from_utf8(resp.body)
@@ -328,13 +387,14 @@ fn fetch_dynamic_chain_id(chain_name: &str) -> Result<u32, String> {
     let json_val: Value = serde_json::from_str(&body_str)
         .map_err(|e| format!("Failed to parse chainlist JSON: {e}"))?;
 
-    let result_arr = json_val["result"]
-        .as_array()
-        .ok_or_else(|| "Invalid chainlist response: result field is missing or not an array".to_string())?;
+    let result_arr = json_val["result"].as_array().ok_or_else(|| {
+        "Invalid chainlist response: result field is missing or not an array".to_string()
+    })?;
 
     let normalized_search = normalize_chain_name(chain_name);
     for entry in result_arr {
-        if let (Some(name), Some(id_str)) = (entry["chainname"].as_str(), entry["chainid"].as_str()) {
+        if let (Some(name), Some(id_str)) = (entry["chainname"].as_str(), entry["chainid"].as_str())
+        {
             if normalize_chain_name(name) == normalized_search {
                 if let Ok(id) = id_str.parse::<u32>() {
                     return Ok(id);
@@ -343,7 +403,9 @@ fn fetch_dynamic_chain_id(chain_name: &str) -> Result<u32, String> {
         }
     }
 
-    Err(format!("Chain '{}' not found in Etherscan't active chain list.", chain_name))
+    Err(format!(
+        "Chain '{chain_name}' not found in Etherscan't active chain list."
+    ))
 }
 
 fn resolve_chain(chain_val: &Value) -> Result<u32, String> {
@@ -360,26 +422,28 @@ fn resolve_chain(chain_val: &Value) -> Result<u32, String> {
             if let Ok(id) = s_trimmed.parse::<u32>() {
                 return Ok(id);
             }
-            
+
             // Look up in static list
             let normalized = normalize_chain_name(s_trimmed);
             if let Some(id) = lookup_static_chain(&normalized) {
                 return Ok(id);
             }
-            
+
             // Dynamic fallback for newly added chains
             #[cfg(target_arch = "wasm32")]
             {
                 near::agent::host::log(
                     near::agent::host::LogLevel::Info,
-                    &format!("Chain '{}' not found in static list. Querying Etherscan chainlist dynamically...", s_trimmed),
+                    &format!("Chain '{s_trimmed}' not found in static list. Querying Etherscan chainlist dynamically..."),
                 );
                 fetch_dynamic_chain_id(s_trimmed)
             }
             #[cfg(not(target_arch = "wasm32"))]
             {
                 // In non-wasm (tests), we can mock dynamic check or fallback to error
-                Err(format!("Unknown chain name '{}' (dynamic query not available in tests)", s_trimmed))
+                Err(format!(
+                    "Unknown chain name '{s_trimmed}' (dynamic query not available in tests)"
+                ))
             }
         }
         _ => Err("chain parameter must be an integer or a string".to_string()),
@@ -394,11 +458,15 @@ fn validate_evm_address(addr: &str) -> Result<(), String> {
         return Err(format!("Address '{trimmed}' must start with '0x'"));
     }
     if trimmed.len() != 42 {
-        return Err(format!("Address '{trimmed}' must be exactly 42 characters long"));
+        return Err(format!(
+            "Address '{trimmed}' must be exactly 42 characters long"
+        ));
     }
     for c in trimmed[2..].chars() {
         if !c.is_ascii_hexdigit() {
-            return Err(format!("Address '{trimmed}' contains invalid hex character '{c}'"));
+            return Err(format!(
+                "Address '{trimmed}' contains invalid hex character '{c}'"
+            ));
         }
     }
     Ok(())
@@ -421,11 +489,15 @@ fn validate_tx_hash(hash: &str) -> Result<(), String> {
         return Err(format!("Transaction hash '{trimmed}' must start with '0x'"));
     }
     if trimmed.len() != 66 {
-        return Err(format!("Transaction hash '{trimmed}' must be exactly 66 characters long"));
+        return Err(format!(
+            "Transaction hash '{trimmed}' must be exactly 66 characters long"
+        ));
     }
     for c in trimmed[2..].chars() {
         if !c.is_ascii_hexdigit() {
-            return Err(format!("Transaction hash '{trimmed}' contains invalid hex character '{c}'"));
+            return Err(format!(
+                "Transaction hash '{trimmed}' contains invalid hex character '{c}'"
+            ));
         }
     }
     Ok(())
@@ -553,6 +625,7 @@ struct InternalTransaction {
     trace_id: String,
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_txlistinternal(
     chainid: u32,
     address: Option<String>,
@@ -615,6 +688,7 @@ struct TokenTransfer {
     value: Option<String>,
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_tokentx(
     chainid: u32,
     address: Option<String>,
@@ -639,7 +713,10 @@ fn run_tokentx(
 
     let query = [
         ("address", address.map(|a| a.trim().to_string())),
-        ("contractaddress", contractaddress.map(|c| c.trim().to_string())),
+        (
+            "contractaddress",
+            contractaddress.map(|c| c.trim().to_string()),
+        ),
         ("startblock", startblock.map(|b| b.to_string())),
         ("endblock", endblock.map(|b| b.to_string())),
         ("page", page.map(|p| p.to_string())),
@@ -655,6 +732,7 @@ fn run_tokentx(
     serialize(&txs)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_tokennfttx(
     chainid: u32,
     address: Option<String>,
@@ -679,7 +757,10 @@ fn run_tokennfttx(
 
     let query = [
         ("address", address.map(|a| a.trim().to_string())),
-        ("contractaddress", contractaddress.map(|c| c.trim().to_string())),
+        (
+            "contractaddress",
+            contractaddress.map(|c| c.trim().to_string()),
+        ),
         ("startblock", startblock.map(|b| b.to_string())),
         ("endblock", endblock.map(|b| b.to_string())),
         ("page", page.map(|p| p.to_string())),
@@ -695,6 +776,7 @@ fn run_tokennfttx(
     serialize(&txs)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_token1155tx(
     chainid: u32,
     address: Option<String>,
@@ -719,7 +801,10 @@ fn run_token1155tx(
 
     let query = [
         ("address", address.map(|a| a.trim().to_string())),
-        ("contractaddress", contractaddress.map(|c| c.trim().to_string())),
+        (
+            "contractaddress",
+            contractaddress.map(|c| c.trim().to_string()),
+        ),
         ("startblock", startblock.map(|b| b.to_string())),
         ("endblock", endblock.map(|b| b.to_string())),
         ("page", page.map(|p| p.to_string())),
@@ -858,20 +943,29 @@ fn get_etherscan(
             if attempt < MAX_RETRIES {
                 near::agent::host::log(
                     near::agent::host::LogLevel::Warn,
-                    &format!("HTTP status {} (attempt {}/{}); retrying", resp.status, attempt, MAX_RETRIES),
+                    &format!(
+                        "HTTP status {} (attempt {}/{}); retrying",
+                        resp.status, attempt, MAX_RETRIES
+                    ),
                 );
                 std::thread::sleep(std::time::Duration::from_millis(attempt as u64 * 500));
                 continue;
             }
-            return Err(format!("Etherscan API returned HTTP status {}", resp.status));
+            return Err(format!(
+                "Etherscan API returned HTTP status {}",
+                resp.status
+            ));
         }
 
         if !(200..300).contains(&resp.status) {
-            return Err(format!("Etherscan request failed with HTTP {}", resp.status));
+            return Err(format!(
+                "Etherscan request failed with HTTP {}",
+                resp.status
+            ));
         }
 
-        let body_str = String::from_utf8(resp.body)
-            .map_err(|e| format!("Invalid UTF-8 response: {e}"))?;
+        let body_str =
+            String::from_utf8(resp.body).map_err(|e| format!("Invalid UTF-8 response: {e}"))?;
 
         let json_val: Value = serde_json::from_str(&body_str)
             .map_err(|e| format!("Failed to parse Etherscan response JSON: {e}"))?;
@@ -882,12 +976,16 @@ fn get_etherscan(
                 if attempt < MAX_RETRIES {
                     near::agent::host::log(
                         near::agent::host::LogLevel::Warn,
-                        &format!("Etherscan API rate limit reached (attempt {}/{}); retrying", attempt, MAX_RETRIES),
+                        &format!(
+                            "Etherscan API rate limit reached (attempt {attempt}/{MAX_RETRIES}); retrying"
+                        ),
                     );
                     std::thread::sleep(std::time::Duration::from_millis(attempt as u64 * 500));
                     continue;
                 }
-                return Err("Etherscan API rate limit exceeded. Please try again later.".to_string());
+                return Err(
+                    "Etherscan API rate limit exceeded. Please try again later.".to_string()
+                );
             }
         }
 
@@ -917,7 +1015,7 @@ fn format_wei_to_ether(wei_str: &str) -> String {
     if let Ok(wei) = wei_str.parse::<u128>() {
         let integer = wei / 1_000_000_000_000_000_000;
         let fraction = wei % 1_000_000_000_000_000_000;
-        let mut frac_str = format!("{:018}", fraction);
+        let mut frac_str = format!("{fraction:018}");
         while frac_str.ends_with('0') {
             frac_str.pop();
         }
@@ -942,7 +1040,7 @@ fn url_encode(input: &str) -> String {
                 encoded.push('+');
             }
             _ => {
-                encoded.push_str(&format!("%{:02X}", byte));
+                encoded.push_str(&format!("%{byte:02X}"));
             }
         }
     }
@@ -953,8 +1051,8 @@ fn serialize<T: Serialize>(value: &T) -> Result<String, String> {
     serde_json::to_string(value).map_err(|e| format!("Failed to serialize output: {e}"))
 }
 
-//// ==================== JSON Schema ====================
- 
+// ==================== JSON Schema ====================
+
 const SCHEMA: &str = r#"{
   "type": "object",
   "required": ["action"],
@@ -1123,21 +1221,37 @@ mod tests {
         assert!(validate_evm_address("0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BA").is_err()); // too short
         assert!(validate_evm_address("0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAeeG").is_err()); // too long
         assert!(validate_evm_address("de0B295669a9FD93d5F28D9Ec85E40f4cb697BAe").is_err()); // no 0x
-        assert!(validate_evm_address("0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAg").is_err()); // invalid hex 'g'
+        assert!(validate_evm_address("0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAg").is_err());
+        // invalid hex 'g'
     }
 
     #[test]
     fn test_validate_addresses_comma_separated() {
-        assert!(validate_evm_addresses_comma_separated("0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe,0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe").is_ok());
+        assert!(validate_evm_addresses_comma_separated(
+            "0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe,0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe"
+        )
+        .is_ok());
         assert!(validate_evm_addresses_comma_separated("0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe, 0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe").is_ok()); // with space
-        assert!(validate_evm_addresses_comma_separated("0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe,0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BA").is_err()); // second invalid
+        assert!(validate_evm_addresses_comma_separated(
+            "0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe,0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BA"
+        )
+        .is_err()); // second invalid
     }
 
     #[test]
     fn test_validate_tx_hash() {
-        assert!(validate_tx_hash("0x2b5b3a32dc6e174b830d452edb3d4116f07bec31368bab4c201caabce77556ee").is_ok());
-        assert!(validate_tx_hash("0x2b5b3a32dc6e174b830d452edb3d4116f07bec31368bab4c201caabce77556e").is_err()); // too short
-        assert!(validate_tx_hash("2b5b3a32dc6e174b830d452edb3d4116f07bec31368bab4c201caabce77556ee").is_err()); // no 0x
+        assert!(validate_tx_hash(
+            "0x2b5b3a32dc6e174b830d452edb3d4116f07bec31368bab4c201caabce77556ee"
+        )
+        .is_ok());
+        assert!(validate_tx_hash(
+            "0x2b5b3a32dc6e174b830d452edb3d4116f07bec31368bab4c201caabce77556e"
+        )
+        .is_err()); // too short
+        assert!(validate_tx_hash(
+            "2b5b3a32dc6e174b830d452edb3d4116f07bec31368bab4c201caabce77556ee"
+        )
+        .is_err()); // no 0x
     }
 
     #[test]
@@ -1163,7 +1277,10 @@ mod tests {
         assert_eq!(resolve_chain(&Value::from("ethereum")).unwrap(), 1);
         assert_eq!(resolve_chain(&Value::from("Ethereum Mainnet")).unwrap(), 1);
         assert_eq!(resolve_chain(&Value::from("base")).unwrap(), 8453);
-        assert_eq!(resolve_chain(&Value::from("Arbitrum One Mainnet")).unwrap(), 42161);
+        assert_eq!(
+            resolve_chain(&Value::from("Arbitrum One Mainnet")).unwrap(),
+            42161
+        );
         assert_eq!(resolve_chain(&Value::from("op")).unwrap(), 10);
         assert_eq!(resolve_chain(&Value::from("polygon")).unwrap(), 137);
 

@@ -1,5 +1,6 @@
 {
   "version": "0.1.0",
+  "effects": [],
   "wit_version": "0.3.0",
   "description": "Messari crypto research and market data tool for Ironclaw. Access prices, market metrics, news, token unlocks, fundraising rounds, DeFi protocols, network stats, and Messari AI synthesis.",
   "capabilities": {
@@ -15,7 +16,7 @@
         }
       ],
       "credentials": {
-        "messari_header": {
+        "messari_api_key": {
           "secret_name": "messari_api_key",
           "location": {
             "type": "header",

@@ -1,0 +1,203 @@
+{
+  "type": "object",
+  "required": [
+    "action"
+  ],
+  "oneOf": [
+    {
+      "properties": {
+        "action": {
+          "const": "balance"
+        },
+        "account": {
+          "type": "string",
+          "description": "The NEAR account ID (e.g. 'root.near')."
+        }
+      },
+      "required": [
+        "action",
+        "account"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "balances"
+        },
+        "accounts": {
+          "type": "string",
+          "description": "Comma-separated list of NEAR account IDs (e.g. 'root.near')."
+        }
+      },
+      "required": [
+        "action",
+        "accounts"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "wealth"
+        },
+        "account": {
+          "type": "string",
+          "description": "The NEAR account ID (e.g. 'root.near'). Fetches aggregated DeFi portfolio assets on RHEA Lend (burrow), Rhea DEX (ref), NEAR Intents (intentsBalances), and Rhea DEX locked liquidity (lockedRheaData)."
+        }
+      },
+      "required": [
+        "action",
+        "account"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "transactions"
+        },
+        "account": {
+          "type": "string",
+          "description": "The NEAR account ID."
+        },
+        "offset": {
+          "type": "string",
+          "description": "Query offset (default 0). Optional."
+        },
+        "limit": {
+          "type": "string",
+          "description": "Query limit (default 20). Optional."
+        }
+      },
+      "required": [
+        "action",
+        "account"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "near_transfer"
+        },
+        "account": {
+          "type": "string",
+          "description": "The NEAR account ID."
+        },
+        "offset": {
+          "type": "string",
+          "description": "Query offset (default 0). Optional."
+        },
+        "limit": {
+          "type": "string",
+          "description": "Query limit (default 20). Optional."
+        },
+        "minamount": {
+          "type": "string",
+          "description": "Minimum transfer amount filters in yoctoNEAR. Optional."
+        }
+      },
+      "required": [
+        "action",
+        "account"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "ft_transfer"
+        },
+        "account": {
+          "type": "string",
+          "description": "The NEAR account ID."
+        },
+        "offset": {
+          "type": "string",
+          "description": "Query offset (default 0). Optional."
+        },
+        "limit": {
+          "type": "string",
+          "description": "Query limit (default 20). Optional."
+        }
+      },
+      "required": [
+        "action",
+        "account"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "validators_current"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "validator_apy"
+        },
+        "validator": {
+          "type": "string",
+          "description": "The validator pool account ID (e.g. 'monterrey.pool.near')."
+        }
+      },
+      "required": [
+        "action",
+        "validator"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "tx_details"
+        },
+        "tx_hash": {
+          "type": "string",
+          "description": "The transaction hash (e.g. '8p2s...')."
+        }
+      },
+      "required": [
+        "action",
+        "tx_hash"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "token_stats"
+        },
+        "contract": {
+          "type": "string",
+          "description": "The token contract ID (e.g. 'wrap.near')."
+        }
+      },
+      "required": [
+        "action",
+        "contract"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "call_api"
+        },
+        "path": {
+          "type": "string",
+          "description": "The exact Pikespeak path (e.g. '/daos/all' or '/election/total-votes')."
+        },
+        "query_params": {
+          "type": "object",
+          "description": "Optional key-value query parameters map.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "action",
+        "path"
+      ]
+    }
+  ]
+}

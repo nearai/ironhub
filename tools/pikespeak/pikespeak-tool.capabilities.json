@@ -1,5 +1,6 @@
 {
   "version": "0.1.0",
+  "effects": [],
   "wit_version": "0.3.0",
   "description": "Pikespeak is the  on-chain data analytics platform and portfolio tracker designed for NEAR. Exposes detailed portfolio staking/DeFi and general hundreds of features like wallet explorer, NEAR Intents, Network stats...",
   "capabilities": {
@@ -21,7 +22,7 @@
         }
       ],
       "credentials": {
-        "pikespeak": {
+        "pikespeak_api_key": {
           "secret_name": "pikespeak_api_key",
           "location": {
             "type": "header",

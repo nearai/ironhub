@@ -1,5 +1,6 @@
 {
   "version": "0.1.0",
+  "effects": [],
   "wit_version": "0.3.0",
   "description": "YouTube Data API v3 integration and video transcript extraction for video metadata, comment threads, channel analytics, channel uploads playlist retrieval, keyword video search, and transcripts.",
   "capabilities": {

@@ -173,14 +173,9 @@ fn run_get_transcript(video_id: String) -> Result<String, String> {
     })
     .to_string();
 
-    let res = near::agent::host::http_request(
-        "GET",
-        &url,
-        &headers_json,
-        None,
-        Some(HTTP_TIMEOUT_MS),
-    )
-    .map_err(|e| format!("HTTP request to youtube-transcript.ai failed: {e}"))?;
+    let res =
+        near::agent::host::http_request("GET", &url, &headers_json, None, Some(HTTP_TIMEOUT_MS))
+            .map_err(|e| format!("HTTP request to youtube-transcript.ai failed: {e}"))?;
 
     if res.status < 200 || res.status >= 300 {
         let body_str = String::from_utf8_lossy(&res.body);
@@ -221,14 +216,9 @@ fn fetch_youtube_api(endpoint: &str, query_params: &[(&str, String)]) -> Result<
     })
     .to_string();
 
-    let res = near::agent::host::http_request(
-        "GET",
-        &url,
-        &headers_json,
-        None,
-        Some(HTTP_TIMEOUT_MS),
-    )
-    .map_err(|e| format!("HTTP request failed: {e}"))?;
+    let res =
+        near::agent::host::http_request("GET", &url, &headers_json, None, Some(HTTP_TIMEOUT_MS))
+            .map_err(|e| format!("HTTP request failed: {e}"))?;
 
     if res.status < 200 || res.status >= 300 {
         let body_str = String::from_utf8_lossy(&res.body);
@@ -249,7 +239,7 @@ fn url_encode(input: &str) -> String {
                 encoded.push(b as char);
             }
             _ => {
-                encoded.push_str(&format!("%{:02X}", b));
+                encoded.push_str(&format!("%{b:02X}"));
             }
         }
     }
@@ -275,19 +265,43 @@ fn run_get_video_details(video_id: String) -> Result<String, String> {
             let stats = item.get("statistics");
             let details = item.get("contentDetails");
 
-            let title = snippet.and_then(|s| s.get("title")).and_then(|v| v.as_str()).unwrap_or("");
-            let channel_title = snippet.and_then(|s| s.get("channelTitle")).and_then(|v| v.as_str()).unwrap_or("");
-            let channel_id = snippet.and_then(|s| s.get("channelId")).and_then(|v| v.as_str()).unwrap_or("");
-            let published_at = snippet.and_then(|s| s.get("publishedAt")).and_then(|v| v.as_str()).unwrap_or("");
-            let duration = details.and_then(|d| d.get("duration")).and_then(|v| v.as_str()).unwrap_or("");
+            let title = snippet
+                .and_then(|s| s.get("title"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let channel_title = snippet
+                .and_then(|s| s.get("channelTitle"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let channel_id = snippet
+                .and_then(|s| s.get("channelId"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let published_at = snippet
+                .and_then(|s| s.get("publishedAt"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let duration = details
+                .and_then(|d| d.get("duration"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
 
-            let view_count = stats.and_then(|s| s.get("viewCount")).and_then(|v| v.as_str()).unwrap_or("0");
-            let like_count = stats.and_then(|s| s.get("likeCount")).and_then(|v| v.as_str()).unwrap_or("0");
-            let comment_count = stats.and_then(|s| s.get("commentCount")).and_then(|v| v.as_str()).unwrap_or("0");
+            let view_count = stats
+                .and_then(|s| s.get("viewCount"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("0");
+            let like_count = stats
+                .and_then(|s| s.get("likeCount"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("0");
+            let comment_count = stats
+                .and_then(|s| s.get("commentCount"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("0");
 
             out_yaml.push_str(&format!("  - id: \"{id}\"\n"));
-            out_yaml.push_str(&format!("    title: {:?}\n", title));
-            out_yaml.push_str(&format!("    channel_title: {:?}\n", channel_title));
+            out_yaml.push_str(&format!("    title: {title:?}\n"));
+            out_yaml.push_str(&format!("    channel_title: {channel_title:?}\n"));
             out_yaml.push_str(&format!("    channel_id: \"{channel_id}\"\n"));
             out_yaml.push_str(&format!("    published_at: \"{published_at}\"\n"));
             out_yaml.push_str(&format!("    duration: \"{duration}\"\n"));
@@ -310,7 +324,9 @@ fn run_list_comments(
     page_token: Option<String>,
 ) -> Result<String, String> {
     if video_id.is_none() && channel_id.is_none() {
-        return Err("Either 'video_id' or 'channel_id' must be specified for list_comments.".to_string());
+        return Err(
+            "Either 'video_id' or 'channel_id' must be specified for list_comments.".to_string(),
+        );
     }
 
     let mut query = vec![("part", "snippet,replies".to_string())];
@@ -328,7 +344,10 @@ fn run_list_comments(
     }
 
     let data = fetch_youtube_api("commentThreads", &query)?;
-    let next_page_token = data.get("nextPageToken").and_then(|v| v.as_str()).unwrap_or("");
+    let next_page_token = data
+        .get("nextPageToken")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
 
     let mut out_yaml = String::new();
     if !next_page_token.is_empty() {
@@ -347,10 +366,19 @@ fn run_list_comments(
                 .and_then(|c| c.get("snippet"));
 
             if let Some(top) = top_level {
-                let author = top.get("authorDisplayName").and_then(|v| v.as_str()).unwrap_or("Anonymous");
-                let text = top.get("textDisplay").and_then(|v| v.as_str()).unwrap_or("");
+                let author = top
+                    .get("authorDisplayName")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("Anonymous");
+                let text = top
+                    .get("textDisplay")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
                 let likes = top.get("likeCount").and_then(|v| v.as_u64()).unwrap_or(0);
-                let published = top.get("publishedAt").and_then(|v| v.as_str()).unwrap_or("");
+                let published = top
+                    .get("publishedAt")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
                 let reply_count = item
                     .get("snippet")
                     .and_then(|s| s.get("totalReplyCount"))
@@ -359,8 +387,8 @@ fn run_list_comments(
 
                 let clean_text = text.replace('\n', " ").replace('\r', "");
 
-                out_yaml.push_str(&format!("  - author: {:?}\n", author));
-                out_yaml.push_str(&format!("    text: {:?}\n", clean_text));
+                out_yaml.push_str(&format!("  - author: {author:?}\n"));
+                out_yaml.push_str(&format!("    text: {clean_text:?}\n"));
                 out_yaml.push_str(&format!("    likes: {likes}\n"));
                 out_yaml.push_str(&format!("    published_at: \"{published}\"\n"));
                 out_yaml.push_str(&format!("    reply_count: {reply_count}\n"));
@@ -382,7 +410,11 @@ fn run_get_channel_stats(
     if let Some(cid) = channel_id {
         query.push(("id", cid));
     } else if let Some(h) = handle {
-        let clean_handle = if h.starts_with('@') { h } else { format!("@{h}") };
+        let clean_handle = if h.starts_with('@') {
+            h
+        } else {
+            format!("@{h}")
+        };
         query.push(("forHandle", clean_handle));
     } else if let Some(u) = for_username {
         query.push(("forUsername", u));
@@ -403,13 +435,31 @@ fn run_get_channel_stats(
             let stats = item.get("statistics");
             let content_details = item.get("contentDetails");
 
-            let title = snippet.and_then(|s| s.get("title")).and_then(|v| v.as_str()).unwrap_or("");
-            let custom_url = snippet.and_then(|s| s.get("customUrl")).and_then(|v| v.as_str()).unwrap_or("");
-            let published_at = snippet.and_then(|s| s.get("publishedAt")).and_then(|v| v.as_str()).unwrap_or("");
+            let title = snippet
+                .and_then(|s| s.get("title"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let custom_url = snippet
+                .and_then(|s| s.get("customUrl"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let published_at = snippet
+                .and_then(|s| s.get("publishedAt"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
 
-            let views = stats.and_then(|s| s.get("viewCount")).and_then(|v| v.as_str()).unwrap_or("0");
-            let subscribers = stats.and_then(|s| s.get("subscriberCount")).and_then(|v| v.as_str()).unwrap_or("0");
-            let video_count = stats.and_then(|s| s.get("videoCount")).and_then(|v| v.as_str()).unwrap_or("0");
+            let views = stats
+                .and_then(|s| s.get("viewCount"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("0");
+            let subscribers = stats
+                .and_then(|s| s.get("subscriberCount"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("0");
+            let video_count = stats
+                .and_then(|s| s.get("videoCount"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("0");
 
             let uploads_playlist_id = content_details
                 .and_then(|cd| cd.get("relatedPlaylists"))
@@ -418,13 +468,15 @@ fn run_get_channel_stats(
                 .unwrap_or("");
 
             out_yaml.push_str(&format!("  - id: \"{id}\"\n"));
-            out_yaml.push_str(&format!("    title: {:?}\n", title));
+            out_yaml.push_str(&format!("    title: {title:?}\n"));
             out_yaml.push_str(&format!("    custom_url: \"{custom_url}\"\n"));
             out_yaml.push_str(&format!("    published_at: \"{published_at}\"\n"));
             out_yaml.push_str(&format!("    views: {views}\n"));
             out_yaml.push_str(&format!("    subscribers: {subscribers}\n"));
             out_yaml.push_str(&format!("    video_count: {video_count}\n"));
-            out_yaml.push_str(&format!("    uploads_playlist_id: \"{uploads_playlist_id}\"\n"));
+            out_yaml.push_str(&format!(
+                "    uploads_playlist_id: \"{uploads_playlist_id}\"\n"
+            ));
         }
     } else {
         out_yaml.push_str("  - note: \"No channel data returned\"\n");
@@ -442,7 +494,10 @@ fn run_get_channel_videos(
     let resolved_playlist_id = if let Some(pid) = playlist_id {
         pid
     } else if let Some(cid) = channel_id {
-        let channel_info = fetch_youtube_api("channels", &[("part", "contentDetails".to_string()), ("id", cid)])?;
+        let channel_info = fetch_youtube_api(
+            "channels",
+            &[("part", "contentDetails".to_string()), ("id", cid)],
+        )?;
         let uploads_id = channel_info
             .get("items")
             .and_then(|items| items.as_array())
@@ -459,7 +514,10 @@ fn run_get_channel_videos(
         }
         uploads_id
     } else {
-        return Err("Either 'playlist_id' or 'channel_id' must be provided for get_channel_videos.".to_string());
+        return Err(
+            "Either 'playlist_id' or 'channel_id' must be provided for get_channel_videos."
+                .to_string(),
+        );
     };
 
     let limit = max_results.unwrap_or(20).min(50);
@@ -473,7 +531,10 @@ fn run_get_channel_videos(
     }
 
     let data = fetch_youtube_api("playlistItems", &query)?;
-    let next_page_token = data.get("nextPageToken").and_then(|v| v.as_str()).unwrap_or("");
+    let next_page_token = data
+        .get("nextPageToken")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
 
     let mut out_yaml = String::new();
     if !next_page_token.is_empty() {
@@ -493,13 +554,22 @@ fn run_get_channel_videos(
                 .and_then(|v| v.as_str())
                 .unwrap_or("");
 
-            let title = snippet.and_then(|s| s.get("title")).and_then(|v| v.as_str()).unwrap_or("");
-            let channel_title = snippet.and_then(|s| s.get("channelTitle")).and_then(|v| v.as_str()).unwrap_or("");
-            let published_at = snippet.and_then(|s| s.get("publishedAt")).and_then(|v| v.as_str()).unwrap_or("");
+            let title = snippet
+                .and_then(|s| s.get("title"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let channel_title = snippet
+                .and_then(|s| s.get("channelTitle"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let published_at = snippet
+                .and_then(|s| s.get("publishedAt"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
 
             out_yaml.push_str(&format!("  - video_id: \"{video_id}\"\n"));
-            out_yaml.push_str(&format!("    title: {:?}\n", title));
-            out_yaml.push_str(&format!("    channel_title: {:?}\n", channel_title));
+            out_yaml.push_str(&format!("    title: {title:?}\n"));
+            out_yaml.push_str(&format!("    channel_title: {channel_title:?}\n"));
             out_yaml.push_str(&format!("    published_at: \"{published_at}\"\n"));
         }
     } else {
@@ -535,7 +605,10 @@ fn run_search_videos(
     }
 
     let data = fetch_youtube_api("search", &query)?;
-    let next_page_token = data.get("nextPageToken").and_then(|v| v.as_str()).unwrap_or("");
+    let next_page_token = data
+        .get("nextPageToken")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
 
     let mut out_yaml = String::new();
     if !next_page_token.is_empty() {
@@ -549,15 +622,36 @@ fn run_search_videos(
         }
         for item in items {
             let id_obj = item.get("id");
-            let kind = id_obj.and_then(|i| i.get("kind")).and_then(|v| v.as_str()).unwrap_or("");
-            let video_id = id_obj.and_then(|i| i.get("videoId")).and_then(|v| v.as_str()).unwrap_or("");
-            let channel_id = id_obj.and_then(|i| i.get("channelId")).and_then(|v| v.as_str()).unwrap_or("");
+            let kind = id_obj
+                .and_then(|i| i.get("kind"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let video_id = id_obj
+                .and_then(|i| i.get("videoId"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let channel_id = id_obj
+                .and_then(|i| i.get("channelId"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
 
             let snippet = item.get("snippet");
-            let title = snippet.and_then(|s| s.get("title")).and_then(|v| v.as_str()).unwrap_or("");
-            let channel_title = snippet.and_then(|s| s.get("channelTitle")).and_then(|v| v.as_str()).unwrap_or("");
-            let published_at = snippet.and_then(|s| s.get("publishedAt")).and_then(|v| v.as_str()).unwrap_or("");
-            let description = snippet.and_then(|s| s.get("description")).and_then(|v| v.as_str()).unwrap_or("");
+            let title = snippet
+                .and_then(|s| s.get("title"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let channel_title = snippet
+                .and_then(|s| s.get("channelTitle"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let published_at = snippet
+                .and_then(|s| s.get("publishedAt"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let description = snippet
+                .and_then(|s| s.get("description"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
 
             let clean_desc = description.replace('\n', " ").replace('\r', "");
 
@@ -568,10 +662,10 @@ fn run_search_videos(
             if !channel_id.is_empty() {
                 out_yaml.push_str(&format!("    channel_id: \"{channel_id}\"\n"));
             }
-            out_yaml.push_str(&format!("    title: {:?}\n", title));
-            out_yaml.push_str(&format!("    channel_title: {:?}\n", channel_title));
+            out_yaml.push_str(&format!("    title: {title:?}\n"));
+            out_yaml.push_str(&format!("    channel_title: {channel_title:?}\n"));
             out_yaml.push_str(&format!("    published_at: \"{published_at}\"\n"));
-            out_yaml.push_str(&format!("    description: {:?}\n", clean_desc));
+            out_yaml.push_str(&format!("    description: {clean_desc:?}\n"));
         }
     } else {
         out_yaml.push_str("  - note: \"No items returned\"\n");
@@ -657,7 +751,10 @@ mod tests {
         }
         let branches = v["oneOf"].as_array().ok_or("oneOf must be array")?;
         if branches.len() != 6 {
-            return Err(format!("Expected 6 action branches, got {}", branches.len()));
+            return Err(format!(
+                "Expected 6 action branches, got {}",
+                branches.len()
+            ));
         }
         Ok(())
     }

@@ -1,5 +1,6 @@
 {
   "version": "0.1.0",
+  "effects": [],
   "wit_version": "0.3.0",
   "description": "Search the web, search social media platforms (Reddit, X, LinkedIn, etc.), extract clean page content, map sites, and crawl domains with Tavily. Authentication uses the 'tavily_api_key' secret injected by the IronClaw host as a Bearer token, the LLM never knows the credentials",
   "capabilities": {

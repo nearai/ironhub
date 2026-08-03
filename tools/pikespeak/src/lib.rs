@@ -110,58 +110,50 @@ fn execute_inner(params: &str) -> Result<String, String> {
     // Pre-flight: verify API key is declared in secrets
     if !near::agent::host::secret_exists(SECRET_NAME) {
         return Err(
-            "Pikespeak API key not configured in capabilities. Run setup for the tool."
-                .to_string(),
+            "Pikespeak API key not configured in capabilities. Run setup for the tool.".to_string(),
         );
     }
 
     let resp_val = match action {
-        Action::Balance { account } => {
-            get_json(&format!("/account/balance/{account}"), &[])?
-        }
+        Action::Balance { account } => get_json(&format!("/account/balance/{account}"), &[])?,
         Action::Balances { accounts } => {
             get_json("/account/balances", &[("accounts", Some(accounts))])?
         }
-        Action::Wealth { account } => {
-            get_json(&format!("/account/wealth/{account}"), &[])?
-        }
-        Action::Transactions { account, offset, limit } => {
-            get_json(
-                &format!("/account/transactions/{account}"),
-                &[
-                    ("offset", offset),
-                    ("limit", limit),
-                ],
-            )?
-        }
-        Action::NearTransfer { account, offset, limit, minamount } => {
-            get_json(
-                &format!("/account/near-transfer/{account}"),
-                &[
-                    ("offset", offset),
-                    ("limit", limit),
-                    ("minamount", minamount),
-                ],
-            )?
-        }
-        Action::FtTransfer { account, offset, limit } => {
-            get_json(
-                &format!("/account/ft-transfer/{account}"),
-                &[
-                    ("offset", offset),
-                    ("limit", limit),
-                ],
-            )?
-        }
-        Action::ValidatorsCurrent => {
-            get_json("/validators/current", &[])?
-        }
+        Action::Wealth { account } => get_json(&format!("/account/wealth/{account}"), &[])?,
+        Action::Transactions {
+            account,
+            offset,
+            limit,
+        } => get_json(
+            &format!("/account/transactions/{account}"),
+            &[("offset", offset), ("limit", limit)],
+        )?,
+        Action::NearTransfer {
+            account,
+            offset,
+            limit,
+            minamount,
+        } => get_json(
+            &format!("/account/near-transfer/{account}"),
+            &[
+                ("offset", offset),
+                ("limit", limit),
+                ("minamount", minamount),
+            ],
+        )?,
+        Action::FtTransfer {
+            account,
+            offset,
+            limit,
+        } => get_json(
+            &format!("/account/ft-transfer/{account}"),
+            &[("offset", offset), ("limit", limit)],
+        )?,
+        Action::ValidatorsCurrent => get_json("/validators/current", &[])?,
         Action::ValidatorApy { validator } => {
             get_json(&format!("/validators/apy/{validator}"), &[])?
         }
-        Action::TxDetails { tx_hash } => {
-            get_json(&format!("/tx/hash/{tx_hash}"), &[])?
-        }
+        Action::TxDetails { tx_hash } => get_json(&format!("/tx/hash/{tx_hash}"), &[])?,
         Action::TokenStats { contract } => {
             get_json(&format!("/money/token-stats/{contract}"), &[])?
         }
@@ -178,10 +170,8 @@ fn execute_inner(params: &str) -> Result<String, String> {
                 format!("/{path}")
             };
             query.sort_by(|a, b| a.0.cmp(&b.0));
-            let query_slices: Vec<(&str, Option<String>)> = query
-                .iter()
-                .map(|(k, v)| (k.as_str(), v.clone()))
-                .collect();
+            let query_slices: Vec<(&str, Option<String>)> =
+                query.iter().map(|(k, v)| (k.as_str(), v.clone())).collect();
             get_json(&formatted_path, &query_slices)?
         }
     };
@@ -197,7 +187,7 @@ fn get_json(path: &str, query_params: &[(&str, Option<String>)]) -> Result<Value
     let mut query_parts = Vec::new();
     for (k, v) in query_params {
         if let Some(val) = v {
-            query_parts.push(format!("{}={}", k, url_encode(&val)));
+            query_parts.push(format!("{}={}", k, url_encode(val)));
         }
     }
 
@@ -250,10 +240,9 @@ fn request(method: &str, url: &str, headers: &str, body: Option<Vec<u8>>) -> Res
         ));
     };
 
-    let text = String::from_utf8(response.body)
-        .map_err(|e| format!("Invalid UTF-8 response: {e}"))?;
-    serde_json::from_str(&text)
-        .map_err(|e| format!("Failed to parse Pikespeak response JSON: {e}"))
+    let text =
+        String::from_utf8(response.body).map_err(|e| format!("Invalid UTF-8 response: {e}"))?;
+    serde_json::from_str(&text).map_err(|e| format!("Failed to parse Pikespeak response JSON: {e}"))
 }
 
 fn url_encode(s: &str) -> String {
@@ -267,7 +256,7 @@ fn url_encode(s: &str) -> String {
                 encoded.push('+');
             }
             _ => {
-                encoded.push_str(&format!("%{:02X}", b));
+                encoded.push_str(&format!("%{b:02X}"));
             }
         }
     }
@@ -310,7 +299,7 @@ fn json_to_yaml(value: &Value, indent_level: usize) -> String {
             if s.contains('\n') {
                 let mut out = "|\n".to_string();
                 for line in s.lines() {
-                    out.push_str(&format!("{}  {}\n", indent, line));
+                    out.push_str(&format!("{indent}  {line}\n"));
                 }
                 out
             } else if s.is_empty() {
@@ -337,10 +326,10 @@ fn json_to_yaml(value: &Value, indent_level: usize) -> String {
             } else {
                 let mut out = "\n".to_string();
                 for item in arr {
-                    out.push_str(&format!("{}- ", indent));
+                    out.push_str(&format!("{indent}- "));
                     let val_str = json_to_yaml(item, indent_level + 1);
-                    if val_str.starts_with('\n') {
-                        out.push_str(&val_str[1..]);
+                    if let Some(stripped) = val_str.strip_prefix('\n') {
+                        out.push_str(stripped);
                     } else {
                         out.push_str(&val_str);
                     }
@@ -354,10 +343,10 @@ fn json_to_yaml(value: &Value, indent_level: usize) -> String {
             } else {
                 let mut out = "\n".to_string();
                 for (k, v) in map {
-                    out.push_str(&format!("{}{}: ", indent, k));
+                    out.push_str(&format!("{indent}{k}: "));
                     let val_str = json_to_yaml(v, indent_level + 1);
-                    if val_str.starts_with('\n') {
-                        out.push_str(&val_str[1..]);
+                    if let Some(stripped) = val_str.strip_prefix('\n') {
+                        out.push_str(stripped);
                     } else {
                         out.push_str(&val_str);
                     }
@@ -372,11 +361,7 @@ fn to_yaml(value: &Value) -> String {
     let mut cloned = value.clone();
     prune_value(&mut cloned);
     let yaml_str = json_to_yaml(&cloned, 0);
-    if yaml_str.starts_with('\n') {
-        yaml_str[1..].to_string()
-    } else {
-        yaml_str
-    }
+    yaml_str.strip_prefix('\n').unwrap_or(&yaml_str).to_string()
 }
 
 // ==================== JSON Schema ====================
@@ -489,21 +474,29 @@ mod tests {
 
     #[test]
     fn test_schema_valid() -> Result<(), String> {
-        let val: Value = serde_json::from_str(SCHEMA)
-            .map_err(|e| format!("Schema must be valid JSON: {e}"))?;
-        
+        let val: Value =
+            serde_json::from_str(SCHEMA).map_err(|e| format!("Schema must be valid JSON: {e}"))?;
+
         let type_val = val.get("type").ok_or("type missing")?;
         if type_val != "object" {
             return Err("Schema type must be object".to_string());
         }
-        
-        let one_of = val.get("oneOf").ok_or("oneOf missing")?.as_array().ok_or("oneOf not array")?;
+
+        let one_of = val
+            .get("oneOf")
+            .ok_or("oneOf missing")?
+            .as_array()
+            .ok_or("oneOf not array")?;
         if one_of.len() != 11 {
             return Err(format!("Expected 11 actions, got {}", one_of.len()));
         }
 
         for (i, branch) in one_of.iter().enumerate() {
-            let req = branch.get("required").ok_or(format!("branch {i} required missing"))?.as_array().ok_or("required not array")?;
+            let req = branch
+                .get("required")
+                .ok_or(format!("branch {i} required missing"))?
+                .as_array()
+                .ok_or("required not array")?;
             if req[0] != "action" {
                 return Err(format!("branch {i} action must be first required"));
             }
@@ -541,7 +534,7 @@ mod tests {
         });
 
         let yaml = to_yaml(&test_json);
-        
+
         if yaml.contains("shards_endorsed") {
             return Err("Failed to prune shards_endorsed".to_string());
         }

@@ -1,5 +1,6 @@
 {
   "version": "0.1.0",
+  "effects": [],
   "wit_version": "0.3.0",
   "description": "Read web content via Jina AI - r.jina.ai (converts URLs to markdown), capture screenshots, or search via s.jina.ai / svip.jina.ai (performs general web, arXiv, SSRN, and image searches). Authentication uses the 'jina_api_key' secret injected by the host as a Bearer token.",
   "capabilities": {

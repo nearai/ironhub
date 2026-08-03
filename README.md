@@ -16,6 +16,21 @@ Use cases, WASM tools, and SKILL.md skills for the IronClaw agent runtime.
 - `tools/wazuh`. Wazuh SIEM/XDR read and control integration. Indexer (OpenSearch) queries for alerts, vulnerabilities, top rule aggregations, cluster health, and index inventory; Server API for agent management (list, summary, add, remove, restart, regroup), active-response triggers (firewall-drop and friends), CDB block/allow list updates, and manager restart. HTTP Basic on the indexer, dynamic Basic to JWT exchange on the Server API.
 - `tools/whatsapp`. WhatsApp Cloud API via the Meta Graph API. Send messages (text, template, image, video, document, audio, location, contacts, interactive buttons and lists, reactions, read receipts), manage the business profile, read phone number metadata, and manage message templates. Permanent system-user access token via Bearer.
 - `tools/nova-submit`. Self-contained submission tool for IronClaw Hackathon: based on NOVA decentralized file-sharing, it allows the agent to submit to the hackathon in one command using the ironclaw-hackathon skill. Replicable by all NEAR Legion city nodes or any IronClaw hackathon organizer.
+- `tools/bluesky-analytics`. Read-only AT Protocol analytics for profiles, feeds, post threads, social graphs, engagement, and account discovery. No authentication required.
+- `tools/coingecko`. Cryptocurrency prices, markets, metadata, historical charts, OHLC candles, and trending assets through CoinGecko Demo or Pro APIs.
+- `tools/crypto-ta-engine`. Deterministic Binance spot technical analysis with multi-timeframe indicators, confluence scoring, and ATR-based risk levels. No authentication required.
+- `tools/defillama`. Free DeFi analytics across protocol and chain TVL, token prices, stablecoins, yield pools, DEX volumes, fees, and revenue.
+- `tools/etherscan`. Etherscan v2 access across 60+ EVM networks for balances, transactions, token transfers, contract metadata, and execution status.
+- `tools/firecrawl`. Firecrawl v2 web scraping, search, site mapping, and recursive crawling with host-injected Bearer authentication.
+- `tools/frankfurter-fx`. Open central-bank foreign exchange rates, conversions, multi-currency batches, and historical trend analysis.
+- `tools/jina`. Jina Reader, screenshot, web search, academic search, and image search with host-injected Bearer authentication.
+- `tools/messari`. Messari crypto market data, token unlocks, fundraising, DeFi metrics, news, research, and AI-assisted synthesis.
+- `tools/nearcatalog`. Public NEAR ecosystem discovery for projects, trends, categories, contributors, related projects, and open-source libraries.
+- `tools/pikespeak`. NEAR indexer and portfolio analytics for balances, transfers, validators, transactions, and DeFi positions.
+- `tools/serper`. Structured Google web, news, image, video, places, and shopping results through Serper.dev.
+- `tools/tavily`. LLM-oriented web and social search, URL extraction, site crawling, and site mapping through Tavily.
+- `tools/wordpress`. WordPress and WooCommerce operations for posts, media, comments, products, orders, and customers with host-injected credentials.
+- `tools/youtube`. YouTube Data API v3 analytics plus transcript extraction for videos, comments, channels, uploads, and search.
 - `skills/microsoft-365-workflow`. Business workflow patterns for the agent when operating inside the Microsoft 365 surface.
 - `skills/pr-triage-digest`. Cross-repo GitHub PR triage. Scores every open PR on CI, mergeability, staleness, size, and review state, then emits a single ranked digest grouped into Blockers, Quick wins, First contributors, Aging, and Normal. Silent-tier; uses the built-in `http` tool — no new tool dependency. Ships a deterministic Node.js reference implementation.
 

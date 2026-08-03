@@ -1,5 +1,6 @@
 {
   "version": "0.1.0",
+  "effects": [],
   "wit_version": "0.3.0",
   "description": "DefiLlama DeFi analytics: protocol/chain TVL, token prices, stablecoin circulation, yield/APY pools, DEX volumes, and fees/revenue — all from the free open API, no API key or auth setup needed. SETUP NOTE: the list_protocols, list_pools, and get_protocol actions stream ~10 MB API dumps and need WASM_DEFAULT_FUEL_LIMIT=2000000000 (or higher) in the IronClaw env — the default 500M fuel limit is not enough; all other actions run on stock settings.",
   "capabilities": {

@@ -128,8 +128,8 @@ enum Action {
 }
 
 fn execute_inner(params: &str) -> Result<String, String> {
-    let action: Action = serde_json::from_str(params)
-        .map_err(|e| format!("Invalid parameters: {e}"))?;
+    let action: Action =
+        serde_json::from_str(params).map_err(|e| format!("Invalid parameters: {e}"))?;
 
     // Pre-flight check: verify credentials key is declared.
     if !near::agent::host::secret_exists(SECRET_NAME) {
@@ -149,8 +149,8 @@ fn execute_inner(params: &str) -> Result<String, String> {
     };
 
     // Serialize payload and strip the helper "action" key since Serper API does not expect it.
-    let mut payload_val = serde_json::to_value(&action)
-        .map_err(|e| format!("Failed to serialize payload: {e}"))?;
+    let mut payload_val =
+        serde_json::to_value(&action).map_err(|e| format!("Failed to serialize payload: {e}"))?;
     if let Some(obj) = payload_val.as_object_mut() {
         obj.remove("action");
     }
@@ -166,16 +166,12 @@ fn post_json(url: &str, payload: &str) -> Result<String, String> {
         "Content-Type": "application/json",
         "Accept": "application/json",
         "User-Agent": "IronClaw-Serper-Tool/0.1"
-    }).to_string();
+    })
+    .to_string();
 
-    let resp = near::agent::host::http_request(
-        "POST",
-        url,
-        &headers,
-        Some(payload.as_bytes()),
-        None,
-    )
-    .map_err(|e| format!("HTTP request failed: {e}"))?;
+    let resp =
+        near::agent::host::http_request("POST", url, &headers, Some(payload.as_bytes()), None)
+            .map_err(|e| format!("HTTP request failed: {e}"))?;
 
     if !(200..300).contains(&resp.status) {
         let err_msg = String::from_utf8_lossy(&resp.body);
@@ -322,7 +318,8 @@ mod tests {
             obj.remove("action");
         }
         let payload = serde_json::to_string(&payload_val).unwrap();
-        let expected: Value = serde_json::from_str(r#"{"q":"rust test","gl":"us","hl":"en","num":10}"#).unwrap();
+        let expected: Value =
+            serde_json::from_str(r#"{"q":"rust test","gl":"us","hl":"en","num":10}"#).unwrap();
         let actual: Value = serde_json::from_str(&payload).unwrap();
         assert_eq!(expected, actual);
     }

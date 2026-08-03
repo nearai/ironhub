@@ -167,8 +167,7 @@ fn execute_inner(params: &str) -> Result<String, String> {
     // Pre-flight: verify capabilities key is declared.
     if !near::agent::host::secret_exists(SECRET_NAME) {
         return Err(
-            "CoinGecko API key not configured in capabilities. Run setup for the tool."
-                .to_string(),
+            "CoinGecko API key not configured in capabilities. Run setup for the tool.".to_string(),
         );
     }
 
@@ -305,6 +304,7 @@ struct CoinMarketEntry {
     price_change_percentage_24h: Option<f64>,
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_coin_markets(
     vs_currency: String,
     ids: Option<String>,
@@ -447,6 +447,7 @@ struct MarketDataSnapshot {
     max_supply: Option<f64>,
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_coin_details(
     id: String,
     localization: bool,
@@ -471,8 +472,8 @@ fn run_coin_details(
     ];
     let path = format!("/coins/{id_clean}");
     let resp = get_json(pro, &path, &query)?;
-    let details: CoinDetailsResponse = serde_json::from_value(resp)
-        .map_err(|e| format!("Failed to parse coin details: {e}"))?;
+    let details: CoinDetailsResponse =
+        serde_json::from_value(resp).map_err(|e| format!("Failed to parse coin details: {e}"))?;
     serialize(&details)
 }
 
@@ -529,14 +530,11 @@ fn run_coin_ohlc(
     if id_clean.is_empty() {
         return Err("coin 'id' must not be empty".to_string());
     }
-    let query = vec![
-        ("vs_currency", Some(vs_currency)),
-        ("days", Some(days)),
-    ];
+    let query = vec![("vs_currency", Some(vs_currency)), ("days", Some(days))];
     let path = format!("/coins/{id_clean}/ohlc");
     let resp = get_json(pro, &path, &query)?;
-    let raw: Vec<Vec<f64>> = serde_json::from_value(resp)
-        .map_err(|e| format!("Failed to parse OHLC response: {e}"))?;
+    let raw: Vec<Vec<f64>> =
+        serde_json::from_value(resp).map_err(|e| format!("Failed to parse OHLC response: {e}"))?;
 
     let downsampled = downsample(&raw, MAX_POINTS);
     serialize(&downsampled)
@@ -695,7 +693,11 @@ fn run_coins_list(limit: Option<u32>, pro: bool) -> Result<String, String> {
 
 // ==================== HTTP & Utility Helpers ====================
 
-fn get_json(pro: bool, path: &str, query_params: &[(&str, Option<String>)]) -> Result<Value, String> {
+fn get_json(
+    pro: bool,
+    path: &str,
+    query_params: &[(&str, Option<String>)],
+) -> Result<Value, String> {
     let base = if pro {
         "https://pro-api.coingecko.com/api/v3"
     } else {
@@ -705,7 +707,7 @@ fn get_json(pro: bool, path: &str, query_params: &[(&str, Option<String>)]) -> R
     let mut query_parts = Vec::new();
     for (k, v) in query_params {
         if let Some(val) = v {
-            query_parts.push(format!("{}={}", k, url_encode(&val)));
+            query_parts.push(format!("{}={}", k, url_encode(val)));
         }
     }
 
@@ -791,7 +793,7 @@ fn url_encode(input: &str) -> String {
                 encoded.push('+');
             }
             _ => {
-                encoded.push_str(&format!("%{:02X}", byte));
+                encoded.push_str(&format!("%{byte:02X}"));
             }
         }
     }
@@ -919,7 +921,7 @@ const STATIC_TOP_100: &[(&str, &str, &str)] = &[
     ("livepeer", "lpt", "Livepeer"),
     ("threshold-network-token", "t", "Threshold"),
     ("singularitynet", "agix", "SingularityNET"),
-    ("ocean-protocol", "ocean", "Ocean Protocol")
+    ("ocean-protocol", "ocean", "Ocean Protocol"),
 ];
 
 // ==================== JSON Schema ====================
@@ -1075,7 +1077,7 @@ mod tests {
         {
             assert_eq!(ids, "bitcoin");
             assert_eq!(vs_currencies, "usd");
-            assert_eq!(include_market_cap.unwrap(), true);
+            assert!(include_market_cap.unwrap());
         } else {
             panic!("wrong variant");
         }

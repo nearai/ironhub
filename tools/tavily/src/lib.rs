@@ -248,7 +248,9 @@ fn execute_inner(params: &str) -> Result<String, String> {
                 _ => return Err(format!("Invalid platform '{p_str}'. Must be one of: tiktok, facebook, instagram, reddit, linkedin, x, combined.")),
             };
 
-            let results_limit = max_results.unwrap_or(DEFAULT_SEARCH_RESULTS).clamp(1, MAX_SEARCH_RESULTS);
+            let results_limit = max_results
+                .unwrap_or(DEFAULT_SEARCH_RESULTS)
+                .clamp(1, MAX_SEARCH_RESULTS);
 
             let mut body = json!({
                 "query": query,
@@ -265,7 +267,11 @@ fn execute_inner(params: &str) -> Result<String, String> {
                     "day" | "week" | "month" | "year" => {
                         body["time_range"] = json!(tr);
                     }
-                    _ => return Err(format!("Invalid time_range '{tr}'. Must be one of: day, week, month, year.")),
+                    _ => {
+                        return Err(format!(
+                            "Invalid time_range '{tr}'. Must be one of: day, week, month, year."
+                        ))
+                    }
                 }
             }
 
@@ -281,8 +287,10 @@ fn execute_inner(params: &str) -> Result<String, String> {
             let mut search_resp = post_json("/search", &body)?;
 
             if include_raw_content.unwrap_or(false) {
-                if let Some(results) = search_resp.get_mut("results").and_then(Value::as_array_mut) {
-                    let urls: Vec<String> = results.iter()
+                if let Some(results) = search_resp.get_mut("results").and_then(Value::as_array_mut)
+                {
+                    let urls: Vec<String> = results
+                        .iter()
                         .filter_map(|r| r.get("url").and_then(Value::as_str).map(|s| s.to_string()))
                         .collect();
 
@@ -294,16 +302,23 @@ fn execute_inner(params: &str) -> Result<String, String> {
                         });
                         near::agent::host::log(
                             near::agent::host::LogLevel::Debug,
-                            &format!("tavily social_media_search extract phase: {} urls", urls.len()),
+                            &format!(
+                                "tavily social_media_search extract phase: {} urls",
+                                urls.len()
+                            ),
                         );
                         if let Ok(extract_resp) = post_json("/extract", &extract_body) {
-                            if let Some(extract_results) = extract_resp.get("results").and_then(Value::as_array) {
+                            if let Some(extract_results) =
+                                extract_resp.get("results").and_then(Value::as_array)
+                            {
                                 use std::collections::HashMap;
                                 let mut extract_map = HashMap::new();
                                 for r in extract_results {
                                     if let Some(url) = r.get("url").and_then(Value::as_str) {
-                                        let raw_content = r.get("raw_content").cloned().unwrap_or(Value::Null);
-                                        let images = r.get("images").cloned().unwrap_or(Value::Null);
+                                        let raw_content =
+                                            r.get("raw_content").cloned().unwrap_or(Value::Null);
+                                        let images =
+                                            r.get("images").cloned().unwrap_or(Value::Null);
                                         extract_map.insert(url.to_string(), (raw_content, images));
                                     }
                                 }
@@ -311,7 +326,12 @@ fn execute_inner(params: &str) -> Result<String, String> {
                                     if let Some(url) = r.get("url").and_then(Value::as_str) {
                                         if let Some((raw_content, images)) = extract_map.get(url) {
                                             r["raw_content"] = raw_content.clone();
-                                            if !images.is_null() && !images.as_array().map(|a| a.is_empty()).unwrap_or(true) {
+                                            if !images.is_null()
+                                                && !images
+                                                    .as_array()
+                                                    .map(|a| a.is_empty())
+                                                    .unwrap_or(true)
+                                            {
                                                 r["images"] = images.clone();
                                             }
                                         }
@@ -377,7 +397,13 @@ fn execute_inner(params: &str) -> Result<String, String> {
             for u in &urls {
                 validate_url(u)?;
             }
-            let body = extract_body(&urls, query.as_deref(), chunks_per_source, extract_depth, include_images);
+            let body = extract_body(
+                &urls,
+                query.as_deref(),
+                chunks_per_source,
+                extract_depth,
+                include_images,
+            );
             near::agent::host::log(
                 near::agent::host::LogLevel::Debug,
                 &format!("tavily extract: {} urls", urls.len()),
@@ -545,7 +571,11 @@ fn map_body(
 // ==================== Response shapers ====================
 
 fn shape_search(query: &str, resp: &Value) -> Result<String, String> {
-    let results = resp.get("results").and_then(Value::as_array).cloned().unwrap_or_default();
+    let results = resp
+        .get("results")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
     let compact: Vec<Value> = results.iter().map(compact_search_result).collect();
 
     let mut out = json!({
@@ -594,7 +624,11 @@ fn compact_search_result(r: &Value) -> Value {
 }
 
 fn shape_extract(resp: &Value) -> Result<String, String> {
-    let results = resp.get("results").and_then(Value::as_array).cloned().unwrap_or_default();
+    let results = resp
+        .get("results")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
     let compact: Vec<Value> = results
         .iter()
         .map(|r| {
@@ -606,7 +640,11 @@ fn shape_extract(resp: &Value) -> Result<String, String> {
         })
         .collect();
 
-    let failed = resp.get("failed_results").and_then(Value::as_array).cloned().unwrap_or_default();
+    let failed = resp
+        .get("failed_results")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
     let failed_compact: Vec<Value> = failed
         .iter()
         .map(|r| json!({ "url": r.get("url"), "error": r.get("error") }))
@@ -622,7 +660,11 @@ fn shape_extract(resp: &Value) -> Result<String, String> {
 }
 
 fn shape_crawl(url: &str, resp: &Value) -> Result<String, String> {
-    let results = resp.get("results").and_then(Value::as_array).cloned().unwrap_or_default();
+    let results = resp
+        .get("results")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
     let compact: Vec<Value> = results
         .iter()
         .map(|r| {
@@ -981,7 +1023,8 @@ mod tests {
     #[test]
     fn parse_social_media_search_minimal() {
         let a: Action =
-            serde_json::from_str(r#"{"action":"social_media_search","query":"rust lang"}"#).unwrap();
+            serde_json::from_str(r#"{"action":"social_media_search","query":"rust lang"}"#)
+                .unwrap();
         assert!(matches!(a, Action::SocialMediaSearch { query, .. } if query == "rust lang"));
     }
 
@@ -1017,8 +1060,7 @@ mod tests {
 
     #[test]
     fn parse_search_minimal() {
-        let a: Action =
-            serde_json::from_str(r#"{"action":"search","query":"rust lang"}"#).unwrap();
+        let a: Action = serde_json::from_str(r#"{"action":"search","query":"rust lang"}"#).unwrap();
         assert!(matches!(a, Action::Search { query, .. } if query == "rust lang"));
     }
 
@@ -1050,10 +1092,8 @@ mod tests {
 
     #[test]
     fn parse_extract_minimal() {
-        let a: Action = serde_json::from_str(
-            r#"{"action":"extract","urls":["https://example.com"]}"#,
-        )
-        .unwrap();
+        let a: Action =
+            serde_json::from_str(r#"{"action":"extract","urls":["https://example.com"]}"#).unwrap();
         assert!(matches!(a, Action::Extract { urls, .. } if urls.len() == 1));
     }
 
@@ -1085,7 +1125,18 @@ mod tests {
 
     #[test]
     fn search_body_defaults() {
-        let b = search_body("q", SearchParams { search_depth: None, max_results: None, include_answer: None, include_raw_content: None, include_images: None, topic: None, auto_parameters: None });
+        let b = search_body(
+            "q",
+            SearchParams {
+                search_depth: None,
+                max_results: None,
+                include_answer: None,
+                include_raw_content: None,
+                include_images: None,
+                topic: None,
+                auto_parameters: None,
+            },
+        );
         assert_eq!(b["query"], "q");
         assert_eq!(b["search_depth"], "advanced");
         assert_eq!(b["max_results"], DEFAULT_SEARCH_RESULTS);
@@ -1094,15 +1145,48 @@ mod tests {
 
     #[test]
     fn search_body_clamps_results() {
-        let b = search_body("q", SearchParams { max_results: Some(9999), search_depth: None, include_answer: None, include_raw_content: None, include_images: None, topic: None, auto_parameters: None });
+        let b = search_body(
+            "q",
+            SearchParams {
+                max_results: Some(9999),
+                search_depth: None,
+                include_answer: None,
+                include_raw_content: None,
+                include_images: None,
+                topic: None,
+                auto_parameters: None,
+            },
+        );
         assert_eq!(b["max_results"], MAX_SEARCH_RESULTS);
-        let b2 = search_body("q", SearchParams { max_results: Some(0), search_depth: None, include_answer: None, include_raw_content: None, include_images: None, topic: None, auto_parameters: None });
+        let b2 = search_body(
+            "q",
+            SearchParams {
+                max_results: Some(0),
+                search_depth: None,
+                include_answer: None,
+                include_raw_content: None,
+                include_images: None,
+                topic: None,
+                auto_parameters: None,
+            },
+        );
         assert_eq!(b2["max_results"], 1u64);
     }
 
     #[test]
     fn search_body_invalid_depth_defaults_to_advanced() {
-        let b = search_body("q", SearchParams { search_depth: Some("ultra".into()), max_results: None, include_answer: None, include_raw_content: None, include_images: None, topic: None, auto_parameters: None });
+        let b = search_body(
+            "q",
+            SearchParams {
+                search_depth: Some("ultra".into()),
+                max_results: None,
+                include_answer: None,
+                include_raw_content: None,
+                include_images: None,
+                topic: None,
+                auto_parameters: None,
+            },
+        );
         assert_eq!(b["search_depth"], "advanced");
     }
 
@@ -1208,7 +1292,8 @@ mod tests {
                 { "url": "https://x.com/page2", "raw_content": "body2" }
             ]
         });
-        let out: Value = serde_json::from_str(&shape_crawl("https://x.com", &resp).unwrap()).unwrap();
+        let out: Value =
+            serde_json::from_str(&shape_crawl("https://x.com", &resp).unwrap()).unwrap();
         assert_eq!(out["page_count"], 2);
         assert_eq!(out["base_url"], "https://x.com");
         assert_eq!(out["results"][1]["url"], "https://x.com/page2");
@@ -1228,7 +1313,10 @@ mod tests {
 
     #[test]
     fn validate_url_accepts_valid() {
-        assert_eq!(validate_url("https://example.com"), Ok("https://example.com"));
+        assert_eq!(
+            validate_url("https://example.com"),
+            Ok("https://example.com")
+        );
         assert_eq!(validate_url("  http://x.io/p  "), Ok("http://x.io/p"));
     }
 

@@ -1,0 +1,317 @@
+{
+  "type": "object",
+  "required": [
+    "action"
+  ],
+  "oneOf": [
+    {
+      "properties": {
+        "action": {
+          "const": "ping"
+        },
+        "pro": {
+          "type": "boolean",
+          "description": "Set to true to use the Pro API domain (pro-api.coingecko.com). Default is false."
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "simple_price"
+        },
+        "ids": {
+          "type": "string",
+          "description": "Comma-separated list of coin IDs (e.g. 'bitcoin,ethereum')."
+        },
+        "vs_currencies": {
+          "type": "string",
+          "description": "Comma-separated list of target currencies (e.g. 'usd,eur')."
+        },
+        "include_market_cap": {
+          "type": "boolean",
+          "description": "Include market cap. Default is false."
+        },
+        "include_24hr_vol": {
+          "type": "boolean",
+          "description": "Include 24hr volume. Default is false."
+        },
+        "include_24hr_change": {
+          "type": "boolean",
+          "description": "Include 24hr price change percentage. Default is false."
+        },
+        "include_last_updated_at": {
+          "type": "boolean",
+          "description": "Include last updated timestamp. Default is false."
+        },
+        "pro": {
+          "type": "boolean",
+          "description": "Set to true to use the Pro API domain. Default is false."
+        }
+      },
+      "required": [
+        "action",
+        "ids",
+        "vs_currencies"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "coin_markets"
+        },
+        "vs_currency": {
+          "type": "string",
+          "description": "Target currency (e.g. 'usd')."
+        },
+        "ids": {
+          "type": "string",
+          "description": "Comma-separated list of coin IDs to filter. Optional."
+        },
+        "category": {
+          "type": "string",
+          "description": "Filter by coin category ID. Optional."
+        },
+        "order": {
+          "type": "string",
+          "enum": [
+            "market_cap_desc",
+            "gecko_desc",
+            "gecko_asc",
+            "market_cap_asc",
+            "volume_asc",
+            "volume_desc",
+            "id_asc",
+            "id_desc"
+          ],
+          "description": "Sort order. Default is 'market_cap_desc'."
+        },
+        "per_page": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 250,
+          "description": "Total results per page (1-250). Default is 100."
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Page number. Default is 1."
+        },
+        "sparkline": {
+          "type": "boolean",
+          "description": "Include sparkline 7-day data. Default is false."
+        },
+        "price_change_percentage": {
+          "type": "string",
+          "description": "Comma-separated timeframes (e.g. '1h,24h,7d'). Optional."
+        },
+        "pro": {
+          "type": "boolean",
+          "description": "Set to true to use the Pro API domain. Default is false."
+        }
+      },
+      "required": [
+        "action",
+        "vs_currency"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "coin_details"
+        },
+        "id": {
+          "type": "string",
+          "description": "The coin ID (e.g. 'bitcoin')."
+        },
+        "localization": {
+          "type": "boolean",
+          "description": "Include localized languages. Default is false."
+        },
+        "tickers": {
+          "type": "boolean",
+          "description": "Include exchange tickers. Default is false."
+        },
+        "market_data": {
+          "type": "boolean",
+          "description": "Include market data. Default is true."
+        },
+        "community_data": {
+          "type": "boolean",
+          "description": "Include community data. Default is false."
+        },
+        "developer_data": {
+          "type": "boolean",
+          "description": "Include developer data. Default is false."
+        },
+        "sparkline": {
+          "type": "boolean",
+          "description": "Include sparkline data. Default is false."
+        },
+        "pro": {
+          "type": "boolean",
+          "description": "Set to true to use the Pro API domain. Default is false."
+        }
+      },
+      "required": [
+        "action",
+        "id"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "coin_market_chart"
+        },
+        "id": {
+          "type": "string",
+          "description": "The coin ID (e.g. 'bitcoin')."
+        },
+        "vs_currency": {
+          "type": "string",
+          "description": "Target currency (e.g. 'usd')."
+        },
+        "days": {
+          "type": "string",
+          "description": "Number of days of historical data (e.g. '1', '7', '30', 'max')."
+        },
+        "interval": {
+          "type": "string",
+          "enum": [
+            "daily"
+          ],
+          "description": "Data interval (e.g. 'daily'). Optional."
+        },
+        "pro": {
+          "type": "boolean",
+          "description": "Set to true to use the Pro API domain. Default is false."
+        }
+      },
+      "required": [
+        "action",
+        "id",
+        "vs_currency",
+        "days"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "coin_ohlc"
+        },
+        "id": {
+          "type": "string",
+          "description": "The coin ID (e.g. 'bitcoin')."
+        },
+        "vs_currency": {
+          "type": "string",
+          "description": "Target currency (e.g. 'usd')."
+        },
+        "days": {
+          "type": "string",
+          "enum": [
+            "1",
+            "7",
+            "14",
+            "30",
+            "90",
+            "180",
+            "365",
+            "max"
+          ],
+          "description": "Number of days of data."
+        },
+        "pro": {
+          "type": "boolean",
+          "description": "Set to true to use the Pro API domain. Default is false."
+        }
+      },
+      "required": [
+        "action",
+        "id",
+        "vs_currency",
+        "days"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "trending_coins"
+        },
+        "pro": {
+          "type": "boolean",
+          "description": "Set to true to use the Pro API domain (pro-api.coingecko.com). Default is false."
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "list_categories"
+        },
+        "order": {
+          "type": "string",
+          "enum": [
+            "market_cap_desc",
+            "market_cap_asc",
+            "name_desc",
+            "name_asc"
+          ],
+          "description": "Sort order. Default is 'market_cap_desc'."
+        },
+        "pro": {
+          "type": "boolean",
+          "description": "Set to true to use the Pro API domain. Default is false."
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "search"
+        },
+        "query": {
+          "type": "string",
+          "description": "Search query keyword."
+        },
+        "pro": {
+          "type": "boolean",
+          "description": "Set to true to use the Pro API domain. Default is false."
+        }
+      },
+      "required": [
+        "action",
+        "query"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "coins_list"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "Limit the number of top coins fetched from the markets API (e.g., 100, 500, 1000). If omitted, returns the static top 100 coins."
+        },
+        "pro": {
+          "type": "boolean",
+          "description": "Set to true to use the Pro API domain. Default is false."
+        }
+      },
+      "required": [
+        "action"
+      ]
+    }
+  ]
+}

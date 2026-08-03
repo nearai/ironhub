@@ -1,0 +1,126 @@
+{
+  "type": "object",
+  "required": [
+    "action"
+  ],
+  "oneOf": [
+    {
+      "properties": {
+        "action": {
+          "const": "read_url"
+        },
+        "url": {
+          "type": "string",
+          "description": "The complete HTTP/HTTPS URL of the webpage or PDF file to read and convert."
+        },
+        "with_all_links": {
+          "type": "boolean",
+          "description": "Extract and return all hyperlinks found on the page as structured data."
+        },
+        "with_all_images": {
+          "type": "boolean",
+          "description": "Extract and return all images found on the page as structured data."
+        }
+      },
+      "required": [
+        "action",
+        "url"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "capture_screenshot_url"
+        },
+        "url": {
+          "type": "string",
+          "description": "The complete HTTP/HTTPS URL of the webpage to capture."
+        },
+        "first_screen_only": {
+          "type": "boolean",
+          "description": "Set to true for a single screen capture (faster), false for full page capture including content below the fold."
+        }
+      },
+      "required": [
+        "action",
+        "url"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "search_web"
+        },
+        "query": {
+          "type": "string",
+          "description": "The search query to run."
+        },
+        "num": {
+          "type": "integer",
+          "description": "The number of search results to return (default 30)."
+        }
+      },
+      "required": [
+        "action",
+        "query"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "search_arxiv"
+        },
+        "query": {
+          "type": "string",
+          "description": "Search query for academic papers and preprints on arXiv."
+        },
+        "num": {
+          "type": "integer",
+          "description": "The number of search results to return (default 30)."
+        }
+      },
+      "required": [
+        "action",
+        "query"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "search_ssrn"
+        },
+        "query": {
+          "type": "string",
+          "description": "Search query for academic papers on SSRN (Social Science Research Network)."
+        },
+        "num": {
+          "type": "integer",
+          "description": "The number of search results to return (default 30)."
+        }
+      },
+      "required": [
+        "action",
+        "query"
+      ]
+    },
+    {
+      "properties": {
+        "action": {
+          "const": "search_images"
+        },
+        "query": {
+          "type": "string",
+          "description": "Search query to find images across the web."
+        },
+        "num": {
+          "type": "integer",
+          "description": "The number of search results to return (default 30)."
+        }
+      },
+      "required": [
+        "action",
+        "query"
+      ]
+    }
+  ]
+}
