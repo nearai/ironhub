@@ -79,6 +79,39 @@ test("a schema-only change moves the tool digest", () => {
   )
 })
 
+test("renaming a schema moves the tool digest even when its bytes are identical", () => {
+  const bytes = artifact("1".repeat(64))
+  const before = toVersionIndex(
+    manifest({ tools: [tool({ schemas: { "schemas/attio/v1.json": bytes } })] })
+  ).entries
+  const after = toVersionIndex(
+    manifest({ tools: [tool({ schemas: { "schemas/attio/v2.json": bytes } })] })
+  ).entries
+
+  assert.notEqual(
+    digestOf(before, "tool", "attio"),
+    digestOf(after, "tool", "attio")
+  )
+})
+
+test("renaming a skill file moves the skill digest", () => {
+  const before = toVersionIndex(
+    manifest({
+      skills: [skill({ files: [{ path: "scripts/a.py", ...artifact("1".repeat(64)) }] })],
+    })
+  ).entries
+  const after = toVersionIndex(
+    manifest({
+      skills: [skill({ files: [{ path: "scripts/b.py", ...artifact("1".repeat(64)) }] })],
+    })
+  ).entries
+
+  assert.notEqual(
+    digestOf(before, "skill", "chief-of-staff"),
+    digestOf(after, "skill", "chief-of-staff")
+  )
+})
+
 test("tool schema ordering does not change the digest", () => {
   const first = {
     "schemas/attio/a.json": artifact("1".repeat(64)),
