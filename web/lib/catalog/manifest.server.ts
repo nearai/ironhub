@@ -10,6 +10,12 @@ import type {
   Provenance,
 } from "@/lib/catalog/manifest-types"
 import {
+  isPublishableArtifactPath,
+  officialToolEntry,
+  type GithubArtifact,
+  type GithubTool,
+} from "@/lib/catalog/official-tools"
+import {
   fetchIliadPublicSkill,
   fetchIliadPublicSkillsList,
 } from "@/lib/iliad/public-skills.server"
@@ -46,21 +52,14 @@ export class CatalogManifestError extends Error {
   }
 }
 
-type GithubArtifact = { url: string; size_bytes: number; sha256: string }
-type GithubTool = {
-  name: string
-  crate_name?: string | null
-  version: string
-  description?: string | null
-  wasm: GithubArtifact
-  capabilities: GithubArtifact
-}
+type GithubSkillFile = GithubArtifact & { path: string }
 type GithubSkill = {
   name: string
   trunk?: string | null
   version: string
   description?: string | null
   skill_md: GithubArtifact
+  files?: GithubSkillFile[] | null
 }
 type GithubManifest = {
   release_tag?: string
@@ -122,15 +121,9 @@ async function fetchOfficialManifest(): Promise<{
     )
   }
   const manifest = (await response.json()) as GithubManifest
-  const tools = (manifest.tools ?? []).map((tool) => ({
-    name: tool.name,
-    crate_name: tool.crate_name ?? tool.name,
-    version: tool.version,
-    description: tool.description ?? "",
-    provenance: "official" as const,
-    wasm: rewriteGithubArtifact(tool.wasm),
-    capabilities: rewriteGithubArtifact(tool.capabilities),
-  }))
+  const tools = (manifest.tools ?? []).map((tool) =>
+    officialToolEntry(tool, (url) => hubArtifactUrl(["g", url]))
+  )
   const skills = (manifest.skills ?? []).map((skill) => ({
     name: skill.name,
     trunk: skill.trunk ?? "",
@@ -138,6 +131,24 @@ async function fetchOfficialManifest(): Promise<{
     description: skill.description ?? "",
     provenance: "official" as const,
     skill_md: rewriteGithubArtifact(skill.skill_md),
+    ...(skill.files?.length
+      ? {
+          files: skill.files
+            .filter((file) => {
+              if (isPublishableArtifactPath(file.path)) {
+                return true
+              }
+              console.error(
+                `Skipping skill file with an unpublishable path: ${skill.name}/${file.path}`
+              )
+              return false
+            })
+            .map((file) => ({
+              path: file.path,
+              ...rewriteGithubArtifact(file),
+            })),
+        }
+      : {}),
   }))
   return { releaseTag: manifest.release_tag ?? "live", tools, skills }
 }

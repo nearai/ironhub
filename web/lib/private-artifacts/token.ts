@@ -13,6 +13,11 @@ function loadSecret(): string {
   if (!secret) {
     throw new Error("IRONHUB_PRIVATE_ARTIFACT_TOKEN_SECRET is not set")
   }
+  if (secret.length < 32) {
+    throw new Error(
+      "IRONHUB_PRIVATE_ARTIFACT_TOKEN_SECRET must be at least 32 characters"
+    )
+  }
   return secret
 }
 

@@ -4,6 +4,7 @@ Use cases, WASM tools, and SKILL.md skills for the IronClaw agent runtime.
 
 ## Currently shipped
 
+- `tools/attio`. Attio CRM API v2 read and write integration covering records (query, get, create, update, assert, delete) for any object, object and attribute schemas, lists and list entries, and notes and tasks, plus a raw escape-hatch action for arbitrary v2 endpoints bounded by the same host allowlist. Workspace API key via Bearer.
 - `tools/clickup`. ClickUp v2 REST integration covering workspaces, spaces, folders, lists, tasks (CRUD plus tagging), and task comments. OAuth via the ClickUp developer console.
 - `tools/evm-rpc`. EVM JSON-RPC integration covering account balances, contract code and storage, view function calls, blocks, transactions, receipts, and event logs. Built-in chain shortcuts for Ethereum, Polygon, Arbitrum, Optimism, Base, BNB Chain, and Avalanche; accepts custom RPC URLs. No credentials required.
 - `tools/gitlab`. GitLab v4 REST integration covering projects, issues, merge requests, branches, files, search, and pipelines. Personal access token via Bearer.

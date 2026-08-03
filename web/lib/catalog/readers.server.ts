@@ -65,7 +65,10 @@ export async function readTools(root: string) {
           ? `OAuth 2.0 user-context${slug === "microsoft-365" ? " with PKCE" : ""}`
           : "No auth"
 
-        const description = readmeMetadata.description?.trim() || null
+        const description =
+          readmeMetadata.description?.trim() ||
+          manifest.description?.trim() ||
+          null
 
         const tags = inferToolTags(slug, manifest, readme)
 

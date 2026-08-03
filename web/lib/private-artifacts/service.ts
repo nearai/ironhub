@@ -41,6 +41,10 @@ export async function createPrivateArtifact(
   input: CreatePrivateArtifactInput
 ) {
   assertValidArtifactName(input.name)
+  assertValidArtifactVersion(input.version)
+  assertMaxLength(input.title, "title", 200)
+  if (input.description) assertMaxLength(input.description, "description", 4000)
+  if (input.sourceUrl) assertHttpUrl(input.sourceUrl, "sourceUrl")
   const type = assertEnum(input.type, ARTIFACT_TYPES, "type")
   const visibility = input.visibility
     ? assertEnum(input.visibility, VISIBILITIES, "visibility")
@@ -81,6 +85,35 @@ function assertValidArtifactName(name: string) {
       "name must start with a lowercase letter or digit and contain only lowercase letters, digits, '-', and '_'",
       { status: 400 }
     )
+  }
+}
+
+function assertValidArtifactVersion(version: string) {
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9._+-]{0,63}$/.test(version)) {
+    throw new Response(
+      "version must be 1-64 characters of letters, digits, '.', '_', '+', or '-'",
+      { status: 400 }
+    )
+  }
+}
+
+function assertMaxLength(value: string, field: string, max: number) {
+  if (value.length > max) {
+    throw new Response(`${field} must be at most ${max} characters`, { status: 400 })
+  }
+}
+
+function assertHttpUrl(value: string, field: string) {
+  let parsed: URL
+
+  try {
+    parsed = new URL(value)
+  } catch {
+    throw new Response(`${field} must be a valid URL`, { status: 400 })
+  }
+
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Response(`${field} must use http or https`, { status: 400 })
   }
 }
 

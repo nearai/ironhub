@@ -2,6 +2,7 @@
   "version": "0.1.0",
   "wit_version": "0.3.0",
   "description": "HubSpot CRM v3 read and write access. Lists, searches, fetches, creates, updates, and archives contacts, companies, deals, and tickets. Lists contact lists and members, CRM owners, and per-object properties. Exposes a raw hubspot_request action for any CRM v3 endpoint bounded by the same host allowlist. Authenticated with a HubSpot access token (Private App or Service Key) presented as a Bearer header against api.hubapi.com.",
+  "effects": ["external_write"],
   "http": {
     "allowlist": [
       {

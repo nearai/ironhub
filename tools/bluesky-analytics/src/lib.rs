@@ -642,13 +642,27 @@ mod tests {
     }
 
     #[test]
+    fn published_input_schema_matches_guest_export() {
+        let exported: Value = serde_json::from_str(SCHEMA).expect("guest schema");
+        let published: Value = serde_json::from_str(include_str!(
+            "../schemas/bluesky-analytics/invoke.input.v1.json"
+        ))
+        .expect("published schema");
+        assert_eq!(published, exported);
+    }
+
+    #[test]
     fn action_deserializes_each_variant() {
         assert!(matches!(
-            serde_json::from_str::<Action>(r#"{"action":"get_profile","actor":"alice.bsky.social"}"#),
+            serde_json::from_str::<Action>(
+                r#"{"action":"get_profile","actor":"alice.bsky.social"}"#
+            ),
             Ok(Action::GetProfile { .. })
         ));
         assert!(matches!(
-            serde_json::from_str::<Action>(r#"{"action":"get_author_feed","actor":"alice.bsky.social"}"#),
+            serde_json::from_str::<Action>(
+                r#"{"action":"get_author_feed","actor":"alice.bsky.social"}"#
+            ),
             Ok(Action::GetAuthorFeed { .. })
         ));
         assert!(matches!(
@@ -656,11 +670,15 @@ mod tests {
             Ok(Action::GetPostThread { .. })
         ));
         assert!(matches!(
-            serde_json::from_str::<Action>(r#"{"action":"get_followers","actor":"alice.bsky.social"}"#),
+            serde_json::from_str::<Action>(
+                r#"{"action":"get_followers","actor":"alice.bsky.social"}"#
+            ),
             Ok(Action::GetFollowers { .. })
         ));
         assert!(matches!(
-            serde_json::from_str::<Action>(r#"{"action":"get_follows","actor":"alice.bsky.social"}"#),
+            serde_json::from_str::<Action>(
+                r#"{"action":"get_follows","actor":"alice.bsky.social"}"#
+            ),
             Ok(Action::GetFollows { .. })
         ));
         assert!(matches!(
@@ -691,7 +709,12 @@ mod tests {
             .as_array()
             .unwrap()
             .iter()
-            .map(|b| b["properties"]["action"]["const"].as_str().unwrap().to_string())
+            .map(|b| {
+                b["properties"]["action"]["const"]
+                    .as_str()
+                    .unwrap()
+                    .to_string()
+            })
             .collect();
         for expected in [
             "get_profile",
@@ -703,7 +726,10 @@ mod tests {
             "get_reposted_by",
             "search_actors",
         ] {
-            assert!(consts.contains(&expected.to_string()), "missing branch for {expected}");
+            assert!(
+                consts.contains(&expected.to_string()),
+                "missing branch for {expected}"
+            );
         }
     }
 }

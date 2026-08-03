@@ -1,0 +1,408 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AttioAction",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_records"
+        },
+        "filter": {
+          "default": null
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 50,
+          "minimum": 0
+        },
+        "object": {
+          "type": "string"
+        },
+        "offset": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 0,
+          "minimum": 0
+        },
+        "sorts": {
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "object"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_record"
+        },
+        "object": {
+          "type": "string"
+        },
+        "record_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "object",
+        "record_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_record"
+        },
+        "object": {
+          "type": "string"
+        },
+        "values": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "action",
+        "object",
+        "values"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "update_record"
+        },
+        "object": {
+          "type": "string"
+        },
+        "record_id": {
+          "type": "string"
+        },
+        "values": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "action",
+        "object",
+        "record_id",
+        "values"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "assert_record"
+        },
+        "matching_attribute": {
+          "type": "string"
+        },
+        "object": {
+          "type": "string"
+        },
+        "values": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "action",
+        "object",
+        "matching_attribute",
+        "values"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "delete_record"
+        },
+        "object": {
+          "type": "string"
+        },
+        "record_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "object",
+        "record_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_attributes"
+        },
+        "object": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "object"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_objects"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_lists"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "query_list_entries"
+        },
+        "filter": {
+          "default": null
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 50,
+          "minimum": 0
+        },
+        "list": {
+          "type": "string"
+        },
+        "offset": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 0,
+          "minimum": 0
+        },
+        "sorts": {
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "list"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_notes"
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 25,
+          "minimum": 0
+        },
+        "offset": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 0,
+          "minimum": 0
+        },
+        "parent_object": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "parent_record_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_note"
+        },
+        "content": {
+          "type": "string"
+        },
+        "format": {
+          "$ref": "#/$defs/NoteFormat"
+        },
+        "parent_object": {
+          "type": "string"
+        },
+        "parent_record_id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "parent_object",
+        "parent_record_id",
+        "title",
+        "content"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_tasks"
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 25,
+          "minimum": 0
+        },
+        "offset": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 0,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "create_task"
+        },
+        "assignees": {
+          "default": null
+        },
+        "content": {
+          "type": "string"
+        },
+        "deadline_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "is_completed": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
+        },
+        "linked_records": {
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "content"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "self"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "attio_request"
+        },
+        "body": {
+          "default": null
+        },
+        "method": {
+          "$ref": "#/$defs/HttpMethod"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "method",
+        "path"
+      ]
+    }
+  ],
+  "$defs": {
+    "HttpMethod": {
+      "type": "string",
+      "enum": [
+        "GET",
+        "POST",
+        "PATCH",
+        "PUT",
+        "DELETE"
+      ]
+    },
+    "NoteFormat": {
+      "type": "string",
+      "enum": [
+        "plaintext",
+        "markdown"
+      ]
+    }
+  }
+}

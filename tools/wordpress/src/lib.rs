@@ -316,23 +316,76 @@ fn execute_inner(params: &str) -> Result<String, String> {
         Command::ListPosts { list } => {
             let p = norm_prefix(list.api_prefix.clone())?;
             let q = list.query(true);
-            run(&list.site_url, &p, Method::Get, &format!("{p}wp/v2/posts"), &q, None)
+            run(
+                &list.site_url,
+                &p,
+                Method::Get,
+                &format!("{p}wp/v2/posts"),
+                &q,
+                None,
+            )
         }
-        Command::GetPost { site_url, id, api_prefix } => {
+        Command::GetPost {
+            site_url,
+            id,
+            api_prefix,
+        } => {
             let p = norm_prefix(api_prefix)?;
-            run(&site_url, &p, Method::Get, &format!("{p}wp/v2/posts/{id}"), &[], None)
+            run(
+                &site_url,
+                &p,
+                Method::Get,
+                &format!("{p}wp/v2/posts/{id}"),
+                &[],
+                None,
+            )
         }
-        Command::CreatePost { site_url, data, api_prefix } => {
+        Command::CreatePost {
+            site_url,
+            data,
+            api_prefix,
+        } => {
             let p = norm_prefix(api_prefix)?;
-            run(&site_url, &p, Method::Post, &format!("{p}wp/v2/posts"), &[], Some(Value::Object(data)))
+            run(
+                &site_url,
+                &p,
+                Method::Post,
+                &format!("{p}wp/v2/posts"),
+                &[],
+                Some(Value::Object(data)),
+            )
         }
-        Command::UpdatePost { site_url, id, data, api_prefix } => {
+        Command::UpdatePost {
+            site_url,
+            id,
+            data,
+            api_prefix,
+        } => {
             let p = norm_prefix(api_prefix)?;
-            run(&site_url, &p, Method::Put, &format!("{p}wp/v2/posts/{id}"), &[], Some(Value::Object(data)))
+            run(
+                &site_url,
+                &p,
+                Method::Put,
+                &format!("{p}wp/v2/posts/{id}"),
+                &[],
+                Some(Value::Object(data)),
+            )
         }
-        Command::DeletePost { site_url, id, force, api_prefix } => {
+        Command::DeletePost {
+            site_url,
+            id,
+            force,
+            api_prefix,
+        } => {
             let p = norm_prefix(api_prefix)?;
-            run(&site_url, &p, Method::Delete, &format!("{p}wp/v2/posts/{id}"), &force_query(force), None)
+            run(
+                &site_url,
+                &p,
+                Method::Delete,
+                &format!("{p}wp/v2/posts/{id}"),
+                &force_query(force),
+                None,
+            )
         }
 
         // ---- media (WordPress core) ----
@@ -397,17 +450,52 @@ fn execute_inner(params: &str) -> Result<String, String> {
         Command::ListMedia { list } => {
             let p = norm_prefix(list.api_prefix.clone())?;
             let q = list.query(false);
-            run(&list.site_url, &p, Method::Get, &format!("{p}wp/v2/media"), &q, None)
+            run(
+                &list.site_url,
+                &p,
+                Method::Get,
+                &format!("{p}wp/v2/media"),
+                &q,
+                None,
+            )
         }
-        Command::GetMedia { site_url, id, api_prefix } => {
+        Command::GetMedia {
+            site_url,
+            id,
+            api_prefix,
+        } => {
             let p = norm_prefix(api_prefix)?;
-            run(&site_url, &p, Method::Get, &format!("{p}wp/v2/media/{id}"), &[], None)
+            run(
+                &site_url,
+                &p,
+                Method::Get,
+                &format!("{p}wp/v2/media/{id}"),
+                &[],
+                None,
+            )
         }
-        Command::UpdateMedia { site_url, id, data, api_prefix } => {
+        Command::UpdateMedia {
+            site_url,
+            id,
+            data,
+            api_prefix,
+        } => {
             let p = norm_prefix(api_prefix)?;
-            run(&site_url, &p, Method::Put, &format!("{p}wp/v2/media/{id}"), &[], Some(Value::Object(data)))
+            run(
+                &site_url,
+                &p,
+                Method::Put,
+                &format!("{p}wp/v2/media/{id}"),
+                &[],
+                Some(Value::Object(data)),
+            )
         }
-        Command::DeleteMedia { site_url, id, force, api_prefix } => {
+        Command::DeleteMedia {
+            site_url,
+            id,
+            force,
+            api_prefix,
+        } => {
             let p = norm_prefix(api_prefix)?;
             run(
                 &site_url,
@@ -424,45 +512,135 @@ fn execute_inner(params: &str) -> Result<String, String> {
         Command::ListProducts { list } => {
             let p = norm_prefix(list.api_prefix.clone())?;
             let q = list.query(true);
-            run(&list.site_url, &p, Method::Get, &format!("{p}wc/v3/products"), &q, None)
+            run(
+                &list.site_url,
+                &p,
+                Method::Get,
+                &format!("{p}wc/v3/products"),
+                &q,
+                None,
+            )
         }
-        Command::GetProduct { site_url, id, api_prefix } => {
+        Command::GetProduct {
+            site_url,
+            id,
+            api_prefix,
+        } => {
             let p = norm_prefix(api_prefix)?;
-            run(&site_url, &p, Method::Get, &format!("{p}wc/v3/products/{id}"), &[], None)
+            run(
+                &site_url,
+                &p,
+                Method::Get,
+                &format!("{p}wc/v3/products/{id}"),
+                &[],
+                None,
+            )
         }
-        Command::CreateProduct { site_url, data, api_prefix } => {
+        Command::CreateProduct {
+            site_url,
+            data,
+            api_prefix,
+        } => {
             let p = norm_prefix(api_prefix)?;
-            run(&site_url, &p, Method::Post, &format!("{p}wc/v3/products"), &[], Some(Value::Object(data)))
+            run(
+                &site_url,
+                &p,
+                Method::Post,
+                &format!("{p}wc/v3/products"),
+                &[],
+                Some(Value::Object(data)),
+            )
         }
-        Command::UpdateProduct { site_url, id, data, api_prefix } => {
+        Command::UpdateProduct {
+            site_url,
+            id,
+            data,
+            api_prefix,
+        } => {
             let p = norm_prefix(api_prefix)?;
-            run(&site_url, &p, Method::Put, &format!("{p}wc/v3/products/{id}"), &[], Some(Value::Object(data)))
+            run(
+                &site_url,
+                &p,
+                Method::Put,
+                &format!("{p}wc/v3/products/{id}"),
+                &[],
+                Some(Value::Object(data)),
+            )
         }
-        Command::DeleteProduct { site_url, id, force, api_prefix } => {
+        Command::DeleteProduct {
+            site_url,
+            id,
+            force,
+            api_prefix,
+        } => {
             let p = norm_prefix(api_prefix)?;
-            run(&site_url, &p, Method::Delete, &format!("{p}wc/v3/products/{id}"), &force_query(force), None)
+            run(
+                &site_url,
+                &p,
+                Method::Delete,
+                &format!("{p}wc/v3/products/{id}"),
+                &force_query(force),
+                None,
+            )
         }
 
         // ---- orders (WooCommerce) ----
         Command::ListOrders { list } => {
             let p = norm_prefix(list.api_prefix.clone())?;
             let q = list.query(true);
-            run(&list.site_url, &p, Method::Get, &format!("{p}wc/v3/orders"), &q, None)
+            run(
+                &list.site_url,
+                &p,
+                Method::Get,
+                &format!("{p}wc/v3/orders"),
+                &q,
+                None,
+            )
         }
-        Command::GetOrder { site_url, id, api_prefix } => {
+        Command::GetOrder {
+            site_url,
+            id,
+            api_prefix,
+        } => {
             let p = norm_prefix(api_prefix)?;
-            run(&site_url, &p, Method::Get, &format!("{p}wc/v3/orders/{id}"), &[], None)
+            run(
+                &site_url,
+                &p,
+                Method::Get,
+                &format!("{p}wc/v3/orders/{id}"),
+                &[],
+                None,
+            )
         }
-        Command::UpdateOrder { site_url, id, data, api_prefix } => {
+        Command::UpdateOrder {
+            site_url,
+            id,
+            data,
+            api_prefix,
+        } => {
             let p = norm_prefix(api_prefix)?;
-            run(&site_url, &p, Method::Put, &format!("{p}wc/v3/orders/{id}"), &[], Some(Value::Object(data)))
+            run(
+                &site_url,
+                &p,
+                Method::Put,
+                &format!("{p}wc/v3/orders/{id}"),
+                &[],
+                Some(Value::Object(data)),
+            )
         }
 
         // ---- customers (WooCommerce) ----
         Command::ListCustomers { list } => {
             let p = norm_prefix(list.api_prefix.clone())?;
             let q = list.query(false);
-            run(&list.site_url, &p, Method::Get, &format!("{p}wc/v3/customers"), &q, None)
+            run(
+                &list.site_url,
+                &p,
+                Method::Get,
+                &format!("{p}wc/v3/customers"),
+                &q,
+                None,
+            )
         }
     }
 }
@@ -511,7 +689,10 @@ fn norm_prefix(prefix: Option<String>) -> Result<String, String> {
     if raw.is_empty() {
         return Ok("/wp-json/".to_string());
     }
-    if raw.contains("://") || raw.contains('?') || raw.contains('#') || raw.contains(char::is_whitespace)
+    if raw.contains("://")
+        || raw.contains('?')
+        || raw.contains('#')
+        || raw.contains(char::is_whitespace)
     {
         return Err(format!(
             "Invalid 'api_prefix' '{raw}': use a path like '/wp-json/' or '/api/' (no scheme/query)"
@@ -834,7 +1015,7 @@ fn decode_base64(input: &str) -> Result<Vec<u8>, String> {
     if cleaned.is_empty() {
         return Err("'content_base64' is empty".into());
     }
-    while cleaned.len() % 4 != 0 {
+    while !cleaned.len().is_multiple_of(4) {
         cleaned.push('=');
     }
     base64::engine::general_purpose::STANDARD
@@ -1127,10 +1308,7 @@ mod tests {
             site_base("https://Shop.Example.com/wp-json/x?y=1").unwrap(),
             "https://shop.example.com"
         );
-        assert_eq!(
-            site_base("http://a.b.co/path").unwrap(),
-            "https://a.b.co"
-        );
+        assert_eq!(site_base("http://a.b.co/path").unwrap(), "https://a.b.co");
     }
 
     #[test]
@@ -1155,11 +1333,20 @@ mod tests {
 
     #[test]
     fn route_secrets_by_prefix() {
-        assert_eq!(route_secrets("/wp-json/", "/wp-json/wc/v3/orders"), &[SECRET_WOO_KEY, SECRET_WOO_SECRET]);
-        assert_eq!(route_secrets("/wp-json/", "/wp-json/wp/v2/posts"), &[SECRET_WP]);
+        assert_eq!(
+            route_secrets("/wp-json/", "/wp-json/wc/v3/orders"),
+            &[SECRET_WOO_KEY, SECRET_WOO_SECRET]
+        );
+        assert_eq!(
+            route_secrets("/wp-json/", "/wp-json/wp/v2/posts"),
+            &[SECRET_WP]
+        );
         assert!(route_secrets("/wp-json/", "/wp-json/myplugin/v1/x").is_empty());
         // custom prefix routes the same way
-        assert_eq!(route_secrets("/api/", "/api/wc/v3/orders"), &[SECRET_WOO_KEY, SECRET_WOO_SECRET]);
+        assert_eq!(
+            route_secrets("/api/", "/api/wc/v3/orders"),
+            &[SECRET_WOO_KEY, SECRET_WOO_SECRET]
+        );
         assert_eq!(route_secrets("/api/", "/api/wp/v2/posts"), &[SECRET_WP]);
         // a default-prefix endpoint under a custom prefix is not matched
         assert!(route_secrets("/api/", "/wp-json/wp/v2/posts").is_empty());
@@ -1172,7 +1359,10 @@ mod tests {
         assert_eq!(norm_prefix(Some("/api/".into())).unwrap(), "/api/");
         assert_eq!(norm_prefix(Some("api".into())).unwrap(), "/api/");
         assert_eq!(norm_prefix(Some("wp-json".into())).unwrap(), "/wp-json/");
-        assert_eq!(norm_prefix(Some("/custom/rest/".into())).unwrap(), "/custom/rest/");
+        assert_eq!(
+            norm_prefix(Some("/custom/rest/".into())).unwrap(),
+            "/custom/rest/"
+        );
         assert!(norm_prefix(Some("/".into())).is_err());
         assert!(norm_prefix(Some("https://x/api/".into())).is_err());
         assert!(norm_prefix(Some("/a b/".into())).is_err());
@@ -1189,7 +1379,10 @@ mod tests {
     fn force_query_flag() {
         assert!(force_query(None).is_empty());
         assert!(force_query(Some(false)).is_empty());
-        assert_eq!(force_query(Some(true)), vec![("force".to_string(), "true".to_string())]);
+        assert_eq!(
+            force_query(Some(true)),
+            vec![("force".to_string(), "true".to_string())]
+        );
     }
 
     #[test]
@@ -1243,10 +1436,7 @@ mod tests {
     fn sanitize_filename_basename_only() {
         assert_eq!(sanitize_filename("logo.png").unwrap(), "logo.png");
         assert_eq!(sanitize_filename("/a/b/pic.jpg").unwrap(), "pic.jpg");
-        assert_eq!(
-            sanitize_filename("evil\"name.png").unwrap(),
-            "evilname.png"
-        );
+        assert_eq!(sanitize_filename("evil\"name.png").unwrap(), "evilname.png");
         assert!(sanitize_filename("   ").is_err());
     }
 

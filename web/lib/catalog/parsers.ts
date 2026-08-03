@@ -1,18 +1,22 @@
+import { FAILSAFE_SCHEMA, load } from "js-yaml"
+
 import type { SkillFrontmatter } from "@/lib/catalog/source-types"
 
 export function parseYamlFrontmatter(text: string) {
-  const yaml = text.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? ""
+  const { document, yaml } = parseFrontmatterDocument(text)
+  const activation = readYamlRecord(document.activation)
 
   return {
-    name: readYamlScalar(yaml, "name"),
-    version: readYamlScalar(yaml, "version"),
-    description: readYamlScalar(yaml, "description"),
-    author: readYamlScalar(yaml, "author"),
-    trunk: readYamlScalar(yaml, "trunk"),
-    tags: readYamlList(yaml, "tags"),
-    useCases: readYamlList(yaml, "use_cases"),
-    valueTags: readYamlList(yaml, "value_tags"),
-    valueProp: readYamlScalar(yaml, "value_prop"),
+    name: readYamlScalar(document.name),
+    version: readYamlScalar(document.version),
+    description: readYamlScalar(document.description),
+    author: readYamlScalar(document.author),
+    trunk: readYamlScalar(document.trunk),
+    tags: readYamlList(document.tags ?? activation.tags),
+    useCases: readYamlList(document.use_cases),
+    valueTags: readYamlList(document.value_tags),
+    valueProp: readYamlScalar(document.value_prop),
+    activation,
     yaml,
   }
 }
@@ -27,7 +31,7 @@ export function parseSkillFrontmatter(text: string): SkillFrontmatter {
     tags,
     useCases,
     valueTags,
-    yaml,
+    activation,
   } =
     parseYamlFrontmatter(text)
 
@@ -38,9 +42,9 @@ export function parseSkillFrontmatter(text: string): SkillFrontmatter {
     author,
     trunk,
     tags,
-    keywords: readYamlList(yaml, "keywords"),
-    patterns: readYamlList(yaml, "patterns"),
-    maxContextTokens: Number(readYamlScalar(yaml, "max_context_tokens") ?? 0),
+    keywords: readYamlList(activation.keywords),
+    patterns: readYamlList(activation.patterns),
+    maxContextTokens: Number(readYamlScalar(activation.max_context_tokens) ?? 0),
     useCases,
     valueTags,
   }
@@ -64,34 +68,34 @@ export function readCargoValue(cargo: string, key: string) {
   return cargo.match(new RegExp(`^${key}\\s*=\\s*"(.+)"$`, "m"))?.[1]
 }
 
-function readYamlScalar(yaml: string, key: string) {
-  return yaml
-    .match(new RegExp(`^${key}:\\s*(.+)$`, "m"))?.[1]
-    ?.replace(/^["']|["']$/g, "")
+type YamlRecord = Record<string, unknown>
+
+function parseFrontmatterDocument(text: string) {
+  const yaml =
+    text.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/)?.[1] ?? ""
+
+  try {
+    return {
+      document: readYamlRecord(load(yaml, { schema: FAILSAFE_SCHEMA })),
+      yaml,
+    }
+  } catch {
+    return { document: {}, yaml }
+  }
 }
 
-function readYamlList(yaml: string, key: string) {
-  const lines = yaml.split("\n")
-  const start = lines.findIndex((line) => line.trim() === `${key}:`)
+function readYamlRecord(value: unknown): YamlRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as YamlRecord)
+    : {}
+}
 
-  if (start === -1) {
-    return []
-  }
+function readYamlScalar(value: unknown) {
+  return typeof value === "string" ? value : undefined
+}
 
-  const values: string[] = []
-  for (const line of lines.slice(start + 1)) {
-    const trimmed = line.trim()
-
-    if (!trimmed) {
-      continue
-    }
-
-    if (!trimmed.startsWith("- ")) {
-      break
-    }
-
-    values.push(trimmed.slice(2).replace(/^["']|["']$/g, ""))
-  }
-
-  return values
+function readYamlList(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : []
 }

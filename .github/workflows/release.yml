@@ -12,15 +12,15 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable
         with:
           targets: wasm32-wasip2
 
       - name: Cache cargo
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
 
       - name: Make scripts executable
         run: chmod +x scripts/generate-manifest.sh
@@ -43,11 +43,19 @@ jobs:
             cp "${dir}${name}-tool.capabilities.json" "staging/${name}.capabilities.json"
           done
 
+          . scripts/lib/skill-files.sh
+
           if [ -d skills ]; then
             for dir in skills/*/; do
               name="$(basename "$dir")"
               if [ -f "${dir}SKILL.md" ]; then
                 cp "${dir}SKILL.md" "staging/${name}.SKILL.md"
+
+                while IFS= read -r -d '' file; do
+                  rel="${file#"$dir"}"
+                  asset="$(skill_file_asset_name "$name" "$rel")"
+                  cp "$file" "staging/${asset}"
+                done < <(find "$dir" -type f ! -name SKILL.md -print0 | sort -z)
               fi
             done
           fi

@@ -2,6 +2,7 @@
   "version": "0.1.0",
   "wit_version": "0.3.0",
   "description": "Microsoft 365 integration via Microsoft Graph. Outlook mail, Teams channel messaging, Excel cell and range operations, Word and PowerPoint document generation, SharePoint and OneDrive file management, Outlook Calendar scheduling. OAuth 2.0 user-context authentication against Microsoft Entra ID with host-managed token refresh.",
+  "effects": ["external_write"],
   "http": {
     "allowlist": [
       {

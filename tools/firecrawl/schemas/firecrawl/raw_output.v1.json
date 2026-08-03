@@ -1,0 +1,4 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Action-specific Firecrawl JSON for scrape, search, map, crawl, or crawl-status operations."
+}
