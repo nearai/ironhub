@@ -34,7 +34,12 @@ struct NearCatalogTool;
 
 impl exports::near::agent::tool::Guest for NearCatalogTool {
     fn execute(req: exports::near::agent::tool::Request) -> exports::near::agent::tool::Response {
-        match execute_inner(&req.params) {
+        #[cfg(feature = "reborn")]
+        let result = execute_reborn(&req.params, req.context.as_deref());
+        #[cfg(not(feature = "reborn"))]
+        let result = execute_inner(&req.params);
+
+        match result {
             Ok(output) => exports::near::agent::tool::Response {
                 output: Some(output),
                 error: None,
@@ -717,6 +722,45 @@ const SCHEMA: &str = r#"{
         }
     ]
 }"#;
+
+#[cfg(feature = "reborn")]
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ToolContext {
+    capability_id: String,
+}
+
+#[cfg(feature = "reborn")]
+fn execute_reborn(params: &str, context: Option<&str>) -> Result<String, String> {
+    let context = context.ok_or_else(|| "missing_invocation_context".to_string())?;
+    let context: ToolContext =
+        serde_json::from_str(context).map_err(|_| "invalid_invocation_context".to_string())?;
+    let operation = match context.capability_id.as_str() {
+        "nearcatalog.list_projects" => "list_projects",
+        "nearcatalog.search" => "search",
+        "nearcatalog.get_project" => "get_project",
+        "nearcatalog.related_projects" => "related_projects",
+        "nearcatalog.list_categories" => "list_categories",
+        "nearcatalog.projects_by_category" => "projects_by_category",
+        "nearcatalog.trending" => "trending",
+        "nearcatalog.search_people" => "search_people",
+        "nearcatalog.list_oss" => "list_oss",
+        _ => return Err("unsupported_capability".to_string()),
+    };
+    let mut params: serde_json::Value =
+        serde_json::from_str(params).map_err(|_| "invalid_parameters".to_string())?;
+    let object = params
+        .as_object_mut()
+        .ok_or_else(|| "invalid_parameters".to_string())?;
+    if object.contains_key("action") {
+        return Err("public_selector_is_not_allowed".to_string());
+    }
+    object.insert(
+        "action".to_string(),
+        serde_json::Value::String(operation.to_string()),
+    );
+    execute_inner(&params.to_string())
+}
 
 export!(NearCatalogTool);
 

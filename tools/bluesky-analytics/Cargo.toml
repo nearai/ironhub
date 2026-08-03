@@ -1,6 +1,6 @@
 [package]
-name = "bluesky-analytics-tool"
-version = "0.1.0"
+name = "bluesky-analytics-reborn-tool"
+version = "0.2.0"
 edition = "2021"
 description = "Bluesky (AT Protocol) read-only analytics tool for IronClaw (WASM component)"
 license = "MIT OR Apache-2.0"
@@ -15,6 +15,10 @@ wit-bindgen = "0.41.0"
 
 [lib]
 crate-type = ["cdylib"]
+
+[features]
+default = ["reborn"]
+reborn = []
 
 [profile.release]
 opt-level = "s"

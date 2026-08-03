@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "options_summary input",
+  "type": "object",
+  "properties": {
+    "protocol": {
+      "type": "string",
+      "description": "Options protocol slug, e.g. 'lyra'."
+    },
+    "data_type": {
+      "type": "string",
+      "enum": [
+        "dailyPremiumVolume",
+        "dailyNotionalVolume"
+      ],
+      "description": "Volume type (default dailyNotionalVolume)."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "protocol"
+  ]
+}

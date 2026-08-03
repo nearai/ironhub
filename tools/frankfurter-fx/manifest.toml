@@ -1,0 +1,60 @@
+schema_version = "reborn.extension_manifest.v2"
+id = "frankfurter-fx"
+name = "Frankfurter FX"
+version = "0.2.0"
+description = "Frankfurter FX & Money Exchange Tool — Foreign Exchange (FX) rates, currency converter, multi-currency portfolio conversion, and historical FX rate analytics powered by Central Bank data via Frankfurter v2. Public API, no authentication required."
+trust = "third_party"
+
+[runtime]
+kind = "wasm"
+module = "wasm/frankfurter_fx_reborn_tool.wasm"
+
+[[host_api]]
+id = "ironclaw.capability_provider/v1"
+section = "capability_provider.tools"
+
+[capability_provider.tools]
+
+[[capability_provider.tools.capabilities]]
+id = "frankfurter-fx.convert"
+description = "Action discriminator for currency conversion."
+effects = ["dispatch_capability", "network"]
+default_permission = "allow"
+visibility = "model"
+input_schema_ref = "schemas/frankfurter-fx/convert.input.v1.json"
+output_schema_ref = "schemas/frankfurter-fx/output.v1.json"
+prompt_doc_ref = "prompts/frankfurter-fx/convert.md"
+network_targets = [{ scheme = "https", host_pattern = "api.frankfurter.dev" }]
+
+[[capability_provider.tools.capabilities]]
+id = "frankfurter-fx.batch_convert"
+description = "Action discriminator for batch multi-currency conversion."
+effects = ["dispatch_capability", "network"]
+default_permission = "allow"
+visibility = "model"
+input_schema_ref = "schemas/frankfurter-fx/batch_convert.input.v1.json"
+output_schema_ref = "schemas/frankfurter-fx/output.v1.json"
+prompt_doc_ref = "prompts/frankfurter-fx/batch_convert.md"
+network_targets = [{ scheme = "https", host_pattern = "api.frankfurter.dev" }]
+
+[[capability_provider.tools.capabilities]]
+id = "frankfurter-fx.historical_trend"
+description = "Action discriminator for historical FX analytics."
+effects = ["dispatch_capability", "network"]
+default_permission = "allow"
+visibility = "model"
+input_schema_ref = "schemas/frankfurter-fx/historical_trend.input.v1.json"
+output_schema_ref = "schemas/frankfurter-fx/output.v1.json"
+prompt_doc_ref = "prompts/frankfurter-fx/historical_trend.md"
+network_targets = [{ scheme = "https", host_pattern = "api.frankfurter.dev" }]
+
+[[capability_provider.tools.capabilities]]
+id = "frankfurter-fx.search_currencies"
+description = "Action discriminator for currency metadata search."
+effects = ["dispatch_capability", "network"]
+default_permission = "allow"
+visibility = "model"
+input_schema_ref = "schemas/frankfurter-fx/search_currencies.input.v1.json"
+output_schema_ref = "schemas/frankfurter-fx/output.v1.json"
+prompt_doc_ref = "prompts/frankfurter-fx/search_currencies.md"
+network_targets = [{ scheme = "https", host_pattern = "api.frankfurter.dev" }]

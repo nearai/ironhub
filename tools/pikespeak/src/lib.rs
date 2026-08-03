@@ -11,6 +11,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 
+#[cfg(not(feature = "reborn"))]
 const SECRET_NAME: &str = "pikespeak_api_key";
 const HTTP_TIMEOUT_MS: u32 = 30_000;
 const MAX_RETRIES: u32 = 3;
@@ -19,7 +20,12 @@ struct PikespeakTool;
 
 impl exports::near::agent::tool::Guest for PikespeakTool {
     fn execute(req: exports::near::agent::tool::Request) -> exports::near::agent::tool::Response {
-        match execute_inner(&req.params) {
+        #[cfg(feature = "reborn")]
+        let result = execute_reborn(&req.params, req.context.as_deref());
+        #[cfg(not(feature = "reborn"))]
+        let result = execute_inner(&req.params);
+
+        match result.and_then(encode_guest_output) {
             Ok(output) => exports::near::agent::tool::Response {
                 output: Some(output),
                 error: None,
@@ -46,6 +52,11 @@ impl exports::near::agent::tool::Guest for PikespeakTool {
 }
 
 /// Tool actions. Selected via the `action` field.
+
+fn encode_guest_output(output: String) -> Result<String, String> {
+    serde_json::to_string(&output).map_err(|_| "tool_output_encode_failed".to_string())
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(tag = "action", rename_all = "snake_case")]
 enum Action {
@@ -108,6 +119,7 @@ fn execute_inner(params: &str) -> Result<String, String> {
     })?;
 
     // Pre-flight: verify API key is declared in secrets
+    #[cfg(not(feature = "reborn"))]
     if !near::agent::host::secret_exists(SECRET_NAME) {
         return Err(
             "Pikespeak API key not configured in capabilities. Run setup for the tool.".to_string(),
@@ -187,7 +199,7 @@ fn get_json(path: &str, query_params: &[(&str, Option<String>)]) -> Result<Value
     let mut query_parts = Vec::new();
     for (k, v) in query_params {
         if let Some(val) = v {
-            query_parts.push(format!("{}={}", k, url_encode(val)));
+            query_parts.push(format!("{}={}", k, url_encode(&val)));
         }
     }
 
@@ -256,7 +268,7 @@ fn url_encode(s: &str) -> String {
                 encoded.push('+');
             }
             _ => {
-                encoded.push_str(&format!("%{b:02X}"));
+                encoded.push_str(&format!("%{:02X}", b));
             }
         }
     }
@@ -299,7 +311,7 @@ fn json_to_yaml(value: &Value, indent_level: usize) -> String {
             if s.contains('\n') {
                 let mut out = "|\n".to_string();
                 for line in s.lines() {
-                    out.push_str(&format!("{indent}  {line}\n"));
+                    out.push_str(&format!("{}  {}\n", indent, line));
                 }
                 out
             } else if s.is_empty() {
@@ -326,10 +338,10 @@ fn json_to_yaml(value: &Value, indent_level: usize) -> String {
             } else {
                 let mut out = "\n".to_string();
                 for item in arr {
-                    out.push_str(&format!("{indent}- "));
+                    out.push_str(&format!("{}- ", indent));
                     let val_str = json_to_yaml(item, indent_level + 1);
-                    if let Some(stripped) = val_str.strip_prefix('\n') {
-                        out.push_str(stripped);
+                    if val_str.starts_with('\n') {
+                        out.push_str(&val_str[1..]);
                     } else {
                         out.push_str(&val_str);
                     }
@@ -343,10 +355,10 @@ fn json_to_yaml(value: &Value, indent_level: usize) -> String {
             } else {
                 let mut out = "\n".to_string();
                 for (k, v) in map {
-                    out.push_str(&format!("{indent}{k}: "));
+                    out.push_str(&format!("{}{}: ", indent, k));
                     let val_str = json_to_yaml(v, indent_level + 1);
-                    if let Some(stripped) = val_str.strip_prefix('\n') {
-                        out.push_str(stripped);
+                    if val_str.starts_with('\n') {
+                        out.push_str(&val_str[1..]);
                     } else {
                         out.push_str(&val_str);
                     }
@@ -361,7 +373,11 @@ fn to_yaml(value: &Value) -> String {
     let mut cloned = value.clone();
     prune_value(&mut cloned);
     let yaml_str = json_to_yaml(&cloned, 0);
-    yaml_str.strip_prefix('\n').unwrap_or(&yaml_str).to_string()
+    if yaml_str.starts_with('\n') {
+        yaml_str[1..].to_string()
+    } else {
+        yaml_str
+    }
 }
 
 // ==================== JSON Schema ====================
@@ -463,6 +479,47 @@ const SCHEMA: &str = r#"{
     }
   ]
 }"#;
+
+#[cfg(feature = "reborn")]
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ToolContext {
+    capability_id: String,
+}
+
+#[cfg(feature = "reborn")]
+fn execute_reborn(params: &str, context: Option<&str>) -> Result<String, String> {
+    let context = context.ok_or_else(|| "missing_invocation_context".to_string())?;
+    let context: ToolContext =
+        serde_json::from_str(context).map_err(|_| "invalid_invocation_context".to_string())?;
+    let operation = match context.capability_id.as_str() {
+        "pikespeak.balance" => "balance",
+        "pikespeak.balances" => "balances",
+        "pikespeak.wealth" => "wealth",
+        "pikespeak.transactions" => "transactions",
+        "pikespeak.near_transfer" => "near_transfer",
+        "pikespeak.ft_transfer" => "ft_transfer",
+        "pikespeak.validators_current" => "validators_current",
+        "pikespeak.validator_apy" => "validator_apy",
+        "pikespeak.tx_details" => "tx_details",
+        "pikespeak.token_stats" => "token_stats",
+        "pikespeak.call_api" => "call_api",
+        _ => return Err("unsupported_capability".to_string()),
+    };
+    let mut params: serde_json::Value =
+        serde_json::from_str(params).map_err(|_| "invalid_parameters".to_string())?;
+    let object = params
+        .as_object_mut()
+        .ok_or_else(|| "invalid_parameters".to_string())?;
+    if object.contains_key("action") {
+        return Err("public_selector_is_not_allowed".to_string());
+    }
+    object.insert(
+        "action".to_string(),
+        serde_json::Value::String(operation.to_string()),
+    );
+    execute_inner(&params.to_string())
+}
 
 export!(PikespeakTool);
 

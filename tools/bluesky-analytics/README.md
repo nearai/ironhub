@@ -1,6 +1,6 @@
 ---
 name: bluesky-analytics
-version: 0.1.0
+version: 0.2.0
 description: Read-only Bluesky (AT Protocol) analytics. Browse public accounts, posts, social graph, and engagement via the unauthenticated AppView. Look up profiles with follower/post counts, read an account's feed with per-post like/repost/reply counts, walk a post's reply (comment) tree, list followers/follows and who liked/reposted a post, and search for accounts. No authentication required.
 use_cases:
   - Audit a Bluesky account's reach — follower/following/post counts and per-post engagement
@@ -15,27 +15,37 @@ value_tags:
 
 # Bluesky Analytics Tool
 
+## Install and configure
+
+Install the tool from IronHub. For a manual package import, open **Extensions →
+Registry → Import**, select the tool archive, and click **Install**.
+
+No credential or account setup is required.
+
+Each operation is exposed as a named capability with its own input schema. Use
+only the parameters shown for that capability in the examples below.
+
+This package declares no credentials. Network egress remains restricted to the hosts
+declared by each capability.
+
+
 A sandboxed WASM tool that lets an IronClaw agent browse Bluesky for analytics —
 profiles, feeds, engagement, and the social graph — over the AT Protocol.
 
 No authentication is required. Every action is a public XRPC `GET` against the
 unauthenticated AppView `public.api.bsky.app`, and network access is restricted to
-that host as declared in `bluesky-analytics-tool.capabilities.json`.
+that host as declared in `manifest.toml`; the Rust adapter retains route and method validation.
 
-> **Read-only.** Posting, replying/commenting, liking, reposting, and following are
-> **not** supported. Those are writes that require an authenticated session
-> (`com.atproto.server.createSession`), whose login takes the app password in the
-> request body. A stateless WASM tool cannot read a secret nor have the host inject
-> one into a body, so writes are impossible in this lane — they belong on the
-> stateful IronClaw Reborn Script lane (a future phase).
+> **Read-only.** This package intentionally does not create or retain an authenticated
+> Bluesky session. Posting, replying, liking, reposting, and following require a
+> separately reviewed stateful service.
 
 ![bluesky-analytics tool](screenshot.png)
 
-## Actions
+## Capabilities
+Each operation is exposed as a separate IronClaw capability with its own input schema.
 
-The tool exposes a single parameter, `action`, plus a few optional fields.
-
-| Action | Required | Optional | Description |
+| Capability | Required | Optional | Description |
 |--------|----------|----------|-------------|
 | `get_profile` | `actor` | — | Profile for one account: handle, DID, bio, follower/follows/post counts. |
 | `get_author_feed` | `actor` | `limit`, `cursor`, `filter` | An account's posts, each with like/repost/reply/quote counts. `filter` = `posts_with_replies` / `posts_no_replies` / `posts_with_media` / `posts_and_author_threads`. |
@@ -80,23 +90,18 @@ Example — `get_author_feed` item:
 ## Example invocations
 
 ```jsonc
-{ "action": "get_profile", "actor": "bsky.app" }
+// Capability: bluesky-analytics.get_profile
+{ "actor": "bsky.app" }
 
-{ "action": "get_author_feed", "actor": "bsky.app", "limit": 25, "filter": "posts_no_replies" }
+// Capability: bluesky-analytics.get_author_feed
+{ "actor": "bsky.app", "limit": 25, "filter": "posts_no_replies" }
 
-{ "action": "get_post_thread", "uri": "at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.post/3mojb23vtt22c", "depth": 4 }
+// Capability: bluesky-analytics.get_post_thread
+{ "uri": "at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.post/3mojb23vtt22c", "depth": 4 }
 
-{ "action": "get_likes", "uri": "at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.post/3mojb23vtt22c", "limit": 50 }
+// Capability: bluesky-analytics.get_likes
+{ "uri": "at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.post/3mojb23vtt22c", "limit": 50 }
 
-{ "action": "search_actors", "q": "news", "limit": 10 }
+// Capability: bluesky-analytics.search_actors
+{ "q": "news", "limit": 10 }
 ```
-
-## Build
-
-```bash
-cargo build --target wasm32-wasip2 --release
-# or, staged beside the capabilities file for live install:
-scripts/build-tool.sh bluesky-analytics
-```
-
-The `wasm32-wasip2` target emits a WebAssembly **component** directly.

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "YouTube get_channel_stats input",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "channel_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "handle": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "for_username": { "type": "string", "minLength": 1, "maxLength": 128 }
+  },
+  "oneOf": [
+    { "required": ["channel_id"] },
+    { "required": ["handle"] },
+    { "required": ["for_username"] }
+  ]
+}

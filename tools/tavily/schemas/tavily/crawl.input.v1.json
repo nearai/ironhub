@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "crawl input",
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string",
+      "description": "Root URL (http/https) to start crawling from."
+    },
+    "max_depth": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Maximum link depth from root URL (default 1)."
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 50,
+      "description": "Maximum pages to crawl (1–50, default 10)."
+    },
+    "select_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Restrict crawl to these URL path prefixes (e.g. [\"/docs/\", \"/blog/\"])."
+    },
+    "exclude_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Skip these URL path prefixes during crawl."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "url"
+  ]
+}

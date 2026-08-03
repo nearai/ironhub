@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "news input",
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "Optional keyword search filter (e.g., 'regulation', 'sec', 'ethereum')."
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Max news items to return (default 20)."
+    }
+  },
+  "additionalProperties": false
+}

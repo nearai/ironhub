@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "coin_details input",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "The coin ID (e.g. 'bitcoin')."
+    },
+    "localization": {
+      "type": "boolean",
+      "description": "Include localized languages. Default is false."
+    },
+    "tickers": {
+      "type": "boolean",
+      "description": "Include exchange tickers. Default is false."
+    },
+    "market_data": {
+      "type": "boolean",
+      "description": "Include market data. Default is true."
+    },
+    "community_data": {
+      "type": "boolean",
+      "description": "Include community data. Default is false."
+    },
+    "developer_data": {
+      "type": "boolean",
+      "description": "Include developer data. Default is false."
+    },
+    "sparkline": {
+      "type": "boolean",
+      "description": "Include sparkline data. Default is false."
+    },
+    "pro": {
+      "type": "boolean",
+      "description": "Set to true to use the Pro API domain. Default is false."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "id"
+  ]
+}

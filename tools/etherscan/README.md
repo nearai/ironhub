@@ -1,6 +1,6 @@
 ---
 name: etherscan
-version: 0.1.0
+version: 0.2.0
 description: Allows queries to the Etherscan v2 API across 60+ EVM-compatible networks. Retrieves native wallet balances, transaction histories, ERC-20/721/1155 token transfer events, contract ABIs/source codes, and execution statuses.
 use_cases:
   - Retrieve native account balance in Wei and Ether across EVM chains
@@ -19,26 +19,30 @@ value_tags:
 
 # Etherscan Tool
 
+## Install and configure
+
+Install the tool from IronHub. For a manual package import, open **Extensions →
+Registry → Import**, select the tool archive, and click **Install**.
+
+Open **Configure** and store an Etherscan API key. IronClaw injects it as the `apikey`
+query parameter only for `api.etherscan.io`.
+
+Each operation is exposed as a named capability with its own input schema. Use
+only the parameters shown for that capability in the examples below.
+
+Credentials are stored by IronClaw and injected only at the declared HTTP boundary; they
+are not included in model input or exposed to the WASM component.
+
+
 A sandboxed WASM tool that integrates with the [Etherscan v2 API](https://docs.etherscan.io/v2/) to query account details, histories, and contract schemas across 60+ EVM-compatible chains.
 
-The host injects the API key at the network boundary as the `apikey` query parameter — the WASM code never sees the raw secret — and network access is restricted to `api.etherscan.io/v2/api` as declared in `etherscan-tool.capabilities.json`.
+The host injects the API key at the network boundary as the `apikey` query parameter — the WASM code never sees the raw secret — and network access is restricted to `api.etherscan.io/v2/api` as declared in `manifest.toml`; the Rust adapter retains route and method validation.
 
-![Etherscan tool](screenshot.png)
+![Etherscan tool](screenshot.jpg)
 
 
-## Authentication
-
-Configure your Etherscan v2 API key:
-
-```bash
-ironclaw tool setup etherscan-tool
-```
-
-During execution, the tool will automatically append the key to all HTTP requests sent to the v2 endpoint.
-
-## Actions
-
-| Action | Required | Optional | Description |
+## Capabilities
+| Capability | Required | Optional | Description |
 |--------|----------|----------|-------------|
 | `balance` | `address`, `chainid` | — | Get native token balance in Wei and formatted Ether. |
 | `balancemulti` | `address`, `chainid` | — | Get native balances for a comma-separated list of addresses. |
@@ -67,32 +71,32 @@ To operate safely under the **10 MB WASM linear memory ceiling** and prevent pro
 
 ## Examples
 
-```json
+```jsonc
 // Query native balance for Vitalik's wallet on Ethereum Mainnet
+// Capability: etherscan.balance
 {
-  "action": "balance",
   "address": "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
   "chainid": 1
 }
 
 // Query multi-address balance on Base L2
+// Capability: etherscan.balancemulti
 {
-  "action": "balancemulti",
   "address": "0xd8da6bf26964af9d7eed9e03e53415d37aa96045,0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe",
   "chainid": 8453
 }
 
 // Get pruned ERC-20 transfers for an address on Polygon
+// Capability: etherscan.tokentx
 {
-  "action": "tokentx",
   "address": "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
   "chainid": 137,
   "offset": 10
 }
 
 // Get contract ABI on Arbitrum
+// Capability: etherscan.getabi
 {
-  "action": "getabi",
   "address": "0xda10009cbd5d07dd0cecc66161fc93d7c9000da2",
   "chainid": 42161
 }

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "batch_convert input",
+  "type": "object",
+  "properties": {
+    "from": {
+      "type": "string",
+      "description": "Base currency ISO code (e.g. 'USD')."
+    },
+    "targets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of target quote currency ISO codes (e.g. ['EUR', 'GBP', 'JPY', 'VND'])."
+    },
+    "amount": {
+      "type": "number",
+      "default": 1.0,
+      "description": "Amount of base currency to convert across all target currencies."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "from",
+    "targets"
+  ]
+}

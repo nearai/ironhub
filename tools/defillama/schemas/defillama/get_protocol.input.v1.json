@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "get_protocol input",
+  "type": "object",
+  "properties": {
+    "protocol": {
+      "type": "string",
+      "description": "Protocol slug, e.g. 'aave', 'uniswap'. Discover slugs with list_protocols."
+    },
+    "points": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 500,
+      "default": 90,
+      "description": "Max TVL history points returned (downsampled)."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "protocol"
+  ]
+}

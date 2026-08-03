@@ -1,6 +1,6 @@
 ---
 name: tavily
-version: 0.1.0
+version: 0.2.0
 description: Web search, URL extraction, site crawling, and site mapping for Ironclaw via the Tavily API. Returns LLM-ready structured results with AI-synthesized answers, relevance scores, and clean markdown content. The host injects the API key as a Bearer token — the tool never sees the raw secret.
 use_cases:
   - Search the web, social networks(X, Facebook, LinkedIn, Tiktok, Reddit...) for current events, research, and factual questions
@@ -17,6 +17,21 @@ value_tags:
 
 # Tavily Tool
 
+## Install and configure
+
+Install the tool from IronHub. For a manual package import, open **Extensions →
+Registry → Import**, select the tool archive, and click **Install**.
+
+Open **Configure** and store a Tavily API key from https://tavily.com. IronClaw injects
+it as a Bearer token only for `api.tavily.com`.
+
+Each operation is exposed as a named capability with its own input schema. Use
+only the parameters shown for that capability in the examples below.
+
+Credentials are stored by IronClaw and injected only at the declared HTTP boundary; they
+are not included in model input or exposed to the WASM component.
+
+
 A sandboxed WASM tool that gives an IronClaw agent LLM-optimized web search,
 URL content extraction, site crawling, and site mapping via the
 [Tavily API](https://docs.tavily.com).
@@ -24,12 +39,10 @@ URL content extraction, site crawling, and site mapping via the
 ![Tavily IronClaw](screenshot.jpg)
 
 The host injects the API key as a Bearer token — the tool code never sees the
-raw secret — and network access is restricted to `api.tavily.com` as declared
-in `tavily-tool.capabilities.json`.
+raw secret — and network access is restricted to `api.tavily.com` as declared in `manifest.toml`; the Rust adapter retains route and method validation.
 
-## Actions
-
-| Action | Required | Optional | Description |
+## Capabilities
+| Capability | Required | Optional | Description |
 |--------|----------|----------|-------------|
 | `search` | `query` | `search_depth`, `max_results`, `include_answer`, `include_raw_content`, `include_images`, `topic`, `auto_parameters` | Real-time web search returning ranked results with relevance scores. Optionally includes an AI-synthesized answer. |
 | `social_media_search` | `query` | `platform`, `max_results`, `include_answer`, `include_raw_content`, `include_images`, `time_range` | Search across platforms (Reddit, Twitter/X, TikTok, Instagram, Facebook, LinkedIn) for trends and real-time public opinion. |
@@ -76,66 +89,41 @@ in `tavily-tool.capabilities.json`.
 
 ```jsonc
 // Search the web with AI answer
-{ "action": "search", "query": "latest Rust async runtime benchmarks 2025", "include_answer": true, "max_results": 5 }
+// Capability: tavily.search
+{ "query": "latest Rust async runtime benchmarks 2025", "include_answer": true, "max_results": 5 }
 
 // News search
-{ "action": "search", "query": "NEAR Protocol ecosystem update", "topic": "news", "max_results": 10 }
+// Capability: tavily.search
+{ "query": "NEAR Protocol ecosystem update", "topic": "news", "max_results": 10 }
 
 // Search social media platforms for trends
-{ "action": "social_media_search", "query": "agentic AI framework reviews", "platform": "reddit", "time_range": "month", "max_results": 10 }
+// Capability: tavily.social_media_search
+{ "query": "agentic AI framework reviews", "platform": "reddit", "time_range": "month", "max_results": 10 }
 
 // Combined social search with full page content extracted
-{ "action": "social_media_search", "query": "Apple Vision Pro user reactions", "platform": "combined", "include_raw_content": true }
+// Capability: tavily.social_media_search
+{ "query": "Apple Vision Pro user reactions", "platform": "combined", "include_raw_content": true }
 
 // Extract clean markdown from a specific URL
-{ "action": "extract", "urls": ["https://docs.tavily.com/documentation/api-reference/introduction"] }
+// Capability: tavily.extract
+{ "urls": ["https://docs.tavily.com/documentation/api-reference/introduction"] }
 
 // Extract with query-focused chunks from multiple URLs
-{ "action": "extract", "urls": ["https://example.com/page1", "https://example.com/page2"], "query": "authentication flow", "chunks_per_source": 5 }
+// Capability: tavily.extract
+{ "urls": ["https://example.com/page1", "https://example.com/page2"], "query": "authentication flow", "chunks_per_source": 5 }
 
 // Crawl a documentation section
-{ "action": "crawl", "url": "https://docs.near.org", "max_depth": 2, "limit": 20, "select_paths": ["/concepts/", "/tools/"] }
+// Capability: tavily.crawl
+{ "url": "https://docs.near.org", "max_depth": 2, "limit": 20, "select_paths": ["/concepts/", "/tools/"] }
 
 // Map a site's URL structure
-{ "action": "map", "url": "https://docs.tavily.com", "max_depth": 2 }
-```
-
-## Authentication
-
-```bash
-ironclaw tool setup tavily-tool   # stores tavily_api_key (tvly-...)
-```
-
-Get a key at <https://tavily.com/> (keys start with `tvly-`).
-
-The key can also be supplied via the `TAVILY_API_KEY` env var as a setup
-convenience: `ironclaw tool auth tavily-tool` reads it **once** and persists it
-to the encrypted secret store. It is **not** read at runtime.
-
-## Build
-
-```bash
-# from tools/tavily/
-cargo test                                   # native unit tests
-cargo build --target wasm32-wasip2 --release # → target/wasm32-wasip2/release/tavily_tool.wasm
-
-# Or use the repo build script (stages dist/ for install):
-scripts/build-tool.sh tavily
-```
-
-## Install
-
-```bash
-ironclaw tool install dist/tavily/tavily-tool.wasm \
-  --capabilities dist/tavily/tavily-tool.capabilities.json \
-  --name tavily-tool
-ironclaw tool auth tavily-tool      # store the API key
-ironclaw tool list                  # confirm
+// Capability: tavily.map
+{ "url": "https://docs.tavily.com", "max_depth": 2 }
 ```
 
 ## API mapping
 
-| Action | Tavily endpoint |
+| Capability | Tavily endpoint |
 |--------|----------------|
 | `search` | `POST /search` |
 | `extract` | `POST /extract` |

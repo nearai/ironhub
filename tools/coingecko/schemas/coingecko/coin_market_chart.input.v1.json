@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "coin_market_chart input",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "The coin ID (e.g. 'bitcoin')."
+    },
+    "vs_currency": {
+      "type": "string",
+      "description": "Target currency (e.g. 'usd')."
+    },
+    "days": {
+      "type": "string",
+      "description": "Number of days of historical data (e.g. '1', '7', '30', 'max')."
+    },
+    "interval": {
+      "type": "string",
+      "enum": [
+        "daily"
+      ],
+      "description": "Data interval (e.g. 'daily'). Optional."
+    },
+    "pro": {
+      "type": "boolean",
+      "description": "Set to true to use the Pro API domain. Default is false."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "vs_currency",
+    "days"
+  ]
+}

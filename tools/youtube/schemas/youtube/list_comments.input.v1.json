@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "YouTube list_comments input",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "video_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "channel_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "max_results": { "type": "integer", "minimum": 1, "maximum": 100 },
+    "order": { "type": "string", "enum": ["time", "relevance"] },
+    "page_token": { "type": "string", "minLength": 1, "maxLength": 1024 }
+  },
+  "anyOf": [
+    { "required": ["video_id"] },
+    { "required": ["channel_id"] }
+  ]
+}

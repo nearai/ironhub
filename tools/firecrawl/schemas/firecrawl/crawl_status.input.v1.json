@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "crawl_status input",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "The crawl_id returned by a 'crawl' call."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "id"
+  ]
+}

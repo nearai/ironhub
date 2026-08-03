@@ -1,6 +1,6 @@
 [package]
-name = "etherscan-tool"
-version = "0.1.0"
+name = "etherscan-reborn-tool"
+version = "0.2.0"
 edition = "2021"
 description = "Etherscan V2 multichain oracle tool for IronClaw (WASM component)"
 license = "MIT OR Apache-2.0"
@@ -13,6 +13,10 @@ wit-bindgen = "0.41.0"
 
 [lib]
 crate-type = ["cdylib"]
+
+[features]
+default = ["reborn"]
+reborn = []
 
 [profile.release]
 opt-level = "s"

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "chain_tvl_history input",
+  "type": "object",
+  "properties": {
+    "chain": {
+      "type": "string",
+      "description": "Chain name, e.g. 'Ethereum'. Omit for all-chains total TVL."
+    },
+    "points": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 500,
+      "default": 90,
+      "description": "Max history points returned (evenly downsampled)."
+    }
+  },
+  "additionalProperties": false
+}

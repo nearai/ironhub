@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "get_project input",
+  "type": "object",
+  "properties": {
+    "slug": {
+      "type": "string",
+      "description": "Project slug (e.g. 'ref-finance'). Lowercase letters, digits, '-', '_', '.'. Discover slugs with 'list_projects' or 'search'."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "slug"
+  ]
+}

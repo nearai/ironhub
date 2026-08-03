@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "analyze input",
+  "type": "object",
+  "properties": {
+    "symbol": {
+      "type": "string",
+      "description": "Trading pair, e.g. BTCUSDT. Separators (/, -) are stripped automatically."
+    },
+    "intervals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Timeframes top-down. Default ['4h','1h','15m']. Valid: 1m,3m,5m,15m,30m,1h,2h,4h,6h,8h,12h,1d,3d,1w,1M"
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Candles per timeframe (default 300, max 1000). Use >=200 for reliable EMA200/ADX/ATR."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "symbol"
+  ]
+}

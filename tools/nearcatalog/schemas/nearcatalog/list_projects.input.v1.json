@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "list_projects input",
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "Client-side filter over project name/tagline/tags."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "description": "Optional server-side filter for 'list_projects': operational status."
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "mainnet",
+        "testnet"
+      ],
+      "description": "Optional server-side filter for 'list_projects': ecosystem phase."
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 25,
+      "description": "Maximum results to return (1-100, default 25)."
+    }
+  },
+  "additionalProperties": false
+}

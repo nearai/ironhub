@@ -1,6 +1,6 @@
 ---
 name: messari
-version: 0.1.0
+version: 0.2.0
 description: Messari crypto research, market data, token unlocks, fundraising, DeFi metrics, analyst reports, and AI query synthesis for Ironclaw.
 use_cases:
   - Query real-time crypto asset prices, market caps, ATH, and market performance metrics
@@ -19,13 +19,28 @@ value_tags:
 
 # Messari Tool
 
+## Install and configure
+
+Install the tool from IronHub. For a manual package import, open **Extensions →
+Registry → Import**, select the tool archive, and click **Install**.
+
+Open **Configure** and store a Messari API key. IronClaw injects it into
+`x-messari-api-key` only for `api.messari.io`.
+
+Each operation is exposed as a named capability with its own input schema. Use
+only the parameters shown for that capability in the examples below.
+
+Credentials are stored by IronClaw and injected only at the declared HTTP boundary; they
+are not included in model input or exposed to the WASM component.
+
+
 A sandboxed WASM tool for Ironclaw that interfaces with the Messari Crypto API (`https://api.messari.io`).
 
 ![Messari tool](screenshot.jpg)
 
 ## Features & Supported Actions
 
-| Action | Description | Base Endpoint | Quota / Rate Limit |
+| Capability | Description | Base Endpoint | Quota / Rate Limit |
 |---|---|---|---|
 | `ask_ai` | Natural language crypto query synthesis across 34k+ assets & 210+ exchanges | `/ai/v2/chat/completions` | ⚠️ **10 req/day** for free users |
 | `metrics` | Asset prices, volumes, market cap, ATH, and market performance | `/metrics/v1/assets` | 150 req/min |
@@ -41,30 +56,3 @@ A sandboxed WASM tool for Ironclaw that interfaces with the Messari Crypto API (
 | `intel` | Protocol governance proposals and network upgrade trackers | `/intel/v1/events` | 150 req/min |
 | `topics` | Crypto sector narrative momentum and hot ecosystem topics | `/topics/v1/topics` | 150 req/min |
 | `x_users` | Crypto influencer metrics and X/Twitter account activity | `/x-users/v1/users` | 150 req/min |
-
-## Authentication Setup
-
-This tool uses direct API Key authentication with header injection (`x-messari-api-key`).
-
-### 1. Build and Package
-```bash
-rtk cargo build --target wasm32-wasip2 --release
-rtk ./scripts/build-tool.sh messari
-```
-
-### 2. Install into Ironclaw
-```bash
-rtk ironclaw tool install dist/messari/messari-tool.wasm \
-  --capabilities dist/messari/messari-tool.capabilities.json \
-  --name messari --force
-```
-
-### 3. Setup Secrets
-```bash
-rtk ironclaw tool auth messari --secret <YOUR_MESSARI_API_KEY>
-```
-
-### 4. Headless Test Execution
-```bash
-rtk ironclaw --auto-approve -m "Use Messari tool with action 'metrics' to fetch metrics for asset_key 'bitcoin'"
-```

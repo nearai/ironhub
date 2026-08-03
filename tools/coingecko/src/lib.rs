@@ -21,6 +21,7 @@ wit_bindgen::generate!({
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
+#[cfg(not(feature = "reborn"))]
 const SECRET_NAME: &str = "coingecko_api_key";
 const MAX_RETRIES: u32 = 3;
 const HTTP_TIMEOUT_MS: u32 = 30_000;
@@ -30,7 +31,12 @@ struct CoinGeckoTool;
 
 impl exports::near::agent::tool::Guest for CoinGeckoTool {
     fn execute(req: exports::near::agent::tool::Request) -> exports::near::agent::tool::Response {
-        match execute_inner(&req.params) {
+        #[cfg(feature = "reborn")]
+        let result = execute_reborn(&req.params, req.context.as_deref());
+        #[cfg(not(feature = "reborn"))]
+        let result = execute_inner(&req.params);
+
+        match result {
             Ok(output) => exports::near::agent::tool::Response {
                 output: Some(output),
                 error: None,
@@ -165,6 +171,7 @@ fn execute_inner(params: &str) -> Result<String, String> {
     })?;
 
     // Pre-flight: verify capabilities key is declared.
+    #[cfg(not(feature = "reborn"))]
     if !near::agent::host::secret_exists(SECRET_NAME) {
         return Err(
             "CoinGecko API key not configured in capabilities. Run setup for the tool.".to_string(),
@@ -304,7 +311,6 @@ struct CoinMarketEntry {
     price_change_percentage_24h: Option<f64>,
 }
 
-#[allow(clippy::too_many_arguments)]
 fn run_coin_markets(
     vs_currency: String,
     ids: Option<String>,
@@ -447,7 +453,6 @@ struct MarketDataSnapshot {
     max_supply: Option<f64>,
 }
 
-#[allow(clippy::too_many_arguments)]
 fn run_coin_details(
     id: String,
     localization: bool,
@@ -707,7 +712,7 @@ fn get_json(
     let mut query_parts = Vec::new();
     for (k, v) in query_params {
         if let Some(val) = v {
-            query_parts.push(format!("{}={}", k, url_encode(val)));
+            query_parts.push(format!("{}={}", k, url_encode(&val)));
         }
     }
 
@@ -793,7 +798,7 @@ fn url_encode(input: &str) -> String {
                 encoded.push('+');
             }
             _ => {
-                encoded.push_str(&format!("%{byte:02X}"));
+                encoded.push_str(&format!("%{:02X}", byte));
             }
         }
     }
@@ -1034,6 +1039,46 @@ const SCHEMA: &str = r#"{
   ]
 }"#;
 
+#[cfg(feature = "reborn")]
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ToolContext {
+    capability_id: String,
+}
+
+#[cfg(feature = "reborn")]
+fn execute_reborn(params: &str, context: Option<&str>) -> Result<String, String> {
+    let context = context.ok_or_else(|| "missing_invocation_context".to_string())?;
+    let context: ToolContext =
+        serde_json::from_str(context).map_err(|_| "invalid_invocation_context".to_string())?;
+    let operation = match context.capability_id.as_str() {
+        "coingecko.ping" => "ping",
+        "coingecko.simple_price" => "simple_price",
+        "coingecko.coin_markets" => "coin_markets",
+        "coingecko.coin_details" => "coin_details",
+        "coingecko.coin_market_chart" => "coin_market_chart",
+        "coingecko.coin_ohlc" => "coin_ohlc",
+        "coingecko.trending_coins" => "trending_coins",
+        "coingecko.list_categories" => "list_categories",
+        "coingecko.search" => "search",
+        "coingecko.coins_list" => "coins_list",
+        _ => return Err("unsupported_capability".to_string()),
+    };
+    let mut params: serde_json::Value =
+        serde_json::from_str(params).map_err(|_| "invalid_parameters".to_string())?;
+    let object = params
+        .as_object_mut()
+        .ok_or_else(|| "invalid_parameters".to_string())?;
+    if object.contains_key("action") {
+        return Err("public_selector_is_not_allowed".to_string());
+    }
+    object.insert(
+        "action".to_string(),
+        serde_json::Value::String(operation.to_string()),
+    );
+    execute_inner(&params.to_string())
+}
+
 export!(CoinGeckoTool);
 
 // ==================== Unit Tests ====================
@@ -1077,7 +1122,7 @@ mod tests {
         {
             assert_eq!(ids, "bitcoin");
             assert_eq!(vs_currencies, "usd");
-            assert!(include_market_cap.unwrap());
+            assert_eq!(include_market_cap.unwrap(), true);
         } else {
             panic!("wrong variant");
         }

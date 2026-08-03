@@ -11,6 +11,7 @@ wit_bindgen::generate!({
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
+#[cfg(not(feature = "reborn"))]
 const SECRET_NAME: &str = "etherscan_api_key";
 const MAX_RETRIES: u32 = 3;
 const HTTP_TIMEOUT_MS: u32 = 30_000;
@@ -19,7 +20,12 @@ struct EtherscanTool;
 
 impl exports::near::agent::tool::Guest for EtherscanTool {
     fn execute(req: exports::near::agent::tool::Request) -> exports::near::agent::tool::Response {
-        match execute_inner(&req.params) {
+        #[cfg(feature = "reborn")]
+        let result = execute_reborn(&req.params, req.context.as_deref());
+        #[cfg(not(feature = "reborn"))]
+        let result = execute_inner(&req.params);
+
+        match result {
             Ok(output) => exports::near::agent::tool::Response {
                 output: Some(output),
                 error: None,
@@ -169,6 +175,7 @@ fn execute_inner(params: &str) -> Result<String, String> {
     })?;
 
     // Pre-flight: verify Etherscan capabilities key exists.
+    #[cfg(not(feature = "reborn"))]
     if !near::agent::host::secret_exists(SECRET_NAME) {
         return Err(
             "Etherscan API key not configured in capabilities. Run setup for the tool.".to_string(),
@@ -357,7 +364,6 @@ fn lookup_static_chain(normalized_name: &str) -> Option<u32> {
     }
 }
 
-#[cfg(target_arch = "wasm32")]
 fn fetch_dynamic_chain_id(chain_name: &str) -> Result<u32, String> {
     let url = "https://api.etherscan.io/v2/chainlist";
     let headers = json!({
@@ -404,7 +410,8 @@ fn fetch_dynamic_chain_id(chain_name: &str) -> Result<u32, String> {
     }
 
     Err(format!(
-        "Chain '{chain_name}' not found in Etherscan't active chain list."
+        "Chain '{}' not found in Etherscan't active chain list.",
+        chain_name
     ))
 }
 
@@ -434,7 +441,7 @@ fn resolve_chain(chain_val: &Value) -> Result<u32, String> {
             {
                 near::agent::host::log(
                     near::agent::host::LogLevel::Info,
-                    &format!("Chain '{s_trimmed}' not found in static list. Querying Etherscan chainlist dynamically..."),
+                    &format!("Chain '{}' not found in static list. Querying Etherscan chainlist dynamically...", s_trimmed),
                 );
                 fetch_dynamic_chain_id(s_trimmed)
             }
@@ -442,7 +449,8 @@ fn resolve_chain(chain_val: &Value) -> Result<u32, String> {
             {
                 // In non-wasm (tests), we can mock dynamic check or fallback to error
                 Err(format!(
-                    "Unknown chain name '{s_trimmed}' (dynamic query not available in tests)"
+                    "Unknown chain name '{}' (dynamic query not available in tests)",
+                    s_trimmed
                 ))
             }
         }
@@ -625,7 +633,6 @@ struct InternalTransaction {
     trace_id: String,
 }
 
-#[allow(clippy::too_many_arguments)]
 fn run_txlistinternal(
     chainid: u32,
     address: Option<String>,
@@ -688,7 +695,6 @@ struct TokenTransfer {
     value: Option<String>,
 }
 
-#[allow(clippy::too_many_arguments)]
 fn run_tokentx(
     chainid: u32,
     address: Option<String>,
@@ -732,7 +738,6 @@ fn run_tokentx(
     serialize(&txs)
 }
 
-#[allow(clippy::too_many_arguments)]
 fn run_tokennfttx(
     chainid: u32,
     address: Option<String>,
@@ -776,7 +781,6 @@ fn run_tokennfttx(
     serialize(&txs)
 }
 
-#[allow(clippy::too_many_arguments)]
 fn run_token1155tx(
     chainid: u32,
     address: Option<String>,
@@ -977,7 +981,8 @@ fn get_etherscan(
                     near::agent::host::log(
                         near::agent::host::LogLevel::Warn,
                         &format!(
-                            "Etherscan API rate limit reached (attempt {attempt}/{MAX_RETRIES}); retrying"
+                            "Etherscan API rate limit reached (attempt {}/{}); retrying",
+                            attempt, MAX_RETRIES
                         ),
                     );
                     std::thread::sleep(std::time::Duration::from_millis(attempt as u64 * 500));
@@ -1015,7 +1020,7 @@ fn format_wei_to_ether(wei_str: &str) -> String {
     if let Ok(wei) = wei_str.parse::<u128>() {
         let integer = wei / 1_000_000_000_000_000_000;
         let fraction = wei % 1_000_000_000_000_000_000;
-        let mut frac_str = format!("{fraction:018}");
+        let mut frac_str = format!("{:018}", fraction);
         while frac_str.ends_with('0') {
             frac_str.pop();
         }
@@ -1040,7 +1045,7 @@ fn url_encode(input: &str) -> String {
                 encoded.push('+');
             }
             _ => {
-                encoded.push_str(&format!("%{byte:02X}"));
+                encoded.push_str(&format!("%{:02X}", byte));
             }
         }
     }
@@ -1051,7 +1056,7 @@ fn serialize<T: Serialize>(value: &T) -> Result<String, String> {
     serde_json::to_string(value).map_err(|e| format!("Failed to serialize output: {e}"))
 }
 
-// ==================== JSON Schema ====================
+//// ==================== JSON Schema ====================
 
 const SCHEMA: &str = r#"{
   "type": "object",
@@ -1176,6 +1181,47 @@ const SCHEMA: &str = r#"{
     }
   ]
 }"#;
+
+#[cfg(feature = "reborn")]
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ToolContext {
+    capability_id: String,
+}
+
+#[cfg(feature = "reborn")]
+fn execute_reborn(params: &str, context: Option<&str>) -> Result<String, String> {
+    let context = context.ok_or_else(|| "missing_invocation_context".to_string())?;
+    let context: ToolContext =
+        serde_json::from_str(context).map_err(|_| "invalid_invocation_context".to_string())?;
+    let operation = match context.capability_id.as_str() {
+        "etherscan.balance" => "balance",
+        "etherscan.balancemulti" => "balancemulti",
+        "etherscan.txlist" => "txlist",
+        "etherscan.txlistinternal" => "txlistinternal",
+        "etherscan.tokentx" => "tokentx",
+        "etherscan.tokennfttx" => "tokennfttx",
+        "etherscan.token1155tx" => "token1155tx",
+        "etherscan.getabi" => "getabi",
+        "etherscan.getsourcecode" => "getsourcecode",
+        "etherscan.getstatus" => "getstatus",
+        "etherscan.gettxreceiptstatus" => "gettxreceiptstatus",
+        _ => return Err("unsupported_capability".to_string()),
+    };
+    let mut params: serde_json::Value =
+        serde_json::from_str(params).map_err(|_| "invalid_parameters".to_string())?;
+    let object = params
+        .as_object_mut()
+        .ok_or_else(|| "invalid_parameters".to_string())?;
+    if object.contains_key("action") {
+        return Err("public_selector_is_not_allowed".to_string());
+    }
+    object.insert(
+        "action".to_string(),
+        serde_json::Value::String(operation.to_string()),
+    );
+    execute_inner(&params.to_string())
+}
 
 export!(EtherscanTool);
 

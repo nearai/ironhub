@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WordPress create resource input",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "site_url": { "type": "string", "minLength": 4, "maxLength": 253, "description": "The host pinned in manifest.toml, with or without https://." },
+    "data": { "type": "object", "minProperties": 1, "description": "Provider-native WordPress or WooCommerce fields for the new resource." }
+  },
+  "required": ["site_url", "data"]
+}

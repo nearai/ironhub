@@ -523,8 +523,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "tavily-tool"
-version = "0.1.0"
+name = "tavily-reborn-tool"
+version = "0.2.0"
 dependencies = [
  "serde",
  "serde_json",

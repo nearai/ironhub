@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Jina AI output",
+  "type": "string",
+  "description": "Compact YAML/plain-text result encoded as a JSON string."
+}

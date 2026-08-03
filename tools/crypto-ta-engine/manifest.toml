@@ -1,0 +1,38 @@
+schema_version = "reborn.extension_manifest.v2"
+id = "crypto-ta-engine"
+name = "Crypto TA Engine"
+version = "0.2.0"
+description = "Deterministic technical-analysis engine. Fetches Binance Spot klines (public market data, no key) and computes indicators + multi-timeframe confluence scoring."
+trust = "third_party"
+
+[runtime]
+kind = "wasm"
+module = "wasm/crypto_ta_engine_reborn_tool.wasm"
+
+[[host_api]]
+id = "ironclaw.capability_provider/v1"
+section = "capability_provider.tools"
+
+[capability_provider.tools]
+
+[[capability_provider.tools.capabilities]]
+id = "crypto-ta-engine.analyze"
+description = "Weighted multi-timeframe confluence verdict."
+effects = ["dispatch_capability", "network"]
+default_permission = "allow"
+visibility = "model"
+input_schema_ref = "schemas/crypto-ta-engine/analyze.input.v1.json"
+output_schema_ref = "schemas/crypto-ta-engine/output.v1.json"
+prompt_doc_ref = "prompts/crypto-ta-engine/analyze.md"
+network_targets = [{ scheme = "https", host_pattern = "api.binance.com" }, { scheme = "https", host_pattern = "api.binance.us" }]
+
+[[capability_provider.tools.capabilities]]
+id = "crypto-ta-engine.indicators"
+description = "Single-timeframe raw indicator snapshot."
+effects = ["dispatch_capability", "network"]
+default_permission = "allow"
+visibility = "model"
+input_schema_ref = "schemas/crypto-ta-engine/indicators.input.v1.json"
+output_schema_ref = "schemas/crypto-ta-engine/output.v1.json"
+prompt_doc_ref = "prompts/crypto-ta-engine/indicators.md"
+network_targets = [{ scheme = "https", host_pattern = "api.binance.com" }, { scheme = "https", host_pattern = "api.binance.us" }]

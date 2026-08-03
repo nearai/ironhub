@@ -48,8 +48,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "crypto-ta-engine-tool"
-version = "0.1.0"
+name = "crypto-ta-engine-reborn-tool"
+version = "0.2.0"
 dependencies = [
  "serde",
  "serde_json",

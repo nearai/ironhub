@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "list_oss input",
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "Filter keeping matching library lines plus section headers."
+    }
+  },
+  "additionalProperties": false
+}

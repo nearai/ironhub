@@ -18,13 +18,14 @@
 //! peak ≈ 2.5-3.2 MB, comfortably under the default cap. Responses are also
 //! summarized/downsampled to keep model-context usage low.
 //!
-//! ⚠ FUEL REQUIREMENT (verified e2e 2026-07-11): inflating + scanning ~10 MB
-//! of JSON costs more than IronClaw's default 500M-instruction fuel limit —
-//! list_protocols / list_pools / get_protocol fuel-exhaust on stock settings
-//! (a fuel trap cannot be caught in-tool). Operators must set
-//! `WASM_DEFAULT_FUEL_LIMIT=2000000000` (2B verified sufficient; 5B for
-//! headroom) in `~/.ironclaw/.env`. All other actions run fine on defaults.
-//! See docs/reference/raising-wasm-limits.md.
+//! ⚠ HOST FUEL LIMITATION (re-verified against Reborn host source 2026-08-03):
+//! inflating + scanning ~10 MB of JSON costs more than the fixed 500M fuel
+//! budget used by the current production composition. list_protocols /
+//! list_pools / get_protocol can therefore fuel-exhaust on stock Reborn (a
+//! fuel trap cannot be caught in-tool). Legacy WASM limit environment flags
+//! are no longer read by the Reborn production path, and manifest v2 has no
+//! per-tool fuel field. The host needs a supported configurable or
+//! per-capability fuel budget; all other actions run fine on stock limits.
 
 wit_bindgen::generate!({
     world: "sandboxed-tool",
@@ -74,7 +75,12 @@ struct DefiLlamaTool;
 
 impl exports::near::agent::tool::Guest for DefiLlamaTool {
     fn execute(req: exports::near::agent::tool::Request) -> exports::near::agent::tool::Response {
-        match execute_inner(&req.params) {
+        #[cfg(feature = "reborn")]
+        let result = execute_reborn(&req.params, req.context.as_deref());
+        #[cfg(not(feature = "reborn"))]
+        let result = execute_inner(&req.params);
+
+        match result {
             Ok(output) => exports::near::agent::tool::Response {
                 output: Some(output),
                 error: None,
@@ -99,9 +105,10 @@ impl exports::near::agent::tool::Guest for DefiLlamaTool {
          (yield/APY pools), 'dex_overview'/'dex_summary'/'options_overview'/'options_summary'/\
          'open_interest_overview' (volumes), 'fees_overview'/'fees_summary' (fees & revenue). \
          No API key needed; DefiLlama Pro endpoints are not supported. \
-         NOTE: if list_protocols/list_pools/get_protocol fail with a fuel/instruction-limit error, the \
-         IronClaw host needs WASM_DEFAULT_FUEL_LIMIT=2000000000 in its env (default 500M is too low for \
-         these ~10 MB streams) — tell the user, you can use http tools for this case as a workaround."
+         HOST LIMITATION: list_protocols/list_pools/get_protocol may fail with a fuel/instruction-limit \
+         error because current IronClaw Reborn uses a fixed 500M WASM fuel budget for these ~10 MB \
+         streams. Legacy WASM limit environment flags do not affect Reborn; the host needs a supported \
+         configurable or per-capability fuel budget. Tell the user clearly if this limit is hit."
             .to_string()
     }
 }
@@ -1071,7 +1078,7 @@ struct StablecoinRow {
 ///
 /// NOTE: get_stablecoin deliberately sources from this list instead of
 /// `/stablecoin/{asset}` — that endpoint returns the FULL daily per-chain
-/// history (19 MB for USDT), which exceeds the sandbox's 16 MB memory cap
+/// history (19 MB for USDT), which exceeds the sandbox's 10 MiB memory cap
 /// outright.
 fn fetch_stablecoins() -> Result<Vec<StablecoinRow>, String> {
     let body = http_get_text(&service_url(
@@ -1881,6 +1888,61 @@ const SCHEMA: &str = r#"{
         }
     ]
 }"#;
+
+#[cfg(feature = "reborn")]
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ToolContext {
+    capability_id: String,
+}
+
+#[cfg(feature = "reborn")]
+fn execute_reborn(params: &str, context: Option<&str>) -> Result<String, String> {
+    let context = context.ok_or_else(|| "missing_invocation_context".to_string())?;
+    let context: ToolContext =
+        serde_json::from_str(context).map_err(|_| "invalid_invocation_context".to_string())?;
+    let operation = match context.capability_id.as_str() {
+        "defillama.list_protocols" => "list_protocols",
+        "defillama.get_protocol" => "get_protocol",
+        "defillama.protocol_tvl" => "protocol_tvl",
+        "defillama.list_chains" => "list_chains",
+        "defillama.chain_tvl_history" => "chain_tvl_history",
+        "defillama.current_prices" => "current_prices",
+        "defillama.historical_prices" => "historical_prices",
+        "defillama.price_chart" => "price_chart",
+        "defillama.price_percentage" => "price_percentage",
+        "defillama.first_prices" => "first_prices",
+        "defillama.block" => "block",
+        "defillama.list_stablecoins" => "list_stablecoins",
+        "defillama.get_stablecoin" => "get_stablecoin",
+        "defillama.stablecoin_history" => "stablecoin_history",
+        "defillama.stablecoin_chains" => "stablecoin_chains",
+        "defillama.stablecoin_prices" => "stablecoin_prices",
+        "defillama.list_pools" => "list_pools",
+        "defillama.pool_history" => "pool_history",
+        "defillama.dex_overview" => "dex_overview",
+        "defillama.dex_summary" => "dex_summary",
+        "defillama.options_overview" => "options_overview",
+        "defillama.options_summary" => "options_summary",
+        "defillama.open_interest_overview" => "open_interest_overview",
+        "defillama.fees_overview" => "fees_overview",
+        "defillama.fees_summary" => "fees_summary",
+        _ => return Err("unsupported_capability".to_string()),
+    };
+    let mut params: serde_json::Value =
+        serde_json::from_str(params).map_err(|_| "invalid_parameters".to_string())?;
+    let object = params
+        .as_object_mut()
+        .ok_or_else(|| "invalid_parameters".to_string())?;
+    if object.contains_key("action") {
+        return Err("public_selector_is_not_allowed".to_string());
+    }
+    object.insert(
+        "action".to_string(),
+        serde_json::Value::String(operation.to_string()),
+    );
+    execute_inner(&params.to_string())
+}
 
 export!(DefiLlamaTool);
 

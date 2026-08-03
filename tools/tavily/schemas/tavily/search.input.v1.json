@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "search input",
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "The search query (max 500 chars)."
+    },
+    "search_depth": {
+      "type": "string",
+      "enum": [
+        "basic",
+        "advanced"
+      ],
+      "description": "Search depth: 'basic' (fast, 1 credit) or 'advanced' (thorough, 2 credits). Default 'advanced'."
+    },
+    "max_results": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 20,
+      "description": "Max results to return (1–20, default 5)."
+    },
+    "include_answer": {
+      "type": "boolean",
+      "description": "Include AI-synthesized answer summary. Default false."
+    },
+    "include_raw_content": {
+      "type": "boolean",
+      "description": "Include full cleaned page content per result. Default false."
+    },
+    "include_images": {
+      "type": "boolean",
+      "description": "Include images related to query. Default false."
+    },
+    "topic": {
+      "type": "string",
+      "enum": [
+        "general",
+        "news",
+        "finance"
+      ],
+      "description": "Search category: 'general' (default), 'news', or 'finance'."
+    },
+    "auto_parameters": {
+      "type": "boolean",
+      "description": "Let Tavily auto-configure search parameters based on query intent. Default false."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "query"
+  ]
+}

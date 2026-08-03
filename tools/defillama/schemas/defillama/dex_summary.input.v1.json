@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "dex_summary input",
+  "type": "object",
+  "properties": {
+    "protocol": {
+      "type": "string",
+      "description": "DEX protocol slug, e.g. 'uniswap'."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "protocol"
+  ]
+}

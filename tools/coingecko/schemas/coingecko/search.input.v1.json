@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "search input",
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "Search query keyword."
+    },
+    "pro": {
+      "type": "boolean",
+      "description": "Set to true to use the Pro API domain. Default is false."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "query"
+  ]
+}

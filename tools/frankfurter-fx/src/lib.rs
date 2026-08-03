@@ -20,7 +20,12 @@ struct FrankfurterTool;
 
 impl exports::near::agent::tool::Guest for FrankfurterTool {
     fn execute(req: exports::near::agent::tool::Request) -> exports::near::agent::tool::Response {
-        match execute_inner(&req.params) {
+        #[cfg(feature = "reborn")]
+        let result = execute_reborn(&req.params, req.context.as_deref());
+        #[cfg(not(feature = "reborn"))]
+        let result = execute_inner(&req.params);
+
+        match result.and_then(encode_guest_output) {
             Ok(output) => exports::near::agent::tool::Response {
                 output: Some(output),
                 error: None,
@@ -49,9 +54,48 @@ impl exports::near::agent::tool::Guest for FrankfurterTool {
     }
 }
 
+#[cfg(feature = "reborn")]
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ToolContext {
+    capability_id: String,
+}
+
+#[cfg(feature = "reborn")]
+fn execute_reborn(params: &str, context: Option<&str>) -> Result<String, String> {
+    let context = context.ok_or_else(|| "missing_invocation_context".to_string())?;
+    let context: ToolContext =
+        serde_json::from_str(context).map_err(|_| "invalid_invocation_context".to_string())?;
+    let operation = match context.capability_id.as_str() {
+        "frankfurter-fx.convert" => "convert",
+        "frankfurter-fx.batch_convert" => "batch_convert",
+        "frankfurter-fx.historical_trend" => "historical_trend",
+        "frankfurter-fx.search_currencies" => "search_currencies",
+        _ => return Err("unsupported_capability".to_string()),
+    };
+    let mut params: serde_json::Value =
+        serde_json::from_str(params).map_err(|_| "invalid_parameters".to_string())?;
+    let object = params
+        .as_object_mut()
+        .ok_or_else(|| "invalid_parameters".to_string())?;
+    if object.contains_key("action") {
+        return Err("public_selector_is_not_allowed".to_string());
+    }
+    object.insert(
+        "action".to_string(),
+        serde_json::Value::String(operation.to_string()),
+    );
+    execute_inner(&params.to_string())
+}
+
 export!(FrankfurterTool);
 
 /// Tool action enumeration with full description metadata.
+
+fn encode_guest_output(output: String) -> Result<String, String> {
+    serde_json::to_string(&output).map_err(|_| "tool_output_encode_failed".to_string())
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(tag = "action", rename_all = "snake_case")]
 enum Action {

@@ -1,6 +1,6 @@
 ---
 name: coingecko
-version: 0.1.0
+version: 0.2.0
 description: Universal cryptocurrency price and market oracle for Ironclaw via the CoinGecko API. Retrieves current prices, market tables, detailed metadata, historical charts, candles, and trending assets. Supports both free Demo and Pro API keys.
 use_cases:
   - Retrieve real-time cryptocurrency exchange rates and prices
@@ -18,25 +18,30 @@ value_tags:
 
 # CoinGecko Tool
 
+## Install and configure
+
+Install the tool from IronHub. For a manual package import, open **Extensions →
+Registry → Import**, select the tool archive, and click **Install**.
+
+Open **Configure** and store a CoinGecko Demo or Pro API key. The same account is
+host-injected into the correct Demo/Pro header; pass `pro: true` only when the
+configured key has Pro access.
+
+Each operation is exposed as a named capability with its own input schema. Use
+only the parameters shown for that capability in the examples below.
+
+Credentials are stored by IronClaw and injected only at the declared HTTP boundary; they
+are not included in model input or exposed to the WASM component.
+
+
 A sandboxed WASM tool that gives an IronClaw agent access to the [CoinGecko API](https://docs.coingecko.com) for real-time cryptocurrency prices, market statistics, coin details, and historical data.
 
-The host injects the API key at the HTTP boundary — the WASM code never sees the raw secret — and network access is restricted to `api.coingecko.com` and `pro-api.coingecko.com` as declared in `coingecko-tool.capabilities.json`.
+The host injects the API key at the HTTP boundary — the WASM code never sees the raw secret — and network access is restricted to `api.coingecko.com` and `pro-api.coingecko.com` as declared in `manifest.toml`; the Rust adapter retains route and method validation.
 
-![Coingecko tool](screenshot.png)
+![Coingecko tool](screenshot.jpg)
 
-## Authentication
-
-Configure your CoinGecko API key (Demo or Pro):
-
-```bash
-ironclaw tool setup coingecko-tool
-```
-
-During execution, the tool automatically uses the correct API key header. If you are using a Pro API key, pass `"pro": true` in your actions to target the Pro host (`pro-api.coingecko.com`).
-
-## Actions
-
-| Action | Required | Optional | Description |
+## Capabilities
+| Capability | Required | Optional | Description |
 |--------|----------|----------|-------------|
 | `ping` | — | `pro` | Verify connection to the CoinGecko API server. |
 | `simple_price` | `ids`, `vs_currencies` | `include_market_cap`, `include_24hr_vol`, `include_24hr_change`, `include_last_updated_at`, `pro` | Get current prices of specified coins. |
@@ -64,34 +69,35 @@ To operate safely under the **10 MB WASM linear memory limit** and prevent agent
 
 ## Examples
 
-```json
+```jsonc
 // Ping the API
-{ "action": "ping" }
+// Capability: coingecko.ping
+{}
 
 // Get prices of BTC and ETH in USD and EUR
+// Capability: coingecko.simple_price
 {
-  "action": "simple_price",
   "ids": "bitcoin,ethereum",
   "vs_currencies": "usd,eur",
   "include_24hr_change": true
 }
 
 // Get top 10 coins by market cap
+// Capability: coingecko.coin_markets
 {
-  "action": "coin_markets",
   "vs_currency": "usd",
   "per_page": 10
 }
 
 // Fetch detailed metadata for Solana
+// Capability: coingecko.coin_details
 {
-  "action": "coin_details",
   "id": "solana"
 }
 
 // Get historical chart for NEAR over last 30 days using a Pro key
+// Capability: coingecko.coin_market_chart
 {
-  "action": "coin_market_chart",
   "id": "near",
   "vs_currency": "usd",
   "days": "30",
@@ -99,13 +105,13 @@ To operate safely under the **10 MB WASM linear memory limit** and prevent agent
 }
 
 // Search for assets matching "gala"
+// Capability: coingecko.search
 {
-  "action": "search",
   "query": "gala"
 }
 
 // Get the top 100 coin IDs list instantly
+// Capability: coingecko.coins_list
 {
-  "action": "coins_list"
 }
 ```

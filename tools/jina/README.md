@@ -1,7 +1,7 @@
 ---
 name: jina
-version: 0.1.0
-description: Read web content via Jina AI - r.jina.ai (converts URLs to markdown), capture screenshots, or search via svip.jina.ai (performs general web, arXiv, SSRN, and image searches). Authentication uses the 'jina_api_key' secret injected by the host as a Bearer token.
+version: 0.2.3
+description: Read web pages and PDFs as compact content, capture webpage screenshots, and search the web, arXiv, SSRN, or images through Jina AI. The host injects one Jina API key only for the Reader and Search API hosts.
 use_cases:
   - Scrape and extract clean markdown from any URL or PDF file for LLMs.
   - Capture first-screen or full-page screenshots of webpages.
@@ -19,13 +19,27 @@ value_tags:
 
 # Jina Reader Tool
 
+## Install and configure
+
+Install the tool from IronHub. For a manual package import, open **Extensions →
+Registry → Import**, select the tool archive, and click **Install**.
+
+Open **Configure** and store a Jina API key from https://jina.ai. IronClaw injects the
+same credential only for the declared reader/search hosts.
+
+Each operation is exposed as a named capability with its own input schema. Use
+only the parameters shown for that capability in the examples below.
+
+Credentials are stored by IronClaw and injected only at the declared HTTP boundary; they
+are not included in model input or exposed to the WASM component.
+
+
 A sandboxed WASM tool for IronClaw that wraps the official Jina Reader, Screenshot, and Search APIs. It provides full parity with the core capabilities of the official Jina MCP server, allowing the agent to read webpages, take screenshots, and query general, academic, or image search engines.
 
 ![jina](screenshot.jpg)
 
 
-## Actions
-
+## Capabilities
 The tool supports the following actions:
 
 ### 1. `read_url`
@@ -70,42 +84,6 @@ Performs web-based image searches and returns image titles, image URLs, parent w
 **Parameters:**
 * `query` (string, **required**): The search query to run.
 * `num` (integer, *optional*): The number of search results to return (default 30).
-
----
-
-## Installation
-
-To build and package the tool, run:
-```bash
-./scripts/build-tool.sh jina
-```
-
-To install or overwrite the packaged tool locally under the name `jina-tool`, run:
-```bash
-ironclaw tool install dist/jina/jina-tool.wasm \
-  --capabilities dist/jina/jina-tool.capabilities.json \
-  --name jina-tool --force
-```
-
----
-
-## Authentication & Setup
-
-The tool requires a Jina API key for production-level rate limits. You can obtain a free or paid API key at [jina.ai](https://jina.ai/).
-
-1. **Option A (Interactive setup):**
-   ```bash
-   ironclaw tool setup jina-tool
-   ```
-   Paste your `jina_...` API key when prompted.
-
-2. **Option B (Environment-based):**
-   ```bash
-   export JINA_API_KEY="jina_..."
-   ironclaw tool auth jina-tool
-   ```
-
-At runtime, the host will intercept request calls to `r.jina.ai` and `svip.jina.ai` and inject your API key as a Bearer token. The API key is securely encrypted on disk and never exposed inside the WASM sandbox.
 
 ---
 

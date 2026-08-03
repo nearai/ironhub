@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "validator_apy input",
+  "type": "object",
+  "properties": {
+    "validator": {
+      "type": "string",
+      "description": "The validator pool account ID (e.g. 'monterrey.pool.near')."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "validator"
+  ]
+}

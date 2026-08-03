@@ -20,7 +20,12 @@ struct MessariTool;
 
 impl exports::near::agent::tool::Guest for MessariTool {
     fn execute(req: exports::near::agent::tool::Request) -> exports::near::agent::tool::Response {
-        match execute_inner(&req.params) {
+        #[cfg(feature = "reborn")]
+        let result = execute_reborn(&req.params, req.context.as_deref());
+        #[cfg(not(feature = "reborn"))]
+        let result = execute_inner(&req.params);
+
+        match result.and_then(encode_guest_output) {
             Ok(output) => exports::near::agent::tool::Response {
                 output: Some(output),
                 error: None,
@@ -47,7 +52,55 @@ impl exports::near::agent::tool::Guest for MessariTool {
     }
 }
 
+#[cfg(feature = "reborn")]
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ToolContext {
+    capability_id: String,
+}
+
+#[cfg(feature = "reborn")]
+fn execute_reborn(params: &str, context: Option<&str>) -> Result<String, String> {
+    let context = context.ok_or_else(|| "missing_invocation_context".to_string())?;
+    let context: ToolContext =
+        serde_json::from_str(context).map_err(|_| "invalid_invocation_context".to_string())?;
+    let operation = match context.capability_id.as_str() {
+        "messari.ask_ai" => "ask_ai",
+        "messari.metrics" => "metrics",
+        "messari.signal" => "signal",
+        "messari.news" => "news",
+        "messari.research" => "research",
+        "messari.stablecoins" => "stablecoins",
+        "messari.exchanges" => "exchanges",
+        "messari.networks" => "networks",
+        "messari.protocols" => "protocols",
+        "messari.token_unlocks" => "token_unlocks",
+        "messari.fundraising" => "fundraising",
+        "messari.intel" => "intel",
+        "messari.topics" => "topics",
+        "messari.x_users" => "x_users",
+        _ => return Err("unsupported_capability".to_string()),
+    };
+    let mut params: serde_json::Value =
+        serde_json::from_str(params).map_err(|_| "invalid_parameters".to_string())?;
+    let object = params
+        .as_object_mut()
+        .ok_or_else(|| "invalid_parameters".to_string())?;
+    if object.contains_key("action") {
+        return Err("public_selector_is_not_allowed".to_string());
+    }
+    object.insert(
+        "action".to_string(),
+        serde_json::Value::String(operation.to_string()),
+    );
+    execute_inner(&params.to_string())
+}
+
 export!(MessariTool);
+
+fn encode_guest_output(output: String) -> Result<String, String> {
+    serde_json::to_string(&output).map_err(|_| "tool_output_encode_failed".to_string())
+}
 
 #[derive(Debug, Deserialize)]
 #[serde(tag = "action", rename_all = "snake_case")]
@@ -165,7 +218,7 @@ fn execute_inner(params_json: &str) -> Result<String, String> {
             let limit_val = limit.unwrap_or(20);
             let path = match query {
                 Some(q) => format!("/news/v1/news/feed?query={}&limit={}", q.trim(), limit_val),
-                None => format!("/news/v1/news/feed?limit={limit_val}"),
+                None => format!("/news/v1/news/feed?limit={}", limit_val),
             };
             get_request(&path)?
         }
@@ -177,7 +230,7 @@ fn execute_inner(params_json: &str) -> Result<String, String> {
                     q.trim(),
                     limit_val
                 ),
-                None => format!("/research/v1/reports?limit={limit_val}"),
+                None => format!("/research/v1/reports?limit={}", limit_val),
             };
             get_request(&path)?
         }
@@ -210,7 +263,7 @@ fn execute_inner(params_json: &str) -> Result<String, String> {
             let limit_val = limit.unwrap_or(20);
             let path = match asset_key {
                 Some(key) => format!("/token-unlocks/v1/assets/{}", key.trim()),
-                None => format!("/token-unlocks/v1/assets?limit={limit_val}"),
+                None => format!("/token-unlocks/v1/assets?limit={}", limit_val),
             };
             get_request(&path)?
         }
@@ -222,7 +275,7 @@ fn execute_inner(params_json: &str) -> Result<String, String> {
                     cat.trim(),
                     limit_val
                 ),
-                None => format!("/funding/v1/rounds?limit={limit_val}"),
+                None => format!("/funding/v1/rounds?limit={}", limit_val),
             };
             get_request(&path)?
         }
@@ -230,7 +283,7 @@ fn execute_inner(params_json: &str) -> Result<String, String> {
             let limit_val = limit.unwrap_or(20);
             let path = match asset_key {
                 Some(key) => format!("/intel/v1/events?asset={}&limit={}", key.trim(), limit_val),
-                None => format!("/intel/v1/events?limit={limit_val}"),
+                None => format!("/intel/v1/events?limit={}", limit_val),
             };
             get_request(&path)?
         }
@@ -242,7 +295,7 @@ fn execute_inner(params_json: &str) -> Result<String, String> {
             let limit_val = limit.unwrap_or(20);
             let path = match query {
                 Some(q) => format!("/x-users/v1/users?query={}&limit={}", q.trim(), limit_val),
-                None => format!("/x-users/v1/users?limit={limit_val}"),
+                None => format!("/x-users/v1/users?limit={}", limit_val),
             };
             get_request(&path)?
         }
@@ -349,7 +402,7 @@ fn json_to_yaml(value: &Value, indent_level: usize) -> String {
             if s.contains('\n') {
                 let mut out = "|\n".to_string();
                 for line in s.lines() {
-                    out.push_str(&format!("{indent}  {line}\n"));
+                    out.push_str(&format!("{}  {}\n", indent, line));
                 }
                 out
             } else if s.is_empty() {
@@ -376,10 +429,10 @@ fn json_to_yaml(value: &Value, indent_level: usize) -> String {
             } else {
                 let mut out = "\n".to_string();
                 for item in arr {
-                    out.push_str(&format!("{indent}- "));
+                    out.push_str(&format!("{}- ", indent));
                     let val_str = json_to_yaml(item, indent_level + 1);
-                    if let Some(stripped) = val_str.strip_prefix('\n') {
-                        out.push_str(stripped);
+                    if val_str.starts_with('\n') {
+                        out.push_str(&val_str[1..]);
                     } else {
                         out.push_str(&val_str);
                     }
@@ -393,10 +446,10 @@ fn json_to_yaml(value: &Value, indent_level: usize) -> String {
             } else {
                 let mut out = "\n".to_string();
                 for (k, v) in map {
-                    out.push_str(&format!("{indent}{k}: "));
+                    out.push_str(&format!("{}{}: ", indent, k));
                     let val_str = json_to_yaml(v, indent_level + 1);
-                    if let Some(stripped) = val_str.strip_prefix('\n') {
-                        out.push_str(stripped);
+                    if val_str.starts_with('\n') {
+                        out.push_str(&val_str[1..]);
                     } else {
                         out.push_str(&val_str);
                     }
@@ -411,7 +464,11 @@ fn to_yaml(value: &Value) -> String {
     let mut cloned = value.clone();
     prune_value(&mut cloned);
     let yaml_str = json_to_yaml(&cloned, 0);
-    yaml_str.strip_prefix('\n').unwrap_or(&yaml_str).to_string()
+    if yaml_str.starts_with('\n') {
+        yaml_str[1..].to_string()
+    } else {
+        yaml_str
+    }
 }
 
 const SCHEMA: &str = r#"{

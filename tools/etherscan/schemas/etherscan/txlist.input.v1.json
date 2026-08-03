@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "txlist input",
+  "type": "object",
+  "properties": {
+    "address": {
+      "type": "string",
+      "description": "The EVM address to query."
+    },
+    "chain": {
+      "type": [
+        "integer",
+        "string"
+      ],
+      "description": "The EVM chain ID or name."
+    },
+    "startblock": {
+      "type": "integer",
+      "description": "Start block number. Optional."
+    },
+    "endblock": {
+      "type": "integer",
+      "description": "End block number. Optional."
+    },
+    "page": {
+      "type": "integer",
+      "description": "Page number. Optional."
+    },
+    "offset": {
+      "type": "integer",
+      "description": "Number of records per page (default 20, max 100). Optional."
+    },
+    "sort": {
+      "type": "string",
+      "enum": [
+        "asc",
+        "desc"
+      ],
+      "description": "Sort order (default 'asc'). Optional."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "address",
+    "chain"
+  ]
+}

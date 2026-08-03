@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WordPress get by ID input",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "site_url": { "type": "string", "minLength": 4, "maxLength": 253, "description": "The host pinned in manifest.toml, with or without https://." },
+    "id": { "type": "integer", "minimum": 1 }
+  },
+  "required": ["site_url", "id"]
+}

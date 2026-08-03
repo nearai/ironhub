@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "pool_history input",
+  "type": "object",
+  "properties": {
+    "pool": {
+      "type": "string",
+      "description": "Pool UUID from list_pools (the 'pool' field)."
+    },
+    "points": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 500,
+      "default": 90,
+      "description": "Max APY/TVL history points returned."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "pool"
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "get_author_feed input",
+  "type": "object",
+  "properties": {
+    "actor": {
+      "type": "string",
+      "description": "Account identifier: a handle (e.g. 'alice.bsky.social') or DID (e.g. 'did:plc:...')."
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Max results (1-100, default 50).",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 50
+    },
+    "cursor": {
+      "type": "string",
+      "description": "Opaque pagination cursor from a previous response. Pass it back to fetch the next page."
+    },
+    "filter": {
+      "type": "string",
+      "description": "Optional server-side filter: 'posts_with_replies', 'posts_no_replies', 'posts_with_media', or 'posts_and_author_threads'.",
+      "enum": [
+        "posts_with_replies",
+        "posts_no_replies",
+        "posts_with_media",
+        "posts_and_author_threads"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "actor"
+  ]
+}
