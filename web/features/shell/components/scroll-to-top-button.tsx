@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { IconArrowUp } from "@tabler/icons-react"
-import { usePathname } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/shared/utils"
@@ -10,12 +9,9 @@ import { cn } from "@/lib/shared/utils"
 const VISIBILITY_THRESHOLD = 400
 
 export function ScrollToTopButton() {
-  const pathname = usePathname()
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
-    if (pathname === "/agents") return
-
     const updateVisibility = () => {
       setIsVisible(window.scrollY > VISIBILITY_THRESHOLD)
     }
@@ -24,9 +20,7 @@ export function ScrollToTopButton() {
     window.addEventListener("scroll", updateVisibility, { passive: true })
 
     return () => window.removeEventListener("scroll", updateVisibility)
-  }, [pathname])
-
-  if (pathname === "/agents") return null
+  }, [])
 
   const scrollToTop = () => {
     const prefersReducedMotion = window.matchMedia(

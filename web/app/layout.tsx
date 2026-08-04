@@ -5,6 +5,9 @@ import localFont from "next/font/local"
 import { SiteShell } from "@/features/shell/components/site-shell"
 import { ThemeProvider } from "@/features/shell/components/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { StructuredData } from "@/components/structured-data"
+import { buildSiteJsonLd } from "@/lib/discovery/json-ld"
+import { siteConfig, siteUrl } from "@/lib/discovery/site"
 import "./globals.css"
 
 // FK Grotesk — NEAR brand primary typeface. Hierarchy built from weight.
@@ -33,12 +36,17 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
+  metadataBase: siteUrl,
   title: {
-    default: "IronHub | Secure Skills for IronClaw",
+    default: siteConfig.defaultTitle,
     template: "%s | IronHub",
   },
-  description:
-    "Repo-backed IronClaw skills and Wasm tools with visible vault, sandbox, auth, and endpoint boundaries.",
+  description: siteConfig.description,
+  applicationName: siteConfig.name,
+  authors: [{ name: "IronHub", url: siteConfig.repository }],
+  creator: "IronHub",
+  publisher: "IronHub",
+  category: "technology",
   manifest: "/site.webmanifest",
   icons: {
     icon: [
@@ -50,17 +58,26 @@ export const metadata: Metadata = {
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
   openGraph: {
-    title: "IronHub | Secure Skills for IronClaw",
-    description:
-      "Browse repo-backed IronClaw Skills and Tools with security boundaries visible before install.",
-    images: ["/assets/iron_claw_guy1.webp"],
+    title: siteConfig.defaultTitle,
+    description: siteConfig.description,
+    url: "/",
+    siteName: siteConfig.name,
+    locale: siteConfig.locale,
+    type: "website",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: siteConfig.defaultTitle,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "IronHub | Secure Skills for IronClaw",
-    description:
-      "Repo-backed skills and Wasm tools for encrypted, sandboxed IronClaw agents.",
-    images: ["/assets/iron_claw_guy1.webp"],
+    title: siteConfig.defaultTitle,
+    description: siteConfig.description,
+    images: ["/opengraph-image"],
   },
   appleWebApp: {
     capable: true,
@@ -81,6 +98,7 @@ export default function RootLayout({
       className={`${fkGrotesk.variable} ${geistMono.variable} font-sans antialiased`}
     >
       <body>
+        <StructuredData id="ironhub-site-jsonld" data={buildSiteJsonLd()} />
         <TooltipProvider>
           <ThemeProvider defaultTheme="light">
             <SiteShell>{children}</SiteShell>

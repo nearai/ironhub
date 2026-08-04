@@ -10,6 +10,7 @@
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "test:catalog": "node --experimental-strip-types --test \"lib/catalog/*.test.mjs\"",
+    "test:discovery": "node --experimental-strip-types --test \"lib/discovery/*.test.mjs\"",
     "typecheck": "tsc --noEmit",
     "signing:check": "node scripts/check-manifest-signing.mjs && node scripts/check-install-payload-signing.mjs",
     "db:migrate": "prisma migrate dev",

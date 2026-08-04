@@ -10,6 +10,8 @@ import {
   getCollectionBundle,
 } from "@/lib/catalog/collections"
 import { getMarketplaceCatalog } from "@/lib/catalog/server"
+import { StructuredData } from "@/components/structured-data"
+import { buildCollectionJsonLd } from "@/lib/discovery/json-ld"
 
 export type CollectionDetailScreenProps = {
   params: Promise<{ slug: string }>
@@ -34,6 +36,10 @@ export async function CollectionDetailScreen({
 
   return (
     <HubLayout>
+      <StructuredData
+        id="ironhub-collection-jsonld"
+        data={buildCollectionJsonLd(collection)}
+      />
       <div className="mx-auto grid max-w-7xl gap-6">
         <PageHeader
           eyebrow="Collection"
