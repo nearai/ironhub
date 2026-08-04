@@ -13,3 +13,5 @@ export const isAgentsRouteDisabled = isTrue(
 export const isMvpRouteDisabled = isTrue(
   process.env.NEXT_PUBLIC_DISABLE_MVP_ROUTE,
 )
+
+export const isIliadDisabled = isTrue(process.env.NEXT_PUBLIC_DISABLE_ILIAD)

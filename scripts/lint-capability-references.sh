@@ -13,7 +13,7 @@ set -euo pipefail
 # Set REBORN_ROOT if your local reborn-integration checkout lives elsewhere.
 
 REBORN_ROOT="${REBORN_ROOT:-$HOME/VScode/ironclaw-reborn}"
-EXTENSIONS_DIR="$REBORN_ROOT/crates/ironclaw_first_party_extensions/assets"
+EXTENSIONS_DIR="$REBORN_ROOT/crates/extensions/packages"
 SKILLS_DIR="$(cd "$(dirname "$0")/.." && pwd)/skills"
 
 PENDING_EXTENSIONS=(slack attio)
@@ -61,6 +61,7 @@ extract_refs() {
 errors=0
 warnings=0
 checked=0
+skipped=0
 
 while IFS= read -r skill; do
     while IFS= read -r entry; do
@@ -76,6 +77,12 @@ while IFS= read -r skill; do
         manifest="${EXTENSION_MANIFEST[$ext]:-}"
 
         if [[ -n "$manifest" ]]; then
+            # Hosted-MCP extensions discover their tools from the server at
+            # runtime, so a manifest lists no capability ids to check against.
+            if grep -qE '^\[mcp\]' "$manifest"; then
+                skipped=$((skipped + 1))
+                continue
+            fi
             checked=$((checked + 1))
             if ! grep -qE "^id = \"$ext\.$cap\"" "$manifest"; then
                 echo "fail: $location  $token  (capability '$cap' not declared in extension '$ext')"
@@ -96,6 +103,7 @@ skill_count=$(find "$SKILLS_DIR" -name SKILL.md -type f | wc -l)
 
 echo ""
 echo "checked $checked capability reference(s) across $skill_count skill(s)"
+echo "skipped $skipped reference(s) to hosted-MCP extensions (tools resolve at runtime)"
 
 if (( errors > 0 )); then
     echo "FAIL  $errors error(s), $warnings warning(s)"

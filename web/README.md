@@ -32,6 +32,12 @@ Unset or `false` keeps the route visible.
 - `NEXT_PUBLIC_DISABLE_AGENTS_ROUTE`
 - `NEXT_PUBLIC_DISABLE_MVP_ROUTE`
 
+## Feature flags
+
+Set to `true` to hide the surface. Unset or `false` keeps it visible.
+
+- `NEXT_PUBLIC_DISABLE_ILIAD` — hides Iliad-branded UI
+
 ## Commands
 
 ```bash

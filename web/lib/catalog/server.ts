@@ -9,6 +9,7 @@ import {
   getIliadCatalogItem,
   getIliadCatalogItems,
 } from "@/lib/iliad/public-skills.server"
+import { isIliadDisabled } from "@/lib/shared/feature-flags"
 
 export async function getCatalog() {
   const root = await findRepoRoot()
@@ -42,7 +43,9 @@ export async function getCatalogItem(slug: string) {
 export async function getMarketplaceCatalog() {
   const [repoItems, iliadCatalog] = await Promise.all([
     getCatalog(),
-    getIliadCatalogItems(),
+    isIliadDisabled
+      ? Promise.resolve({ items: [], total: 0, error: null })
+      : getIliadCatalogItems(),
   ])
 
   const items = [...repoItems, ...iliadCatalog.items]
@@ -62,6 +65,10 @@ export async function getMarketplaceCatalogItem(slug: string) {
 
   if (localItem) {
     return localItem
+  }
+
+  if (isIliadDisabled) {
+    return undefined
   }
 
   try {
