@@ -9,7 +9,6 @@ const footerLinks = [
   ["IronClaw", links.ironclaw],
   ["Docs", links.docs],
   ["GitHub", links.repo],
-  ["Iliad", links.iliad],
 ] as const
 
 export function SiteFooter() {
