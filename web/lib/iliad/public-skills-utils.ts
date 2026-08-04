@@ -26,9 +26,7 @@ export function tokenizeIliadSkillUrls(
   return {
     ...skill,
     downloadUrl: hubArtifactUrl(refFor(contentFile)),
-    capabilitiesUrl: skill.capabilitiesUrl
-      ? hubArtifactUrl(refFor("c"))
-      : null,
+    capabilitiesUrl: skill.capabilitiesUrl ? hubArtifactUrl(refFor("c")) : null,
   }
 }
 
@@ -114,6 +112,8 @@ export function iliadSkillToCatalogItem(skill: IliadPublicSkill): CatalogItem {
     auth: {
       model: "Catalog gated by Iliad API key",
       requiredSecrets: [],
+      optionalSecrets: [],
+      credentials: [],
     },
     limits: [
       "Download URL is presigned by Iliad and expires after 15 minutes.",
@@ -145,6 +145,8 @@ export function iliadSkillToCatalogItem(skill: IliadPublicSkill): CatalogItem {
       witVersion: "unknown",
       httpAllowlist: [],
       requiredSecrets: [],
+      effects: [],
+      defaultPermissions: [],
     }
   }
 

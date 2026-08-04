@@ -3,9 +3,13 @@ import remarkGfm from "remark-gfm"
 
 type MarkdownViewProps = {
   content: string
+  repositoryAssetBase?: string
 }
 
-export function MarkdownView({ content }: MarkdownViewProps) {
+export function MarkdownView({
+  content,
+  repositoryAssetBase,
+}: MarkdownViewProps) {
   return (
     <div className="space-y-4 text-sm leading-7 text-muted-foreground">
       <ReactMarkdown
@@ -51,6 +55,23 @@ export function MarkdownView({ content }: MarkdownViewProps) {
               {children}
             </blockquote>
           ),
+          img: ({ alt, src }) => {
+            const resolvedSrc = resolveImageSource(
+              typeof src === "string" ? src : undefined,
+              repositoryAssetBase
+            )
+
+            return resolvedSrc ? (
+              // Repository images are served by the constrained same-origin asset route.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={resolvedSrc}
+                alt={alt ?? ""}
+                loading="lazy"
+                className="my-5 h-auto max-w-full rounded-lg border border-border/40"
+              />
+            ) : null
+          },
           a: ({ children, href }) => (
             <a
               href={href}
@@ -103,4 +124,30 @@ export function MarkdownView({ content }: MarkdownViewProps) {
       </ReactMarkdown>
     </div>
   )
+}
+
+function resolveImageSource(
+  source: string | undefined,
+  repositoryAssetBase: string | undefined
+) {
+  if (!source || !repositoryAssetBase || isAbsoluteSource(source)) {
+    return source
+  }
+
+  const [relativePath, suffix = ""] = source.split(/(?=[?#])/, 2)
+  const parts = relativePath.split("/")
+
+  if (
+    parts.length === 0 ||
+    parts.some((part) => !part || part === "." || part === "..")
+  ) {
+    return undefined
+  }
+
+  const encodedPath = parts.map(encodeURIComponent).join("/")
+  return `${repositoryAssetBase}/${encodedPath}${suffix}`
+}
+
+function isAbsoluteSource(source: string) {
+  return /^(?:[a-z][a-z\d+.-]*:|\/\/|\/|#)/i.test(source)
 }

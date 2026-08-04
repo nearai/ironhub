@@ -5,7 +5,7 @@ import type { CatalogItem } from "@/lib/catalog/types"
 import { cn } from "@/lib/shared/utils"
 import { MarketDetailArtifact } from "./market-detail-artifact"
 import { MarketDetailConstraints } from "./market-detail-constraints"
-import { MarketDetailNote } from "./market-detail-note"
+import { MarketDetailResources } from "./market-detail-resources"
 import { MarketDetailSecurity } from "./market-detail-security"
 import { MarketDetailSpecs } from "./market-detail-specs"
 import { MarketDetailToggle } from "./market-detail-toggle"
@@ -37,12 +37,12 @@ export function MarketDetailSurface({ item }: MarketDetailSurfaceProps) {
       >
         <div className="overflow-hidden">
           <div className="grid gap-8 p-6 lg:grid-cols-3">
-            <MarketDetailSpecs item={item} />
             <MarketDetailSecurity item={item} />
-            <MarketDetailConstraints item={item} techTags={techTags} />
+            <MarketDetailConstraints item={item} />
+            <MarketDetailSpecs item={item} techTags={techTags} />
           </div>
           <MarketDetailArtifact item={item} />
-          <MarketDetailNote item={item} />
+          <MarketDetailResources item={item} />
         </div>
       </div>
     </div>

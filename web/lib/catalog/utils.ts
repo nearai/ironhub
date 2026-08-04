@@ -1,7 +1,7 @@
 import type { CatalogItem, CatalogKind } from "@/lib/catalog/types"
 import type { CollectionBundle } from "@/lib/catalog/collections"
 
-export type SortMode = "relevance" | "name" | "actions"
+export type SortMode = "relevance" | "name"
 
 export function filterCatalog(
   items: CatalogItem[],
@@ -70,14 +70,10 @@ function scoreCollectionBundle(bundle: CollectionBundle) {
   return bundle.items.length + bundle.keywords.length
 }
 
-export function sortCatalog(items: CatalogItem[], sort: SortMode) {
+export function sortCatalog(items: CatalogItem[], sort: SortMode | string) {
   return [...items].sort((a, b) => {
     if (sort === "name") {
       return a.name.localeCompare(b.name)
-    }
-
-    if (sort === "actions") {
-      return (b.metrics.actions ?? 0) - (a.metrics.actions ?? 0)
     }
 
     return scoreCatalogItem(b) - scoreCatalogItem(a)
@@ -85,9 +81,5 @@ export function sortCatalog(items: CatalogItem[], sort: SortMode) {
 }
 
 function scoreCatalogItem(item: CatalogItem) {
-  return (
-    (item.metrics.actions ?? 0) +
-    (item.metrics.keywords ?? 0) +
-    item.tags.length
-  )
+  return item.valueTags.length * 3 + item.useCases.length * 2 + item.tags.length
 }

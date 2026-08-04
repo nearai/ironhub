@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { IconArrowRight, IconKey, IconUserCircle } from "@tabler/icons-react"
+import { IconArrowRight, IconUserCircle } from "@tabler/icons-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/shared/utils"
@@ -35,12 +35,8 @@ export function CatalogCard({
   disabled = false,
   isSelected = false,
 }: CatalogCardProps) {
-  const metric =
-    item.origin === "iliad"
-      ? formatBytes(item.contentSize)
-      : item.kind === "tool"
-        ? `${item.actionCount} actions`
-        : `${item.activationKeywords.length} triggers`
+  const artifactSize =
+    item.origin === "iliad" ? formatBytes(item.contentSize) : null
 
   return (
     <Card
@@ -93,10 +89,9 @@ export function CatalogCard({
                 <IconUserCircle className="size-3.5" />
                 {item.author}
               </span>
-              <span className="inline-flex items-center gap-1.5 opacity-80">
-                <IconKey className="size-3.5" />
-                {metric}
-              </span>
+              {artifactSize && (
+                <span className="opacity-80">{artifactSize}</span>
+              )}
             </div>
             <Button
               onClick={() => !disabled && onSelect(item)}
@@ -112,17 +107,23 @@ export function CatalogCard({
               )}
             >
               {selectText || "Select"}
-              <IconArrowRight className={cn("size-4", isSelected && "hidden")} />
+              <IconArrowRight
+                className={cn("size-4", isSelected && "hidden")}
+              />
             </Button>
           </>
         ) : (
           <div className="flex items-center justify-between gap-3 font-mono text-[0.74rem]">
             <span className="inline-flex min-w-0 items-center gap-1.5 truncate text-muted-foreground">
               <span className="truncate">{item.author}</span>
-              <span aria-hidden="true" className="opacity-60">
-                ·
-              </span>
-              <span className="whitespace-nowrap">{metric}</span>
+              {artifactSize && (
+                <>
+                  <span aria-hidden="true" className="opacity-60">
+                    ·
+                  </span>
+                  <span className="whitespace-nowrap">{artifactSize}</span>
+                </>
+              )}
             </span>
             <Link
               href={`/marketplace/${item.slug}`}

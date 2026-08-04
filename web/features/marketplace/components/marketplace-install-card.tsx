@@ -50,7 +50,7 @@ export function MarketplaceInstallCard({
                 $
               </span>
               <span className="text-slate-900 dark:text-slate-100">
-                ironclaw hub search near
+                ironclaw ironhub search near
               </span>
             </div>
             <div className="flex gap-3">

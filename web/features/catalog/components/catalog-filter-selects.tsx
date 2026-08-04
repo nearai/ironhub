@@ -76,7 +76,6 @@ export function CatalogFilterSelects({
         <SelectContent>
           <SelectItem value="relevance">Relevance</SelectItem>
           <SelectItem value="name">Name</SelectItem>
-          <SelectItem value="actions">Actions</SelectItem>
         </SelectContent>
       </Select>
     </div>

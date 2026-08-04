@@ -321,13 +321,11 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
   const loadoutId = slugify(name) || "custom-agent"
   const soulFlag =
     soulSource === "ready-made" ? ` --soul ${selectedPersona}` : " --soul local"
-  const cliCommand = `ironclaw hub loadout install ${loadoutId}${soulFlag}${
-    skills.length ? ` --skills ${skills.map((s) => s.slug).join(",")}` : ""
-  }${tools.length ? ` --tools ${tools.map((t) => t.slug).join(",")}` : ""}${
-    collections.length
+  const cliCommand = `ironclaw ironhub loadout install ${loadoutId}${soulFlag}${skills.length ? ` --skills ${skills.map((s) => s.slug).join(",")}` : ""
+    }${tools.length ? ` --tools ${tools.map((t) => t.slug).join(",")}` : ""}${collections.length
       ? ` --collections ${collections.map((c) => c.slug).join(",")}`
       : ""
-  }`
+    }`
 
   // Modal selector trigger
   const handleOpenDrawer = (tab: "all" | "skill" | "tool" | "collection") => {
@@ -918,7 +916,7 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
                   className={cn(
                     "h-11 shrink-0 cursor-pointer gap-2 rounded-xl border-border/80 px-5 font-semibold transition-all duration-300",
                     shareCopied &&
-                      "border-emerald-500 bg-emerald-50 font-bold text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400"
+                    "border-emerald-500 bg-emerald-50 font-bold text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400"
                   )}
                 >
                   {shareCopied ? (
@@ -1027,7 +1025,7 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
                     className={cn(
                       "h-11 cursor-pointer gap-2 rounded-xl border-border/80 font-semibold transition-all duration-300",
                       shareCopied &&
-                        "border-emerald-500 bg-emerald-50 font-bold text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400"
+                      "border-emerald-500 bg-emerald-50 font-bold text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400"
                     )}
                   >
                     {shareCopied ? (
@@ -1050,7 +1048,7 @@ export function LoadoutBuilder({ catalog }: LoadoutBuilderProps) {
                     className={cn(
                       "h-11 cursor-pointer gap-2 rounded-xl border-border/80 font-semibold transition-all duration-300",
                       cliCopied &&
-                        "border-emerald-500 bg-emerald-50 font-bold text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400"
+                      "border-emerald-500 bg-emerald-50 font-bold text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400"
                     )}
                   >
                     {cliCopied ? (

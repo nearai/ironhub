@@ -10,7 +10,7 @@ type CollectionGrabCardProps = {
 }
 
 export function CollectionGrabCard({ bundle }: CollectionGrabCardProps) {
-  const installCommand = `ironclaw hub collection install ${bundle.slug}`
+  const installCommand = `ironclaw ironhub collection install ${bundle.slug}`
 
   return (
     <Card id="bundle-manifest" className="bg-primary/8">

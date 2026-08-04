@@ -7,53 +7,76 @@ type MarketDetailSecurityProps = {
 
 export function MarketDetailSecurity({ item }: MarketDetailSecurityProps) {
   return (
-    <div className="space-y-4 border-t border-border/20 pt-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8">
+    <div className="space-y-4">
       <h4 className="text-xs font-bold tracking-wider text-muted-foreground/70 uppercase">
-        Security & Network
+        Access & Credentials
       </h4>
       <div className="space-y-3">
-        <SecuritySignals item={item} />
-        {item.auth.requiredSecrets.length > 0 && (
+        <div>
+          <span className="block text-[10px] font-semibold text-muted-foreground uppercase">
+            Credential method
+          </span>
+          <p className="mt-1 text-sm font-medium">{item.auth.model}</p>
+        </div>
+
+        {item.auth.credentials.length > 0 && (
           <div>
-            <span className="mb-1 block text-[10px] font-semibold text-muted-foreground uppercase">
-              Required Secrets
+            <span className="mb-2 block text-[10px] font-semibold text-muted-foreground uppercase">
+              Credential accounts
             </span>
-            <div className="flex flex-wrap gap-1">
-              {item.auth.requiredSecrets.map((secret) => (
-                <code
-                  key={secret}
-                  className="rounded bg-muted px-1 text-[10px]"
+            <div className="grid gap-2">
+              {item.auth.credentials.map((credential) => (
+                <div
+                  key={`${credential.name}-${credential.method}`}
+                  className="rounded-lg border border-border/50 bg-muted/20 p-2.5"
                 >
-                  {secret}
-                </code>
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-xs font-semibold">
+                      {formatCredentialName(
+                        credential.provider ?? credential.name
+                      )}
+                    </span>
+                    <Badge
+                      variant={credential.required ? "default" : "outline"}
+                      className="px-1.5 py-0 text-[9px]"
+                    >
+                      {credential.required ? "Required" : "Optional"}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {credential.method}
+                  </p>
+                  <code className="mt-1 block text-[10px] break-all text-muted-foreground/80">
+                    {credential.name}
+                  </code>
+                </div>
               ))}
             </div>
           </div>
+        )}
+
+        {item.kind === "skill" && item.activationKeywords.length > 0 && (
+          <BadgeList
+            label="Activation keywords"
+            values={item.activationKeywords}
+          />
         )}
       </div>
     </div>
   )
 }
 
-function SecuritySignals({ item }: MarketDetailSecurityProps) {
-  if (item.kind === "tool" && item.httpAllowlist.length > 0) {
-    return <BadgeList label="Network Allowlist" values={item.httpAllowlist} />
-  }
-  if (item.kind === "skill" && item.activationKeywords.length > 0) {
-    return (
-      <BadgeList label="Activation Keywords" values={item.activationKeywords} />
-    )
-  }
-  return (
-    <p className="text-sm text-muted-foreground italic">
-      Standard isolated execution environment.
-    </p>
-  )
-}
-
 type BadgeListProps = {
   label: string
   values: string[]
+}
+
+function formatCredentialName(value: string) {
+  return value
+    .split(/[-_]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ")
 }
 
 function BadgeList({ label, values }: BadgeListProps) {

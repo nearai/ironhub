@@ -271,7 +271,7 @@ export function UniversalSelectionDrawer({
             </InputGroup>
 
             {/* Segmented Control / Tabs */}
-            <ButtonGroup className="w-full flex shrink-0">
+            <ButtonGroup className="flex w-full shrink-0">
               {TABS.map((tab) => {
                 const isActive = activeTab === tab.id
                 const Icon =
@@ -292,7 +292,7 @@ export function UniversalSelectionDrawer({
                       setActiveTab(tab.id)
                       setCategory("all") // reset category filter
                     }}
-                    className="flex-1 h-9 rounded-full border-[1.5px] px-2 text-xs font-semibold transition-all duration-300"
+                    className="h-9 flex-1 rounded-full border-[1.5px] px-2 text-xs font-semibold transition-all duration-300"
                   >
                     <div className="flex items-center justify-center gap-1.5">
                       <Icon className="size-3.5 transition-all duration-300" />
@@ -332,7 +332,6 @@ export function UniversalSelectionDrawer({
                   <SelectContent>
                     <SelectItem value="relevance">Relevance</SelectItem>
                     <SelectItem value="name">Name</SelectItem>
-                    <SelectItem value="actions">Actions</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
