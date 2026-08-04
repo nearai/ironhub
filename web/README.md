@@ -34,9 +34,9 @@ Unset or `false` keeps the route visible.
 
 ## Feature flags
 
-Set to `true` to hide the surface. Unset or `false` keeps it visible.
+Set to `true` to enable the surface. Unset or `false` keeps it hidden.
 
-- `NEXT_PUBLIC_DISABLE_ILIAD` — hides Iliad-branded UI
+- `NEXT_PUBLIC_ENABLE_ILIAD` — shows Iliad-sourced skills and Iliad-branded UI
 
 ## Commands
 

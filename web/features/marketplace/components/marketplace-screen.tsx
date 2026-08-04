@@ -12,7 +12,7 @@ import {
   getMarketplaceCatalog,
 } from "@/lib/catalog/server"
 import { buildCollectionBundles } from "@/lib/catalog/collections"
-import { isIliadDisabled } from "@/lib/shared/feature-flags"
+import { isIliadEnabled } from "@/lib/shared/feature-flags"
 
 export async function MarketplaceScreen() {
   const { items } = await getMarketplaceCatalog()
@@ -32,9 +32,9 @@ export async function MarketplaceScreen() {
           eyebrow="Skill Library"
           title="Browse IronClaw Skills and Tools"
           description={
-            isIliadDisabled
-              ? "Search repo-backed skills and WASM tools from one catalog."
-              : "Search repo-backed skills, WASM tools, and public Iliad skills from one catalog."
+            isIliadEnabled
+              ? "Search repo-backed skills, WASM tools, and public Iliad skills from one catalog."
+              : "Search repo-backed skills and WASM tools from one catalog."
           }
         >
           <MetricGrid
@@ -42,9 +42,9 @@ export async function MarketplaceScreen() {
               { label: "Total entries", value: stats.total },
               { label: "WASM tools", value: stats.tools },
               { label: "Prompt skills", value: stats.skills },
-              ...(isIliadDisabled
-                ? []
-                : [{ label: "Iliad skills", value: stats.iliad }]),
+              ...(isIliadEnabled
+                ? [{ label: "Iliad skills", value: stats.iliad }]
+                : []),
             ]}
           />
         </PageHeader>
