@@ -79,6 +79,25 @@ test("a schema-only change moves the tool digest", () => {
   )
 })
 
+test("a prompt-only change moves the tool digest", () => {
+  const path = "prompts/youtube/get_transcript.md"
+  const before = toVersionIndex(
+    manifest({
+      tools: [tool({ prompts: { [path]: artifact("1".repeat(64)) } })],
+    })
+  ).entries
+  const after = toVersionIndex(
+    manifest({
+      tools: [tool({ prompts: { [path]: artifact("2".repeat(64)) } })],
+    })
+  ).entries
+
+  assert.notEqual(
+    digestOf(before, "tool", "attio"),
+    digestOf(after, "tool", "attio")
+  )
+})
+
 test("renaming a schema moves the tool digest even when its bytes are identical", () => {
   const bytes = artifact("1".repeat(64))
   const before = toVersionIndex(
