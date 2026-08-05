@@ -201,20 +201,27 @@ if [ -d "$ROOT/skills" ]; then
 fi
 skills_json+="]"
 
+# The catalog outgrew ARG_MAX once tools carry schema and prompt artifacts, so
+# the two arrays are handed to jq as files rather than command-line arguments.
+catalog_tmp="$(mktemp -d)"
+trap 'rm -rf "$catalog_tmp"' EXIT
+printf '%s' "$tools_json" > "$catalog_tmp/tools.json"
+printf '%s' "$skills_json" > "$catalog_tmp/skills.json"
+
 jq -n \
   --arg version "1" \
   --arg generated_at "$generated_at" \
   --arg release_tag "$TAG" \
   --arg repo "$REPO" \
-  --argjson tools "$tools_json" \
-  --argjson skills "$skills_json" \
+  --slurpfile tools "$catalog_tmp/tools.json" \
+  --slurpfile skills "$catalog_tmp/skills.json" \
   '{
     version: $version,
     generated_at: $generated_at,
     release_tag: $release_tag,
     repo: $repo,
-    tools: $tools,
-    skills: $skills
+    tools: $tools[0],
+    skills: $skills[0]
   }' > "$STAGING/tools.json"
 
 echo "wrote $STAGING/tools.json"
