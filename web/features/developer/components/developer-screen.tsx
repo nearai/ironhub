@@ -1,5 +1,6 @@
 import { HubLayout } from "@/features/shell/components/hub-layout"
 import { PageHeader } from "@/features/shell/components/page-header"
+import { isIliadEnabled } from "@/lib/shared/feature-flags"
 
 import { creationActions, resourceActions } from "./developer-actions"
 import { DeveloperActionCard } from "./developer-action-card"
@@ -34,7 +35,7 @@ export function DeveloperScreen() {
           ))}
         </div>
 
-        {process.env.NEXT_PUBLIC_ENABLE_ILIAD === "true" && <IliadStartCard />}
+        {isIliadEnabled && <IliadStartCard />}
       </div>
     </HubLayout>
   )

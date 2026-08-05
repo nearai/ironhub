@@ -5,17 +5,14 @@ import { Separator } from "@/components/ui/separator"
 import { links } from "@/lib/shared/links"
 import { BrandMark } from "./brand-mark"
 
-const allFooterLinks = [
+const footerLinks: [string, string][] = [
   ["IronClaw", links.ironclaw],
   ["Docs", links.docs],
   ["GitHub", links.repo],
-  ["Iliad", links.iliad],
-] as const
-
-function resolveFooterLinks() {
-  if (process.env.NEXT_PUBLIC_ENABLE_ILIAD === "true") return allFooterLinks
-  return allFooterLinks.filter(([label]) => label !== "Iliad")
-}
+  ...(process.env.NEXT_PUBLIC_ENABLE_ILIAD === "true"
+    ? [["Iliad", links.iliad] as [string, string]]
+    : []),
+]
 
 export function SiteFooter() {
   const pathname = usePathname()
@@ -33,7 +30,7 @@ export function SiteFooter() {
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 text-sm text-muted-foreground">
           <BrandMark />
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            {resolveFooterLinks().map(([label, href]) => (
+            {footerLinks.map(([label, href]) => (
               <a
                 key={label}
                 href={href}

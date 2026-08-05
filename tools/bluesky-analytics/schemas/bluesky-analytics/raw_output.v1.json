@@ -1,0 +1,4 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Action-specific Bluesky analytics JSON returned by the public AT Protocol AppView."
+}

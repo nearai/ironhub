@@ -1,0 +1,215 @@
+{
+    "type": "object",
+    "required": ["command"],
+    "oneOf": [
+        {
+            "properties": {
+                "command": { "const": "wp_request" },
+                "site_url": { "type": "string", "description": "Your site host, e.g. 'mystore.com'. Must match the host baked into the tool at install." },
+                "api_prefix": { "type": "string", "description": "Optional REST path prefix if your site does not use the default '/wp-json/' (e.g. '/api/'). Must match the prefix baked into the tool at install." },
+                "method": { "type": "string", "enum": ["GET", "POST", "PUT", "DELETE"], "description": "HTTP method." },
+                "endpoint": { "type": "string", "description": "REST path starting with '/wp-json/', e.g. '/wp-json/wp/v2/pages' or '/wp-json/wc/v3/coupons'." },
+                "query": { "type": "object", "description": "Query parameters as a flat object; values are stringified." },
+                "body": { "type": "object", "description": "JSON body for POST/PUT (ignored for GET/DELETE)." }
+            },
+            "required": ["command", "site_url", "method", "endpoint"]
+        },
+        {
+            "properties": {
+                "command": { "const": "list_posts" },
+                "site_url": { "type": "string", "description": "Your site host, e.g. 'mystore.com'." },
+                "api_prefix": { "type": "string", "description": "Optional REST path prefix if your site does not use the default '/wp-json/' (e.g. '/api/'). Must match the prefix baked into the tool at install." },
+                "page": { "type": "integer", "description": "Page number (1-based).", "minimum": 1 },
+                "per_page": { "type": "integer", "description": "Items per page (1-100, clamped).", "minimum": 1 },
+                "search": { "type": "string", "description": "Full-text search term." },
+                "status": { "type": "string", "description": "Post status filter, e.g. 'publish', 'draft', 'any'." }
+            },
+            "required": ["command", "site_url"]
+        },
+        {
+            "properties": {
+                "command": { "const": "get_post" },
+                "site_url": { "type": "string", "description": "Your site host." },
+                "api_prefix": { "type": "string", "description": "Optional REST path prefix if your site does not use the default '/wp-json/' (e.g. '/api/'). Must match the prefix baked into the tool at install." },
+                "id": { "type": "integer", "description": "Post id." }
+            },
+            "required": ["command", "site_url", "id"]
+        },
+        {
+            "properties": {
+                "command": { "const": "create_post" },
+                "site_url": { "type": "string", "description": "Your site host." },
+                "api_prefix": { "type": "string", "description": "Optional REST path prefix if your site does not use the default '/wp-json/' (e.g. '/api/'). Must match the prefix baked into the tool at install." },
+                "data": { "type": "object", "description": "Post fields, e.g. {\"title\":\"…\",\"content\":\"…\",\"status\":\"draft\"}." }
+            },
+            "required": ["command", "site_url", "data"]
+        },
+        {
+            "properties": {
+                "command": { "const": "update_post" },
+                "site_url": { "type": "string", "description": "Your site host." },
+                "api_prefix": { "type": "string", "description": "Optional REST path prefix if your site does not use the default '/wp-json/' (e.g. '/api/'). Must match the prefix baked into the tool at install." },
+                "id": { "type": "integer", "description": "Post id." },
+                "data": { "type": "object", "description": "Fields to change (partial update)." }
+            },
+            "required": ["command", "site_url", "id", "data"]
+        },
+        {
+            "properties": {
+                "command": { "const": "delete_post" },
+                "site_url": { "type": "string", "description": "Your site host." },
+                "api_prefix": { "type": "string", "description": "Optional REST path prefix if your site does not use the default '/wp-json/' (e.g. '/api/'). Must match the prefix baked into the tool at install." },
+                "id": { "type": "integer", "description": "Post id." },
+                "force": { "type": "boolean", "description": "true = delete permanently; false/omitted = move to trash (default)." }
+            },
+            "required": ["command", "site_url", "id"]
+        },
+        {
+            "properties": {
+                "command": { "const": "list_products" },
+                "site_url": { "type": "string", "description": "Your site host." },
+                "api_prefix": { "type": "string", "description": "Optional REST path prefix if your site does not use the default '/wp-json/' (e.g. '/api/'). Must match the prefix baked into the tool at install." },
+                "page": { "type": "integer", "minimum": 1, "description": "Page number (1-based)." },
+                "per_page": { "type": "integer", "minimum": 1, "description": "Items per page (1-100)." },
+                "search": { "type": "string", "description": "Search term." },
+                "status": { "type": "string", "description": "Product status, e.g. 'publish', 'draft'." }
+            },
+            "required": ["command", "site_url"]
+        },
+        {
+            "properties": {
+                "command": { "const": "get_product" },
+                "site_url": { "type": "string", "description": "Your site host." },
+                "api_prefix": { "type": "string", "description": "Optional REST path prefix if your site does not use the default '/wp-json/' (e.g. '/api/'). Must match the prefix baked into the tool at install." },
+                "id": { "type": "integer", "description": "Product id." }
+            },
+            "required": ["command", "site_url", "id"]
+        },
+        {
+            "properties": {
+                "command": { "const": "create_product" },
+                "site_url": { "type": "string", "description": "Your site host." },
+                "api_prefix": { "type": "string", "description": "Optional REST path prefix if your site does not use the default '/wp-json/' (e.g. '/api/'). Must match the prefix baked into the tool at install." },
+                "data": { "type": "object", "description": "Product fields, e.g. {\"name\":\"…\",\"type\":\"simple\",\"regular_price\":\"9.99\"}." }
+            },
+            "required": ["command", "site_url", "data"]
+        },
+        {
+            "properties": {
+                "command": { "const": "update_product" },
+                "site_url": { "type": "string", "description": "Your site host." },
+                "api_prefix": { "type": "string", "description": "Optional REST path prefix if your site does not use the default '/wp-json/' (e.g. '/api/'). Must match the prefix baked into the tool at install." },
+                "id": { "type": "integer", "description": "Product id." },
+                "data": { "type": "object", "description": "Fields to change (partial update)." }
+            },
+            "required": ["command", "site_url", "id", "data"]
+        },
+        {
+            "properties": {
+                "command": { "const": "delete_product" },
+                "site_url": { "type": "string", "description": "Your site host." },
+                "api_prefix": { "type": "string", "description": "Optional REST path prefix if your site does not use the default '/wp-json/' (e.g. '/api/'). Must match the prefix baked into the tool at install." },
+                "id": { "type": "integer", "description": "Product id." },
+                "force": { "type": "boolean", "description": "true = delete permanently; false/omitted = trash (default). Note: WooCommerce may require force=true for some resources." }
+            },
+            "required": ["command", "site_url", "id"]
+        },
+        {
+            "properties": {
+                "command": { "const": "upload_media" },
+                "site_url": { "type": "string", "description": "Your site host, e.g. 'mystore.com'." },
+                "api_prefix": { "type": "string", "description": "Optional REST path prefix if your site does not use the default '/wp-json/' (e.g. '/api/'). Must match the prefix baked into the tool at install." },
+                "filename": { "type": "string", "description": "File name including extension, e.g. 'logo.png'. Used for the Content-Disposition and to guess the MIME type." },
+                "content_base64": { "type": "string", "description": "The file's bytes, base64-encoded. A 'data:...;base64,' prefix is accepted. Keep files small (a few MB) — very large files can exceed the WASM sandbox memory limit." },
+                "mime": { "type": "string", "description": "Optional explicit MIME type (e.g. 'image/png'). Overrides the guess from the filename extension." },
+                "title": { "type": "string", "description": "Optional media title." },
+                "alt_text": { "type": "string", "description": "Optional alt text (accessibility)." },
+                "caption": { "type": "string", "description": "Optional caption." },
+                "post": { "type": "integer", "description": "Optional parent post id to attach the media to." }
+            },
+            "required": ["command", "site_url", "filename", "content_base64"]
+        },
+        {
+            "properties": {
+                "command": { "const": "list_media" },
+                "site_url": { "type": "string", "description": "Your site host." },
+                "api_prefix": { "type": "string", "description": "Optional REST path prefix if your site does not use the default '/wp-json/' (e.g. '/api/'). Must match the prefix baked into the tool at install." },
+                "page": { "type": "integer", "minimum": 1, "description": "Page number (1-based)." },
+                "per_page": { "type": "integer", "minimum": 1, "description": "Items per page (1-100)." },
+                "search": { "type": "string", "description": "Search term." }
+            },
+            "required": ["command", "site_url"]
+        },
+        {
+            "properties": {
+                "command": { "const": "get_media" },
+                "site_url": { "type": "string", "description": "Your site host." },
+                "api_prefix": { "type": "string", "description": "Optional REST path prefix if your site does not use the default '/wp-json/' (e.g. '/api/'). Must match the prefix baked into the tool at install." },
+                "id": { "type": "integer", "description": "Media (attachment) id." }
+            },
+            "required": ["command", "site_url", "id"]
+        },
+        {
+            "properties": {
+                "command": { "const": "update_media" },
+                "site_url": { "type": "string", "description": "Your site host." },
+                "api_prefix": { "type": "string", "description": "Optional REST path prefix if your site does not use the default '/wp-json/' (e.g. '/api/'). Must match the prefix baked into the tool at install." },
+                "id": { "type": "integer", "description": "Media (attachment) id." },
+                "data": { "type": "object", "description": "Fields to change, e.g. {\"title\":\"…\",\"alt_text\":\"…\",\"caption\":\"…\"}." }
+            },
+            "required": ["command", "site_url", "id", "data"]
+        },
+        {
+            "properties": {
+                "command": { "const": "delete_media" },
+                "site_url": { "type": "string", "description": "Your site host." },
+                "api_prefix": { "type": "string", "description": "Optional REST path prefix if your site does not use the default '/wp-json/' (e.g. '/api/'). Must match the prefix baked into the tool at install." },
+                "id": { "type": "integer", "description": "Media (attachment) id." },
+                "force": { "type": "boolean", "description": "WordPress cannot trash media, so this defaults to true (permanent delete). Set false only if you have a plugin that supports trashing media." }
+            },
+            "required": ["command", "site_url", "id"]
+        },
+        {
+            "properties": {
+                "command": { "const": "list_orders" },
+                "site_url": { "type": "string", "description": "Your site host." },
+                "api_prefix": { "type": "string", "description": "Optional REST path prefix if your site does not use the default '/wp-json/' (e.g. '/api/'). Must match the prefix baked into the tool at install." },
+                "page": { "type": "integer", "minimum": 1, "description": "Page number (1-based)." },
+                "per_page": { "type": "integer", "minimum": 1, "description": "Items per page (1-100)." },
+                "search": { "type": "string", "description": "Search term." },
+                "status": { "type": "string", "description": "Order status, e.g. 'processing', 'completed', 'any'." }
+            },
+            "required": ["command", "site_url"]
+        },
+        {
+            "properties": {
+                "command": { "const": "get_order" },
+                "site_url": { "type": "string", "description": "Your site host." },
+                "api_prefix": { "type": "string", "description": "Optional REST path prefix if your site does not use the default '/wp-json/' (e.g. '/api/'). Must match the prefix baked into the tool at install." },
+                "id": { "type": "integer", "description": "Order id." }
+            },
+            "required": ["command", "site_url", "id"]
+        },
+        {
+            "properties": {
+                "command": { "const": "update_order" },
+                "site_url": { "type": "string", "description": "Your site host." },
+                "api_prefix": { "type": "string", "description": "Optional REST path prefix if your site does not use the default '/wp-json/' (e.g. '/api/'). Must match the prefix baked into the tool at install." },
+                "id": { "type": "integer", "description": "Order id." },
+                "data": { "type": "object", "description": "Fields to change, e.g. {\"status\":\"completed\"}." }
+            },
+            "required": ["command", "site_url", "id", "data"]
+        },
+        {
+            "properties": {
+                "command": { "const": "list_customers" },
+                "site_url": { "type": "string", "description": "Your site host." },
+                "api_prefix": { "type": "string", "description": "Optional REST path prefix if your site does not use the default '/wp-json/' (e.g. '/api/'). Must match the prefix baked into the tool at install." },
+                "page": { "type": "integer", "minimum": 1, "description": "Page number (1-based)." },
+                "per_page": { "type": "integer", "minimum": 1, "description": "Items per page (1-100)." },
+                "search": { "type": "string", "description": "Search term (email/name)." }
+            },
+            "required": ["command", "site_url"]
+        }
+    ]
+}

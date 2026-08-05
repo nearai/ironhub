@@ -3,6 +3,7 @@
   "effects": [],
   "wit_version": "0.3.0",
   "description": "Deterministic technical-analysis engine. Fetches Binance Spot klines (public market data, no key) and computes indicators + multi-timeframe confluence scoring.",
+  "effects": [],
   "capabilities": {
     "http": {
       "allowlist": [
