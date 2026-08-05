@@ -12,7 +12,7 @@ const artifact = (name) => ({
   sha256: name.padEnd(64, "0"),
 })
 
-test("official tool schemas retain their manifest paths and use proxy URLs", () => {
+test("official tool assets retain their manifest paths and use proxy URLs", () => {
   const tool = officialToolEntry(
     {
       name: "firecrawl",
@@ -24,6 +24,9 @@ test("official tool schemas retain their manifest paths and use proxy URLs", () 
         "schemas/firecrawl/invoke.input.v1.json": artifact("input"),
         "schemas/firecrawl/raw_output.v1.json": artifact("output"),
       },
+      prompts: {
+        "prompts/firecrawl/invoke.md": artifact("prompt"),
+      },
     },
     (url) => `https://hub.ironclaw.com/artifact/${encodeURIComponent(url)}`
   )
@@ -34,6 +37,13 @@ test("official tool schemas retain their manifest paths and use proxy URLs", () 
   ])
   assert.match(
     tool.schemas["schemas/firecrawl/invoke.input.v1.json"].url,
+    /^https:\/\/hub\.ironclaw\.com\/artifact\//
+  )
+  assert.deepEqual(Object.keys(tool.prompts ?? {}), [
+    "prompts/firecrawl/invoke.md",
+  ])
+  assert.match(
+    tool.prompts["prompts/firecrawl/invoke.md"].url,
     /^https:\/\/hub\.ironclaw\.com\/artifact\//
   )
 })
@@ -90,4 +100,23 @@ test("a tool whose schema paths are all unpublishable omits the field", () => {
   )
 
   assert.equal("schemas" in tool, false)
+})
+
+test("a tool whose prompt paths are all unpublishable omits the field", () => {
+  const tool = officialToolEntry(
+    {
+      name: "youtube",
+      version: "0.2.0",
+      wasm: artifact("wasm"),
+      capabilities: artifact("capabilities"),
+      prompts: {
+        "../escape.md": artifact("escape"),
+        "prompts/./invoke.md": artifact("dot"),
+        "prompts//invoke.md": artifact("empty"),
+      },
+    },
+    (url) => url
+  )
+
+  assert.equal("prompts" in tool, false)
 })

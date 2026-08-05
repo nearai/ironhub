@@ -15,10 +15,12 @@ export type GithubTool = {
   capabilities: GithubArtifact
   manifest?: GithubArtifact | null
   schemas?: Record<string, GithubArtifact> | null
+  prompts?: Record<string, GithubArtifact> | null
 }
 
 const PUBLISHABLE_ARTIFACT_PATH = /^[A-Za-z0-9._/-]+$/
 const MAX_TOOL_SCHEMA_ARTIFACTS = 32
+const MAX_TOOL_PROMPT_ARTIFACTS = 64
 
 export function isPublishableArtifactPath(path: string) {
   if (!path || path.startsWith("/") || !PUBLISHABLE_ARTIFACT_PATH.test(path)) {
@@ -38,26 +40,42 @@ export function officialToolEntry(
     size_bytes: artifact.size_bytes,
     sha256: artifact.sha256,
   })
-  const publishable = Object.entries(tool.schemas ?? {})
-    .filter(([path]) => {
-      if (isPublishableArtifactPath(path)) {
-        return true
-      }
+  const publishableArtifacts = (
+    kind: "prompt" | "schema",
+    artifacts: Record<string, GithubArtifact> | null | undefined,
+    limit: number
+  ) => {
+    const publishable = Object.entries(artifacts ?? {})
+      .filter(([path]) => {
+        if (isPublishableArtifactPath(path)) {
+          return true
+        }
+        console.error(
+          `Skipping tool ${kind} with an unpublishable path: ${tool.name}/${path}`
+        )
+        return false
+      })
+      .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+    if (publishable.length > limit) {
       console.error(
-        `Skipping tool schema with an unpublishable path: ${tool.name}/${path}`
+        `Dropping ${publishable.length - limit} ${kind} artifact(s) past the ${limit} cap: ${tool.name}`
       )
-      return false
-    })
-    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
-  if (publishable.length > MAX_TOOL_SCHEMA_ARTIFACTS) {
-    console.error(
-      `Dropping ${publishable.length - MAX_TOOL_SCHEMA_ARTIFACTS} schema artifact(s) past the ${MAX_TOOL_SCHEMA_ARTIFACTS} cap: ${tool.name}`
+    }
+    return Object.fromEntries(
+      publishable
+        .slice(0, limit)
+        .map(([path, artifact]) => [path, rewriteArtifact(artifact)])
     )
   }
-  const schemas = Object.fromEntries(
-    publishable
-      .slice(0, MAX_TOOL_SCHEMA_ARTIFACTS)
-      .map(([path, artifact]) => [path, rewriteArtifact(artifact)])
+  const schemas = publishableArtifacts(
+    "schema",
+    tool.schemas,
+    MAX_TOOL_SCHEMA_ARTIFACTS
+  )
+  const prompts = publishableArtifacts(
+    "prompt",
+    tool.prompts,
+    MAX_TOOL_PROMPT_ARTIFACTS
   )
 
   return {
@@ -70,5 +88,6 @@ export function officialToolEntry(
     capabilities: rewriteArtifact(tool.capabilities),
     ...(tool.manifest ? { manifest: rewriteArtifact(tool.manifest) } : {}),
     ...(Object.keys(schemas).length > 0 ? { schemas } : {}),
+    ...(Object.keys(prompts).length > 0 ? { prompts } : {}),
   }
 }

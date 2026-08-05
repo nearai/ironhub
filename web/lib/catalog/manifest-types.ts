@@ -21,6 +21,7 @@ export type HubToolEntry = {
   capabilities: HubArtifact
   manifest?: HubArtifact
   schemas?: Record<string, HubArtifact>
+  prompts?: Record<string, HubArtifact>
 }
 
 export type HubSkillFile = HubArtifact & {
