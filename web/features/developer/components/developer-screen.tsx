@@ -34,7 +34,7 @@ export function DeveloperScreen() {
           ))}
         </div>
 
-        <IliadStartCard />
+        {process.env.NEXT_PUBLIC_ENABLE_ILIAD === "true" && <IliadStartCard />}
       </div>
     </HubLayout>
   )
