@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "get_stablecoin input",
+  "type": "object",
+  "properties": {
+    "stablecoin_id": {
+      "type": "string",
+      "description": "Numeric stablecoin id (e.g. '1' for USDT). Discover ids with list_stablecoins."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "stablecoin_id"
+  ]
+}

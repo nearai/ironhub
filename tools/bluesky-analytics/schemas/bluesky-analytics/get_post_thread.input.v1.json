@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "get_post_thread input",
+  "type": "object",
+  "properties": {
+    "uri": {
+      "type": "string",
+      "description": "Post at-uri (e.g. 'at://did:plc:.../app.bsky.feed.post/<rkey>'). Obtain one from get_author_feed output."
+    },
+    "depth": {
+      "type": "integer",
+      "description": "Reply-tree depth (default 6, max 100).",
+      "minimum": 0,
+      "maximum": 100
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "uri"
+  ]
+}

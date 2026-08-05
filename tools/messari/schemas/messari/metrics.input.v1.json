@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "metrics input",
+  "type": "object",
+  "properties": {
+    "asset_key": {
+      "type": "string",
+      "description": "Optional asset key or slug (e.g. 'bitcoin', 'ethereum', 'solana'). Omit to list top assets."
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Max items to return (default 20, max 100)."
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "crawl input",
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string",
+      "description": "Start URL (http/https) for the recursive crawl."
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Max pages to crawl (default 100)."
+    },
+    "max_depth": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Maximum link-discovery depth from the start URL."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "url"
+  ]
+}

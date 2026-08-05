@@ -46,6 +46,11 @@ export function MarketDetailInfo({ item }: MarketDetailInfoProps) {
         <CardContent className="p-5">
           <MarkdownView
             content={item.body || item.description || "No description."}
+            repositoryAssetBase={
+              item.origin === "iliad"
+                ? undefined
+                : `/api/catalog/repository-asset/${item.kind}/${item.slug}`
+            }
           />
         </CardContent>
       </Card>

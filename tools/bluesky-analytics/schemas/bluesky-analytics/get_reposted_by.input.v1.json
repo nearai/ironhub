@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "get_reposted_by input",
+  "type": "object",
+  "properties": {
+    "uri": {
+      "type": "string",
+      "description": "Post at-uri (e.g. 'at://did:plc:.../app.bsky.feed.post/<rkey>'). Obtain one from get_author_feed output."
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Max results (1-100, default 50).",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 50
+    },
+    "cursor": {
+      "type": "string",
+      "description": "Opaque pagination cursor from a previous response. Pass it back to fetch the next page."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "uri"
+  ]
+}

@@ -23,6 +23,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 const API_BASE: &str = "https://api.firecrawl.dev/v2";
+#[cfg(not(feature = "reborn"))]
 const SECRET_NAME: &str = "firecrawl_api_key";
 const MAX_RETRIES: u32 = 3;
 
@@ -44,7 +45,12 @@ struct FirecrawlTool;
 
 impl exports::near::agent::tool::Guest for FirecrawlTool {
     fn execute(req: exports::near::agent::tool::Request) -> exports::near::agent::tool::Response {
-        match execute_inner(&req.params) {
+        #[cfg(feature = "reborn")]
+        let result = execute_reborn(&req.params, req.context.as_deref());
+        #[cfg(not(feature = "reborn"))]
+        let result = execute_inner(&req.params);
+
+        match result {
             Ok(output) => exports::near::agent::tool::Response {
                 output: Some(output),
                 error: None,
@@ -119,12 +125,12 @@ fn execute_inner(params: &str) -> Result<String, String> {
     })?;
 
     // Pre-flight: verify the API key is configured before any network call.
+    #[cfg(not(feature = "reborn"))]
     if !near::agent::host::secret_exists(SECRET_NAME) {
-        return Err(
+        return Err(format!(
             "Firecrawl API key not found. Set it with: ironclaw tool setup firecrawl-tool. \
              Get a key at https://www.firecrawl.dev/app/api-keys"
-                .to_string(),
-        );
+        ));
     }
 
     match action {
@@ -551,6 +557,41 @@ const SCHEMA: &str = r#"{
         }
     ]
 }"#;
+
+#[cfg(feature = "reborn")]
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ToolContext {
+    capability_id: String,
+}
+
+#[cfg(feature = "reborn")]
+fn execute_reborn(params: &str, context: Option<&str>) -> Result<String, String> {
+    let context = context.ok_or_else(|| "missing_invocation_context".to_string())?;
+    let context: ToolContext =
+        serde_json::from_str(context).map_err(|_| "invalid_invocation_context".to_string())?;
+    let operation = match context.capability_id.as_str() {
+        "firecrawl.scrape" => "scrape",
+        "firecrawl.search" => "search",
+        "firecrawl.map" => "map",
+        "firecrawl.crawl" => "crawl",
+        "firecrawl.crawl_status" => "crawl_status",
+        _ => return Err("unsupported_capability".to_string()),
+    };
+    let mut params: serde_json::Value =
+        serde_json::from_str(params).map_err(|_| "invalid_parameters".to_string())?;
+    let object = params
+        .as_object_mut()
+        .ok_or_else(|| "invalid_parameters".to_string())?;
+    if object.contains_key("action") {
+        return Err("public_selector_is_not_allowed".to_string());
+    }
+    object.insert(
+        "action".to_string(),
+        serde_json::Value::String(operation.to_string()),
+    );
+    execute_inner(&params.to_string())
+}
 
 export!(FirecrawlTool);
 

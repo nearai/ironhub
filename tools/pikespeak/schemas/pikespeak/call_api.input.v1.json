@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "call_api input",
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "The exact Pikespeak path (e.g. '/daos/all' or '/election/total-votes')."
+    },
+    "query_params": {
+      "type": "object",
+      "description": "Optional key-value query parameters map.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "path"
+  ]
+}

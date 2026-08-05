@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "stablecoins input",
+  "type": "object",
+  "properties": {
+    "limit": {
+      "type": "integer",
+      "description": "Max stablecoin assets to return (default 20)."
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "extract input",
+  "type": "object",
+  "properties": {
+    "urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs to extract content from (max 10)."
+    },
+    "query": {
+      "type": "string",
+      "description": "Optional query to filter and rerank relevant chunks per source."
+    },
+    "chunks_per_source": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of content chunks (≤500 chars each) per source when query is given (default 3)."
+    },
+    "extract_depth": {
+      "type": "string",
+      "enum": [
+        "basic",
+        "advanced"
+      ],
+      "description": "Extraction depth: 'basic' (default) or 'advanced' for JS-heavy pages."
+    },
+    "include_images": {
+      "type": "boolean",
+      "description": "Include images in extraction results. Default false."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "urls"
+  ]
+}

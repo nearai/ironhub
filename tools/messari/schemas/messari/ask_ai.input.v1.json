@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ask_ai input",
+  "type": "object",
+  "properties": {
+    "prompt": {
+      "type": "string",
+      "description": "Natural language crypto research query or question for Messari AI synthesis."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "prompt"
+  ]
+}

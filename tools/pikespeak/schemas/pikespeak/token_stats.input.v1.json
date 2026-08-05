@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "token_stats input",
+  "type": "object",
+  "properties": {
+    "contract": {
+      "type": "string",
+      "description": "The token contract ID (e.g. 'wrap.near')."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "contract"
+  ]
+}

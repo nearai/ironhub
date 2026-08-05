@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "search_actors input",
+  "type": "object",
+  "properties": {
+    "q": {
+      "type": "string",
+      "description": "Keyword query (matches handle/display name/bio)."
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Max results (1-100, default 50).",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 50
+    },
+    "cursor": {
+      "type": "string",
+      "description": "Opaque pagination cursor from a previous response. Pass it back to fetch the next page."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "q"
+  ]
+}

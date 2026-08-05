@@ -1,4 +1,4 @@
-import { IconKey, IconShieldCheck, IconUserCircle } from "@tabler/icons-react"
+import { IconShieldCheck, IconUserCircle } from "@tabler/icons-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -38,14 +38,10 @@ export function CollectionEntryList({ items }: CollectionEntryListProps) {
                 </Badge>
               ))}
             </div>
-            <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
+            <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
               <span className="inline-flex items-center gap-1.5">
                 <IconUserCircle className="size-3.5" />
                 {item.author}
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <IconKey className="size-3.5" />
-                {getItemMetric(item)}
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <IconShieldCheck className="size-3.5" />
@@ -59,12 +55,4 @@ export function CollectionEntryList({ items }: CollectionEntryListProps) {
       ))}
     </div>
   )
-}
-
-function getItemMetric(item: CatalogItem) {
-  if (item.kind === "tool") {
-    return `${item.actionCount} actions`
-  }
-
-  return `${item.activationKeywords.length} triggers`
 }

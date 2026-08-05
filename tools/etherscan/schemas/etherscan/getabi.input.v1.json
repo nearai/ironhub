@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "getabi input",
+  "type": "object",
+  "properties": {
+    "address": {
+      "type": "string",
+      "description": "Contract address."
+    },
+    "chain": {
+      "type": [
+        "integer",
+        "string"
+      ],
+      "description": "The EVM chain ID or name."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "address",
+    "chain"
+  ]
+}

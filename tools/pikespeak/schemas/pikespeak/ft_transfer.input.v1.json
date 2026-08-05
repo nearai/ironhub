@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ft_transfer input",
+  "type": "object",
+  "properties": {
+    "account": {
+      "type": "string",
+      "description": "The NEAR account ID."
+    },
+    "offset": {
+      "type": "string",
+      "description": "Query offset (default 0). Optional."
+    },
+    "limit": {
+      "type": "string",
+      "description": "Query limit (default 20). Optional."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "account"
+  ]
+}

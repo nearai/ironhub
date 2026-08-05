@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "images input",
+  "type": "object",
+  "properties": {
+    "q": {
+      "type": "string",
+      "description": "The image search query."
+    },
+    "gl": {
+      "type": "string"
+    },
+    "hl": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "num": {
+      "type": "integer"
+    },
+    "page": {
+      "type": "integer"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "q"
+  ]
+}

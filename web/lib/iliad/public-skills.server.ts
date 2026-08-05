@@ -9,6 +9,10 @@ import {
   parseIliadSkillSlug,
 } from "@/lib/iliad/public-skills-utils"
 
+function isIliadEnabled() {
+  return process.env.NEXT_PUBLIC_ENABLE_ILIAD === "true"
+}
+
 class IliadPublicSkillsError extends Error {
   constructor(
     message: string,
@@ -21,6 +25,8 @@ class IliadPublicSkillsError extends Error {
 export async function fetchIliadPublicSkillsList(
   params: IliadPublicSkillsListParams = {}
 ): Promise<IliadPublicSkillsList> {
+  if (!isIliadEnabled()) throw new IliadPublicSkillsError("Iliad is disabled.", 404)
+
   const url = new URL(getIliadBaseUrl())
   const normalized = normalizeIliadListParams(params)
 
@@ -36,6 +42,8 @@ export async function fetchIliadPublicSkill(
   name: string,
   version: string
 ): Promise<IliadPublicSkill> {
+  if (!isIliadEnabled()) throw new IliadPublicSkillsError("Iliad is disabled.", 404)
+
   const url = new URL(
     `${getIliadBaseUrl()}/${encodeURIComponent(userId)}/${encodeURIComponent(name)}/${encodeURIComponent(version)}`
   )
@@ -44,6 +52,10 @@ export async function fetchIliadPublicSkill(
 }
 
 export async function getIliadCatalogItems() {
+  if (!isIliadEnabled()) {
+    return { items: [], total: 0, error: null }
+  }
+
   const categories = [
     "ai-ml",
     "automation",
@@ -103,6 +115,8 @@ export async function getIliadCatalogItems() {
 }
 
 export async function getIliadCatalogItem(slug: string) {
+  if (!isIliadEnabled()) return undefined
+
   const identity = parseIliadSkillSlug(slug)
 
   if (!identity) {

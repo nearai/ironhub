@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "stablecoin_history input",
+  "type": "object",
+  "properties": {
+    "chain": {
+      "type": "string",
+      "description": "Chain slug, e.g. 'Ethereum'. Omit for all chains combined."
+    },
+    "stablecoin_id": {
+      "type": "string",
+      "description": "Restrict to one stablecoin (numeric id from list_stablecoins)."
+    },
+    "points": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 500,
+      "default": 90,
+      "description": "Max history points returned (evenly downsampled)."
+    }
+  },
+  "additionalProperties": false
+}

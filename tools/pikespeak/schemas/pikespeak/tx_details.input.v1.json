@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "tx_details input",
+  "type": "object",
+  "properties": {
+    "tx_hash": {
+      "type": "string",
+      "description": "The transaction hash (e.g. '8p2s...')."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "tx_hash"
+  ]
+}

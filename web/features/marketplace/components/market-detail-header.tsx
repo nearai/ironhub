@@ -1,6 +1,6 @@
-import { ActionLink } from "@/features/shell/components/action-link"
 import { CatalogIcon } from "@/features/catalog/components/catalog-icon"
 import { StatusBadge } from "@/features/catalog/components/status-badge"
+import { SecureInstallButton } from "@/features/marketplace/components/secure-install-button"
 import { Badge } from "@/components/ui/badge"
 import type { CatalogItem } from "@/lib/catalog/types"
 
@@ -9,14 +9,6 @@ type MarketDetailHeaderProps = {
 }
 
 export function MarketDetailHeader({ item }: MarketDetailHeaderProps) {
-  const sourceLabel =
-    item.origin === "iliad" ? `Download ${item.kind}` : "View source"
-  const setupLabel = item.origin === "iliad" ? "Open Iliad" : "View setup"
-  const setupHref =
-    item.origin === "iliad"
-      ? (item.links.docs ?? item.links.source)
-      : (item.links.setup ?? item.links.docs ?? item.links.source)
-
   return (
     <div className="flex w-full min-w-0 flex-col gap-6 rounded-xl border border-[var(--ironhub-line)] bg-card/60 p-5 shadow-[var(--ironhub-shadow)] backdrop-blur-xl sm:flex-row sm:items-start sm:justify-between sm:p-6">
       <div className="flex w-full min-w-0 flex-col gap-4 sm:flex-row">
@@ -74,13 +66,8 @@ export function MarketDetailHeader({ item }: MarketDetailHeaderProps) {
           )}
         </div>
       </div>
-      <div className="flex shrink-0 flex-wrap gap-2 sm:self-start">
-        <ActionLink href={item.links.source} external>
-          {sourceLabel}
-        </ActionLink>
-        <ActionLink href={setupHref} external variant="default">
-          {setupLabel}
-        </ActionLink>
+      <div className="w-full sm:w-auto sm:min-w-48 lg:hidden">
+        <SecureInstallButton slug={item.slug} />
       </div>
     </div>
   )

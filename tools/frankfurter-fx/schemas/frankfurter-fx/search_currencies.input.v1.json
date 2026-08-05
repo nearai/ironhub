@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "search_currencies input",
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "Optional search term to filter currency codes, names, or symbols (e.g. 'Dong', 'VND', 'Yen')."
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "active",
+        "all"
+      ],
+      "default": "active",
+      "description": "Set to 'all' to include historical legacy currencies."
+    }
+  },
+  "additionalProperties": false
+}

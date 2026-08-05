@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "search input",
+  "type": "object",
+  "properties": {
+    "q": {
+      "type": "string",
+      "description": "The search query text, e.g. 'rust wasip2 tutorial'"
+    },
+    "gl": {
+      "type": "string",
+      "description": "Country code (e.g. 'us', 'gb', 'jp')."
+    },
+    "hl": {
+      "type": "string",
+      "description": "Language code (e.g. 'en', 'es')."
+    },
+    "location": {
+      "type": "string",
+      "description": "Location to anchor search results (e.g. 'Austin, Texas, United States')."
+    },
+    "num": {
+      "type": "integer",
+      "description": "Number of results to return (1-100). Default is 10."
+    },
+    "page": {
+      "type": "integer",
+      "description": "Page offset. Default is 1."
+    },
+    "autocorrect": {
+      "type": "boolean",
+      "description": "Spelling autocorrect toggle."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "q"
+  ]
+}

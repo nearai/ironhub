@@ -44,9 +44,31 @@ for dir in "$ROOT"/tools/*/; do
   fi
   caps_file="${dir}${name}-tool.capabilities.json"
   cargo_toml="${dir}Cargo.toml"
+  native_manifest="${dir}manifest.toml"
 
-  if [ ! -f "$caps_file" ] || [ ! -f "$cargo_toml" ]; then
-    echo "error: $name has no capabilities.json or Cargo.toml" >&2
+  if [ ! -f "$cargo_toml" ]; then
+    echo "error: $name has no Cargo.toml" >&2
+    failed=$((failed + 1))
+    continue
+  fi
+
+  checked=$((checked + 1))
+  if [ -f "$native_manifest" ]; then
+    native_out_dir="${out_dir}/${name}-schemas"
+    if python3 "$ROOT/scripts/validate-native-extension-manifest.py" \
+        "$native_manifest" "$cargo_toml" "$name" \
+        && python3 "$ROOT/scripts/package_tool_schemas.py" \
+          "$dir" "$native_manifest" "$native_out_dir" \
+          "https://invalid.example/releases" >/dev/null; then
+      echo "ok: $name (native manifest)"
+    else
+      failed=$((failed + 1))
+    fi
+    continue
+  fi
+
+  if [ ! -f "$caps_file" ]; then
+    echo "error: $name has neither manifest.toml nor capabilities.json" >&2
     failed=$((failed + 1))
     continue
   fi
@@ -54,7 +76,7 @@ for dir in "$ROOT"/tools/*/; do
   crate_name="$(grep -E '^name[[:space:]]*=' "$cargo_toml" | head -1 | sed -E 's/^name[[:space:]]*=[[:space:]]*"(.+)"[[:space:]]*$/\1/')"
   version="$(grep -E '^version[[:space:]]*=' "$cargo_toml" | head -1 | sed -E 's/^version[[:space:]]*=[[:space:]]*"(.+)"[[:space:]]*$/\1/')"
 
-  checked=$((checked + 1))
+  
   if "$ROOT/scripts/generate-extension-manifest.py" \
       "$caps_file" "$name" "$crate_name" "$version" > "${out_dir}/${name}.toml"; then
     echo "ok: $name"

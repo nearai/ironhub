@@ -49,6 +49,15 @@ def source_secret_names(caps: dict) -> list[str]:
     ) or []
 
 
+def generated_manifest_tool_dirs() -> list[Path]:
+    """Legacy tools whose manifest is generated from capabilities JSON."""
+    return [
+        tool_dir
+        for tool_dir in sorted((ROOT / "tools").iterdir())
+        if tool_dir.is_dir() and not (tool_dir / "manifest.toml").exists()
+    ]
+
+
 def expected_injection(credential: dict) -> dict:
     location = credential["location"]
     if location["type"] == "bearer":
@@ -97,7 +106,7 @@ class ExtensionManifestTranslationTests(unittest.TestCase):
 
     def test_every_supported_tool_preserves_http_authority(self) -> None:
         """Every source host and credential must survive into the v3 manifest."""
-        for tool_dir in sorted((ROOT / "tools").iterdir()):
+        for tool_dir in generated_manifest_tool_dirs():
             if not tool_dir.is_dir() or tool_dir.name in EXEMPT_TOOLS:
                 continue
             with self.subTest(tool=tool_dir.name):
@@ -130,7 +139,7 @@ class ExtensionManifestTranslationTests(unittest.TestCase):
 
     def test_every_published_manifest_has_exact_schema_assets(self) -> None:
         """Every manifest schema ref must resolve to one committed artifact."""
-        for tool_dir in sorted((ROOT / "tools").iterdir()):
+        for tool_dir in generated_manifest_tool_dirs():
             if not tool_dir.is_dir() or tool_dir.name in EXEMPT_TOOLS:
                 continue
             with self.subTest(tool=tool_dir.name):
@@ -154,7 +163,7 @@ class ExtensionManifestTranslationTests(unittest.TestCase):
 
     def test_catalog_sources_are_internally_consistent(self) -> None:
         """Source metadata must agree before any manifest is generated."""
-        for tool_dir in sorted((ROOT / "tools").iterdir()):
+        for tool_dir in generated_manifest_tool_dirs():
             capabilities_path = tool_dir / f"{tool_dir.name}-tool.capabilities.json"
             cargo_path = tool_dir / "Cargo.toml"
             if not tool_dir.is_dir() or not capabilities_path.exists():
@@ -181,6 +190,8 @@ class ExtensionManifestTranslationTests(unittest.TestCase):
                     self.assertEqual(credential.get("secret_name"), handle)
 
     def test_nested_firecrawl_http_keeps_target_credential_and_auth(self) -> None:
+        if (ROOT / "tools" / "firecrawl" / "manifest.toml").exists():
+            self.skipTest("firecrawl publishes a native manifest")
         caps, manifest = self.generated_tool("firecrawl")
 
         self.assertNotIn("http", caps)
@@ -351,7 +362,7 @@ class ExtensionManifestTranslationTests(unittest.TestCase):
         if tomllib is None:
             self.skipTest("tomllib requires Python 3.11+")
 
-        for tool_dir in sorted((ROOT / "tools").iterdir()):
+        for tool_dir in generated_manifest_tool_dirs():
             if not tool_dir.is_dir() or tool_dir.name in EXEMPT_TOOLS:
                 continue
             with self.subTest(tool=tool_dir.name):
@@ -406,6 +417,8 @@ class ExtensionManifestTranslationTests(unittest.TestCase):
         }
         for tool_name, usernames in expected.items():
             with self.subTest(tool=tool_name):
+                if (ROOT / "tools" / tool_name / "manifest.toml").exists():
+                    continue
                 _, manifest = self.generated_tool(tool_name)
                 published = set(
                     re.findall(

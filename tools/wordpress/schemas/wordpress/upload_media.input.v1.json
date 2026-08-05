@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WordPress upload_media input",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "site_url": { "type": "string", "minLength": 4, "maxLength": 253, "description": "The host pinned in manifest.toml, with or without https://." },
+    "filename": { "type": "string", "minLength": 1, "maxLength": 255 },
+    "content_base64": { "type": "string", "minLength": 1, "maxLength": 2800000 },
+    "mime": { "type": "string", "maxLength": 255 },
+    "title": { "type": "string", "maxLength": 500 },
+    "alt_text": { "type": "string", "maxLength": 2000 },
+    "caption": { "type": "string", "maxLength": 10000 },
+    "post": { "type": "integer", "minimum": 1 }
+  },
+  "required": ["site_url", "filename", "content_base64"]
+}

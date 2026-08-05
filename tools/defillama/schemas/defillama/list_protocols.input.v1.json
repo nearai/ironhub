@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "list_protocols input",
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "Filter on protocol name/symbol/slug (case-insensitive substring)."
+    },
+    "category": {
+      "type": "string",
+      "description": "Exact category filter, e.g. 'Lending', 'Dexs', 'Liquid Staking'."
+    },
+    "chain": {
+      "type": "string",
+      "description": "Only protocols deployed on this chain, e.g. 'Ethereum', 'Solana'."
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 20,
+      "description": "Max results, sorted by TVL desc (1-100, default 20)."
+    }
+  },
+  "additionalProperties": false
+}

@@ -33,7 +33,12 @@ struct BlueskyAnalyticsTool;
 
 impl exports::near::agent::tool::Guest for BlueskyAnalyticsTool {
     fn execute(req: exports::near::agent::tool::Request) -> exports::near::agent::tool::Response {
-        match execute_inner(&req.params) {
+        #[cfg(feature = "reborn")]
+        let result = execute_reborn(&req.params, req.context.as_deref());
+        #[cfg(not(feature = "reborn"))]
+        let result = execute_inner(&req.params);
+
+        match result {
             Ok(output) => exports::near::agent::tool::Response {
                 output: Some(output),
                 error: None,
@@ -617,6 +622,44 @@ const SCHEMA: &str = r#"{
         }
     ]
 }"#;
+
+#[cfg(feature = "reborn")]
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ToolContext {
+    capability_id: String,
+}
+
+#[cfg(feature = "reborn")]
+fn execute_reborn(params: &str, context: Option<&str>) -> Result<String, String> {
+    let context = context.ok_or_else(|| "missing_invocation_context".to_string())?;
+    let context: ToolContext =
+        serde_json::from_str(context).map_err(|_| "invalid_invocation_context".to_string())?;
+    let operation = match context.capability_id.as_str() {
+        "bluesky-analytics.get_profile" => "get_profile",
+        "bluesky-analytics.get_author_feed" => "get_author_feed",
+        "bluesky-analytics.get_post_thread" => "get_post_thread",
+        "bluesky-analytics.get_followers" => "get_followers",
+        "bluesky-analytics.get_follows" => "get_follows",
+        "bluesky-analytics.get_likes" => "get_likes",
+        "bluesky-analytics.get_reposted_by" => "get_reposted_by",
+        "bluesky-analytics.search_actors" => "search_actors",
+        _ => return Err("unsupported_capability".to_string()),
+    };
+    let mut params: serde_json::Value =
+        serde_json::from_str(params).map_err(|_| "invalid_parameters".to_string())?;
+    let object = params
+        .as_object_mut()
+        .ok_or_else(|| "invalid_parameters".to_string())?;
+    if object.contains_key("action") {
+        return Err("public_selector_is_not_allowed".to_string());
+    }
+    object.insert(
+        "action".to_string(),
+        serde_json::Value::String(operation.to_string()),
+    );
+    execute_inner(&params.to_string())
+}
 
 export!(BlueskyAnalyticsTool);
 

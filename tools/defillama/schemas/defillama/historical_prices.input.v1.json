@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "historical_prices input",
+  "type": "object",
+  "properties": {
+    "coins": {
+      "type": "string",
+      "description": "Comma-separated '{chain}:{address}' or 'coingecko:{id}'."
+    },
+    "timestamp": {
+      "type": "integer",
+      "description": "Unix timestamp (seconds) of the moment to price."
+    },
+    "search_width": {
+      "type": "string",
+      "description": "Time range to find price data, e.g. '4h' (default 6h)."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "coins",
+    "timestamp"
+  ]
+}

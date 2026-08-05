@@ -13,6 +13,8 @@ import {
 } from "@/lib/catalog/server"
 import { buildCollectionBundles } from "@/lib/catalog/collections"
 import { isIliadEnabled } from "@/lib/shared/feature-flags"
+import { StructuredData } from "@/components/structured-data"
+import { buildCatalogListingJsonLd } from "@/lib/discovery/json-ld"
 
 export async function MarketplaceScreen() {
   const { items } = await getMarketplaceCatalog()
@@ -27,6 +29,10 @@ export async function MarketplaceScreen() {
 
   return (
     <HubLayout>
+      <StructuredData
+        id="ironhub-marketplace-jsonld"
+        data={buildCatalogListingJsonLd(items)}
+      />
       <div className="mx-auto grid max-w-7xl gap-6">
         <PageHeader
           eyebrow="Skill Library"

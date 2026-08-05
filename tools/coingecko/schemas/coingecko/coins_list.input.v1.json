@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "coins_list input",
+  "type": "object",
+  "properties": {
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000,
+      "description": "Limit the number of top coins fetched from the markets API (e.g., 100, 500, 1000). If omitted, returns the static top 100 coins."
+    },
+    "pro": {
+      "type": "boolean",
+      "description": "Set to true to use the Pro API domain. Default is false."
+    }
+  },
+  "additionalProperties": false
+}

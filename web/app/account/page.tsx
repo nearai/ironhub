@@ -2,7 +2,10 @@ import { Suspense } from "react"
 import { notFound } from "next/navigation"
 
 import { AccountScreen } from "@/features/account/components/account-screen"
+import { buildPrivateMetadata } from "@/lib/discovery/metadata"
 import { isAccountRouteDisabled } from "@/lib/shared/feature-flags"
+
+export const metadata = buildPrivateMetadata("Account")
 
 export default function AccountPage() {
   if (isAccountRouteDisabled) {

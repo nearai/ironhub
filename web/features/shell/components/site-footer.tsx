@@ -5,11 +5,14 @@ import { Separator } from "@/components/ui/separator"
 import { links } from "@/lib/shared/links"
 import { BrandMark } from "./brand-mark"
 
-const footerLinks = [
+const footerLinks: [string, string][] = [
   ["IronClaw", links.ironclaw],
   ["Docs", links.docs],
   ["GitHub", links.repo],
-] as const
+  ...(process.env.NEXT_PUBLIC_ENABLE_ILIAD === "true"
+    ? [["Iliad", links.iliad] as [string, string]]
+    : []),
+]
 
 export function SiteFooter() {
   const pathname = usePathname()

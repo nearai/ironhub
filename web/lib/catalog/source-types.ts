@@ -2,17 +2,48 @@ export type CapabilityManifest = {
   version?: string
   wit_version?: string
   description?: string
+  effects?: string[]
   http?: {
     allowlist?: Array<{ host?: string }>
-    credentials?: Record<string, unknown>
+    credentials?: Record<string, LegacyCredential>
   }
   secrets?: {
     allowed_names?: string[]
   }
-  auth?: {
-    display_name?: string
-    oauth?: unknown
+  capabilities?: {
+    effects?: string[]
+    http?: {
+      allowlist?: Array<{ host?: string }>
+      credentials?: Record<string, LegacyCredential>
+    }
+    secrets?: {
+      allowed_names?: string[]
+    }
   }
+  auth?: {
+    secret_name?: string
+    display_name?: string
+    oauth?: {
+      use_pkce?: boolean
+    }
+  }
+  setup?: {
+    required_secrets?: Array<{
+      name?: string
+      optional?: boolean
+    }>
+  }
+}
+
+export type LegacyCredential = {
+  secret_name?: string
+  location?: {
+    type?: string
+    name?: string
+    prefix?: string
+  }
+  host_patterns?: string[]
+  optional?: boolean
 }
 
 export type SkillFrontmatter = {

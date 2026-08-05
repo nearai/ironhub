@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "places input",
+  "type": "object",
+  "properties": {
+    "q": {
+      "type": "string",
+      "description": "Google Maps query (e.g. 'pizza')."
+    },
+    "gl": {
+      "type": "string"
+    },
+    "hl": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string",
+      "description": "Recommended location filter (e.g. 'Chicago')."
+    },
+    "num": {
+      "type": "integer"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "q"
+  ]
+}

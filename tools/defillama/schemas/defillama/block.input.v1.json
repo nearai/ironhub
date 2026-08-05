@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "block input",
+  "type": "object",
+  "properties": {
+    "chain": {
+      "type": "string",
+      "description": "Chain name, e.g. 'ethereum'."
+    },
+    "timestamp": {
+      "type": "integer",
+      "description": "Unix timestamp. Returns the closest block at or after it."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "chain",
+    "timestamp"
+  ]
+}

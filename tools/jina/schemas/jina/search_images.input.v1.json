@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "search_images input",
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "Search query to find images across the web."
+    },
+    "num": {
+      "type": "integer",
+      "description": "The number of search results to return (default 30)."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "query"
+  ]
+}

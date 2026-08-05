@@ -19,7 +19,6 @@ import {
   IconDownload,
   IconUsers,
   IconCircleCheck,
-  IconClock,
   IconWorld,
   IconLock,
   IconCopy,
@@ -70,7 +69,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
   }
 
   const handleCopyInstall = async () => {
-    const cmd = `ironclaw hub install ${submission.id}${submission.visibility === "private" ? ` --token ${installToken}` : ""}`
+    const cmd = `ironclaw ironhub install ${submission.id}${submission.visibility === "private" ? ` --token ${installToken}` : ""}`
     try {
       await navigator.clipboard.writeText(cmd)
       setCopiedInstall(true)

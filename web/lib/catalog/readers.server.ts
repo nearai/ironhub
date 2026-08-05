@@ -15,6 +15,7 @@ import {
   parseToolValueMetadata,
   readCargoValue,
 } from "@/lib/catalog/parsers"
+import { normalizeToolSecurity } from "@/lib/catalog/manifest-normalization"
 import type { CapabilityManifest } from "@/lib/catalog/source-types"
 import { links, sourceLink } from "@/lib/shared/links"
 
@@ -57,13 +58,14 @@ export async function readTools(root: string) {
           : {}
         const cargo = await readText(path.join(toolRoot, "Cargo.toml"))
         const readme = await readText(path.join(toolRoot, "README.md"))
+        const rebornManifest = await readText(
+          path.join(toolRoot, "manifest.toml")
+        )
         const readmeMetadata = parseToolValueMetadata(readme)
         const actionCount = countRustEnumVariants(
           await readText(path.join(toolRoot, "src/types.rs"))
         )
-        const authModel = manifest.auth?.oauth
-          ? `OAuth 2.0 user-context${slug === "microsoft-365" ? " with PKCE" : ""}`
-          : "No auth"
+        const security = normalizeToolSecurity(manifest, rebornManifest)
 
         const description =
           readmeMetadata.description?.trim() ||
@@ -109,22 +111,16 @@ export async function readTools(root: string) {
               : undefined,
           },
           metrics: { actions: actionCount },
-          auth: {
-            model: authModel,
-            requiredSecrets:
-              manifest.secrets?.allowed_names ??
-              Object.keys(manifest.http?.credentials ?? {}),
-          },
+          auth: security.auth,
           limits: extractLimits(readme),
           related: {},
           icon: inferIcon(slug),
           actionCount,
           witVersion: manifest.wit_version ?? "unknown",
-          httpAllowlist:
-            manifest.http?.allowlist?.flatMap((entry) =>
-              entry.host ? [entry.host] : []
-            ) ?? [],
-          requiredSecrets: manifest.secrets?.allowed_names ?? [],
+          httpAllowlist: security.networkHosts,
+          requiredSecrets: security.auth.requiredSecrets,
+          effects: security.effects,
+          defaultPermissions: security.defaultPermissions,
         }
       })
   )
@@ -181,6 +177,8 @@ export async function readSkills(root: string) {
           auth: {
             model: `Uses ${frontmatter.trunk ?? "declared"} trunk auth`,
             requiredSecrets: [],
+            optionalSecrets: [],
+            credentials: [],
           },
           limits: extractSkillLimits(text),
           related: { trunk: frontmatter.trunk },

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "research input",
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "Optional report topic or keyword search (e.g., 'DePIN', 'L2', 'restaking')."
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Max reports to return (default 20)."
+    }
+  },
+  "additionalProperties": false
+}

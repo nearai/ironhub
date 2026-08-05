@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "coin_ohlc input",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "The coin ID (e.g. 'bitcoin')."
+    },
+    "vs_currency": {
+      "type": "string",
+      "description": "Target currency (e.g. 'usd')."
+    },
+    "days": {
+      "type": "string",
+      "enum": [
+        "1",
+        "7",
+        "14",
+        "30",
+        "90",
+        "180",
+        "365",
+        "max"
+      ],
+      "description": "Number of days of data."
+    },
+    "pro": {
+      "type": "boolean",
+      "description": "Set to true to use the Pro API domain. Default is false."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "vs_currency",
+    "days"
+  ]
+}

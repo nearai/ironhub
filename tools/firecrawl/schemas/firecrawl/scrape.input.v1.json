@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "scrape input",
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string",
+      "description": "Target URL (http/https) to scrape."
+    },
+    "formats": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Output formats, e.g. [\"markdown\"], [\"markdown\",\"html\"]. Default [\"markdown\"]."
+    },
+    "only_main_content": {
+      "type": "boolean",
+      "description": "Strip nav/header/footer boilerplate (default true)."
+    },
+    "wait_for": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 60000,
+      "description": "Milliseconds to wait for JS before extracting (max 60000)."
+    },
+    "timeout": {
+      "type": "integer",
+      "minimum": 1000,
+      "maximum": 300000,
+      "description": "Request timeout in milliseconds (1000-300000)."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "url"
+  ]
+}

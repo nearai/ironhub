@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "balance input",
+  "type": "object",
+  "properties": {
+    "account": {
+      "type": "string",
+      "description": "The NEAR account ID (e.g. 'root.near')."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "account"
+  ]
+}

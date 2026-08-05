@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "list_stablecoins input",
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "Filter on stablecoin name/symbol."
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 20,
+      "description": "Max results, sorted by circulating supply desc."
+    }
+  },
+  "additionalProperties": false
+}
