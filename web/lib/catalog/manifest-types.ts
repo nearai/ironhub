@@ -19,6 +19,12 @@ export type HubToolEntry = {
   provenance: Provenance
   wasm: HubArtifact
   capabilities: HubArtifact
+  manifest?: HubArtifact
+  schemas?: Record<string, HubArtifact>
+}
+
+export type HubSkillFile = HubArtifact & {
+  path: string
 }
 
 export type HubSkillEntry = {
@@ -28,6 +34,7 @@ export type HubSkillEntry = {
   description: string
   provenance: Provenance
   skill_md: HubArtifact
+  files?: HubSkillFile[]
 }
 
 export type HubManifest = {
@@ -38,3 +45,30 @@ export type HubManifest = {
   tools: HubToolEntry[]
   skills: HubSkillEntry[]
 }
+
+export type VersionEntry = {
+  kind: "tool" | "skill"
+  name: string
+  version: string
+  digest: string
+}
+
+type VersionDocumentHeader = {
+  version: "1"
+  generated_at: string
+  release_tag: string
+  repo: string
+}
+
+export type VersionIndex = VersionDocumentHeader & {
+  entries: VersionEntry[]
+}
+
+export type VersionIndexUnchanged = VersionDocumentHeader & {
+  unchanged: true
+}
+
+export type SignableDocument =
+  | HubManifest
+  | VersionIndex
+  | VersionIndexUnchanged

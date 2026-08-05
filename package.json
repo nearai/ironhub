@@ -4,16 +4,20 @@
   "pnpm": {
     "overrides": {
       "@babel/core": ">=7.29.6 <8",
-      "brace-expansion@5": ">=5.0.6 <6",
+      "body-parser": ">=2.3.0 <3",
+      "brace-expansion@1": ">=1.1.16 <2",
+      "brace-expansion@5": ">=5.0.8 <6",
       "esbuild": ">=0.28.1 <0.29",
-      "fast-uri": ">=3.1.2 <4",
+      "fast-uri": ">=3.1.4 <4",
       "hono": ">=4.12.25 <5",
-      "@hono/node-server": ">=1.19.13 <2",
+      "@hono/node-server": ">=2.0.5 <3",
       "ip-address": ">=10.1.1 <11",
       "js-yaml": ">=4.2.0 <5",
-      "postcss": ">=8.5.10 <9",
+      "postcss": ">=8.5.18 <9",
       "qs": ">=6.15.2 <7",
-      "tar": ">=7.5.16 <8"
+      "sharp": ">=0.35.0 <1",
+      "tar": ">=7.5.21 <8",
+      "valibot": ">=1.4.2 <2"
     }
   },
   "scripts": {

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "historical_trend input",
+  "type": "object",
+  "properties": {
+    "base": {
+      "type": "string",
+      "description": "Base currency ISO code (e.g. 'USD')."
+    },
+    "quote": {
+      "type": "string",
+      "description": "Quote currency ISO code (e.g. 'VND')."
+    },
+    "period": {
+      "type": "string",
+      "enum": [
+        "7d",
+        "30d",
+        "90d",
+        "1y",
+        "ytd"
+      ],
+      "description": "Relative time period preset (defaults to '30d')."
+    },
+    "from_date": {
+      "type": "string",
+      "description": "Start of date range in YYYY-MM-DD format (overrides relative period preset if to_date is also set)."
+    },
+    "to_date": {
+      "type": "string",
+      "description": "End of date range in YYYY-MM-DD format."
+    },
+    "group": {
+      "type": "string",
+      "enum": [
+        "week",
+        "month"
+      ],
+      "description": "Optional time grouping for downsampling rates ('week' or 'month')."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "base",
+    "quote"
+  ]
+}

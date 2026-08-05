@@ -15,7 +15,7 @@ export function MarketplaceInstallCard({
   skills,
   tools,
 }: MarketplaceInstallCardProps) {
-  const installCommand = "ironclaw hub install near-rpc"
+  const installCommand = "ironclaw ironhub install near-rpc"
 
   return (
     <div className="rounded-xl border border-[var(--ih-line)] bg-[var(--ih-surface-muted)] p-6 shadow-[var(--ih-shadow)] backdrop-blur-xl">
@@ -50,7 +50,7 @@ export function MarketplaceInstallCard({
                 $
               </span>
               <span className="text-slate-900 dark:text-slate-100">
-                ironclaw hub search near
+                ironclaw ironhub search near
               </span>
             </div>
             <div className="flex gap-3">

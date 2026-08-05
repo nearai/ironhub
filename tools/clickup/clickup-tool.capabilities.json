@@ -2,6 +2,7 @@
   "version": "0.1.0",
   "wit_version": "0.3.0",
   "description": "ClickUp integration via the v2 REST API. Workspaces (list), spaces (list, get), folders (list, get), lists (list, get, create, list folderless), tasks (list, list filtered cross-list, get, create, update, delete, tag, untag), task comments (list, create), comments (update, delete), time tracking (list, current running), goals (list, get), and the authenticated user. OAuth 2.0 user-context authentication against app.clickup.com with non-expiring tokens.",
+  "effects": ["external_write"],
   "http": {
     "allowlist": [
       {

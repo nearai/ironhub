@@ -18,6 +18,16 @@ type CatalogMetrics = {
 type CatalogAuth = {
   model: string
   requiredSecrets: string[]
+  optionalSecrets: string[]
+  credentials: CatalogCredential[]
+}
+
+export type CatalogCredential = {
+  name: string
+  provider?: string
+  method: string
+  required: boolean
+  hosts: string[]
 }
 
 type CatalogRelated = {
@@ -63,6 +73,8 @@ export type ToolCatalogItem = BaseCatalogItem & {
   witVersion: string
   httpAllowlist: string[]
   requiredSecrets: string[]
+  effects: string[]
+  defaultPermissions: string[]
 }
 
 export type SkillCatalogItem = BaseCatalogItem & {

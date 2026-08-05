@@ -1,0 +1,406 @@
+# PACKAGE TEMPLATE: replace every `wordpress.example.com` with the exact
+# HTTPS host of one WordPress installation before creating the import ZIP.
+# For WordPress Basic auth, enter base64(username:application-password)
+# without the `Basic ` prefix when the generic credential popup appears.
+schema_version = "reborn.extension_manifest.v2"
+id = "wordpress"
+name = "WordPress + WooCommerce"
+version = "0.2.0"
+description = "Typed WordPress and WooCommerce operations for one host-pinned site."
+trust = "third_party"
+
+[runtime]
+kind = "wasm"
+module = "wasm/wordpress_reborn_tool.wasm"
+
+[[host_api]]
+id = "ironclaw.capability_provider/v1"
+section = "capability_provider.tools"
+
+[capability_provider.tools]
+
+[[capability_provider.tools.capabilities]]
+id = "wordpress.list_posts"
+description = "List posts from the configured WordPress site."
+effects = ["dispatch_capability", "network", "use_secret"]
+default_permission = "allow"
+visibility = "model"
+input_schema_ref = "schemas/wordpress/list_with_status.input.v1.json"
+output_schema_ref = "schemas/wordpress/output.v1.json"
+prompt_doc_ref = "prompts/wordpress/list_posts.md"
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "wordpress_basic_authorization"
+source = { type = "product_auth_account", provider = "wordpress-basic-authorization" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "header", name = "authorization", prefix = "Basic " }
+required = true
+
+[[capability_provider.tools.capabilities]]
+id = "wordpress.get_post"
+description = "Get one WordPress post by ID."
+effects = ["dispatch_capability", "network", "use_secret"]
+default_permission = "allow"
+visibility = "model"
+input_schema_ref = "schemas/wordpress/get_by_id.input.v1.json"
+output_schema_ref = "schemas/wordpress/output.v1.json"
+prompt_doc_ref = "prompts/wordpress/get_post.md"
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "wordpress_basic_authorization"
+source = { type = "product_auth_account", provider = "wordpress-basic-authorization" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "header", name = "authorization", prefix = "Basic " }
+required = true
+
+[[capability_provider.tools.capabilities]]
+id = "wordpress.create_post"
+description = "Create a WordPress post."
+effects = ["dispatch_capability", "network", "use_secret", "external_write"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/wordpress/create_data.input.v1.json"
+output_schema_ref = "schemas/wordpress/output.v1.json"
+prompt_doc_ref = "prompts/wordpress/create_post.md"
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "wordpress_basic_authorization"
+source = { type = "product_auth_account", provider = "wordpress-basic-authorization" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "header", name = "authorization", prefix = "Basic " }
+required = true
+
+[[capability_provider.tools.capabilities]]
+id = "wordpress.update_post"
+description = "Update fields on a WordPress post."
+effects = ["dispatch_capability", "network", "use_secret", "external_write"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/wordpress/update_data.input.v1.json"
+output_schema_ref = "schemas/wordpress/output.v1.json"
+prompt_doc_ref = "prompts/wordpress/update_post.md"
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "wordpress_basic_authorization"
+source = { type = "product_auth_account", provider = "wordpress-basic-authorization" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "header", name = "authorization", prefix = "Basic " }
+required = true
+
+[[capability_provider.tools.capabilities]]
+id = "wordpress.delete_post"
+description = "Trash or permanently delete a WordPress post."
+effects = ["dispatch_capability", "network", "use_secret", "external_write"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/wordpress/delete_by_id.input.v1.json"
+output_schema_ref = "schemas/wordpress/output.v1.json"
+prompt_doc_ref = "prompts/wordpress/delete_post.md"
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "wordpress_basic_authorization"
+source = { type = "product_auth_account", provider = "wordpress-basic-authorization" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "header", name = "authorization", prefix = "Basic " }
+required = true
+
+[[capability_provider.tools.capabilities]]
+id = "wordpress.upload_media"
+description = "Upload a small base64-encoded media file to WordPress."
+effects = ["dispatch_capability", "network", "use_secret", "external_write"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/wordpress/upload_media.input.v1.json"
+output_schema_ref = "schemas/wordpress/output.v1.json"
+prompt_doc_ref = "prompts/wordpress/upload_media.md"
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "wordpress_basic_authorization"
+source = { type = "product_auth_account", provider = "wordpress-basic-authorization" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "header", name = "authorization", prefix = "Basic " }
+required = true
+
+[[capability_provider.tools.capabilities]]
+id = "wordpress.list_media"
+description = "List media from the configured WordPress site."
+effects = ["dispatch_capability", "network", "use_secret"]
+default_permission = "allow"
+visibility = "model"
+input_schema_ref = "schemas/wordpress/list_basic.input.v1.json"
+output_schema_ref = "schemas/wordpress/output.v1.json"
+prompt_doc_ref = "prompts/wordpress/list_media.md"
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "wordpress_basic_authorization"
+source = { type = "product_auth_account", provider = "wordpress-basic-authorization" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "header", name = "authorization", prefix = "Basic " }
+required = true
+
+[[capability_provider.tools.capabilities]]
+id = "wordpress.get_media"
+description = "Get one WordPress media attachment by ID."
+effects = ["dispatch_capability", "network", "use_secret"]
+default_permission = "allow"
+visibility = "model"
+input_schema_ref = "schemas/wordpress/get_by_id.input.v1.json"
+output_schema_ref = "schemas/wordpress/output.v1.json"
+prompt_doc_ref = "prompts/wordpress/get_media.md"
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "wordpress_basic_authorization"
+source = { type = "product_auth_account", provider = "wordpress-basic-authorization" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "header", name = "authorization", prefix = "Basic " }
+required = true
+
+[[capability_provider.tools.capabilities]]
+id = "wordpress.update_media"
+description = "Update WordPress media metadata."
+effects = ["dispatch_capability", "network", "use_secret", "external_write"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/wordpress/update_data.input.v1.json"
+output_schema_ref = "schemas/wordpress/output.v1.json"
+prompt_doc_ref = "prompts/wordpress/update_media.md"
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "wordpress_basic_authorization"
+source = { type = "product_auth_account", provider = "wordpress-basic-authorization" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "header", name = "authorization", prefix = "Basic " }
+required = true
+
+[[capability_provider.tools.capabilities]]
+id = "wordpress.delete_media"
+description = "Permanently delete a WordPress media attachment."
+effects = ["dispatch_capability", "network", "use_secret", "external_write"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/wordpress/delete_by_id.input.v1.json"
+output_schema_ref = "schemas/wordpress/output.v1.json"
+prompt_doc_ref = "prompts/wordpress/delete_media.md"
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "wordpress_basic_authorization"
+source = { type = "product_auth_account", provider = "wordpress-basic-authorization" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "header", name = "authorization", prefix = "Basic " }
+required = true
+
+[[capability_provider.tools.capabilities]]
+id = "wordpress.list_products"
+description = "List WooCommerce products."
+effects = ["dispatch_capability", "network", "use_secret"]
+default_permission = "allow"
+visibility = "model"
+input_schema_ref = "schemas/wordpress/list_with_status.input.v1.json"
+output_schema_ref = "schemas/wordpress/output.v1.json"
+prompt_doc_ref = "prompts/wordpress/list_products.md"
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "woo_consumer_key"
+source = { type = "product_auth_account", provider = "woocommerce-consumer-key" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "query_param", name = "consumer_key" }
+required = true
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "woo_consumer_secret"
+source = { type = "product_auth_account", provider = "woocommerce-consumer-secret" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "query_param", name = "consumer_secret" }
+required = true
+
+[[capability_provider.tools.capabilities]]
+id = "wordpress.get_product"
+description = "Get one WooCommerce product by ID."
+effects = ["dispatch_capability", "network", "use_secret"]
+default_permission = "allow"
+visibility = "model"
+input_schema_ref = "schemas/wordpress/get_by_id.input.v1.json"
+output_schema_ref = "schemas/wordpress/output.v1.json"
+prompt_doc_ref = "prompts/wordpress/get_product.md"
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "woo_consumer_key"
+source = { type = "product_auth_account", provider = "woocommerce-consumer-key" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "query_param", name = "consumer_key" }
+required = true
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "woo_consumer_secret"
+source = { type = "product_auth_account", provider = "woocommerce-consumer-secret" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "query_param", name = "consumer_secret" }
+required = true
+
+[[capability_provider.tools.capabilities]]
+id = "wordpress.create_product"
+description = "Create a WooCommerce product."
+effects = ["dispatch_capability", "network", "use_secret", "external_write"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/wordpress/create_data.input.v1.json"
+output_schema_ref = "schemas/wordpress/output.v1.json"
+prompt_doc_ref = "prompts/wordpress/create_product.md"
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "woo_consumer_key"
+source = { type = "product_auth_account", provider = "woocommerce-consumer-key" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "query_param", name = "consumer_key" }
+required = true
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "woo_consumer_secret"
+source = { type = "product_auth_account", provider = "woocommerce-consumer-secret" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "query_param", name = "consumer_secret" }
+required = true
+
+[[capability_provider.tools.capabilities]]
+id = "wordpress.update_product"
+description = "Update fields, including pricing, on a WooCommerce product."
+effects = ["dispatch_capability", "network", "use_secret", "external_write"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/wordpress/update_data.input.v1.json"
+output_schema_ref = "schemas/wordpress/output.v1.json"
+prompt_doc_ref = "prompts/wordpress/update_product.md"
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "woo_consumer_key"
+source = { type = "product_auth_account", provider = "woocommerce-consumer-key" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "query_param", name = "consumer_key" }
+required = true
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "woo_consumer_secret"
+source = { type = "product_auth_account", provider = "woocommerce-consumer-secret" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "query_param", name = "consumer_secret" }
+required = true
+
+[[capability_provider.tools.capabilities]]
+id = "wordpress.delete_product"
+description = "Trash or permanently delete a WooCommerce product."
+effects = ["dispatch_capability", "network", "use_secret", "external_write"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/wordpress/delete_by_id.input.v1.json"
+output_schema_ref = "schemas/wordpress/output.v1.json"
+prompt_doc_ref = "prompts/wordpress/delete_product.md"
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "woo_consumer_key"
+source = { type = "product_auth_account", provider = "woocommerce-consumer-key" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "query_param", name = "consumer_key" }
+required = true
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "woo_consumer_secret"
+source = { type = "product_auth_account", provider = "woocommerce-consumer-secret" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "query_param", name = "consumer_secret" }
+required = true
+
+[[capability_provider.tools.capabilities]]
+id = "wordpress.list_orders"
+description = "List WooCommerce orders."
+effects = ["dispatch_capability", "network", "use_secret"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/wordpress/list_with_status.input.v1.json"
+output_schema_ref = "schemas/wordpress/output.v1.json"
+prompt_doc_ref = "prompts/wordpress/list_orders.md"
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "woo_consumer_key"
+source = { type = "product_auth_account", provider = "woocommerce-consumer-key" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "query_param", name = "consumer_key" }
+required = true
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "woo_consumer_secret"
+source = { type = "product_auth_account", provider = "woocommerce-consumer-secret" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "query_param", name = "consumer_secret" }
+required = true
+
+[[capability_provider.tools.capabilities]]
+id = "wordpress.get_order"
+description = "Get one WooCommerce order by ID."
+effects = ["dispatch_capability", "network", "use_secret"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/wordpress/get_by_id.input.v1.json"
+output_schema_ref = "schemas/wordpress/output.v1.json"
+prompt_doc_ref = "prompts/wordpress/get_order.md"
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "woo_consumer_key"
+source = { type = "product_auth_account", provider = "woocommerce-consumer-key" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "query_param", name = "consumer_key" }
+required = true
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "woo_consumer_secret"
+source = { type = "product_auth_account", provider = "woocommerce-consumer-secret" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "query_param", name = "consumer_secret" }
+required = true
+
+[[capability_provider.tools.capabilities]]
+id = "wordpress.update_order"
+description = "Update a WooCommerce order, such as changing its status."
+effects = ["dispatch_capability", "network", "use_secret", "external_write"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/wordpress/update_data.input.v1.json"
+output_schema_ref = "schemas/wordpress/output.v1.json"
+prompt_doc_ref = "prompts/wordpress/update_order.md"
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "woo_consumer_key"
+source = { type = "product_auth_account", provider = "woocommerce-consumer-key" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "query_param", name = "consumer_key" }
+required = true
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "woo_consumer_secret"
+source = { type = "product_auth_account", provider = "woocommerce-consumer-secret" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "query_param", name = "consumer_secret" }
+required = true
+
+[[capability_provider.tools.capabilities]]
+id = "wordpress.list_customers"
+description = "List WooCommerce customers."
+effects = ["dispatch_capability", "network", "use_secret"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/wordpress/list_basic.input.v1.json"
+output_schema_ref = "schemas/wordpress/output.v1.json"
+prompt_doc_ref = "prompts/wordpress/list_customers.md"
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "woo_consumer_key"
+source = { type = "product_auth_account", provider = "woocommerce-consumer-key" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "query_param", name = "consumer_key" }
+required = true
+
+[[capability_provider.tools.capabilities.runtime_credentials]]
+handle = "woo_consumer_secret"
+source = { type = "product_auth_account", provider = "woocommerce-consumer-secret" }
+audience = { scheme = "https", host_pattern = "wordpress.example.com" }
+target = { type = "query_param", name = "consumer_secret" }
+required = true

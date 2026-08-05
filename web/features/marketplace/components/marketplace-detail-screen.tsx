@@ -6,6 +6,8 @@ import { MarketDetailHeader } from "@/features/marketplace/components/market-det
 import { MarketDetailInfo } from "@/features/marketplace/components/market-detail-info"
 import { MarketDetailSurface } from "@/features/marketplace/components/market-detail-surface"
 import { getCatalog, getMarketplaceCatalogItem } from "@/lib/catalog/server"
+import { StructuredData } from "@/components/structured-data"
+import { buildCatalogItemJsonLd } from "@/lib/discovery/json-ld"
 
 export type MarketplaceDetailScreenProps = {
   params: Promise<{ slug: string }>
@@ -28,6 +30,10 @@ export async function MarketplaceDetailScreen({
 
   return (
     <HubLayout>
+      <StructuredData
+        id="ironhub-marketplace-item-jsonld"
+        data={buildCatalogItemJsonLd(item)}
+      />
       <div className="mx-auto grid w-full max-w-7xl min-w-0 gap-6">
         <MarketDetailHeader item={item} />
         <section className="grid w-full min-w-0 gap-4 lg:grid-cols-[1fr_360px]">

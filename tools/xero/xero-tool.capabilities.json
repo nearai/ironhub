@@ -2,6 +2,7 @@
   "version": "0.1.0",
   "wit_version": "0.3.0",
   "description": "Xero Accounting API integration. Reads contacts, invoices, accounts, payments, bank transactions, items, credit notes, the organisation, and financial reports; creates and updates contacts, invoices, and payments. Multi-tenant: every action except list_connections takes a tenant_id (discover ids via list_connections). Created invoices default to DRAFT and create actions accept an idempotency key. Authenticated with a user-authorized Xero OAuth2 token presented as a Bearer header against api.xero.com, with the Xero-tenant-id header set per call.",
+  "effects": ["external_write", "financial"],
   "http": {
     "allowlist": [
       {

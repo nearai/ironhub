@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation"
 
 import { PartnerLayoutShell } from "@/features/partner/components/partner-layout-shell"
+import { buildPrivateMetadata } from "@/lib/discovery/metadata"
 import { isMvpRouteDisabled } from "@/lib/shared/feature-flags"
+
+export const metadata = buildPrivateMetadata("Partner Workspace")
 
 export default function PartnerLayout({
   children,

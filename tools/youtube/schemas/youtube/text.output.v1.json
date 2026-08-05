@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "YouTube tool text output",
+  "description": "Token-optimized YAML-formatted text returned by the YouTube tool.",
+  "type": "string"
+}

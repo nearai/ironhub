@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "price_chart input",
+  "type": "object",
+  "properties": {
+    "coins": {
+      "type": "string",
+      "description": "Comma-separated '{chain}:{address}' or 'coingecko:{id}'."
+    },
+    "start": {
+      "type": "integer",
+      "description": "Unix timestamp of earliest data point. Use start OR end, not both."
+    },
+    "end": {
+      "type": "integer",
+      "description": "Unix timestamp of latest data point."
+    },
+    "span": {
+      "type": "integer",
+      "description": "Number of data points to return (server-side), e.g. 30."
+    },
+    "period": {
+      "type": "string",
+      "description": "Interval between points: e.g. '1d', '4h', '1w' (default '24h')."
+    },
+    "search_width": {
+      "type": "string",
+      "description": "Time range on either side to find price data (default 10% of period)."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "coins"
+  ]
+}

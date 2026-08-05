@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "get_profile input",
+  "type": "object",
+  "properties": {
+    "actor": {
+      "type": "string",
+      "description": "Account identifier: a handle (e.g. 'alice.bsky.social') or DID (e.g. 'did:plc:...')."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "actor"
+  ]
+}

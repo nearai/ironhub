@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "getstatus input",
+  "type": "object",
+  "properties": {
+    "txhash": {
+      "type": "string",
+      "description": "Transaction hash."
+    },
+    "chain": {
+      "type": [
+        "integer",
+        "string"
+      ],
+      "description": "The EVM chain ID or name."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "txhash",
+    "chain"
+  ]
+}

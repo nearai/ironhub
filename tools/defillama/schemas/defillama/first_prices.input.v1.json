@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "first_prices input",
+  "type": "object",
+  "properties": {
+    "coins": {
+      "type": "string",
+      "description": "Comma-separated '{chain}:{address}' or 'coingecko:{id}'. Returns each token's earliest recorded price."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "coins"
+  ]
+}

@@ -36,6 +36,7 @@ Tool PRs:
 
 - [ ] Adds or updates `tools/<tool-name>/README.md`
 - [ ] Adds or updates `tools/<tool-name>/<tool-name>-tool.capabilities.json`
+- [ ] Adds input/output schema assets that exactly match the generated manifest refs
 - [ ] Documents auth, scopes, limits, and target use cases
 - [ ] Tests representative action calls and records the results below
 

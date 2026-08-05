@@ -1,0 +1,24 @@
+{
+  "version": "0.1.0",
+  "effects": [],
+  "wit_version": "0.3.0",
+  "description": "Frankfurter FX & Money Exchange Tool — Foreign Exchange (FX) rates, currency converter, multi-currency portfolio conversion, and historical FX rate analytics powered by Central Bank data via Frankfurter v2. Public API, no authentication required.",
+  "capabilities": {
+    "http": {
+      "allowlist": [
+        {
+          "host": "api.frankfurter.dev",
+          "path_prefix": "/v2",
+          "methods": [
+            "GET"
+          ]
+        }
+      ],
+      "rate_limit": {
+        "requests_per_minute": 60,
+        "requests_per_hour": 1000
+      },
+      "timeout_secs": 30
+    }
+  }
+}

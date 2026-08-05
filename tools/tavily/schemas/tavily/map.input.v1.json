@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "map input",
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string",
+      "description": "Root URL (http/https) to start mapping from."
+    },
+    "max_depth": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Maximum link depth to traverse (1–5, default 1)."
+    },
+    "instructions": {
+      "type": "string",
+      "description": "Natural language instructions to guide the mapper's focus. Note: doubles credit cost per 10 pages."
+    },
+    "max_breadth": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Maximum concurrent paths explored."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "url"
+  ]
+}

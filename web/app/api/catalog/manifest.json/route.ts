@@ -4,14 +4,14 @@ import {
   buildUnifiedManifest,
   CatalogManifestError,
 } from "@/lib/catalog/manifest.server"
-import { signManifest } from "@/lib/catalog/manifest-signing.server"
+import { signDocument } from "@/lib/catalog/manifest-signing.server"
 
 export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {
     const manifest = await buildUnifiedManifest()
-    const envelope = signManifest(manifest)
+    const envelope = signDocument(manifest)
 
     return NextResponse.json(envelope, {
       headers: { "Cache-Control": "no-store" },

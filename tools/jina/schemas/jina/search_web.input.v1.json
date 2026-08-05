@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "search_web input",
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "The search query to run."
+    },
+    "num": {
+      "type": "integer",
+      "description": "The number of search results to return (default 30)."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "query"
+  ]
+}

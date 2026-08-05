@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "YouTube get_video_details input",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "video_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 640,
+      "description": "One video ID or a comma-separated list of video IDs."
+    }
+  },
+  "required": ["video_id"]
+}

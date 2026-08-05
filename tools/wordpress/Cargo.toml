@@ -1,11 +1,9 @@
 [package]
-name = "wordpress-tool"
-version = "0.1.2"
+name = "wordpress-reborn-tool"
+version = "0.2.0"
 edition = "2021"
-description = "WordPress + WooCommerce REST tool for IronClaw (WASM component)"
+description = "WordPress and WooCommerce WASM extension for IronClaw Reborn"
 license = "MIT OR Apache-2.0"
-authors = ["cuongdcdev <cuongdcdev@gmail.com>"]
-repository = "https://github.com/cuongdcdev/ironclaw-skills-tools"
 publish = false
 
 [dependencies]
@@ -17,10 +15,15 @@ wit-bindgen = "0.41.0"
 [lib]
 crate-type = ["cdylib"]
 
+[features]
+default = ["reborn"]
+reborn = []
+
 [profile.release]
-opt-level = "s"
+opt-level = "z"
 lto = true
 strip = true
 codegen-units = 1
+panic = "abort"
 
 [workspace]

@@ -52,7 +52,7 @@ export function MobileNav() {
           <SheetDescription>
             {isMvp
               ? "Manage organization submissions, webhooks, and team access."
-              : "Browse secure skills, Wasm tools, docs, and agent loadouts."}
+              : "Browse IronClaw extensions, tools, docs, and agent loadouts."}
           </SheetDescription>
         </SheetHeader>
         <nav className="grid gap-1 px-3">

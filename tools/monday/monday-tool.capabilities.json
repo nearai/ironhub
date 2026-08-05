@@ -2,6 +2,7 @@
   "version": "0.1.0",
   "wit_version": "0.3.0",
   "description": "monday.com API v2 (GraphQL) read and write access. Reads the current account, boards (list/get/groups), items (paginated by board, single get, search by column value, updates), users, and workspaces. Writes: create_item, update_item_column_values (change_multiple_column_values), archive_item, delete_item, move_item_to_group, create_group, create_subitem, create_update. Exposes a raw monday_graphql_query action for any query or mutation against api.monday.com/v2. Authenticated with a personal API v2 token sent as the raw value of an Authorization header (NO Bearer prefix per the monday.com convention).",
+  "effects": ["external_write"],
   "http": {
     "allowlist": [
       {

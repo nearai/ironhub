@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "x_users input",
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "Optional query or handle filter."
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Max user items to return (default 20)."
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "intel input",
+  "type": "object",
+  "properties": {
+    "asset_key": {
+      "type": "string",
+      "description": "Optional asset key (e.g., 'aave', 'uniswap')."
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Max governance events to return (default 20)."
+    }
+  },
+  "additionalProperties": false
+}

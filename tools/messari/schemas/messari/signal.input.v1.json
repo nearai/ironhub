@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "signal input",
+  "type": "object",
+  "properties": {
+    "asset_key": {
+      "type": "string",
+      "description": "Optional asset key (e.g., 'solana'). Omit for top trending tokens."
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Max items to return (default 20)."
+    }
+  },
+  "additionalProperties": false
+}

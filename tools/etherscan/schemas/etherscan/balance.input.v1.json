@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "balance input",
+  "type": "object",
+  "properties": {
+    "address": {
+      "type": "string",
+      "description": "The EVM address to query."
+    },
+    "chain": {
+      "type": [
+        "integer",
+        "string"
+      ],
+      "description": "The EVM chain ID (e.g. 1) or chain name (e.g. 'ethereum', 'base')."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "address",
+    "chain"
+  ]
+}

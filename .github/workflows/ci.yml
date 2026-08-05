@@ -13,21 +13,30 @@ jobs:
     name: Validate use cases
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
 
       - name: Validate use case templates
         run: node scripts/validate-use-cases.mjs
 
+  extension-manifests:
+    name: Extension manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Generate an extension manifest for every tool
+        run: ./scripts/check-extension-manifests.sh
+
   enumerate:
     runs-on: ubuntu-latest
     outputs:
       tools: ${{ steps.list.outputs.tools }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - id: list
         run: |
@@ -43,7 +52,7 @@ jobs:
       matrix:
         crate: ${{ fromJson(needs.enumerate.outputs.tools) }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable
@@ -82,9 +91,9 @@ jobs:
     env:
       DATABASE_URL: postgresql://user:password@localhost:5432/ironhub
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
 
@@ -99,3 +108,9 @@ jobs:
 
       - name: Typecheck
         run: pnpm --filter web typecheck
+
+      - name: Catalog tests
+        run: pnpm --filter web test:catalog
+
+      - name: Signing parity
+        run: pnpm --filter web signing:check

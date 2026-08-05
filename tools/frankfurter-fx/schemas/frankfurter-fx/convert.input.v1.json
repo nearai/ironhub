@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "convert input",
+  "type": "object",
+  "properties": {
+    "from": {
+      "type": "string",
+      "description": "Base currency ISO code (e.g. 'USD', 'EUR', 'GBP')."
+    },
+    "to": {
+      "type": "string",
+      "description": "Quote target currency ISO code (e.g. 'VND', 'JPY', 'EUR')."
+    },
+    "amount": {
+      "type": "number",
+      "default": 1.0,
+      "description": "Amount of base currency to convert (e.g. 169.0)."
+    },
+    "date": {
+      "type": "string",
+      "description": "Optional specific historical date in YYYY-MM-DD format (e.g. '2024-01-15'). Defaults to latest rates."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "from",
+    "to"
+  ]
+}

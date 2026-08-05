@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "list_categories input",
+  "type": "object",
+  "properties": {
+    "order": {
+      "type": "string",
+      "enum": [
+        "market_cap_desc",
+        "market_cap_asc",
+        "name_desc",
+        "name_asc"
+      ],
+      "description": "Sort order. Default is 'market_cap_desc'."
+    },
+    "pro": {
+      "type": "boolean",
+      "description": "Set to true to use the Pro API domain. Default is false."
+    }
+  },
+  "additionalProperties": false
+}

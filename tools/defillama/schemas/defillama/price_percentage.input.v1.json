@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "price_percentage input",
+  "type": "object",
+  "properties": {
+    "coins": {
+      "type": "string",
+      "description": "Comma-separated '{chain}:{address}' or 'coingecko:{id}'."
+    },
+    "timestamp": {
+      "type": "integer",
+      "description": "Unix timestamp to compute change from (default: now)."
+    },
+    "look_forward": {
+      "type": "boolean",
+      "description": "true = change over the period AFTER the timestamp (default false = before)."
+    },
+    "period": {
+      "type": "string",
+      "description": "Change window, e.g. '24h', '7d' (default '24h')."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "coins"
+  ]
+}

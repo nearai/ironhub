@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "txlistinternal input",
+  "type": "object",
+  "properties": {
+    "chain": {
+      "type": [
+        "integer",
+        "string"
+      ],
+      "description": "The EVM chain ID or name."
+    },
+    "address": {
+      "type": "string",
+      "description": "The EVM address. Optional if txhash is provided."
+    },
+    "txhash": {
+      "type": "string",
+      "description": "Transaction hash. Optional if address is provided."
+    },
+    "startblock": {
+      "type": "integer",
+      "description": "Start block number. Optional."
+    },
+    "endblock": {
+      "type": "integer",
+      "description": "End block number. Optional."
+    },
+    "page": {
+      "type": "integer",
+      "description": "Page number. Optional."
+    },
+    "offset": {
+      "type": "integer",
+      "description": "Number of records per page (default 20, max 100). Optional."
+    },
+    "sort": {
+      "type": "string",
+      "enum": [
+        "asc",
+        "desc"
+      ],
+      "description": "Sort order (default 'asc'). Optional."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "chain"
+  ]
+}

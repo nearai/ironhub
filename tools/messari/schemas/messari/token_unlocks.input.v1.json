@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "token_unlocks input",
+  "type": "object",
+  "properties": {
+    "asset_key": {
+      "type": "string",
+      "description": "Optional asset key (e.g. 'arbitrum', 'aptos', 'sui'). Omit to list upcoming unlocks."
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Max unlock schedules to return (default 20)."
+    }
+  },
+  "additionalProperties": false
+}

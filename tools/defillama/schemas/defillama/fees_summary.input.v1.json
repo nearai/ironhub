@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "fees_summary input",
+  "type": "object",
+  "properties": {
+    "protocol": {
+      "type": "string",
+      "description": "Protocol slug, e.g. 'aave'."
+    },
+    "data_type": {
+      "type": "string",
+      "enum": [
+        "dailyFees",
+        "dailyRevenue",
+        "dailyHoldersRevenue"
+      ],
+      "description": "Metric (default dailyFees)."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "protocol"
+  ]
+}

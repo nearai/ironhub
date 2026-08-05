@@ -41,5 +41,6 @@ errors even when Xero returns HTTP 200.
 cargo build --target wasm32-wasip2 --release
 ```
 
-The module is emitted at `target/wasm32-wasip2/release/xero_tool.wasm` and is
-referenced by `manifest.toml` as `wasm/xero_tool.wasm`.
+The module is emitted at `target/wasm32-wasip2/release/xero_tool.wasm`. The
+release generates the extension manifest from `xero-tool.capabilities.json` and
+references the module there as `wasm/xero-tool.wasm`.

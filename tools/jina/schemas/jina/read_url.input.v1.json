@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "read_url input",
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string",
+      "description": "The complete HTTP/HTTPS URL of the webpage or PDF file to read and convert."
+    },
+    "with_all_links": {
+      "type": "boolean",
+      "description": "Extract and return all hyperlinks found on the page as structured data."
+    },
+    "with_all_images": {
+      "type": "boolean",
+      "description": "Extract and return all images found on the page as structured data."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "url"
+  ]
+}

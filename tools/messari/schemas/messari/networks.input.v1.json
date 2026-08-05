@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "networks input",
+  "type": "object",
+  "properties": {
+    "network_id": {
+      "type": "string",
+      "description": "Optional network ID (e.g. 'ethereum', 'solana', 'arbitrum')."
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Max items to return (default 20)."
+    }
+  },
+  "additionalProperties": false
+}

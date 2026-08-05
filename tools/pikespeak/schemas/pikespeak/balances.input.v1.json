@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "balances input",
+  "type": "object",
+  "properties": {
+    "accounts": {
+      "type": "string",
+      "description": "Comma-separated list of NEAR account IDs (e.g. 'root.near')."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "accounts"
+  ]
+}

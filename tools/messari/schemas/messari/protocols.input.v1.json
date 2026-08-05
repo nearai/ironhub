@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "protocols input",
+  "type": "object",
+  "properties": {
+    "protocol_id": {
+      "type": "string",
+      "description": "Optional protocol ID (e.g. 'aave', 'uniswap', 'lido')."
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Max items to return (default 20)."
+    }
+  },
+  "additionalProperties": false
+}

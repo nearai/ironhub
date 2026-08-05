@@ -3,23 +3,18 @@ import { formatBytes } from "@/lib/shared/format-utils"
 
 type MarketDetailSpecsProps = {
   item: CatalogItem
+  techTags: string[]
 }
 
-export function MarketDetailSpecs({ item }: MarketDetailSpecsProps) {
+export function MarketDetailSpecs({ item, techTags }: MarketDetailSpecsProps) {
   return (
     <div className="space-y-4">
       <h4 className="text-xs font-bold tracking-wider text-muted-foreground/70 uppercase">
-        Specifications
+        Implementation
       </h4>
       <div className="grid gap-3">
         {item.kind === "tool" ? (
-          <>
-            <DetailRow label="WIT Interface" value={item.witVersion} mono />
-            <DetailRow
-              label="Action Capacity"
-              value={`${item.actionCount} actions`}
-            />
-          </>
+          <DetailRow label="WIT Interface" value={item.witVersion} mono />
         ) : (
           <>
             <DetailRow
@@ -29,7 +24,6 @@ export function MarketDetailSpecs({ item }: MarketDetailSpecsProps) {
             <DetailRow label="Trunk" value={item.trunk} mono truncate />
           </>
         )}
-        <DetailRow label="Auth Model" value={item.auth.model} />
         <div className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground">Source Path</span>
           <span className="font-mono text-[10px] break-all text-muted-foreground/80">
@@ -41,6 +35,23 @@ export function MarketDetailSpecs({ item }: MarketDetailSpecsProps) {
             label="Artifact Size"
             value={formatBytes(item.contentSize || 0)}
           />
+        )}
+        {techTags.length > 0 && (
+          <div className="space-y-2">
+            <span className="text-sm text-muted-foreground">
+              Technical tags
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {techTags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </div>

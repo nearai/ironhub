@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "protocol_tvl input",
+  "type": "object",
+  "properties": {
+    "protocol": {
+      "type": "string",
+      "description": "Protocol slug, e.g. 'aave'. Returns the current TVL as a single number."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "protocol"
+  ]
+}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import type { UseCase, UsecaseCategory } from "@/lib/usecases/types"
 import { UseCaseCard } from "./use-case-card"
 import { cn } from "@/lib/shared/utils"
@@ -45,50 +45,12 @@ function useDebounce<T>(value: T, delay = 150): T {
   return debouncedValue
 }
 
-function VirtualizedUseCaseCard({ useCase }: { useCase: UseCase }) {
-  const ref = useRef<HTMLDivElement | null>(null)
-  const [isVisible, setIsVisible] = useState(false)
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true)
-          observer.disconnect()
-        }
-      },
-      { rootMargin: "200px" }
-    )
-
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
-
-  return (
-    <div 
-      ref={ref} 
-      className={cn(
-        "w-full transition-all duration-300", 
-        !isVisible && "min-h-[220px] bg-muted/10 rounded-2xl border border-[var(--ironhub-line)]/30 overflow-hidden"
-      )}
-    >
-      {isVisible ? (
-        <UseCaseCard useCase={useCase} />
-      ) : (
-        <div className="h-full min-h-[220px] w-full flex items-center justify-center text-muted-foreground/30 text-xs font-medium bg-muted/5 animate-pulse">
-          Loading...
-        </div>
-      )}
-    </div>
-  )
-}
-
 const useCaseIssueUrl = `${links.repo}/issues/new?template=usecase.yml`
 
-const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+const categoryIcons: Record<
+  string,
+  React.ComponentType<{ className?: string }>
+> = {
   all: IconLayoutGrid,
   "dev tools": IconTerminal2,
   "data & apis": IconDatabase,
@@ -117,10 +79,12 @@ export function ShowcaseBrowser({
   initialHasMore,
   totalAllCount,
 }: ShowcaseBrowserProps) {
-  const [selectedCategory, setSelectedCategory] = useState<UsecaseCategory | "All">("All")
+  const [selectedCategory, setSelectedCategory] = useState<
+    UsecaseCategory | "All"
+  >("All")
   const [searchQuery, setSearchQuery] = useState("")
   const debouncedSearchQuery = useDebounce(searchQuery, 150)
-  
+
   const [useCases, setUseCases] = useState<UseCase[]>(initialUseCases)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(initialHasMore)
@@ -131,7 +95,10 @@ export function ShowcaseBrowser({
     let active = true
 
     // Skip initial fetch on mount if filters are empty
-    const isInitial = selectedCategory === "All" && debouncedSearchQuery.trim() === "" && page === 1
+    const isInitial =
+      selectedCategory === "All" &&
+      debouncedSearchQuery.trim() === "" &&
+      page === 1
     if (isInitial) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setUseCases(initialUseCases)
@@ -164,7 +131,14 @@ export function ShowcaseBrowser({
     return () => {
       active = false
     }
-  }, [selectedCategory, debouncedSearchQuery, initialUseCases, initialTotal, initialHasMore, page])
+  }, [
+    selectedCategory,
+    debouncedSearchQuery,
+    initialUseCases,
+    initialTotal,
+    initialHasMore,
+    page,
+  ])
 
   const handleLoadMore = async () => {
     if (isLoading || !hasMore) return
@@ -187,21 +161,21 @@ export function ShowcaseBrowser({
   }
 
   return (
-    <div className="flex flex-col gap-8 w-full min-w-0">
+    <div className="flex w-full min-w-0 flex-col gap-8">
       {/* Mobile/Tablet Category Filter & Search */}
-      <div className="lg:hidden sticky top-16 z-30 -mx-4 bg-background/95 px-4 py-3 backdrop-blur-md border-b border-[var(--ironhub-line)] flex flex-col gap-3">
+      <div className="sticky top-16 z-30 -mx-4 flex flex-col gap-3 border-b border-[var(--ironhub-line)] bg-background/95 px-4 py-3 backdrop-blur-md lg:hidden">
         <div className="relative">
-          <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <IconSearch className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search use cases..."
-            className="pl-9 h-10 transition-all"
+            className="h-10 pl-9 transition-all"
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value)
             }}
           />
         </div>
-        <div className="flex gap-2 w-full">
+        <div className="flex w-full gap-2">
           <div className="flex-1">
             <Select
               value={selectedCategory}
@@ -214,7 +188,9 @@ export function ShowcaseBrowser({
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="All">All Use Cases ({totalAllCount})</SelectItem>
+                <SelectItem value="All">
+                  All Use Cases ({totalAllCount})
+                </SelectItem>
                 {categories.map((category) => {
                   const count = categoryCounts[category] || 0
                   if (count === 0) return null
@@ -227,7 +203,12 @@ export function ShowcaseBrowser({
               </SelectContent>
             </Select>
           </div>
-          <Button asChild variant="outline" className="h-10 px-3 shrink-0 rounded-full" aria-label="Submit Use Case">
+          <Button
+            asChild
+            variant="outline"
+            className="h-10 shrink-0 rounded-full px-3"
+            aria-label="Submit Use Case"
+          >
             <a href={useCaseIssueUrl} target="_blank" rel="noreferrer">
               <IconPlus className="size-4" />
             </a>
@@ -235,43 +216,48 @@ export function ShowcaseBrowser({
         </div>
       </div>
 
-      <div className="grid gap-10 lg:grid-cols-[240px_1fr] w-full min-w-0">
+      <div className="grid w-full min-w-0 gap-10 lg:grid-cols-[240px_1fr]">
         {/* Desktop Sidebar Filter */}
         <aside className="hidden lg:block">
           <div className="sticky top-[5.5rem] flex flex-col gap-6">
             <div className="relative">
-              <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <IconSearch className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search use cases..."
-                className="pl-9 h-10 transition-all"
+                className="h-10 pl-9 transition-all"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value)
                 }}
               />
             </div>
-            
+
             <div className="flex flex-col gap-2">
-              <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-2">Categories</h3>
+              <h3 className="mb-2 text-sm font-semibold tracking-wider text-muted-foreground uppercase">
+                Categories
+              </h3>
               <button
                 onClick={() => {
                   setSelectedCategory("All")
                 }}
                 className={cn(
-                  "text-left px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 w-full",
+                  "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors",
                   selectedCategory === "All"
-                    ? "bg-primary/10 text-primary font-semibold"
-                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                    ? "bg-primary/10 font-semibold text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
                 <IconLayoutGrid className="size-4 shrink-0 opacity-70" />
                 <span>All Use Cases</span>
-                <span className="ml-auto opacity-60 text-xs">{totalAllCount}</span>
+                <span className="ml-auto text-xs opacity-60">
+                  {totalAllCount}
+                </span>
               </button>
               {categories.map((category) => {
                 const count = categoryCounts[category] || 0
                 if (count === 0) return null
-                const Icon = categoryIcons[category.toLowerCase()] || IconCategory
+                const Icon =
+                  categoryIcons[category.toLowerCase()] || IconCategory
                 return (
                   <button
                     key={category}
@@ -279,21 +265,25 @@ export function ShowcaseBrowser({
                       setSelectedCategory(category)
                     }}
                     className={cn(
-                      "text-left px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 w-full",
+                      "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors",
                       selectedCategory === category
-                        ? "bg-primary/10 text-primary font-semibold"
-                        : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                        ? "bg-primary/10 font-semibold text-primary"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     )}
                   >
                     <Icon className="size-4 shrink-0 opacity-70" />
                     <span>{category}</span>
-                    <span className="ml-auto opacity-60 text-xs">{count}</span>
+                    <span className="ml-auto text-xs opacity-60">{count}</span>
                   </button>
                 )
               })}
-              
-              <div className="pt-4 border-t border-[var(--ironhub-line)]/50 mt-2">
-                <Button asChild variant="outline" className="w-full justify-center gap-1.5 rounded-full text-xs font-semibold">
+
+              <div className="mt-2 border-t border-[var(--ironhub-line)]/50 pt-4">
+                <Button
+                  asChild
+                  variant="outline"
+                  className="w-full justify-center gap-1.5 rounded-full text-xs font-semibold"
+                >
                   <a href={useCaseIssueUrl} target="_blank" rel="noreferrer">
                     <IconPlus className="size-3.5" />
                     <span>Submit Use Case</span>
@@ -305,11 +295,11 @@ export function ShowcaseBrowser({
         </aside>
 
         {/* Masonry Grid */}
-        <div className="flex flex-col gap-8 w-full min-w-0">
-          <div className="columns-1 sm:columns-2 xl:columns-3 gap-6 space-y-6 w-full">
+        <div className="flex w-full min-w-0 flex-col gap-8">
+          <div className="w-full columns-1 gap-6 space-y-6 sm:columns-2 xl:columns-3">
             {useCases.map((uc) => (
-              <div key={uc.id} className="break-inside-avoid w-full">
-                <VirtualizedUseCaseCard useCase={uc} />
+              <div key={uc.id} className="w-full break-inside-avoid">
+                <UseCaseCard useCase={uc} />
               </div>
             ))}
             {useCases.length === 0 && !isLoading && (
@@ -318,18 +308,18 @@ export function ShowcaseBrowser({
               </div>
             )}
             {useCases.length === 0 && isLoading && (
-              <div className="col-span-full py-12 text-center text-muted-foreground animate-pulse">
+              <div className="col-span-full animate-pulse py-12 text-center text-muted-foreground">
                 Searching use cases...
               </div>
             )}
           </div>
-          
+
           {hasMore && (
             <div className="flex justify-center pt-4 pb-12">
               <button
                 disabled={isLoading}
                 onClick={handleLoadMore}
-                className="px-6 py-2.5 rounded-full border border-primary/20 bg-primary/5 text-primary font-medium hover:bg-primary/10 disabled:opacity-50 transition-colors"
+                className="rounded-full border border-primary/20 bg-primary/5 px-6 py-2.5 font-medium text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
               >
                 {isLoading ? "Loading..." : "Load More Use Cases"}
               </button>
@@ -340,4 +330,3 @@ export function ShowcaseBrowser({
     </div>
   )
 }
-

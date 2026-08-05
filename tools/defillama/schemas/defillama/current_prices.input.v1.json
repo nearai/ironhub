@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "current_prices input",
+  "type": "object",
+  "properties": {
+    "coins": {
+      "type": "string",
+      "description": "Comma-separated '{chain}:{address}' or 'coingecko:{id}', e.g. 'coingecko:ethereum,bsc:0x762539b45a1dcce3d36d080f74d1aed37844b878'."
+    },
+    "search_width": {
+      "type": "string",
+      "description": "Time range to find price data, e.g. '4h' (default 6h)."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "coins"
+  ]
+}

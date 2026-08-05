@@ -1,6 +1,6 @@
 ---
 name: firecrawl
-version: 0.1.0
+version: 0.2.0
 description: Web scraping, search, site-mapping, and crawling for Ironclaw via the Firecrawl v2 API. Extracts clean markdown/HTML from pages, finds pages by query across web/news/images, lists every URL on a site, and runs recursive crawls. The host injects the API key as a Bearer token — the tool never sees the raw secret.
 use_cases:
   - Scrape a web page into clean LLM-ready markdown
@@ -15,18 +15,31 @@ value_tags:
 
 # Firecrawl Tool
 
+## Install and configure
+
+Install the tool from IronHub. For a manual package import, open **Extensions →
+Registry → Import**, select the tool archive, and click **Install**.
+
+Open **Configure** and store a Firecrawl API key from https://firecrawl.dev. IronClaw
+injects it as a Bearer token only for `api.firecrawl.dev`.
+
+Each operation is exposed as a named capability with its own input schema. Use
+only the parameters shown for that capability in the examples below.
+
+Credentials are stored by IronClaw and injected only at the declared HTTP boundary; they
+are not included in model input or exposed to the WASM component.
+
+
 A sandboxed WASM tool that gives an IronClaw agent web scraping, search,
 site-mapping, and crawling via the [Firecrawl v2 API](https://docs.firecrawl.dev).
 
 The host injects the API key as a Bearer token — the tool code never sees the
-raw secret — and network access is restricted to `api.firecrawl.dev` as declared
-in `firecrawl-tool.capabilities.json`.
+raw secret — and network access is restricted to `api.firecrawl.dev` as declared in `manifest.toml`; the Rust adapter retains route and method validation.
 
 ![firecrawl tool](screenshot.png)
 
-## Actions
-
-| Action | Required | Optional | Description |
+## Capabilities
+| Capability | Required | Optional | Description |
 |--------|----------|----------|-------------|
 | `scrape` | `url` | `formats`, `only_main_content`, `wait_for`, `timeout` | Extract clean markdown/HTML from one page. |
 | `search` | `query` | `limit`, `sources` | Find pages by query. `sources` ⊆ `web`/`news`/`images`. |
@@ -42,59 +55,31 @@ Numeric inputs are clamped: search `limit` 1–100 (default 10), scrape `timeout
 
 ```jsonc
 // Scrape one page to markdown
-{ "action": "scrape", "url": "https://docs.firecrawl.dev/ai-onboarding" }
+// Capability: firecrawl.scrape
+{ "url": "https://docs.firecrawl.dev/ai-onboarding" }
 
 // Scrape with options
-{ "action": "scrape", "url": "https://example.com", "formats": ["markdown", "html"], "only_main_content": true, "wait_for": 2000 }
+// Capability: firecrawl.scrape
+{ "url": "https://example.com", "formats": ["markdown", "html"], "only_main_content": true, "wait_for": 2000 }
 
 // Search the web
-{ "action": "search", "query": "best rust web frameworks 2026", "limit": 5, "sources": ["web", "news"] }
+// Capability: firecrawl.search
+{ "query": "best rust web frameworks 2026", "limit": 5, "sources": ["web", "news"] }
 
 // Map a site, ordered by relevance to "blog"
-{ "action": "map", "url": "https://example.com", "search": "blog", "limit": 100 }
+// Capability: firecrawl.map
+{ "url": "https://example.com", "search": "blog", "limit": 100 }
 
 // Crawl a docs section, then poll
-{ "action": "crawl", "url": "https://docs.firecrawl.dev", "limit": 50 }
-{ "action": "crawl_status", "id": "<crawl_id from the crawl call>" }
-```
-
-## Authentication
-
-```bash
-ironclaw tool setup firecrawl-tool   # or `ironclaw tool auth firecrawl-tool`; stores firecrawl_api_key (fc-...)
-```
-
-Get a key at <https://www.firecrawl.dev/app/api-keys> (keys start with `fc-`).
-
-The key can also be supplied via the `FIRECRAWL_API_KEY` env var, but only as a
-setup convenience: `ironclaw tool auth firecrawl-tool` reads it **once** and
-persists it to the encrypted secret store. It is **not** read at runtime — the
-running tool never sees the env var, and `FIRECRAWL_API_KEY=... ironclaw run`
-has no effect on its own.
-
-## Build
-
-```bash
-# from tools-src/firecrawl/
-cargo test                                   # native unit tests
-cargo build --target wasm32-wasip2 --release # → target/wasm32-wasip2/release/firecrawl_tool.wasm
-```
-
-`wasm32-wasip2` emits a WebAssembly **component** directly (no `cargo-component`
-required).
-
-## Install
-
-```bash
-ironclaw tool install tools-src/firecrawl              # build (needs cargo-component) + install
-ironclaw tool install tools-src/firecrawl --skip-build # install the artifact built above
-ironclaw tool auth firecrawl-tool                      # store the API key
-ironclaw tool list                                     # confirm
+// Capability: firecrawl.crawl
+{ "url": "https://docs.firecrawl.dev", "limit": 50 }
+// Capability: firecrawl.crawl_status
+{ "id": "<crawl_id from the crawl call>" }
 ```
 
 ## API mapping
 
-| Action | Firecrawl endpoint |
+| Capability | Firecrawl endpoint |
 |--------|--------------------|
 | `scrape` | `POST /v2/scrape` |
 | `search` | `POST /v2/search` |

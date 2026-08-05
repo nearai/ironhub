@@ -33,12 +33,13 @@ export const CATEGORIES = [
 
 export function inferCategory(slug: string, text: string) {
   const haystack = `${slug} ${text}`.toLowerCase()
+  const hasNearSignal =
+    slug.toLowerCase().includes("near") || /\bNEAR\b/.test(text)
 
   if (
     haystack.includes("polymarket") ||
-    haystack.includes("near") ||
+    hasNearSignal ||
     haystack.includes("rpc") ||
-    haystack.includes("contract") ||
     haystack.includes("web3") ||
     haystack.includes("crypto") ||
     haystack.includes("blockchain")
@@ -65,12 +66,19 @@ export function inferToolTags(
 ) {
   const tags = new Set(["WASM tool"])
   const text = `${slug} ${manifest.description ?? ""} ${readme}`.toLowerCase()
+  const http = manifest.http ?? manifest.capabilities?.http
+  const secrets = manifest.secrets ?? manifest.capabilities?.secrets
+  const hasCredentialSignal =
+    Boolean(manifest.auth?.secret_name || manifest.auth?.oauth) ||
+    Boolean(Object.keys(http?.credentials ?? {}).length) ||
+    Boolean(secrets?.allowed_names?.length) ||
+    Boolean(manifest.setup?.required_secrets?.length)
 
   if (text.includes("oauth")) tags.add("OAuth")
   if (text.includes("microsoft")) tags.add("Microsoft Graph")
-  if (text.includes("near")) tags.add("NEAR")
-  if (manifest.http?.allowlist?.length) tags.add("HTTP allowlist")
-  if (!manifest.secrets?.allowed_names?.length) tags.add("No required secrets")
+  if (slug.toLowerCase().includes("near")) tags.add("NEAR")
+  if (http?.allowlist?.length) tags.add("HTTP allowlist")
+  if (!hasCredentialSignal) tags.add("No required secrets")
 
   return Array.from(tags)
 }

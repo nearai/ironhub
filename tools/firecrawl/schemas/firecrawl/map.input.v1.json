@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "map input",
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string",
+      "description": "Target site URL (http/https) to map."
+    },
+    "search": {
+      "type": "string",
+      "description": "Optional query to order discovered URLs by relevance."
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Max URLs to return (default 1000)."
+    },
+    "include_subdomains": {
+      "type": "boolean",
+      "description": "Include subdomains in discovered URLs (default true)."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "url"
+  ]
+}

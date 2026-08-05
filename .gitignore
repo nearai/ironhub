@@ -13,6 +13,7 @@ node_modules
 .agent/
 web/docs/
 .claude
+.codex
 .superpowers/
 openspec/
 .agent/

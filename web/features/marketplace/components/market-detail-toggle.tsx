@@ -29,7 +29,7 @@ export function MarketDetailToggle({
     >
       <div className="flex items-center gap-2">
         <h3 className="font-heading text-sm font-bold tracking-wider text-muted-foreground/90 uppercase">
-          Developer & Technical Details
+          Security & Technical Details
         </h3>
         <Badge variant="outline" className="h-4 border-border/30 text-[10px]">
           {kind}

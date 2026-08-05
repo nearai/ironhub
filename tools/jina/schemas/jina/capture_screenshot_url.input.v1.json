@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "capture_screenshot_url input",
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string",
+      "description": "The complete HTTP/HTTPS URL of the webpage to capture."
+    },
+    "first_screen_only": {
+      "type": "boolean",
+      "description": "Set to true for a single screen capture (faster), false for full page capture including content below the fold."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "url"
+  ]
+}

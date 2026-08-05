@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "stablecoin_prices input",
+  "type": "object",
+  "properties": {
+    "points": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 500,
+      "default": 90,
+      "description": "Max daily price points returned."
+    }
+  },
+  "additionalProperties": false
+}

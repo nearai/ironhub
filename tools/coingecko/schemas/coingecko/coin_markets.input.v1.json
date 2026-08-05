@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "coin_markets input",
+  "type": "object",
+  "properties": {
+    "vs_currency": {
+      "type": "string",
+      "description": "Target currency (e.g. 'usd')."
+    },
+    "ids": {
+      "type": "string",
+      "description": "Comma-separated list of coin IDs to filter. Optional."
+    },
+    "category": {
+      "type": "string",
+      "description": "Filter by coin category ID. Optional."
+    },
+    "order": {
+      "type": "string",
+      "enum": [
+        "market_cap_desc",
+        "gecko_desc",
+        "gecko_asc",
+        "market_cap_asc",
+        "volume_asc",
+        "volume_desc",
+        "id_asc",
+        "id_desc"
+      ],
+      "description": "Sort order. Default is 'market_cap_desc'."
+    },
+    "per_page": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 250,
+      "description": "Total results per page (1-250). Default is 100."
+    },
+    "page": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Page number. Default is 1."
+    },
+    "sparkline": {
+      "type": "boolean",
+      "description": "Include sparkline 7-day data. Default is false."
+    },
+    "price_change_percentage": {
+      "type": "string",
+      "description": "Comma-separated timeframes (e.g. '1h,24h,7d'). Optional."
+    },
+    "pro": {
+      "type": "boolean",
+      "description": "Set to true to use the Pro API domain. Default is false."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "vs_currency"
+  ]
+}
