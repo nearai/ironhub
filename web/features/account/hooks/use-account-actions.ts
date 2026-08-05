@@ -1,11 +1,17 @@
 "use client"
 
 import { useRouter, useSearchParams } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { authClient } from "@/lib/auth/client"
 
 type Provider = "google" | "github" | "near"
+
+type DetectedNearAccount = {
+  accountId: string
+  publicKey: string | null
+  networkId: string
+}
 
 export function useAccountActions() {
   const router = useRouter()
@@ -14,6 +20,23 @@ export function useAccountActions() {
   const [pendingProvider, setPendingProvider] = useState<Provider | null>(null)
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [detectedNearAccount, setDetectedNearAccount] = useState<
+    DetectedNearAccount | null | undefined
+  >(undefined)
+
+  useEffect(() => {
+    if (!session.isPending && !session.data) {
+      let cancelled = false
+      authClient.near.detectNearAccount().then((detected) => {
+        if (!cancelled) {
+          setDetectedNearAccount(detected)
+        }
+      })
+      return () => {
+        cancelled = true
+      }
+    }
+  }, [session.isPending, session.data])
 
   const urlError = searchParams.get("error")
   const visibleError = error ?? (urlError ? "Sign-in failed." : null)
@@ -93,6 +116,7 @@ export function useAccountActions() {
   }
 
   return {
+    detectedNearAccount,
     error: visibleError,
     isSigningOut,
     isPending: session.isPending,

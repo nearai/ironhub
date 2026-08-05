@@ -15,6 +15,7 @@ export function AccountScreen() {
   const pendingInstallSlug =
     searchParams.get("intent") === "install" ? searchParams.get("slug") : null
   const {
+    detectedNearAccount,
     error,
     isSigningOut,
     isPending,
@@ -51,6 +52,7 @@ export function AccountScreen() {
         </div>
       ) : (
         <SignInPanel
+          detectedNearAccount={detectedNearAccount}
           error={error}
           pendingProvider={pendingProvider}
           onGithub={signInGithub}
