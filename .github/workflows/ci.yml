@@ -31,6 +31,22 @@ jobs:
       - name: Generate an extension manifest for every tool
         run: ./scripts/check-extension-manifests.sh
 
+  skills:
+    name: Skills
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Smoke test every skill
+        run: |
+          failed=0
+          for dir in skills/*/; do
+            if ! ./scripts/smoke-test-skill.sh "$dir"; then
+              failed=$((failed + 1))
+              echo "::warning file=${dir}SKILL.md::$(basename "$dir") fails the skill smoke test"
+            fi
+          done
+          echo "$failed of $(ls -d skills/*/ | wc -l) skill(s) fail the smoke test"
   enumerate:
     runs-on: ubuntu-latest
     outputs:

@@ -130,6 +130,9 @@ The committed input schema must describe the same parameters returned by
 `Guest::schema`. Release generation fails unless the generated extension
 manifest's input/output schema references exactly match the committed files
 under `schemas/`; those files are published as digest-pinned catalog artifacts.
+Native manifests may also declare `prompt_doc_ref` help documents under
+`prompts/`. Every referenced prompt must be committed, and release generation
+publishes it as a digest-pinned catalog artifact alongside the schemas.
 
 ## Adding a skill
 

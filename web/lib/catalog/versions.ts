@@ -31,8 +31,8 @@ function byPath(left: { path: string }, right: { path: string }) {
   return comparePath(left.path, right.path)
 }
 
-function toolSchemaArtifacts(tool: HubManifest["tools"][number]) {
-  return Object.entries(tool.schemas ?? {})
+function toolPathArtifacts(artifacts: Record<string, HubArtifact> | undefined) {
+  return Object.entries(artifacts ?? {})
     .sort(([left], [right]) => comparePath(left, right))
     .map(([path, artifact]) => ({ ...artifact, path }))
 }
@@ -47,7 +47,8 @@ export function toVersionEntries(manifest: HubManifest): VersionEntry[] {
         tool.wasm,
         tool.capabilities,
         tool.manifest,
-        ...toolSchemaArtifacts(tool),
+        ...toolPathArtifacts(tool.schemas),
+        ...toolPathArtifacts(tool.prompts),
       ]),
     })),
     ...manifest.skills.map((skill) => ({

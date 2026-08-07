@@ -242,6 +242,8 @@ async function fetchCategorySkills(
 }
 
 async function fetchCommunitySkills(): Promise<IliadPublicSkill[]> {
+  if (process.env.NEXT_PUBLIC_ENABLE_ILIAD !== "true") return []
+
   const lists = await Promise.all(
     ILIAD_CATEGORIES.map(async (category) => {
       try {

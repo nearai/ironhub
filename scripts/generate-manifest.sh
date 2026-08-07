@@ -18,6 +18,8 @@
 #   <staging>/<tool-name>.manifest.toml    (generated from capabilities.json)
 #   <staging>/<tool-name>.schema.<path-sha256>.json
 #                                          (copied from manifest schema refs)
+#   <staging>/<tool-name>.prompt.<path-sha256>.md
+#                                          (copied from manifest prompt refs)
 
 set -euo pipefail
 
@@ -90,13 +92,16 @@ for dir in "$ROOT"/tools/*/; do
       --argjson size "$(stat -c '%s' "$manifest_staged")" \
       --arg sha "$(sha256sum "$manifest_staged" | awk '{print $1}')" \
       '{ url: $url, size_bytes: $size, sha256: $sha }')"
-    schemas_json="$(python3 "$ROOT/scripts/package_tool_schemas.py" \
+    assets_json="$(python3 "$ROOT/scripts/package_tool_schemas.py" \
       "$dir" "$manifest_staged" "$STAGING" "$base_url")"
+    schemas_json="$(jq -c '.schemas' <<<"$assets_json")"
+    prompts_json="$(jq -c '.prompts' <<<"$assets_json")"
   else
     echo "warning: $name publishes no extension manifest (see error above)" >&2
     rm -f "$manifest_staged"
     manifest_json="null"
     schemas_json="null"
+    prompts_json="null"
   fi
 
   if [ $first -eq 0 ]; then
@@ -117,6 +122,7 @@ for dir in "$ROOT"/tools/*/; do
     --arg caps_sha "$caps_sha" \
     --argjson manifest "$manifest_json" \
     --argjson schemas "$schemas_json" \
+    --argjson prompts "$prompts_json" \
     '{
       name: $name,
       crate_name: $crate,
@@ -125,7 +131,8 @@ for dir in "$ROOT"/tools/*/; do
       wasm: { url: $wasm_url, size_bytes: $wasm_size, sha256: $wasm_sha },
       capabilities: { url: $caps_url, size_bytes: $caps_size, sha256: $caps_sha }
     }
-    + (if $manifest == null then {} else { manifest: $manifest, schemas: $schemas } end)')
+    + (if $manifest == null then {} else { manifest: $manifest, schemas: $schemas } end)
+    + (if $prompts == null or ($prompts | length) == 0 then {} else { prompts: $prompts } end)')
 done
 tools_json+="]"
 
@@ -194,20 +201,27 @@ if [ -d "$ROOT/skills" ]; then
 fi
 skills_json+="]"
 
+# The catalog outgrew ARG_MAX once tools carry schema and prompt artifacts, so
+# the two arrays are handed to jq as files rather than command-line arguments.
+catalog_tmp="$(mktemp -d)"
+trap 'rm -rf "$catalog_tmp"' EXIT
+printf '%s' "$tools_json" > "$catalog_tmp/tools.json"
+printf '%s' "$skills_json" > "$catalog_tmp/skills.json"
+
 jq -n \
   --arg version "1" \
   --arg generated_at "$generated_at" \
   --arg release_tag "$TAG" \
   --arg repo "$REPO" \
-  --argjson tools "$tools_json" \
-  --argjson skills "$skills_json" \
+  --slurpfile tools "$catalog_tmp/tools.json" \
+  --slurpfile skills "$catalog_tmp/skills.json" \
   '{
     version: $version,
     generated_at: $generated_at,
     release_tag: $release_tag,
     repo: $repo,
-    tools: $tools,
-    skills: $skills
+    tools: $tools[0],
+    skills: $skills[0]
   }' > "$STAGING/tools.json"
 
 echo "wrote $STAGING/tools.json"
