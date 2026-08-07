@@ -1,7 +1,7 @@
-schema_version = "reborn.extension_manifest.v2"
+schema_version = "reborn.extension_manifest.v3"
 id = "messari"
 name = "Messari"
-version = "0.2.0"
+version = "0.2.1"
 description = "Messari crypto research and market data tool for Ironclaw. Access prices, market metrics, news, token unlocks, fundraising rounds, DeFi protocols, network stats, and Messari AI synthesis."
 trust = "third_party"
 
@@ -9,13 +9,8 @@ trust = "third_party"
 kind = "wasm"
 module = "wasm/messari_reborn_tool.wasm"
 
-[[host_api]]
-id = "ironclaw.capability_provider/v1"
-section = "capability_provider.tools"
-
-[capability_provider.tools]
-
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "messari.ask_ai"
 description = "Run the legacy ask ai operation. See the prompt and input schema for its exact contract."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -25,14 +20,14 @@ input_schema_ref = "schemas/messari/ask_ai.input.v1.json"
 output_schema_ref = "schemas/messari/output.v1.json"
 prompt_doc_ref = "prompts/messari/ask_ai.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "messari_api_key"
-source = { type = "product_auth_account", provider = "messari" }
-audience = { scheme = "https", host_pattern = "api.messari.io" }
-target = { type = "header", name = "x-messari-api-key" }
-required = true
+vendor = "messari"
+audience = { scheme = "https", host = "api.messari.io" }
+injection = { type = "header", name = "x-messari-api-key" }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "messari.metrics"
 description = "Run the legacy metrics operation. See the prompt and input schema for its exact contract."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -42,14 +37,14 @@ input_schema_ref = "schemas/messari/metrics.input.v1.json"
 output_schema_ref = "schemas/messari/output.v1.json"
 prompt_doc_ref = "prompts/messari/metrics.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "messari_api_key"
-source = { type = "product_auth_account", provider = "messari" }
-audience = { scheme = "https", host_pattern = "api.messari.io" }
-target = { type = "header", name = "x-messari-api-key" }
-required = true
+vendor = "messari"
+audience = { scheme = "https", host = "api.messari.io" }
+injection = { type = "header", name = "x-messari-api-key" }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "messari.signal"
 description = "Run the legacy signal operation. See the prompt and input schema for its exact contract."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -59,14 +54,14 @@ input_schema_ref = "schemas/messari/signal.input.v1.json"
 output_schema_ref = "schemas/messari/output.v1.json"
 prompt_doc_ref = "prompts/messari/signal.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "messari_api_key"
-source = { type = "product_auth_account", provider = "messari" }
-audience = { scheme = "https", host_pattern = "api.messari.io" }
-target = { type = "header", name = "x-messari-api-key" }
-required = true
+vendor = "messari"
+audience = { scheme = "https", host = "api.messari.io" }
+injection = { type = "header", name = "x-messari-api-key" }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "messari.news"
 description = "Run the legacy news operation. See the prompt and input schema for its exact contract."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -76,14 +71,14 @@ input_schema_ref = "schemas/messari/news.input.v1.json"
 output_schema_ref = "schemas/messari/output.v1.json"
 prompt_doc_ref = "prompts/messari/news.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "messari_api_key"
-source = { type = "product_auth_account", provider = "messari" }
-audience = { scheme = "https", host_pattern = "api.messari.io" }
-target = { type = "header", name = "x-messari-api-key" }
-required = true
+vendor = "messari"
+audience = { scheme = "https", host = "api.messari.io" }
+injection = { type = "header", name = "x-messari-api-key" }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "messari.research"
 description = "Run the legacy research operation. See the prompt and input schema for its exact contract."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -93,14 +88,14 @@ input_schema_ref = "schemas/messari/research.input.v1.json"
 output_schema_ref = "schemas/messari/output.v1.json"
 prompt_doc_ref = "prompts/messari/research.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "messari_api_key"
-source = { type = "product_auth_account", provider = "messari" }
-audience = { scheme = "https", host_pattern = "api.messari.io" }
-target = { type = "header", name = "x-messari-api-key" }
-required = true
+vendor = "messari"
+audience = { scheme = "https", host = "api.messari.io" }
+injection = { type = "header", name = "x-messari-api-key" }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "messari.stablecoins"
 description = "Run the legacy stablecoins operation. See the prompt and input schema for its exact contract."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -110,14 +105,14 @@ input_schema_ref = "schemas/messari/stablecoins.input.v1.json"
 output_schema_ref = "schemas/messari/output.v1.json"
 prompt_doc_ref = "prompts/messari/stablecoins.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "messari_api_key"
-source = { type = "product_auth_account", provider = "messari" }
-audience = { scheme = "https", host_pattern = "api.messari.io" }
-target = { type = "header", name = "x-messari-api-key" }
-required = true
+vendor = "messari"
+audience = { scheme = "https", host = "api.messari.io" }
+injection = { type = "header", name = "x-messari-api-key" }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "messari.exchanges"
 description = "Run the legacy exchanges operation. See the prompt and input schema for its exact contract."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -127,14 +122,14 @@ input_schema_ref = "schemas/messari/exchanges.input.v1.json"
 output_schema_ref = "schemas/messari/output.v1.json"
 prompt_doc_ref = "prompts/messari/exchanges.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "messari_api_key"
-source = { type = "product_auth_account", provider = "messari" }
-audience = { scheme = "https", host_pattern = "api.messari.io" }
-target = { type = "header", name = "x-messari-api-key" }
-required = true
+vendor = "messari"
+audience = { scheme = "https", host = "api.messari.io" }
+injection = { type = "header", name = "x-messari-api-key" }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "messari.networks"
 description = "Run the legacy networks operation. See the prompt and input schema for its exact contract."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -144,14 +139,14 @@ input_schema_ref = "schemas/messari/networks.input.v1.json"
 output_schema_ref = "schemas/messari/output.v1.json"
 prompt_doc_ref = "prompts/messari/networks.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "messari_api_key"
-source = { type = "product_auth_account", provider = "messari" }
-audience = { scheme = "https", host_pattern = "api.messari.io" }
-target = { type = "header", name = "x-messari-api-key" }
-required = true
+vendor = "messari"
+audience = { scheme = "https", host = "api.messari.io" }
+injection = { type = "header", name = "x-messari-api-key" }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "messari.protocols"
 description = "Run the legacy protocols operation. See the prompt and input schema for its exact contract."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -161,14 +156,14 @@ input_schema_ref = "schemas/messari/protocols.input.v1.json"
 output_schema_ref = "schemas/messari/output.v1.json"
 prompt_doc_ref = "prompts/messari/protocols.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "messari_api_key"
-source = { type = "product_auth_account", provider = "messari" }
-audience = { scheme = "https", host_pattern = "api.messari.io" }
-target = { type = "header", name = "x-messari-api-key" }
-required = true
+vendor = "messari"
+audience = { scheme = "https", host = "api.messari.io" }
+injection = { type = "header", name = "x-messari-api-key" }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "messari.token_unlocks"
 description = "Run the legacy token unlocks operation. See the prompt and input schema for its exact contract."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -178,14 +173,14 @@ input_schema_ref = "schemas/messari/token_unlocks.input.v1.json"
 output_schema_ref = "schemas/messari/output.v1.json"
 prompt_doc_ref = "prompts/messari/token_unlocks.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "messari_api_key"
-source = { type = "product_auth_account", provider = "messari" }
-audience = { scheme = "https", host_pattern = "api.messari.io" }
-target = { type = "header", name = "x-messari-api-key" }
-required = true
+vendor = "messari"
+audience = { scheme = "https", host = "api.messari.io" }
+injection = { type = "header", name = "x-messari-api-key" }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "messari.fundraising"
 description = "Run the legacy fundraising operation. See the prompt and input schema for its exact contract."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -195,14 +190,14 @@ input_schema_ref = "schemas/messari/fundraising.input.v1.json"
 output_schema_ref = "schemas/messari/output.v1.json"
 prompt_doc_ref = "prompts/messari/fundraising.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "messari_api_key"
-source = { type = "product_auth_account", provider = "messari" }
-audience = { scheme = "https", host_pattern = "api.messari.io" }
-target = { type = "header", name = "x-messari-api-key" }
-required = true
+vendor = "messari"
+audience = { scheme = "https", host = "api.messari.io" }
+injection = { type = "header", name = "x-messari-api-key" }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "messari.intel"
 description = "Run the legacy intel operation. See the prompt and input schema for its exact contract."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -212,14 +207,14 @@ input_schema_ref = "schemas/messari/intel.input.v1.json"
 output_schema_ref = "schemas/messari/output.v1.json"
 prompt_doc_ref = "prompts/messari/intel.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "messari_api_key"
-source = { type = "product_auth_account", provider = "messari" }
-audience = { scheme = "https", host_pattern = "api.messari.io" }
-target = { type = "header", name = "x-messari-api-key" }
-required = true
+vendor = "messari"
+audience = { scheme = "https", host = "api.messari.io" }
+injection = { type = "header", name = "x-messari-api-key" }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "messari.topics"
 description = "Run the legacy topics operation. See the prompt and input schema for its exact contract."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -229,14 +224,14 @@ input_schema_ref = "schemas/messari/topics.input.v1.json"
 output_schema_ref = "schemas/messari/output.v1.json"
 prompt_doc_ref = "prompts/messari/topics.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "messari_api_key"
-source = { type = "product_auth_account", provider = "messari" }
-audience = { scheme = "https", host_pattern = "api.messari.io" }
-target = { type = "header", name = "x-messari-api-key" }
-required = true
+vendor = "messari"
+audience = { scheme = "https", host = "api.messari.io" }
+injection = { type = "header", name = "x-messari-api-key" }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "messari.x_users"
 description = "Run the legacy x users operation. See the prompt and input schema for its exact contract."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -246,9 +241,15 @@ input_schema_ref = "schemas/messari/x_users.input.v1.json"
 output_schema_ref = "schemas/messari/output.v1.json"
 prompt_doc_ref = "prompts/messari/x_users.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "messari_api_key"
-source = { type = "product_auth_account", provider = "messari" }
-audience = { scheme = "https", host_pattern = "api.messari.io" }
-target = { type = "header", name = "x-messari-api-key" }
-required = true
+vendor = "messari"
+audience = { scheme = "https", host = "api.messari.io" }
+injection = { type = "header", name = "x-messari-api-key" }
+
+[auth.messari]
+method = "api_key"
+display_name = "Messari API key"
+fields = [
+  { handle = "messari_api_key", label = "Messari API key", secret = true },
+]

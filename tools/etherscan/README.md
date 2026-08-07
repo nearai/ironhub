@@ -1,6 +1,6 @@
 ---
 name: etherscan
-version: 0.2.0
+version: 0.2.1
 description: Allows queries to the Etherscan v2 API across 60+ EVM-compatible networks. Retrieves native wallet balances, transaction histories, ERC-20/721/1155 token transfer events, contract ABIs/source codes, and execution statuses.
 use_cases:
   - Retrieve native account balance in Wei and Ether across EVM chains

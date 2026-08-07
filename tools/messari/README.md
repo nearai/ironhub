@@ -1,6 +1,6 @@
 ---
 name: messari
-version: 0.2.0
+version: 0.2.1
 description: Messari crypto research, market data, token unlocks, fundraising, DeFi metrics, analyst reports, and AI query synthesis for Ironclaw.
 use_cases:
   - Query real-time crypto asset prices, market caps, ATH, and market performance metrics

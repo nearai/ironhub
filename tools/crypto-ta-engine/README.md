@@ -1,6 +1,6 @@
 ---
 name: crypto-ta-engine
-version: 0.2.0
+version: 0.2.1
 description: Deterministic technical-analysis engine for Ironclaw. Fetches Binance Spot klines and computes EMA/RSI/MACD/StochRSI/ADX/ATR/Bollinger/OBV/CMF/VWAP plus a weighted multi-timeframe confluence verdict with ATR-based stop-loss/take-profit. Moves all TA math out of the LLM.
 use_cases:
   - Compute reliable indicator values from live Binance candles

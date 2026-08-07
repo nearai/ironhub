@@ -1,6 +1,6 @@
 ---
 name: frankfurter-fx
-version: 0.2.0
+version: 0.2.1
 description: Foreign exchange (FX) rates, currency conversions, multi-currency portfolio conversion, and historical rate analytics powered by Central Bank data via Frankfurter v2.
 use_cases:
   - Convert amounts between global fiat currencies with instant calculation (e.g. $169 USD to VND)

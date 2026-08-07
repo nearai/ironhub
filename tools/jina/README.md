@@ -1,6 +1,6 @@
 ---
 name: jina
-version: 0.2.3
+version: 0.2.4
 description: Read web pages and PDFs as compact content, capture webpage screenshots, and search the web, arXiv, SSRN, or images through Jina AI. The host injects one Jina API key only for the Reader and Search API hosts.
 use_cases:
   - Scrape and extract clean markdown from any URL or PDF file for LLMs.

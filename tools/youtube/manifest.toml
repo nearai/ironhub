@@ -1,7 +1,7 @@
-schema_version = "reborn.extension_manifest.v2"
+schema_version = "reborn.extension_manifest.v3"
 id = "youtube"
 name = "YouTube"
-version = "0.2.0"
+version = "0.2.1"
 description = "Read YouTube video, comment, channel, playlist, search, and transcript data."
 trust = "third_party"
 
@@ -9,13 +9,8 @@ trust = "third_party"
 kind = "wasm"
 module = "wasm/youtube_reborn_tool.wasm"
 
-[[host_api]]
-id = "ironclaw.capability_provider/v1"
-section = "capability_provider.tools"
-
-[capability_provider.tools]
-
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "youtube.get_video_details"
 description = "Get metadata and statistics for one or more YouTube video IDs."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -25,14 +20,14 @@ input_schema_ref = "schemas/youtube/get_video_details.input.v1.json"
 output_schema_ref = "schemas/youtube/text.output.v1.json"
 prompt_doc_ref = "prompts/youtube/get_video_details.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "youtube_api_key"
-source = { type = "product_auth_account", provider = "youtube" }
-audience = { scheme = "https", host_pattern = "www.googleapis.com" }
-target = { type = "query_param", name = "key" }
-required = true
+vendor = "youtube"
+audience = { scheme = "https", host = "www.googleapis.com" }
+injection = { type = "query_param", name = "key" }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "youtube.list_comments"
 description = "List YouTube comment threads for a video or channel."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -42,14 +37,14 @@ input_schema_ref = "schemas/youtube/list_comments.input.v1.json"
 output_schema_ref = "schemas/youtube/text.output.v1.json"
 prompt_doc_ref = "prompts/youtube/list_comments.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "youtube_api_key"
-source = { type = "product_auth_account", provider = "youtube" }
-audience = { scheme = "https", host_pattern = "www.googleapis.com" }
-target = { type = "query_param", name = "key" }
-required = true
+vendor = "youtube"
+audience = { scheme = "https", host = "www.googleapis.com" }
+injection = { type = "query_param", name = "key" }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "youtube.get_channel_stats"
 description = "Get statistics and uploads-playlist metadata for a YouTube channel."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -59,14 +54,14 @@ input_schema_ref = "schemas/youtube/get_channel_stats.input.v1.json"
 output_schema_ref = "schemas/youtube/text.output.v1.json"
 prompt_doc_ref = "prompts/youtube/get_channel_stats.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "youtube_api_key"
-source = { type = "product_auth_account", provider = "youtube" }
-audience = { scheme = "https", host_pattern = "www.googleapis.com" }
-target = { type = "query_param", name = "key" }
-required = true
+vendor = "youtube"
+audience = { scheme = "https", host = "www.googleapis.com" }
+injection = { type = "query_param", name = "key" }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "youtube.get_channel_videos"
 description = "List recent videos from a channel uploads playlist."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -76,14 +71,14 @@ input_schema_ref = "schemas/youtube/get_channel_videos.input.v1.json"
 output_schema_ref = "schemas/youtube/text.output.v1.json"
 prompt_doc_ref = "prompts/youtube/get_channel_videos.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "youtube_api_key"
-source = { type = "product_auth_account", provider = "youtube" }
-audience = { scheme = "https", host_pattern = "www.googleapis.com" }
-target = { type = "query_param", name = "key" }
-required = true
+vendor = "youtube"
+audience = { scheme = "https", host = "www.googleapis.com" }
+injection = { type = "query_param", name = "key" }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "youtube.search_videos"
 description = "Search YouTube by keyword. This operation consumes substantially more API quota than reads by ID."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -93,14 +88,14 @@ input_schema_ref = "schemas/youtube/search_videos.input.v1.json"
 output_schema_ref = "schemas/youtube/text.output.v1.json"
 prompt_doc_ref = "prompts/youtube/search_videos.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "youtube_api_key"
-source = { type = "product_auth_account", provider = "youtube" }
-audience = { scheme = "https", host_pattern = "www.googleapis.com" }
-target = { type = "query_param", name = "key" }
-required = true
+vendor = "youtube"
+audience = { scheme = "https", host = "www.googleapis.com" }
+injection = { type = "query_param", name = "key" }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "youtube.get_transcript"
 description = "Fetch the plain-text transcript for one YouTube video."
 effects = ["dispatch_capability", "network"]
@@ -109,6 +104,11 @@ visibility = "model"
 input_schema_ref = "schemas/youtube/get_transcript.input.v1.json"
 output_schema_ref = "schemas/youtube/text.output.v1.json"
 prompt_doc_ref = "prompts/youtube/get_transcript.md"
-network_targets = [
-  { scheme = "https", host_pattern = "youtube-transcript.ai" },
+network_targets = [{ scheme = "https", host = "youtube-transcript.ai" }]
+
+[auth.youtube]
+method = "api_key"
+display_name = "YouTube API key"
+fields = [
+  { handle = "youtube_api_key", label = "YouTube API key", secret = true },
 ]

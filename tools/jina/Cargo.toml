@@ -1,6 +1,6 @@
 [package]
 name = "jina-reborn-tool"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 description = "Jina Reader & Search oracle tool for IronClaw (WASM component)"
 license = "MIT OR Apache-2.0"
