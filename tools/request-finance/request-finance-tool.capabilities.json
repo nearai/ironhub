@@ -1,0 +1,50 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "Request Finance read integration. Actions: list_invoices (invoices and payment requests via GET /invoices, filterable by free-text search, status, variant rnf_invoice or rnf_salary, and direction sent or received, paginated with take and skip), get_invoice (one invoice by ID, optionally including share and payment links), list_clients (customers or suppliers via GET /clients), get_client (one client by ID). Read-only: the tool creates no invoices, changes no payment state, and never executes a payment. Authenticates against api.request.finance with a workspace API key sent as the raw Authorization header value with no scheme prefix, injected by the host.",
+  "effects": [],
+  "http": {
+    "allowlist": [
+      {
+        "host": "api.request.finance",
+        "path_prefix": "/",
+        "methods": ["GET"]
+      }
+    ],
+    "credentials": {
+      "request_finance_api_key": {
+        "secret_name": "request_finance_api_key",
+        "location": { "type": "header", "name": "Authorization" },
+        "host_patterns": ["api.request.finance"],
+        "path_patterns": ["/"]
+      }
+    },
+    "rate_limit": {
+      "requests_per_minute": 60,
+      "requests_per_hour": 2000
+    },
+    "timeout_secs": 60
+  },
+  "secrets": {
+    "allowed_names": ["request_finance_api_key"]
+  },
+  "auth": {
+    "secret_name": "request_finance_api_key",
+    "display_name": "Request Finance",
+    "static_token": {
+      "env_var": "REQUEST_FINANCE_API_KEY",
+      "instructions": "Create an API key in the Request Finance dashboard. The key is sent as the raw Authorization header value with no Bearer prefix, which is how the Request Finance API expects it."
+    },
+    "env_var": "REQUEST_FINANCE_API_KEY",
+    "setup_url": "https://docs.request.finance/getting-started",
+    "instructions": "1. Sign in to Request Finance and create an API key for your workspace.\n2. Store it on the IronClaw host:\n\n   ```sh\n   export REQUEST_FINANCE_API_KEY=<api key>\n   ```\n\n3. Run `ironclaw tool install request-finance` to register the tool.\n4. The key scopes to one workspace, so an agent that needs to read two workspaces needs two installations.\n5. Request Finance documents OAuth as the more secure option for production; this tool currently supports API keys only."
+  },
+  "setup": {
+    "required_secrets": [
+      {
+        "name": "request_finance_api_key",
+        "prompt": "Request Finance API key"
+      }
+    ]
+  }
+}

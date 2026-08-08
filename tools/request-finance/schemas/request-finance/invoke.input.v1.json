@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RequestFinanceAction",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_invoices"
+        },
+        "filter_by": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InvoiceDirection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "search": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "skip": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 0,
+          "minimum": 0
+        },
+        "status": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "take": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 25,
+          "minimum": 0
+        },
+        "variant": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InvoiceVariant"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "with_links": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_invoice"
+        },
+        "id": {
+          "type": "string"
+        },
+        "with_links": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "action",
+        "id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_clients"
+        },
+        "client_type": {
+          "type": "string",
+          "default": "customer"
+        },
+        "search": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "skip": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 0,
+          "minimum": 0
+        },
+        "take": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 25,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_client"
+        },
+        "client_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "client_id"
+      ]
+    }
+  ],
+  "$defs": {
+    "InvoiceDirection": {
+      "type": "string",
+      "enum": [
+        "sent",
+        "received"
+      ]
+    },
+    "InvoiceVariant": {
+      "type": "string",
+      "enum": [
+        "invoice",
+        "salary"
+      ]
+    }
+  }
+}
