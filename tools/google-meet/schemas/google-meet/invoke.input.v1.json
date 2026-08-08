@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MeetAction",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_conference_records"
+        },
+        "filter": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "page_size": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 25,
+          "minimum": 0
+        },
+        "page_token": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_participants"
+        },
+        "conference_record": {
+          "type": "string"
+        },
+        "page_size": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 25,
+          "minimum": 0
+        },
+        "page_token": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "conference_record"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_recordings"
+        },
+        "conference_record": {
+          "type": "string"
+        },
+        "page_size": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 25,
+          "minimum": 0
+        },
+        "page_token": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "conference_record"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_recording"
+        },
+        "recording": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "recording"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_transcripts"
+        },
+        "conference_record": {
+          "type": "string"
+        },
+        "page_size": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 25,
+          "minimum": 0
+        },
+        "page_token": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "conference_record"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_transcript"
+        },
+        "transcript": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "transcript"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_transcript_entries"
+        },
+        "page_size": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 200,
+          "minimum": 0
+        },
+        "page_token": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "transcript": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "transcript"
+      ]
+    }
+  ]
+}
