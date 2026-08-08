@@ -1,0 +1,53 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "Grafana read integration, for Grafana Cloud and self-hosted Grafana alike. Actions: list_alerts (alert instances currently firing, pending, silenced, or inhibited, via the Grafana Alertmanager v2 API, filterable by label matcher), list_alert_rules and get_alert_rule (alert rule definitions via the provisioning API), search_dashboards (dashboards and folders by title, tag, and kind), get_dashboard (full dashboard JSON by UID), list_datasources (configured data sources and their UIDs), query_metrics (PromQL expression against a Prometheus-compatible data source over a time range via /api/ds/query). Read-only: the tool performs no creates, updates, or deletes. Authenticates with a Grafana service account token injected by the host as a Bearer header. The tool reads its target hostname from the workspace file `grafana/host`, which must match the host baked into the allowlist below. INSTALL EDIT REQUIRED: replace YOUR_GRAFANA_HOST (2 places: allowlist.host and host_patterns) with your Grafana hostname before installing.",
+  "effects": [],
+  "http": {
+    "allowlist": [
+      {
+        "host": "YOUR_GRAFANA_HOST",
+        "path_prefix": "/api/",
+        "methods": ["GET", "POST"]
+      }
+    ],
+    "credentials": {
+      "grafana_service_account_token": {
+        "secret_name": "grafana_service_account_token",
+        "location": { "type": "bearer" },
+        "host_patterns": ["YOUR_GRAFANA_HOST"],
+        "path_patterns": ["/api/"]
+      }
+    },
+    "rate_limit": {
+      "requests_per_minute": 120,
+      "requests_per_hour": 4000
+    },
+    "timeout_secs": 60
+  },
+  "workspace": {
+    "allowed_prefixes": ["grafana/"]
+  },
+  "secrets": {
+    "allowed_names": ["grafana_service_account_token"]
+  },
+  "auth": {
+    "secret_name": "grafana_service_account_token",
+    "display_name": "Grafana",
+    "static_token": {
+      "env_var": "GRAFANA_SERVICE_ACCOUNT_TOKEN",
+      "instructions": "Create a Grafana service account with the Viewer role, add a token to it, and store the token. Viewer is sufficient for every action this tool exposes."
+    },
+    "env_var": "GRAFANA_SERVICE_ACCOUNT_TOKEN",
+    "setup_url": "https://grafana.com/docs/grafana/latest/administration/service-accounts/",
+    "instructions": "1. Edit this capabilities file and replace YOUR_GRAFANA_HOST in both places (`allowlist.host` and the credential's `host_patterns`) with your Grafana hostname. Use the bare hostname with no scheme or path, for example `myorg.grafana.net` for Grafana Cloud or `grafana.example.com` for a self-hosted instance. The host allowlist is the security boundary, so it is deliberately pinned to one host per install.\n2. In Grafana, go to Administration > Users and access > Service accounts and click Add service account.\n3. Give it the Viewer role. Every action in this tool is read-only, so no wider role is needed.\n4. Click Add service account token, copy the generated token, and store it on the IronClaw host:\n\n   ```sh\n   export GRAFANA_SERVICE_ACCOUNT_TOKEN=<service account token>\n   ```\n\n5. Write the same hostname to the workspace file `grafana/host`. Append a port there if your instance uses one, for example `grafana.example.com:3000`.\n6. Run `ironclaw tool install grafana` to register the tool.\n7. Self-hosted instances must be reachable over HTTPS with a certificate the IronClaw host trusts."
+  },
+  "setup": {
+    "required_secrets": [
+      {
+        "name": "grafana_service_account_token",
+        "prompt": "Grafana service account token"
+      }
+    ]
+  }
+}
