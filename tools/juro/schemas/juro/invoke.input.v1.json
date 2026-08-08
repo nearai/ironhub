@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "JuroAction",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_contracts"
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 50,
+          "minimum": 0
+        },
+        "skip": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 0,
+          "minimum": 0
+        },
+        "team_ids": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "template_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "updated_before": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "updated_since": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_contract"
+        },
+        "contract_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "contract_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_templates"
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 50,
+          "minimum": 0
+        },
+        "skip": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 0,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_template"
+        },
+        "template_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "template_id"
+      ]
+    }
+  ]
+}

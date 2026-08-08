@@ -1,0 +1,50 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "Juro contract read integration. Actions: list_contracts (GET /v3/contracts, paginated with skip and limit, filterable by teamIds and templateId and by updatedSince and updatedBefore for incremental reads), get_contract (GET /v3/contracts/{id}), list_templates (GET /v3/templates), get_template (GET /v3/templates/{id}). Juro calls these records contracts; finance and legal workflows often call them agreements. Read-only: the tool drafts, edits, sends, and signs nothing. Authenticates against api.juro.com with a workspace API key injected by the host as the x-api-key header.",
+  "effects": [],
+  "http": {
+    "allowlist": [
+      {
+        "host": "api.juro.com",
+        "path_prefix": "/v3/",
+        "methods": ["GET"]
+      }
+    ],
+    "credentials": {
+      "juro_api_key": {
+        "secret_name": "juro_api_key",
+        "location": { "type": "header", "name": "x-api-key" },
+        "host_patterns": ["api.juro.com"],
+        "path_patterns": ["/v3/"]
+      }
+    },
+    "rate_limit": {
+      "requests_per_minute": 60,
+      "requests_per_hour": 2000
+    },
+    "timeout_secs": 60
+  },
+  "secrets": {
+    "allowed_names": ["juro_api_key"]
+  },
+  "auth": {
+    "secret_name": "juro_api_key",
+    "display_name": "Juro",
+    "static_token": {
+      "env_var": "JURO_API_KEY",
+      "instructions": "Retrieve your API key in Juro under Settings > Integrations > API & webhooks. The key is sent as the x-api-key header."
+    },
+    "env_var": "JURO_API_KEY",
+    "setup_url": "https://api-docs.juro.com/",
+    "instructions": "1. In Juro, go to Settings > Integrations > API & webhooks and create or copy your API key.\n2. Store it on the IronClaw host:\n\n   ```sh\n   export JURO_API_KEY=<api key>\n   ```\n\n3. Run `ironclaw tool install juro` to register the tool.\n4. The key scopes to one Juro workspace and inherits that key's permissions, so contracts outside its teams are not visible."
+  },
+  "setup": {
+    "required_secrets": [
+      {
+        "name": "juro_api_key",
+        "prompt": "Juro API key"
+      }
+    ]
+  }
+}
