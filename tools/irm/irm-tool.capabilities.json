@@ -1,0 +1,53 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "Grafana IRM incident read integration, for Grafana Cloud and self-hosted Grafana alike. Actions: list_incidents (recent incidents via IncidentsService.QueryIncidents), get_incident (one incident by ID), get_timeline (the incident activity feed via ActivityService.QueryActivity, filterable by tag and activity kind), list_fields (custom incident metadata fields). Calls the Grafana Incident JSON RPC API at /api/plugins/grafana-irm-app/resources/api/v1 on the same Grafana instance as the grafana tool, authenticated with the same service account token injected by the host as a Bearer header. Read-only: the tool declares, updates, and resolves nothing. The hostname is read from the shared workspace file `grafana/host`. On-call schedules and escalation policies live behind a separate Grafana OnCall endpoint and are not covered by this tool. INSTALL EDIT REQUIRED: replace YOUR_GRAFANA_HOST (2 places: allowlist.host and host_patterns) with your Grafana hostname before installing.",
+  "effects": [],
+  "http": {
+    "allowlist": [
+      {
+        "host": "YOUR_GRAFANA_HOST",
+        "path_prefix": "/api/plugins/grafana-irm-app/",
+        "methods": ["POST"]
+      }
+    ],
+    "credentials": {
+      "grafana_service_account_token": {
+        "secret_name": "grafana_service_account_token",
+        "location": { "type": "bearer" },
+        "host_patterns": ["YOUR_GRAFANA_HOST"],
+        "path_patterns": ["/api/plugins/grafana-irm-app/"]
+      }
+    },
+    "rate_limit": {
+      "requests_per_minute": 120,
+      "requests_per_hour": 4000
+    },
+    "timeout_secs": 60
+  },
+  "workspace": {
+    "allowed_prefixes": ["grafana/"]
+  },
+  "secrets": {
+    "allowed_names": ["grafana_service_account_token"]
+  },
+  "auth": {
+    "secret_name": "grafana_service_account_token",
+    "display_name": "Grafana IRM",
+    "static_token": {
+      "env_var": "GRAFANA_SERVICE_ACCOUNT_TOKEN",
+      "instructions": "Grafana IRM runs on your Grafana instance and uses the same service account token as the grafana tool. If you already configured the grafana tool, this is the same secret and the same value."
+    },
+    "env_var": "GRAFANA_SERVICE_ACCOUNT_TOKEN",
+    "setup_url": "https://grafana.com/docs/grafana-cloud/alerting-and-irm/irm/reference/incident-api/",
+    "instructions": "1. Edit this capabilities file and replace YOUR_GRAFANA_HOST in both places (`allowlist.host` and the credential's `host_patterns`) with your Grafana hostname, matching whatever you set for the grafana tool. Use the bare hostname with no scheme or path.\n2. In Grafana, create a service account with the Viewer role and add a token, or reuse the one you created for the grafana tool.\n3. Store the token on the IronClaw host:\n\n   ```sh\n   export GRAFANA_SERVICE_ACCOUNT_TOKEN=<service account token>\n   ```\n\n4. Write the same hostname to the workspace file `grafana/host`. The grafana and irm tools share this file.\n5. Run `ironclaw tool install irm` to register the tool."
+  },
+  "setup": {
+    "required_secrets": [
+      {
+        "name": "grafana_service_account_token",
+        "prompt": "Grafana service account token (same token as the grafana tool)"
+      }
+    ]
+  }
+}
