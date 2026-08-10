@@ -1,9 +1,9 @@
 SKILL_FILE_PREFIX="files"
-SKILL_FILE_SEPARATOR="~"
 
 skill_file_asset_name() {
   local skill="$1"
   local rel="$2"
+  local path_digest
 
   if [ -z "$rel" ]; then
     echo "error: $skill has a skill file with an empty path" >&2
@@ -19,10 +19,6 @@ skill_file_asset_name() {
       echo "error: $skill ships '$rel', which escapes the skill directory" >&2
       return 1
       ;;
-    *"$SKILL_FILE_SEPARATOR"*)
-      echo "error: $skill ships '$rel', which contains the reserved '$SKILL_FILE_SEPARATOR' separator" >&2
-      return 1
-      ;;
   esac
 
   if printf '%s' "$rel" | grep -qv '^[A-Za-z0-9._/-]\+$'; then
@@ -30,5 +26,8 @@ skill_file_asset_name() {
     return 1
   fi
 
-  printf '%s.%s.%s' "$skill" "$SKILL_FILE_PREFIX" "$(printf '%s' "$rel" | tr '/' "$SKILL_FILE_SEPARATOR")"
+  # GitHub normalizes unsupported release-asset characters, so keep the
+  # filename provider-safe while the manifest retains the logical path.
+  path_digest="$(printf '%s' "$rel" | sha256sum | awk '{print $1}')"
+  printf '%s.%s.%s' "$skill" "$SKILL_FILE_PREFIX" "$path_digest"
 }
