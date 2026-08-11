@@ -35,7 +35,9 @@ impl exports::near::agent::tool::Guest for RequestFinanceTool {
          (invoices and payment requests, filterable by free-text search, status, variant \
          (invoice or salary), and direction (sent or received)), get_invoice (one invoice by \
          ID, optionally with share and payment links), list_clients (customers or suppliers in \
-         the workspace), get_client (one client by ID). Read-only: this tool creates no \
+         the workspace), get_client (one client by ID), fetch_since (invoices created inside an \
+         ISO 8601 window, for incremental reads; it filters by creation date, so an invoice \
+         edited after it was created will not reappear). Read-only: this tool creates no \
          invoices, changes no payment state, and never executes a payment. The workspace API \
          key is injected by the host."
             .to_string()
@@ -54,7 +56,8 @@ fn execute_inner(params: &str) -> Result<String, String> {
         format!(
             "Invalid parameters for request-finance tool: {}. Expected shape: {{\"action\": \
              \"<name>\", ...fields}}. Valid action names: list_invoices, get_invoice, \
-             list_clients, get_client. variant must be one of: invoice, salary. filter_by must \
+             list_clients, get_client, fetch_since. variant must be one of: invoice, salary. \
+             filter_by must \
              be one of: sent, received. Call tool_info for the full JSON schema.",
             e
         )
@@ -85,6 +88,7 @@ fn execute_inner(params: &str) -> Result<String, String> {
             variant,
             filter_by,
             with_links,
+            creation_date_range: None,
         })?,
         RequestFinanceAction::GetInvoice { id, with_links } => api::get_invoice(&id, with_links)?,
         RequestFinanceAction::ListClients {
@@ -94,6 +98,12 @@ fn execute_inner(params: &str) -> Result<String, String> {
             search,
         } => api::list_clients(&client_type, take, skip, search.as_deref())?,
         RequestFinanceAction::GetClient { client_id } => api::get_client(&client_id)?,
+        RequestFinanceAction::FetchSince {
+            created_from,
+            created_to,
+            take,
+            skip,
+        } => api::fetch_since(&created_from, created_to.as_deref(), take, skip)?,
     };
 
     serde_json::to_string(&result).map_err(|e| e.to_string())
@@ -105,6 +115,7 @@ fn action_name(action: &RequestFinanceAction) -> &'static str {
         RequestFinanceAction::GetInvoice { .. } => "get_invoice",
         RequestFinanceAction::ListClients { .. } => "list_clients",
         RequestFinanceAction::GetClient { .. } => "get_client",
+        RequestFinanceAction::FetchSince { .. } => "fetch_since",
     }
 }
 

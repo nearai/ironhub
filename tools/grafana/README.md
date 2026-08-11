@@ -18,6 +18,7 @@ The tool is read-only. It creates, updates, and deletes nothing.
 | `get_dashboard` | `GET /api/dashboards/uid/{uid}` | Full dashboard JSON by UID |
 | `list_datasources` | `GET /api/datasources` | Configured data sources and their UIDs |
 | `query_metrics` | `POST /api/ds/query` | Run a PromQL expression over a time range |
+| `fetch_since` | `GET /api/annotations` | Events in a time window, for incremental reads |
 
 ## Alerts vs alert rules
 
@@ -51,6 +52,23 @@ relative times such as `now-6h` or epoch milliseconds.
   "to": "now"
 }
 ```
+
+## Incremental reads
+
+`fetch_since` is the only genuine time-ranged surface Grafana offers. It reads
+`/api/annotations`, which is where Grafana records alert state transitions, so it answers "what
+happened between these two instants" rather than "what is true now".
+
+```json
+{ "action": "fetch_since", "from_epoch_ms": 1754000000000, "kind": "alert", "limit": 100 }
+```
+
+Bounds are epoch milliseconds. Persist the newest annotation `time` you processed and pass it
+back as `from_epoch_ms`. Omitting `to_epoch_ms` reads up to the present; supplying one that does
+not advance past `from_epoch_ms` is rejected rather than silently returning an empty window.
+
+Alert *rules*, dashboards, and data sources carry no cursor of any kind. For those, a full read
+is the only option.
 
 ## Target hostname
 

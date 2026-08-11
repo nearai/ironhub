@@ -1,7 +1,7 @@
 {
   "version": "0.1.0",
   "wit_version": "0.3.0",
-  "description": "Juro contract read integration. Actions: list_contracts (GET /v3/contracts, paginated with skip and limit, filterable by teamIds and templateId and by updatedSince and updatedBefore for incremental reads), get_contract (GET /v3/contracts/{id}), list_templates (GET /v3/templates), get_template (GET /v3/templates/{id}). Juro calls these records contracts; finance and legal workflows often call them agreements. Read-only: the tool drafts, edits, sends, and signs nothing. Authenticates against api.juro.com with a workspace API key injected by the host as the x-api-key header.",
+  "description": "Juro contract read integration. Actions: list_contracts (GET /v3/contracts, paginated with skip and limit, filterable by teamIds and templateId and by updatedSince and updatedBefore for incremental reads), get_contract (GET /v3/contracts/{id}), list_templates (GET /v3/templates), get_template (GET /v3/templates/{id}), get_finance_terms (the contract's smartfield values from GET /v3/contracts/{id}, optionally narrowed to named field titles and reporting any requested title that was not found), get_signed_version (signing state and party signature detail from the same read, plus signedDocumentPath naming where the signed file lives in Juro; the file itself is not returned, and Juro serves it as a ZIP rather than a PDF when the contract was uploaded, to preserve its digital signatures). Juro calls these records contracts; finance and legal workflows often call them agreements. Read-only: the tool drafts, edits, sends, and signs nothing. Authenticates against api.juro.com with a workspace API key injected by the host as the x-api-key header.",
   "effects": [],
   "http": {
     "allowlist": [

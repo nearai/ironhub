@@ -38,7 +38,9 @@ impl exports::near::agent::tool::Guest for GrafanaTool {
          get_alert_rule (one rule by UID), search_dashboards (find dashboards or folders by \
          title and tag), get_dashboard (full dashboard JSON by UID), list_datasources \
          (configured data sources with their UIDs), query_metrics (run a PromQL expression \
-         against a Prometheus-compatible data source over a time range). Read-only: this tool \
+         against a Prometheus-compatible data source over a time range), fetch_since \
+         (annotations recorded in a time window, which is where Grafana logs alert state \
+         transitions, for incremental reads from a stored cursor). Read-only: this tool \
          creates, edits, and deletes nothing. The Grafana hostname is read from the workspace \
          file grafana/host and the service account token is injected by the host."
             .to_string()
@@ -57,8 +59,9 @@ fn execute_inner(params: &str) -> Result<String, String> {
         format!(
             "Invalid parameters for grafana tool: {}. Expected shape: {{\"action\": \"<name>\", \
              ...fields}}. Valid action names: list_alerts, list_alert_rules, get_alert_rule, \
-             search_dashboards, get_dashboard, list_datasources, query_metrics. kind must be one \
-             of: dashboard, folder. Call tool_info for the full JSON schema.",
+             search_dashboards, get_dashboard, list_datasources, query_metrics, fetch_since. \
+             kind must be one of: dashboard, folder for search_dashboards, or alert, annotation \
+             for fetch_since. Call tool_info for the full JSON schema.",
             e
         )
     })?;
@@ -93,6 +96,13 @@ fn execute_inner(params: &str) -> Result<String, String> {
             to,
             max_data_points,
         } => api::query_metrics(&datasource_uid, &expr, &from, &to, max_data_points)?,
+        GrafanaAction::FetchSince {
+            from_epoch_ms,
+            to_epoch_ms,
+            tags,
+            kind,
+            limit,
+        } => api::fetch_since(from_epoch_ms, to_epoch_ms, &tags, kind, limit)?,
     };
 
     serde_json::to_string(&result).map_err(|e| e.to_string())
@@ -107,6 +117,7 @@ fn action_name(action: &GrafanaAction) -> &'static str {
         GrafanaAction::GetDashboard { .. } => "get_dashboard",
         GrafanaAction::ListDatasources => "list_datasources",
         GrafanaAction::QueryMetrics { .. } => "query_metrics",
+        GrafanaAction::FetchSince { .. } => "fetch_since",
     }
 }
 

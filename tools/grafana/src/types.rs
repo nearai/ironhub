@@ -44,6 +44,33 @@ pub enum GrafanaAction {
         #[serde(default = "default_max_data_points")]
         max_data_points: u32,
     },
+    FetchSince {
+        from_epoch_ms: u64,
+        #[serde(default)]
+        to_epoch_ms: Option<u64>,
+        #[serde(default)]
+        tags: Vec<String>,
+        #[serde(default)]
+        kind: Option<AnnotationKind>,
+        #[serde(default = "default_annotation_limit")]
+        limit: u32,
+    },
+}
+
+#[derive(Debug, Deserialize, JsonSchema, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum AnnotationKind {
+    Alert,
+    Annotation,
+}
+
+impl AnnotationKind {
+    pub fn as_grafana(self) -> &'static str {
+        match self {
+            AnnotationKind::Alert => "alert",
+            AnnotationKind::Annotation => "annotation",
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, JsonSchema, Clone, Copy, PartialEq, Eq)]
@@ -83,6 +110,10 @@ fn default_to() -> String {
 }
 
 fn default_max_data_points() -> u32 {
+    100
+}
+
+fn default_annotation_limit() -> u32 {
     100
 }
 
@@ -226,6 +257,65 @@ mod tests {
     fn search_kind_wire_values() {
         assert_eq!(SearchKind::Dashboard.as_grafana(), "dash-db");
         assert_eq!(SearchKind::Folder.as_grafana(), "dash-folder");
+    }
+
+    #[test]
+    fn parse_fetch_since_requires_from() {
+        assert!(parse(r#"{"action":"fetch_since"}"#).is_err());
+    }
+
+    #[test]
+    fn parse_fetch_since_uses_defaults() {
+        match parse(r#"{"action":"fetch_since","from_epoch_ms":1754000000000}"#).unwrap() {
+            GrafanaAction::FetchSince {
+                from_epoch_ms,
+                to_epoch_ms,
+                tags,
+                kind,
+                limit,
+            } => {
+                assert_eq!(from_epoch_ms, 1754000000000);
+                assert!(to_epoch_ms.is_none());
+                assert!(tags.is_empty());
+                assert!(kind.is_none());
+                assert_eq!(limit, 100);
+            }
+            _ => panic!("wrong variant"),
+        }
+    }
+
+    #[test]
+    fn parse_fetch_since_with_window_and_kind() {
+        let action = parse(
+            r#"{"action":"fetch_since","from_epoch_ms":1754000000000,"to_epoch_ms":1754086400000,"kind":"alert","tags":["rpc"],"limit":25}"#,
+        )
+        .unwrap();
+        match action {
+            GrafanaAction::FetchSince {
+                to_epoch_ms,
+                kind,
+                tags,
+                limit,
+                ..
+            } => {
+                assert_eq!(to_epoch_ms, Some(1754086400000));
+                assert_eq!(kind, Some(AnnotationKind::Alert));
+                assert_eq!(tags, vec!["rpc"]);
+                assert_eq!(limit, 25);
+            }
+            _ => panic!("wrong variant"),
+        }
+    }
+
+    #[test]
+    fn parse_fetch_since_rejects_unknown_kind() {
+        assert!(parse(r#"{"action":"fetch_since","from_epoch_ms":1,"kind":"incident"}"#).is_err());
+    }
+
+    #[test]
+    fn annotation_kind_wire_values() {
+        assert_eq!(AnnotationKind::Alert.as_grafana(), "alert");
+        assert_eq!(AnnotationKind::Annotation.as_grafana(), "annotation");
     }
 
     #[test]

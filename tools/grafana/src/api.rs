@@ -1,7 +1,37 @@
 use serde_json::{json, Value};
 
 use crate::grafana::{append_query, get, post, require_non_empty, url_encode};
-use crate::types::SearchKind;
+use crate::types::{AnnotationKind, SearchKind};
+
+pub fn fetch_since(
+    from_epoch_ms: u64,
+    to_epoch_ms: Option<u64>,
+    tags: &[String],
+    kind: Option<AnnotationKind>,
+    limit: u32,
+) -> Result<Value, String> {
+    if let Some(to) = to_epoch_ms {
+        if to <= from_epoch_ms {
+            return Err(format!(
+                "`to_epoch_ms` ({}) must be greater than `from_epoch_ms` ({})",
+                to, from_epoch_ms
+            ));
+        }
+    }
+    let mut endpoint = String::from("/api/annotations");
+    append_query(&mut endpoint, "from", &from_epoch_ms.to_string());
+    if let Some(to) = to_epoch_ms {
+        append_query(&mut endpoint, "to", &to.to_string());
+    }
+    for tag in tags {
+        append_query(&mut endpoint, "tags", tag);
+    }
+    if let Some(kind) = kind {
+        append_query(&mut endpoint, "type", kind.as_grafana());
+    }
+    append_query(&mut endpoint, "limit", &limit.to_string());
+    get(&endpoint)
+}
 
 pub fn list_alerts(
     active: bool,
@@ -116,5 +146,11 @@ mod tests {
     fn query_metrics_rejects_blank_arguments() {
         assert!(query_metrics("", "up", "now-1h", "now", 100).is_err());
         assert!(query_metrics("ds1", "   ", "now-1h", "now", 100).is_err());
+    }
+
+    #[test]
+    fn fetch_since_rejects_a_window_that_does_not_advance() {
+        assert!(fetch_since(1000, Some(1000), &[], None, 100).is_err());
+        assert!(fetch_since(2000, Some(1000), &[], None, 100).is_err());
     }
 }

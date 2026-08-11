@@ -11,6 +11,7 @@ pub struct InvoiceQuery<'a> {
     pub variant: Option<InvoiceVariant>,
     pub filter_by: Option<InvoiceDirection>,
     pub with_links: bool,
+    pub creation_date_range: Option<&'a str>,
 }
 
 pub fn list_invoices(query: &InvoiceQuery<'_>) -> Result<Value, String> {
@@ -29,9 +30,43 @@ pub fn list_invoices(query: &InvoiceQuery<'_>) -> Result<Value, String> {
     if let Some(direction) = query.filter_by {
         append_query(&mut endpoint, "filterBy", direction.as_request_finance());
     }
+    if let Some(range) = query.creation_date_range {
+        append_query(&mut endpoint, "creationDateRange", range);
+    }
     append_query(&mut endpoint, "withLinks", bool_param(query.with_links));
     append_query(&mut endpoint, "format", "paginated");
     get(&endpoint)
+}
+
+pub fn fetch_since(
+    created_from: &str,
+    created_to: Option<&str>,
+    take: u32,
+    skip: u32,
+) -> Result<Value, String> {
+    let range = creation_date_range(created_from, created_to)?;
+    list_invoices(&InvoiceQuery {
+        take,
+        skip,
+        search: None,
+        status: &[],
+        variant: None,
+        filter_by: None,
+        with_links: false,
+        creation_date_range: Some(&range),
+    })
+}
+
+fn creation_date_range(from: &str, to: Option<&str>) -> Result<String, String> {
+    require_non_empty(from, "created_from")?;
+    let mut range = serde_json::Map::new();
+    range.insert("from".into(), Value::String(from.to_string()));
+    if let Some(to) = to {
+        require_non_empty(to, "created_to")?;
+        range.insert("to".into(), Value::String(to.to_string()));
+    }
+    serde_json::to_string(&Value::Object(range))
+        .map_err(|e| format!("Failed to serialize creationDateRange: {}", e))
 }
 
 pub fn get_invoice(id: &str, with_links: bool) -> Result<Value, String> {
@@ -81,5 +116,39 @@ mod tests {
     #[test]
     fn list_clients_rejects_blank_type() {
         assert!(list_clients("  ", 25, 0, None).is_err());
+    }
+
+    #[test]
+    fn creation_date_range_rejects_blank_bounds() {
+        assert!(creation_date_range("   ", None).is_err());
+        assert!(creation_date_range("2026-08-01T00:00:00.000Z", Some(" ")).is_err());
+    }
+
+    #[test]
+    fn creation_date_range_emits_only_from_when_open_ended() {
+        let range = creation_date_range("2026-08-01T00:00:00.000Z", None).unwrap();
+        assert_eq!(range, r#"{"from":"2026-08-01T00:00:00.000Z"}"#);
+    }
+
+    #[test]
+    fn creation_date_range_emits_both_bounds_when_closed() {
+        let range =
+            creation_date_range("2026-08-01T00:00:00.000Z", Some("2026-08-08T00:00:00.000Z"))
+                .unwrap();
+        assert_eq!(
+            range,
+            r#"{"from":"2026-08-01T00:00:00.000Z","to":"2026-08-08T00:00:00.000Z"}"#
+        );
+    }
+
+    #[test]
+    fn creation_date_range_survives_url_encoding_intact() {
+        let range = creation_date_range("2026-08-01T00:00:00.000Z", None).unwrap();
+        let encoded = url_encode(&range);
+        assert!(!encoded.contains('{'));
+        assert!(!encoded.contains('"'));
+        assert!(!encoded.contains(':'));
+        assert!(encoded.contains("%7B"));
+        assert!(encoded.contains("%22"));
     }
 }

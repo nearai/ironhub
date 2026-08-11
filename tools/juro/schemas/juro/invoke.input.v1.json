@@ -109,6 +109,45 @@
         "action",
         "template_id"
       ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_finance_terms"
+        },
+        "contract_id": {
+          "type": "string"
+        },
+        "field_titles": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "action",
+        "contract_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_signed_version"
+        },
+        "contract_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "contract_id"
+      ]
     }
   ]
 }

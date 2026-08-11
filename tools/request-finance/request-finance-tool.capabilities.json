@@ -1,7 +1,7 @@
 {
   "version": "0.1.0",
   "wit_version": "0.3.0",
-  "description": "Request Finance read integration. Actions: list_invoices (invoices and payment requests via GET /invoices, filterable by free-text search, status, variant rnf_invoice or rnf_salary, and direction sent or received, paginated with take and skip), get_invoice (one invoice by ID, optionally including share and payment links), list_clients (customers or suppliers via GET /clients), get_client (one client by ID). Read-only: the tool creates no invoices, changes no payment state, and never executes a payment. Authenticates against api.request.finance with a workspace API key sent as the raw Authorization header value with no scheme prefix, injected by the host.",
+  "description": "Request Finance read integration. Actions: list_invoices (invoices and payment requests via GET /invoices, filterable by free-text search, status, variant rnf_invoice or rnf_salary, and direction sent or received, paginated with take and skip), get_invoice (one invoice by ID, optionally including share and payment links), list_clients (customers or suppliers via GET /clients), get_client (one client by ID), fetch_since (invoices created inside an ISO 8601 window via the creationDateRange filter, for incremental reads; it filters on creation date rather than modification, so an invoice edited after creation will not reappear). Read-only: the tool creates no invoices, changes no payment state, and never executes a payment. Authenticates against api.request.finance with a workspace API key sent as the raw Authorization header value with no scheme prefix, injected by the host.",
   "effects": [],
   "http": {
     "allowlist": [

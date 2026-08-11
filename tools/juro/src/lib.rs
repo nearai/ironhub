@@ -35,7 +35,13 @@ impl exports::near::agent::tool::Guest for JuroTool {
          call the same records agreements. Actions: list_contracts (contracts in the workspace, \
          filterable by team and template, and by updatedSince and updatedBefore for incremental \
          reads), get_contract (one contract with its metadata by ID), list_templates (contract \
-         templates), get_template (one template by ID). Read-only: this tool drafts, edits, \
+         templates), get_template (one template by ID), get_finance_terms (the contract's \
+         smartfield values, optionally narrowed to named field titles, for comparing an \
+         agreement against an invoice), get_signed_version (signing state and party signature \
+         detail, plus signedDocumentPath naming where the signed file lives in Juro; the file \
+         itself is not returned, and Juro serves it as a ZIP rather than a PDF when the \
+         contract was uploaded, to preserve its digital signatures). \
+         Read-only: this tool drafts, edits, \
          sends, and signs nothing. The workspace API key is injected by the host as the \
          x-api-key header."
             .to_string()
@@ -51,7 +57,8 @@ fn execute_inner(params: &str) -> Result<String, String> {
         format!(
             "Invalid parameters for juro tool: {}. Expected shape: {{\"action\": \"<name>\", \
              ...fields}}. Valid action names: list_contracts, get_contract, list_templates, \
-             get_template. updated_since and updated_before take ISO 8601 timestamps. Call \
+             get_template, get_finance_terms, get_signed_version. updated_since and \
+             updated_before take ISO 8601 timestamps. Call \
              tool_info for the full JSON schema.",
             e
         )
@@ -81,6 +88,11 @@ fn execute_inner(params: &str) -> Result<String, String> {
         JuroAction::GetContract { contract_id } => api::get_contract(&contract_id)?,
         JuroAction::ListTemplates { skip, limit } => api::list_templates(skip, limit)?,
         JuroAction::GetTemplate { template_id } => api::get_template(&template_id)?,
+        JuroAction::GetFinanceTerms {
+            contract_id,
+            field_titles,
+        } => api::get_finance_terms(&contract_id, &field_titles)?,
+        JuroAction::GetSignedVersion { contract_id } => api::get_signed_version(&contract_id)?,
     };
 
     serde_json::to_string(&result).map_err(|e| e.to_string())
@@ -92,6 +104,8 @@ fn action_name(action: &JuroAction) -> &'static str {
         JuroAction::GetContract { .. } => "get_contract",
         JuroAction::ListTemplates { .. } => "list_templates",
         JuroAction::GetTemplate { .. } => "get_template",
+        JuroAction::GetFinanceTerms { .. } => "get_finance_terms",
+        JuroAction::GetSignedVersion { .. } => "get_signed_version",
     }
 }
 

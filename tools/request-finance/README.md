@@ -14,6 +14,7 @@ payment**.
 | `get_invoice` | `GET /invoices/{id}` | One invoice, optionally with share and payment links |
 | `list_clients` | `GET /clients` | Customers or suppliers in the workspace |
 | `get_client` | `GET /clients/{clientId}` | One client by ID |
+| `fetch_since` | `GET /invoices` | Invoices created inside a date window |
 
 ## Filtering invoices
 
@@ -32,6 +33,24 @@ receivables. Both map to Request Finance's own wire values (`rnf_invoice` / `rnf
 
 `search` matches transaction hash, invoice number, or company name. Responses always request
 `format=paginated`, so the caller gets total counts alongside the page rather than a bare array.
+
+## Incremental reads, with a caveat that matters
+
+`fetch_since` sends the vendor's `creationDateRange` filter, a URL-encoded JSON object:
+
+```json
+{ "action": "fetch_since", "created_from": "2026-08-01T00:00:00.000Z", "take": 100 }
+```
+
+**It filters on creation date, not modification.** An invoice created last month and edited
+today will not come back. Request Finance documents no updated-since parameter, and states that
+this filter is not a true incremental sync.
+
+The consequence is worth stating plainly: a sync built only on this will look complete while
+missing every edit to an older invoice. Pair it with a periodic full read if edits matter.
+
+Only the two-field form `{"from":..., "to":...}` appears in the vendor documentation. Omitting
+`created_to` sends a one-sided range, which is not documented and is unverified.
 
 ## Auth
 

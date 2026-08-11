@@ -30,6 +30,14 @@ pub enum JuroAction {
     GetTemplate {
         template_id: String,
     },
+    GetFinanceTerms {
+        contract_id: String,
+        #[serde(default)]
+        field_titles: Vec<String>,
+    },
+    GetSignedVersion {
+        contract_id: String,
+    },
 }
 
 fn default_limit() -> u32 {
@@ -115,6 +123,48 @@ mod tests {
     #[test]
     fn parse_unknown_action_fails() {
         assert!(parse(r#"{"action":"sign_contract"}"#).is_err());
+    }
+
+    #[test]
+    fn parse_get_finance_terms_defaults_to_all_fields() {
+        match parse(r#"{"action":"get_finance_terms","contract_id":"c-1"}"#).unwrap() {
+            JuroAction::GetFinanceTerms {
+                contract_id,
+                field_titles,
+            } => {
+                assert_eq!(contract_id, "c-1");
+                assert!(field_titles.is_empty());
+            }
+            _ => panic!("wrong variant"),
+        }
+    }
+
+    #[test]
+    fn parse_get_finance_terms_with_named_fields() {
+        let action = parse(
+            r#"{"action":"get_finance_terms","contract_id":"c-1","field_titles":["Total Value","Payment Terms"]}"#,
+        )
+        .unwrap();
+        match action {
+            JuroAction::GetFinanceTerms { field_titles, .. } => {
+                assert_eq!(field_titles, vec!["Total Value", "Payment Terms"]);
+            }
+            _ => panic!("wrong variant"),
+        }
+    }
+
+    #[test]
+    fn parse_get_finance_terms_requires_contract_id() {
+        assert!(parse(r#"{"action":"get_finance_terms"}"#).is_err());
+    }
+
+    #[test]
+    fn parse_get_signed_version_requires_contract_id() {
+        assert!(parse(r#"{"action":"get_signed_version"}"#).is_err());
+        match parse(r#"{"action":"get_signed_version","contract_id":"c-9"}"#).unwrap() {
+            JuroAction::GetSignedVersion { contract_id } => assert_eq!(contract_id, "c-9"),
+            _ => panic!("wrong variant"),
+        }
     }
 
     #[test]

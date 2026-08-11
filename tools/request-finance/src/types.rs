@@ -38,6 +38,15 @@ pub enum RequestFinanceAction {
     GetClient {
         client_id: String,
     },
+    FetchSince {
+        created_from: String,
+        #[serde(default)]
+        created_to: Option<String>,
+        #[serde(default = "default_take")]
+        take: u32,
+        #[serde(default)]
+        skip: u32,
+    },
 }
 
 #[derive(Debug, Deserialize, JsonSchema, Clone, Copy, PartialEq, Eq)]
@@ -185,6 +194,48 @@ mod tests {
     fn invoice_direction_wire_values() {
         assert_eq!(InvoiceDirection::Sent.as_request_finance(), "sent");
         assert_eq!(InvoiceDirection::Received.as_request_finance(), "received");
+    }
+
+    #[test]
+    fn parse_fetch_since_requires_created_from() {
+        assert!(parse(r#"{"action":"fetch_since"}"#).is_err());
+    }
+
+    #[test]
+    fn parse_fetch_since_defaults() {
+        match parse(r#"{"action":"fetch_since","created_from":"2026-08-01T00:00:00.000Z"}"#)
+            .unwrap()
+        {
+            RequestFinanceAction::FetchSince {
+                created_from,
+                created_to,
+                take,
+                skip,
+            } => {
+                assert_eq!(created_from, "2026-08-01T00:00:00.000Z");
+                assert!(created_to.is_none());
+                assert_eq!(take, 25);
+                assert_eq!(skip, 0);
+            }
+            _ => panic!("wrong variant"),
+        }
+    }
+
+    #[test]
+    fn parse_fetch_since_with_closed_window() {
+        let action = parse(
+            r#"{"action":"fetch_since","created_from":"2026-08-01T00:00:00.000Z","created_to":"2026-08-08T00:00:00.000Z","take":100}"#,
+        )
+        .unwrap();
+        match action {
+            RequestFinanceAction::FetchSince {
+                created_to, take, ..
+            } => {
+                assert_eq!(created_to.as_deref(), Some("2026-08-08T00:00:00.000Z"));
+                assert_eq!(take, 100);
+            }
+            _ => panic!("wrong variant"),
+        }
     }
 
     #[test]
