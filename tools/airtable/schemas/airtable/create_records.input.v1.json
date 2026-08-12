@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "create_records input",
+  "type": "object",
+  "properties": {
+    "base_id": {
+      "type": "string",
+      "description": "Airtable base id (starts with 'app'). Provide this or 'base_url'."
+    },
+    "base_url": {
+      "type": "string",
+      "description": "A pasted Airtable URL; the base/table/view ids are extracted from it. Alternative to base_id+table."
+    },
+    "table": {
+      "type": "string",
+      "description": "Table id (starts with 'tbl') or table name. Required for record actions unless given via base_url."
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "create_records: array of field objects, e.g. [{\"Name\":\"a\"}] (max 10)."
+    },
+    "typecast": {
+      "type": "boolean",
+      "description": "create/update: let Airtable coerce string values to the field's type and create new select options. Default false."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "records"
+  ]
+}

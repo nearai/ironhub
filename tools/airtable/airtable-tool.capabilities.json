@@ -1,0 +1,46 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "Read and write Airtable records (CRUD minus delete). Actions: 'list_records' (query a table with view/filter/sort/paging), 'get_record' (one record by id), 'create_records' (add up to 10), 'update_records' (partial-update up to 10 by id), and 'get_schema' (list tables and fields; needs the 'schema.bases:read' PAT scope, optional). The base id and table travel as call params — pass 'base_id'+'table' or paste an Airtable URL as 'base_url'. Authentication uses the 'airtable_pat' Personal Access Token injected by the host as a Bearer token; the tool never sees the raw value.",
+  "capabilities": {
+    "http": {
+      "allowlist": [
+        {
+          "host": "api.airtable.com",
+          "path_prefix": "/v0/",
+          "methods": ["GET", "POST", "PATCH"]
+        }
+      ],
+      "credentials": {
+        "airtable_pat": {
+          "secret_name": "airtable_pat",
+          "location": { "type": "bearer" },
+          "host_patterns": ["api.airtable.com"]
+        }
+      },
+      "rate_limit": {
+        "requests_per_minute": 200
+      },
+      "timeout_secs": 30
+    },
+    "secrets": {
+      "allowed_names": ["airtable_pat"]
+    }
+  },
+  "auth": {
+    "secret_name": "airtable_pat",
+    "display_name": "Airtable",
+    "instructions": "Airtable setup (3 steps):\n\n1. Create a Personal Access Token -> https://airtable.com/create/tokens\n   Scopes:\n     - data.records:read   (required)\n     - data.records:write  (required, for create/update)\n     - schema.bases:read   (optional - only if the agent should see other tables in the base via get_schema)\n   Access: under 'Access', add the base you want the agent to use.\n\n2. Copy your base URL. Open the table in Airtable and copy the browser URL, e.g.:\n   https://airtable.com/appXXXXXXXX/tblYYYYYYYY/viwZZZZZZZZ\n   Put it in your agent's instructions so it knows which base/table to use.\n\n3. Paste the token below.\n\nSingle table only? Skip schema.bases:read - the agent stays on the table from your URL. Want it to roam all tables in the base? Add schema.bases:read.",
+    "setup_url": "https://airtable.com/create/tokens",
+    "token_hint": "Starts with 'pat'",
+    "env_var": "AIRTABLE_PAT"
+  },
+  "setup": {
+    "required_secrets": [
+      {
+        "name": "airtable_pat",
+        "prompt": "Airtable Personal Access Token (from airtable.com/create/tokens, starts with 'pat')"
+      }
+    ]
+  }
+}
