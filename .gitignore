@@ -20,3 +20,9 @@ openspec/
 .rtk/
 CLAUDE.md
 kent-notes
+
+# Local dev-stack data (docker volumes / bind mounts)
+docker/dev-stack/data/
+.docker-data/
+pg-data/
+seaweedfs-data/

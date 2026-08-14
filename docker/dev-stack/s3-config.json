@@ -1,0 +1,14 @@
+{
+  "identities": [
+    {
+      "name": "ironhub-dev",
+      "credentials": [
+        {
+          "accessKey": "ironhub",
+          "secretKey": "ironhub-local-secret"
+        }
+      ],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

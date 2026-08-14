@@ -1,0 +1,28 @@
+# IronHub local dev stack — single image with PostgreSQL 16 + SeaweedFS S3.
+# Usage: docker compose up -d --build
+# Postgres:  localhost:5433 (ironhub / ironhub-local / db ironhub)
+# S3 API:    http://localhost:8334 (accessKey ironhub / secretKey ironhub-local-secret, bucket ironhub)
+services:
+  devstack:
+    build: docker/dev-stack
+    container_name: ironhub-devstack
+    environment:
+      POSTGRES_USER: ironhub
+      POSTGRES_PASSWORD: ironhub-local
+      POSTGRES_DB: ironhub
+      S3_BUCKET: ironhub
+    ports:
+      - "5433:5432"
+      - "8334:8333"
+    volumes:
+      - ironhub-pg-data:/var/lib/postgresql/data
+      - ironhub-s3-data:/data/seaweedfs
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ironhub && nc -z 127.0.0.1 8333"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  ironhub-pg-data:
+  ironhub-s3-data:
