@@ -240,29 +240,30 @@ export default function TeamPage() {
                 return (
                   <div
                     key={member.id}
-                    className="flex items-center justify-between rounded-xl border border-[var(--ironhub-line)]/30 bg-background/30 p-3 hover:bg-muted/10"
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--ironhub-line)]/30 bg-background/30 p-3 hover:bg-muted/10"
                   >
-                    <div className="flex items-center gap-2">
-                      <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary uppercase shrink-0">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary uppercase">
                         {label.slice(0, 2)}
                       </div>
-                      <div>
-                        <span className="text-xs font-bold text-foreground block">{label}</span>
+                      <div className="min-w-0">
+                        <span className="block truncate text-xs font-bold text-foreground">{label}</span>
                         {member.user?.email && (
-                          <span className="text-xs text-muted-foreground font-mono flex items-center gap-1 mt-0.5">
-                            <IconMail className="size-3" />
-                            {member.user.email}
+                          <span className="mt-0.5 flex items-center gap-1 truncate font-mono text-xs text-muted-foreground">
+                            <IconMail className="size-3 shrink-0" />
+                            <span className="truncate">{member.user.email}</span>
                           </span>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex shrink-0 items-center gap-3">
                       {canEditThisRow ? (
                         <NativeSelect
                           value={member.role}
                           onChange={(e) => handleRoleChange(member.id, e.target.value as OrgRole)}
-                          className="h-7 rounded-full text-xs"
+                          size="sm"
+                          className="w-28"
                         >
                           <NativeSelectOption value="member">member</NativeSelectOption>
                           <NativeSelectOption value="admin">admin</NativeSelectOption>

@@ -8,9 +8,8 @@ export type ArtifactType = "tool" | "skill"
 export type ArtifactVisibility = "private" | "public"
 export type ContentKind = "wasm" | "capabilities" | "skill_md"
 
+/** Content summary as returned by the artifact list/detail read routes — never the storageKey. */
 export interface ArtifactContent {
-  id: string
-  artifactId: string
   kind: ContentKind
   sha256: string
   sizeBytes: number
@@ -56,7 +55,9 @@ export function useArtifacts() {
     queryKey: artifactsKey,
     queryFn: () =>
       fetchJson<{ artifacts: PrivateArtifact[] }>("/api/private-artifacts"),
-    select: (data) => data.artifacts,
+    // Defensive: tolerate a missing/empty content array from the API.
+    select: (data) =>
+      data.artifacts.map((artifact) => ({ ...artifact, content: artifact.content ?? [] })),
   })
 }
 
@@ -65,7 +66,8 @@ export function useArtifact(id: string | undefined) {
     queryKey: id ? artifactKey(id) : ["private-artifacts", "unknown"],
     queryFn: () =>
       fetchJson<{ artifact: PrivateArtifact }>(`/api/private-artifacts/${id}`),
-    select: (data) => data.artifact,
+    // Defensive: tolerate a missing/empty content array from the API.
+    select: (data) => ({ ...data.artifact, content: data.artifact.content ?? [] }),
     enabled: Boolean(id),
   })
 }

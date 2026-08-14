@@ -30,16 +30,27 @@ type UpdatePrivateArtifactInput = {
   sourceUrl?: string | null
 }
 
+// Never select storageKey here — it's an internal S3 object pointer, not
+// something the client needs or should see.
+const CONTENT_SUMMARY_SELECT = {
+  kind: true,
+  sizeBytes: true,
+  sha256: true,
+  createdAt: true,
+} as const
+
 export async function listPrivateArtifacts(organizationId: string) {
   return prisma.privateArtifact.findMany({
     where: { organizationId },
     orderBy: { updatedAt: "desc" },
+    include: { content: { select: CONTENT_SUMMARY_SELECT } },
   })
 }
 
 export async function getPrivateArtifact(organizationId: string, id: string) {
   const artifact = await prisma.privateArtifact.findFirst({
     where: { id, organizationId },
+    include: { content: { select: CONTENT_SUMMARY_SELECT } },
   })
 
   if (!artifact) {

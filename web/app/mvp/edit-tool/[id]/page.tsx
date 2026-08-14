@@ -171,7 +171,7 @@ export default function EditToolPage({ params }: PageProps) {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold text-muted-foreground uppercase">
-                Skill Name
+                Tool Name
               </label>
               <Input
                 required

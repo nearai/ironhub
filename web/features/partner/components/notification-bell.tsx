@@ -75,7 +75,14 @@ export function NotificationBell() {
       </Button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-2xl border border-[var(--ironhub-line)] bg-popover p-2 shadow-lg">
+        // Anchor side depends on where this component is mounted: below the
+        // `lg` breakpoint it sits at the right edge of the mobile top bar
+        // (so a right-anchored panel opening leftward stays on-screen);
+        // at `lg` and up it moves into the narrow sidebar near the left
+        // edge of the viewport, where a right-anchored panel this wide
+        // would extend further left and clip off-screen — so it switches
+        // to left-anchored (opening rightward) there instead.
+        <div className="absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-[var(--ironhub-line)] bg-popover p-2 shadow-lg lg:left-0 lg:right-auto">
           <p className="px-2 pb-1 pt-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             Pending invitations
           </p>

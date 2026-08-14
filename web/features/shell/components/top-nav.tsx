@@ -11,7 +11,6 @@ import {
   IconArrowLeft,
   IconClipboardCheck,
   IconLifebuoy,
-  IconUser,
 } from "@tabler/icons-react"
 import { AccountNavButton } from "./account-nav-button"
 import { BrandMark } from "./brand-mark"
@@ -112,14 +111,6 @@ export function TopNav() {
                   </a>
                 </Button>
               </>
-            )}
-
-            {isMvp && (
-              <div className="hidden items-center gap-1.5 rounded-full border border-[var(--ironhub-line)] bg-muted/40 px-3 py-1.5 text-xs font-medium text-foreground sm:flex">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Circle Org</span>
-                <IconUser className="size-3.5 text-muted-foreground" />
-              </div>
             )}
 
             <ThemeToggle />

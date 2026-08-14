@@ -129,19 +129,19 @@ export function OrgSwitcher() {
             {organizations?.map((org) => (
               <div
                 key={org.id}
-                className="flex items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-xs hover:bg-muted/40"
+                className="flex items-center justify-between gap-2 overflow-hidden rounded-xl px-2 py-1.5 text-xs hover:bg-muted/40"
               >
                 <button
                   type="button"
                   onClick={() => handleSetActive(org.id)}
-                  className="flex flex-1 items-center gap-2 truncate text-left font-semibold text-foreground"
+                  className="flex min-w-0 flex-1 items-center gap-2 text-left font-semibold text-foreground"
                 >
                   {org.id === activeOrganizationId ? (
                     <IconCheck className="size-3.5 shrink-0 text-primary" />
                   ) : (
                     <span className="size-3.5 shrink-0" />
                   )}
-                  <span className="truncate">{org.name}</span>
+                  <span className="min-w-0 truncate">{org.name}</span>
                 </button>
                 <button
                   type="button"
