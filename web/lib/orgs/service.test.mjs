@@ -15,14 +15,105 @@ import {
 /**
  * Minimal in-memory fake matching the subset of the Prisma Client API used
  * by lib/orgs/service.ts, so business logic (permissions, last-owner
- * protection, active-org fallback) can be unit-tested without a database.
+ * protection, active-org fallback selection) can be unit-tested without a
+ * database. `$transaction` just runs the callback against the same fake
+ * (no real isolation) since these tests only assert final state and error
+ * paths, not concurrency.
  */
 function createFakeDb() {
   const organizations = new Map()
   const members = new Map()
   const sessions = new Map()
 
-  return {
+  const memberOps = {
+    async findMany({ where, select }) {
+      let list = Array.from(members.values())
+      if (where.userId !== undefined) {
+        if (typeof where.userId === "object" && where.userId.not !== undefined) {
+          list = list.filter((m) => m.userId !== where.userId.not)
+        } else {
+          list = list.filter((m) => m.userId === where.userId)
+        }
+      }
+      if (where.organizationId !== undefined) {
+        if (
+          typeof where.organizationId === "object" &&
+          where.organizationId.not !== undefined
+        ) {
+          list = list.filter((m) => m.organizationId !== where.organizationId.not)
+        } else {
+          list = list.filter((m) => m.organizationId === where.organizationId)
+        }
+      }
+      if (where.id !== undefined) {
+        list = list.filter((m) => m.id === where.id)
+      }
+      if (where.role !== undefined) {
+        list = list.filter((m) => m.role === where.role)
+      }
+      list.sort((a, b) => a.createdAt - b.createdAt)
+      if (select) {
+        return list.map((m) => {
+          const picked = {}
+          for (const key of Object.keys(select)) picked[key] = m[key]
+          return picked
+        })
+      }
+      return list.map((m) => ({
+        ...m,
+        organization: organizations.get(m.organizationId),
+        user: { id: m.userId, name: m.userId, email: `${m.userId}@example.com` },
+      }))
+    },
+    async findFirst({ where }) {
+      const list = await this.findMany({ where })
+      return list[0] ?? null
+    },
+    async create({ data }) {
+      members.set(data.id, { ...data })
+      return data
+    },
+    async deleteMany({ where }) {
+      const list = await this.findMany({ where })
+      for (const m of list) members.delete(m.id)
+      return { count: list.length }
+    },
+    async updateMany({ where, data }) {
+      const list = await this.findMany({ where })
+      for (const m of list) {
+        const entry = members.get(m.id)
+        Object.assign(entry, data)
+      }
+      return { count: list.length }
+    },
+  }
+
+  const sessionOps = {
+    async findUnique({ where }) {
+      return sessions.get(where.id) ?? null
+    },
+    async findFirst({ where }) {
+      return (
+        Array.from(sessions.values()).find((s) => s.userId === where.userId) ?? null
+      )
+    },
+    async update({ where, data }) {
+      const session = sessions.get(where.id)
+      Object.assign(session, data)
+      return session
+    },
+    async updateMany({ where, data }) {
+      let list = Array.from(sessions.values())
+      if (where.userId !== undefined) list = list.filter((s) => s.userId === where.userId)
+      if (where.activeOrganizationId !== undefined) {
+        list = list.filter((s) => s.activeOrganizationId === where.activeOrganizationId)
+      }
+      for (const s of list) Object.assign(s, data)
+      return { count: list.length }
+    },
+  }
+
+  const db = {
     organization: {
       async create({ data }) {
         const org = { id: data.id, name: data.name, slug: data.slug }
@@ -39,76 +130,15 @@ function createFakeDb() {
         return org
       },
     },
-    member: {
-      async findMany({ where, select }) {
-        let list = Array.from(members.values())
-        if (where.userId !== undefined) {
-          if (typeof where.userId === "object" && where.userId.not !== undefined) {
-            list = list.filter((m) => m.userId !== where.userId.not)
-          } else {
-            list = list.filter((m) => m.userId === where.userId)
-          }
-        }
-        if (where.organizationId !== undefined) {
-          if (
-            typeof where.organizationId === "object" &&
-            where.organizationId.not !== undefined
-          ) {
-            list = list.filter((m) => m.organizationId !== where.organizationId.not)
-          } else {
-            list = list.filter((m) => m.organizationId === where.organizationId)
-          }
-        }
-        list.sort((a, b) => a.createdAt - b.createdAt)
-        if (select) {
-          return list.map((m) => {
-            const picked = {}
-            for (const key of Object.keys(select)) picked[key] = m[key]
-            return picked
-          })
-        }
-        return list.map((m) => ({
-          ...m,
-          organization: organizations.get(m.organizationId),
-          user: { id: m.userId, name: m.userId, email: `${m.userId}@example.com` },
-        }))
-      },
-      async findFirst({ where }) {
-        const list = await this.findMany({ where })
-        return list[0] ?? null
-      },
-      async create({ data }) {
-        members.set(data.id, { ...data })
-        return data
-      },
-      async update({ where, data }) {
-        const entry = Array.from(members.values()).find((m) => m.id === where.id)
-        Object.assign(entry, data)
-        return entry
-      },
-      async delete({ where }) {
-        const entry = Array.from(members.values()).find((m) => m.id === where.id)
-        members.delete(entry.id)
-        return entry
-      },
-    },
-    session: {
-      async findUnique({ where }) {
-        return sessions.get(where.id) ?? null
-      },
-      async findFirst({ where }) {
-        return (
-          Array.from(sessions.values()).find((s) => s.userId === where.userId) ?? null
-        )
-      },
-      async update({ where, data }) {
-        const session = sessions.get(where.id)
-        Object.assign(session, data)
-        return session
-      },
+    member: memberOps,
+    session: sessionOps,
+    async $transaction(fn) {
+      return fn(db)
     },
     __seed: { organizations, members, sessions },
   }
+
+  return db
 }
 
 test("createOrganization creates the org and makes the creator its owner", async () => {
@@ -143,29 +173,45 @@ test("renameOrganization requires the owner role", async () => {
   assert.equal(renamed.name, "New Name")
 })
 
-test("setActiveOrganization rejects non-members with 403", async () => {
+test("setActiveOrganization verifies membership but does not write the session row (route/BetterAuth owns that)", async () => {
   const db = createFakeDb()
   const org = await createOrganization("owner1", "Acme", db)
-  db.__seed.sessions.set("s1", { id: "s1", userId: "intruder", activeOrganizationId: null })
 
   await assert.rejects(
-    () => setActiveOrganization("intruder", "s1", org.id, db),
+    () => setActiveOrganization("intruder", org.id, db),
     (err) => err instanceof Response && err.status === 403
   )
+
+  const result = await setActiveOrganization("owner1", org.id, db)
+  assert.equal(result, org.id)
 })
 
 test("last owner cannot leave the organization", async () => {
   const db = createFakeDb()
   const org = await createOrganization("owner1", "Acme", db)
-  db.__seed.sessions.set("s1", { id: "s1", userId: "owner1", activeOrganizationId: org.id })
 
   await assert.rejects(
-    () => leaveOrganization(org.id, "owner1", "s1", db),
+    () => leaveOrganization(org.id, "owner1", org.id, db),
     (err) => err instanceof Response && err.status === 409
   )
 })
 
-test("leaving the active organization falls back to another membership", async () => {
+test("leaving a non-active organization does not request an active-org switch", async () => {
+  const db = createFakeDb()
+  const org1 = await createOrganization("u1", "Personal", db)
+  const org2 = await createOrganization("u1", "Team", db)
+  await db.member.create({
+    data: { id: "m-co-owner", organizationId: org2.id, userId: "u2", role: "owner", createdAt: new Date() },
+  })
+
+  const result = await leaveOrganization(org2.id, "u1", org1.id, db)
+  assert.equal(result.wasActive, false)
+
+  const members = await db.member.findMany({ where: { organizationId: org2.id } })
+  assert.equal(members.some((m) => m.userId === "u1"), false)
+})
+
+test("leaving the active organization returns a fallback for the route to switch to", async () => {
   const db = createFakeDb()
   const org1 = await createOrganization("u1", "Personal", db)
   const org2 = await createOrganization("u1", "Team", db)
@@ -173,12 +219,10 @@ test("leaving the active organization falls back to another membership", async (
   await db.member.create({
     data: { id: "m-co-owner", organizationId: org2.id, userId: "u2", role: "owner", createdAt: new Date() },
   })
-  db.__seed.sessions.set("s1", { id: "s1", userId: "u1", activeOrganizationId: org2.id })
 
-  await leaveOrganization(org2.id, "u1", "s1", db)
-
-  const session = await db.session.findUnique({ where: { id: "s1" } })
-  assert.equal(session.activeOrganizationId, org1.id)
+  const result = await leaveOrganization(org2.id, "u1", org2.id, db)
+  assert.equal(result.wasActive, true)
+  assert.equal(result.fallbackOrganizationId, org1.id)
 })
 
 test("admin cannot remove an owner but can remove a member; last owner is protected", async () => {
@@ -204,6 +248,20 @@ test("admin cannot remove an owner but can remove a member; last owner is protec
     () => removeMember(org.id, "owner1", "owner1", db),
     (err) => err instanceof Response && err.status === 409
   )
+})
+
+test("removeMember clears the removed user's stale active-org session pointer", async () => {
+  const db = createFakeDb()
+  const org = await createOrganization("owner1", "Acme", db)
+  await db.member.create({
+    data: { id: "m2", organizationId: org.id, userId: "member1", role: "member", createdAt: new Date() },
+  })
+  db.__seed.sessions.set("s1", { id: "s1", userId: "member1", activeOrganizationId: org.id })
+
+  await removeMember(org.id, "owner1", "member1", db)
+
+  const session = await db.session.findUnique({ where: { id: "s1" } })
+  assert.equal(session.activeOrganizationId, null)
 })
 
 test("changeMemberRole enforces the permission matrix and last-owner protection", async () => {

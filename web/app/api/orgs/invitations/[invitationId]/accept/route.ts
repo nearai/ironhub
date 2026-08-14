@@ -1,3 +1,6 @@
+import { headers } from "next/headers"
+
+import { auth } from "@/lib/auth/server"
 import { requireAuthSession } from "@/lib/auth/session"
 import { assertSameOriginRequest, handleApiError } from "@/lib/http/api"
 import { acceptInvitation } from "@/lib/orgs/invitations"
@@ -25,14 +28,19 @@ export async function POST(request: Request, { params }: Params) {
     assertSameOriginRequest(request)
     const { invitationId } = await params
     const setActive = await readSetActive(request)
-    const invitation = await acceptInvitation(
-      invitationId,
-      user.id,
-      user.email,
-      setActive
-    )
+    const result = await acceptInvitation(invitationId, user.id, user.email)
 
-    return Response.json({ invitation })
+    // Use the CALLER's own request headers (their own session/device), not
+    // a session row looked up by userId — an arbitrary session lookup would
+    // update the wrong device's active org.
+    if (setActive) {
+      await auth.api.setActiveOrganization({
+        headers: await headers(),
+        body: { organizationId: result.organizationId },
+      })
+    }
+
+    return Response.json({ invitation: result.invitation })
   } catch (error) {
     return handleApiError(error)
   }

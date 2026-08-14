@@ -1,11 +1,16 @@
 import { randomUUID } from "node:crypto"
 
 import { prisma } from "../db/index.ts"
-import { canManageInvitations, isRole } from "./roles.ts"
+import { canManageInvitations } from "./roles.ts"
 
 type PrismaLike = typeof prisma
 
+// Roles an invitation may grant. Deliberately excludes "owner": accepting an
+// invitation must never mint an owner membership, even if an invitation row
+// somehow carries role "owner" (invitation creation already rejects it, but
+// the accept path re-asserts it defensively).
 const INVITABLE_ROLES = ["admin", "member"] as const
+type InvitableRole = (typeof INVITABLE_ROLES)[number]
 const EXPIRY_MS = 7 * 24 * 60 * 60 * 1000
 
 function normalizeEmail(email: string) {
@@ -13,7 +18,7 @@ function normalizeEmail(email: string) {
 }
 
 function assertEmail(email: string) {
-  const trimmed = email.trim()
+  const trimmed = normalizeEmail(email)
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
     throw new Response("Invalid email address", { status: 400 })
   }
@@ -52,8 +57,10 @@ export async function createInvitation(
     throw new Response(`Invalid role: ${role}`, { status: 400 })
   }
 
-  const normalizedEmail = assertEmail(email)
-  const lowerEmail = normalizeEmail(normalizedEmail)
+  // Store the normalized (lowercased) email so DB-level case-insensitive
+  // lookups (Prisma `mode: "insensitive"` and plain equality alike) stay
+  // consistent regardless of how the inviter typed it.
+  const lowerEmail = assertEmail(email)
 
   const existingMembers = await client.member.findMany({
     where: { organizationId },
@@ -68,11 +75,9 @@ export async function createInvitation(
 
   const now = new Date()
   const pending = await client.invitation.findMany({
-    where: { organizationId, status: "pending" },
+    where: { organizationId, status: "pending", email: lowerEmail },
   })
-  const hasPending = pending.some(
-    (inv) => normalizeEmail(inv.email) === lowerEmail && inv.expiresAt > now
-  )
+  const hasPending = pending.some((inv) => inv.expiresAt > now)
   if (hasPending) {
     throw new Response(
       "A pending invitation already exists for this email",
@@ -84,7 +89,7 @@ export async function createInvitation(
     data: {
       id: randomUUID(),
       organizationId,
-      email: normalizedEmail,
+      email: lowerEmail,
       role,
       status: "pending",
       expiresAt: new Date(now.getTime() + EXPIRY_MS),
@@ -101,18 +106,18 @@ export async function listPendingInvitationsForEmail(
   const lowerEmail = normalizeEmail(email)
   const now = new Date()
 
-  const invitations = await client.invitation.findMany({
-    where: { status: "pending" },
+  return client.invitation.findMany({
+    where: {
+      status: "pending",
+      expiresAt: { gt: now },
+      email: { equals: lowerEmail, mode: "insensitive" },
+    },
     include: {
       organization: { select: { id: true, name: true } },
       inviter: { select: { id: true, name: true, email: true } },
     },
     orderBy: { createdAt: "desc" },
   })
-
-  return invitations.filter(
-    (inv) => normalizeEmail(inv.email) === lowerEmail && inv.expiresAt > now
-  )
 }
 
 export async function listOrgInvitations(
@@ -127,11 +132,20 @@ export async function listOrgInvitations(
     })
   }
 
-  return client.invitation.findMany({
+  const invitations = await client.invitation.findMany({
     where: { organizationId },
     include: { inviter: { select: { id: true, name: true, email: true } } },
     orderBy: { createdAt: "desc" },
   })
+
+  const now = new Date()
+  // Display-only derived status: a "pending" row whose expiresAt has passed
+  // reads as "expired" to callers without needing a background sweep job.
+  return invitations.map((inv) => ({
+    ...inv,
+    displayStatus:
+      inv.status === "pending" && inv.expiresAt <= now ? "expired" : inv.status,
+  }))
 }
 
 async function getInvitationOrThrow(invitationId: string, client: PrismaLike) {
@@ -144,20 +158,39 @@ async function getInvitationOrThrow(invitationId: string, client: PrismaLike) {
   return invitation
 }
 
-export async function acceptInvitation(
-  invitationId: string,
-  userId: string,
-  userEmail: string,
-  setActive: boolean,
-  client: PrismaLike = prisma
-) {
-  const invitation = await getInvitationOrThrow(invitationId, client)
-
-  if (normalizeEmail(invitation.email) !== normalizeEmail(userEmail)) {
+function assertAddressedTo(invitationEmail: string, userEmail: string) {
+  if (normalizeEmail(invitationEmail) !== normalizeEmail(userEmail)) {
     throw new Response("This invitation is not addressed to you", {
       status: 403,
     })
   }
+}
+
+/**
+ * Accepts an invitation: upserts the membership and compare-and-sets the
+ * invitation to "accepted" in a single transaction, closing the race where
+ * two concurrent accept calls (e.g. a double-click, or two tabs) would
+ * otherwise both pass the "findUnique + status check" read and both try to
+ * create a member row. The `member` unique constraint on
+ * (organizationId, userId) plus `upsert` makes double-accept idempotent for
+ * membership; the invitation's compare-and-set (`updateMany` guarded on
+ * `status: "pending"`) makes the second racer see 0 rows updated and get a
+ * 410, matching what a late/expired accept would see.
+ *
+ * Does NOT touch the session table (see service.ts `setActiveOrganization`
+ * doc): the route handler is responsible for calling
+ * `auth.api.setActiveOrganization` for the CALLER's own session when
+ * `setActive` is requested — using the caller's own request headers, never
+ * an arbitrary session row looked up by userId.
+ */
+export async function acceptInvitation(
+  invitationId: string,
+  userId: string,
+  userEmail: string,
+  client: PrismaLike = prisma
+) {
+  const invitation = await getInvitationOrThrow(invitationId, client)
+  assertAddressedTo(invitation.email, userEmail)
 
   if (invitation.status !== "pending" || invitation.expiresAt <= new Date()) {
     throw new Response("This invitation has expired or is no longer pending", {
@@ -165,14 +198,33 @@ export async function acceptInvitation(
     })
   }
 
-  const role = isRole(invitation.role ?? "") ? invitation.role! : "member"
+  const role: InvitableRole = (
+    INVITABLE_ROLES as readonly string[]
+  ).includes(invitation.role ?? "")
+    ? (invitation.role as InvitableRole)
+    : "member"
 
-  const existing = await client.member.findFirst({
-    where: { organizationId: invitation.organizationId, userId },
-  })
-  if (!existing) {
-    await client.member.create({
-      data: {
+  const updated = await client.$transaction(async (tx) => {
+    const result = await tx.invitation.updateMany({
+      where: { id: invitationId, status: "pending" },
+      data: { status: "accepted" },
+    })
+    if (result.count === 0) {
+      throw new Response(
+        "This invitation has expired or is no longer pending",
+        { status: 410 }
+      )
+    }
+
+    await tx.member.upsert({
+      where: {
+        organizationId_userId: {
+          organizationId: invitation.organizationId,
+          userId,
+        },
+      },
+      update: {},
+      create: {
         id: randomUUID(),
         organizationId: invitation.organizationId,
         userId,
@@ -180,24 +232,11 @@ export async function acceptInvitation(
         createdAt: new Date(),
       },
     })
-  }
 
-  const updated = await client.invitation.update({
-    where: { id: invitationId },
-    data: { status: "accepted" },
+    return tx.invitation.findUniqueOrThrow({ where: { id: invitationId } })
   })
 
-  if (setActive) {
-    const session = await client.session.findFirst({ where: { userId } })
-    if (session) {
-      await client.session.update({
-        where: { id: session.id },
-        data: { activeOrganizationId: invitation.organizationId },
-      })
-    }
-  }
-
-  return updated
+  return { invitation: updated, organizationId: invitation.organizationId, role }
 }
 
 export async function rejectInvitation(
@@ -206,21 +245,23 @@ export async function rejectInvitation(
   client: PrismaLike = prisma
 ) {
   const invitation = await getInvitationOrThrow(invitationId, client)
+  assertAddressedTo(invitation.email, userEmail)
 
-  if (normalizeEmail(invitation.email) !== normalizeEmail(userEmail)) {
-    throw new Response("This invitation is not addressed to you", {
-      status: 403,
+  if (invitation.status !== "pending" || invitation.expiresAt <= new Date()) {
+    throw new Response("This invitation has expired or is no longer pending", {
+      status: 410,
     })
   }
 
-  if (invitation.status !== "pending") {
+  const result = await client.invitation.updateMany({
+    where: { id: invitationId, status: "pending" },
+    data: { status: "rejected" },
+  })
+  if (result.count === 0) {
     throw new Response("This invitation is no longer pending", { status: 409 })
   }
 
-  return client.invitation.update({
-    where: { id: invitationId },
-    data: { status: "rejected" },
-  })
+  return client.invitation.findUniqueOrThrow({ where: { id: invitationId } })
 }
 
 export async function cancelInvitation(
@@ -240,12 +281,13 @@ export async function cancelInvitation(
     })
   }
 
-  if (invitation.status !== "pending") {
+  const result = await client.invitation.updateMany({
+    where: { id: invitationId, status: "pending" },
+    data: { status: "canceled" },
+  })
+  if (result.count === 0) {
     throw new Response("This invitation is no longer pending", { status: 409 })
   }
 
-  return client.invitation.update({
-    where: { id: invitationId },
-    data: { status: "canceled" },
-  })
+  return client.invitation.findUniqueOrThrow({ where: { id: invitationId } })
 }
