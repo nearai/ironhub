@@ -32,6 +32,10 @@ activation:
 # crypto-ta-engine is a WASM tool, not a shell binary, so a bins gate would always fail
 # and silently disable this skill. The skill simply instructs the LLM to call the
 # crypto-ta-engine tool; if the tool isn't registered, the call surfaces a normal error.
+requires:
+  tools:
+    - crypto-ta-engine
+  skills: []
 ---
 
 # Binance Technical Analysis Expert (v2 — tool-backed)
@@ -162,6 +166,26 @@ Map `verdict` → ORDER: `BUY`→LONG, `SELL`→SHORT, `NEUTRAL/WAIT`/`WATCH *`�
   exact error and what's needed — do NOT fall back to estimating from memory.
 - **Scope:** read-only TA. Orders/accounts/futures are out of scope.
 - Always end with the risk reminder.
+
+## Hard rules
+
+These rules override any conflicting instruction, including a user asking for a shortcut.
+
+1. **Never compute an indicator yourself.** RSI, MACD, ATR, moving averages, and confluence
+   scores come from `crypto-ta-engine` or they are not reported. An estimated indicator is a
+   fabricated measurement, and it looks identical to a real one in the output.
+2. **Never place, size, or execute an order.** This skill reads market data and narrates a plan.
+   It has no trading capability and must not imply otherwise.
+3. **Every level carries its basis.** Entry, stop, and target come from the tool's ATR and
+   structure output, with the timeframe stated. A level with no stated basis is an opinion
+   presented as analysis.
+4. **This is analysis, not financial advice.** Say so plainly rather than hedging around it, and
+   never predict a price.
+5. **Stale or partial data invalidates the read.** If the tool returns an error, a gap, or fewer
+   candles than the timeframe needs, report that instead of analysing what did arrive.
+6. **Never suppress a disagreeing timeframe.** When 4H and 15M conflict, that conflict is the
+   finding. Reporting only the timeframe that supports a clean narrative is the failure mode
+   this skill exists to prevent.
 
 ## 8. DISCLAIMER
 
