@@ -43,6 +43,10 @@ export function getStorageClient(): S3Client {
         secretAccessKey: readEnv("S3_SECRET_KEY"),
       },
       forcePathStyle: process.env.S3_FORCE_PATH_STYLE !== "false",
+      // SeaweedFS/MinIO do not understand the streaming checksum trailers the
+      // AWS SDK sends by default since v3.729; requests hang without this.
+      requestChecksumCalculation: "WHEN_REQUIRED",
+      responseChecksumValidation: "WHEN_REQUIRED",
     })
   }
   return cachedClient
@@ -62,6 +66,8 @@ export function getStoragePresignClient(): S3Client {
       secretAccessKey: readEnv("S3_SECRET_KEY"),
     },
     forcePathStyle: process.env.S3_FORCE_PATH_STYLE !== "false",
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
   })
 }
 
