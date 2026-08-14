@@ -61,7 +61,12 @@ export const auth = betterAuth({
       recipient: process.env.BETTER_AUTH_URL!,
       requireFullAccessKey: false,
     }),
-    organization(),
+    organization({
+      // In-app invitations only: no email is ever sent, invitations surface in
+      // the workspace notification bell. 7-day expiry per the org-invitations spec.
+      invitationExpiresIn: 60 * 60 * 24 * 7,
+      requireEmailVerificationOnInvitation: false,
+    }),
     nextCookies(),
   ],
 })
