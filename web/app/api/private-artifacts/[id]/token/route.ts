@@ -1,6 +1,6 @@
 import { requireActiveOrganization } from "@/lib/auth/org-context"
 import { assertSameOriginRequest, handleApiError } from "@/lib/http/api"
-import { getPrivateArtifact } from "@/lib/private-artifacts/service"
+import { assertArtifactContentComplete } from "@/lib/private-artifacts/service"
 import { mintArtifactToken } from "@/lib/private-artifacts/token"
 
 type Params = {
@@ -9,23 +9,30 @@ type Params = {
 
 const MANIFEST_TOKEN_TTL_SECONDS = 60 * 60
 
-function resolveBaseUrl(request: Request): string {
+function resolveBaseUrl(): string {
+  // Matches the manifest route's requirement exactly: no request-derived
+  // fallback, since a Host-header-derived URL here can only ever produce a
+  // dead link (the manifest route itself hard-requires this env var and
+  // 500s without it).
   const configured = process.env.NEXT_PUBLIC_APP_URL
-  if (configured) return configured.replace(/\/+$/, "")
-
-  const url = new URL(request.url)
-  return `${url.protocol}//${url.host}`
+  if (!configured) {
+    throw new Response("Application URL is not configured", { status: 500 })
+  }
+  return configured.replace(/\/+$/, "")
 }
 
 export async function POST(request: Request, { params }: Params) {
   try {
-    const { organizationId } = await requireActiveOrganization()
     assertSameOriginRequest(request)
+    const { organizationId } = await requireActiveOrganization()
     const { id } = await params
 
-    // Ensures the artifact exists and belongs to the active org (404
-    // otherwise) before minting a token for it.
-    await getPrivateArtifact(organizationId, id)
+    // Ensures the artifact exists, belongs to the active org (404
+    // otherwise), and has all content required by its type — otherwise the
+    // resulting manifest fetch would fail with a 409.
+    await assertArtifactContentComplete(organizationId, id)
+
+    const baseUrl = resolveBaseUrl()
 
     const token = mintArtifactToken({
       organizationId,
@@ -33,7 +40,7 @@ export async function POST(request: Request, { params }: Params) {
       ttlSeconds: MANIFEST_TOKEN_TTL_SECONDS,
     })
 
-    const manifestUrl = `${resolveBaseUrl(request)}/api/private-artifacts/manifest/${token}`
+    const manifestUrl = `${baseUrl}/api/private-artifacts/manifest/${token}`
 
     return Response.json({ token, manifestUrl })
   } catch (error) {

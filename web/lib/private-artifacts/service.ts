@@ -130,6 +130,45 @@ export async function deletePrivateArtifact(organizationId: string, id: string) 
   return artifact
 }
 
+const REQUIRED_CONTENT_KINDS_BY_TYPE: Record<string, readonly string[]> = {
+  tool: ["wasm", "capabilities"],
+  skill: ["skill_md"],
+}
+
+/**
+ * Verifies the artifact has every content kind required by its type before
+ * an install-link token is minted, so a token is never handed out for a
+ * manifest fetch that is guaranteed to fail.
+ */
+export async function assertArtifactContentComplete(
+  organizationId: string,
+  id: string
+) {
+  const artifact = await prisma.privateArtifact.findFirst({
+    where: { id, organizationId },
+    select: { id: true, type: true, content: { select: { kind: true } } },
+  })
+  if (!artifact) {
+    throw new Response("Artifact not found", { status: 404 })
+  }
+
+  const required = REQUIRED_CONTENT_KINDS_BY_TYPE[artifact.type]
+  if (!required) {
+    throw new Response(`Unsupported artifact type: ${artifact.type}`, {
+      status: 409,
+    })
+  }
+
+  const present = new Set(artifact.content.map((c) => c.kind))
+  const missing = required.filter((kind) => !present.has(kind))
+  if (missing.length > 0) {
+    throw new Response(
+      `Artifact is missing required content: ${missing.join(", ")}`,
+      { status: 409 }
+    )
+  }
+}
+
 export async function deletePrivateArtifactContentRow(
   organizationId: string,
   artifactId: string,

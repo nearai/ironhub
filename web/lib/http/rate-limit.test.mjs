@@ -93,3 +93,27 @@ test("InMemoryRateLimitStore.clear resets tracked windows", () => {
 
   assert.equal(checkRateLimit("a", 0).allowed, true)
 })
+
+test("InMemoryRateLimitStore enforces a hard max-size cap", () => {
+  const store = new InMemoryRateLimitStore(3)
+
+  store.hit("a", 60_000, 0)
+  store.hit("b", 60_000, 0)
+  store.hit("c", 60_000, 0)
+  store.hit("d", 60_000, 0)
+
+  assert.ok(store.size() <= 3)
+})
+
+test("InMemoryRateLimitStore sweeps expired windows before evicting", () => {
+  const store = new InMemoryRateLimitStore(2)
+
+  store.hit("a", 100, 0) // expires at 100
+  store.hit("b", 100, 0) // expires at 100
+
+  // "a" and "b" are both expired by now=200, so this insert should sweep
+  // them rather than evict a live entry.
+  store.hit("c", 100, 200)
+
+  assert.equal(store.size(), 1)
+})

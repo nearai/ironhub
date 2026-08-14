@@ -24,8 +24,8 @@ export async function GET(request: Request, { params }: Params) {
   try {
     const { id, kind, token } = await params
 
-    // added: public route rate limit, keyed by token then IP
-    const rateLimit = checkRateLimit(`content:${token || resolveClientIp(request)}`)
+    // added: public route rate limit, keyed by client IP (scoped by token)
+    const rateLimit = checkRateLimit(`content:${resolveClientIp(request)}:${token}`)
     if (!rateLimit.allowed) {
       return rateLimitExceededResponse(rateLimit.retryAfterSeconds)
     }

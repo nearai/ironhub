@@ -14,14 +14,15 @@ type Params = {
   params: Promise<{ token: string }>
 }
 
-// Public route (no session): rate limit per token, falling back to IP.
+// Public route (no session): rate limit per client IP, scoped by token so
+// one IP brute-forcing many tokens still shares a single budget per IP.
 const checkRateLimit = createRateLimiter({ limit: 30, windowMs: 60_000 })
 
 export async function GET(request: Request, { params }: Params) {
   try {
     const { token } = await params
 
-    const rateLimitKey = `manifest:${token || resolveClientIp(request)}`
+    const rateLimitKey = `manifest:${resolveClientIp(request)}:${token}`
     const rateLimit = checkRateLimit(rateLimitKey)
     if (!rateLimit.allowed) {
       return rateLimitExceededResponse(rateLimit.retryAfterSeconds)
