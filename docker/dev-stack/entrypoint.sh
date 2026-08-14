@@ -6,6 +6,7 @@ set -e
 S3_BUCKET="${S3_BUCKET:-ironhub}"
 
 weed server \
+  -ip.bind=0.0.0.0 \
   -dir=/data/seaweedfs \
   -master.volumeSizeLimitMB=64 \
   -volume.max=8 \
