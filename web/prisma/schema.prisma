@@ -239,7 +239,7 @@ model PrivateArtifactContent {
   artifactId String          @map("artifact_id")
   artifact   PrivateArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
   kind       String
-  bytes      Bytes
+  storageKey String          @map("storage_key")
   sha256     String
   sizeBytes  Int             @map("size_bytes")
   createdAt  DateTime        @default(now()) @map("created_at")

@@ -13,6 +13,8 @@
     "test:discovery": "node --experimental-strip-types --test \"lib/discovery/*.test.mjs\"",
     "typecheck": "tsc --noEmit",
     "signing:check": "node scripts/check-manifest-signing.mjs && node scripts/check-install-payload-signing.mjs",
+    "storage:smoke": "node --experimental-strip-types scripts/storage-smoke.ts",
+    "test:storage": "node --experimental-strip-types --experimental-test-module-mocks --import ./scripts/register-alias-loader.mjs --test \"lib/storage/*.test.mjs\" \"lib/private-artifacts/*.test.mjs\" \"app/api/private-artifacts/**/*.test.mjs\"",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:deploy": "prisma migrate deploy",
@@ -20,6 +22,8 @@
     "auth:generate": "pnpm dlx auth@latest generate --config lib/auth/server.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1110.0",
+    "@aws-sdk/s3-request-presigner": "^3.1110.0",
     "@better-auth/prisma-adapter": "1.6.22",
     "@prisma/adapter-pg": "7.8.0",
     "@prisma/client": "7.8.0",

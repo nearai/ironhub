@@ -1,14 +1,16 @@
 import { handleApiError } from "@/lib/http/api"
 import {
-  CONTENT_MEDIA_TYPES,
-  getArtifactContent,
+  getArtifactContentMetadata,
   parseContentKind,
 } from "@/lib/private-artifacts/content"
 import { verifyArtifactToken } from "@/lib/private-artifacts/token"
+import { getPresignedDownloadUrl } from "@/lib/storage"
 
 type Params = {
   params: Promise<{ id: string; kind: string; token: string }>
 }
+
+const PRESIGNED_URL_TTL_SECONDS = 300
 
 export async function GET(_request: Request, { params }: Params) {
   try {
@@ -20,17 +22,21 @@ export async function GET(_request: Request, { params }: Params) {
       throw new Response("Token does not match artifact", { status: 403 })
     }
 
-    const content = await getArtifactContent(
+    const content = await getArtifactContentMetadata(
       claims.organizationId,
       id,
       contentKind
     )
 
-    return new Response(new Uint8Array(content.bytes), {
-      status: 200,
+    const url = await getPresignedDownloadUrl(
+      content.storageKey,
+      PRESIGNED_URL_TTL_SECONDS
+    )
+
+    return new Response(null, {
+      status: 302,
       headers: {
-        "Content-Type": CONTENT_MEDIA_TYPES[contentKind],
-        "Content-Length": String(content.sizeBytes),
+        Location: url,
         "Cache-Control": "no-store",
       },
     })
