@@ -9,6 +9,7 @@ weed server \
   -dir=/data/seaweedfs \
   -master.volumeSizeLimitMB=64 \
   -volume.max=8 \
+  -filer \
   -s3 \
   -s3.port=8333 \
   -s3.config=/etc/seaweedfs/s3-config.json \
@@ -19,15 +20,16 @@ weed server \
 (
   i=0
   while [ "$i" -lt 60 ]; do
-    if echo "s3.bucket.list" | weed shell 2>/dev/null | grep -q "^${S3_BUCKET}\b"; then
+    if echo "s3.bucket.list" | weed shell -master=localhost:9333 2>>/var/log/bucket-init.log | grep -q "${S3_BUCKET}"; then
       echo "dev-stack: S3 bucket '${S3_BUCKET}' ready"
       exit 0
     fi
-    echo "s3.bucket.create -name ${S3_BUCKET}" | weed shell >/dev/null 2>&1 || true
+    echo "s3.bucket.create -name ${S3_BUCKET}" | weed shell -master=localhost:9333 >>/var/log/bucket-init.log 2>&1 || true
     i=$((i + 1))
     sleep 1
   done
   echo "dev-stack: WARNING — could not confirm S3 bucket '${S3_BUCKET}'" >&2
+  echo "dev-stack: see /var/log/bucket-init.log and /var/log/seaweedfs.log" >&2
 ) &
 
 exec docker-entrypoint.sh "$@"
