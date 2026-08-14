@@ -2,17 +2,19 @@
 //
 // Usage: pnpm storage:smoke
 //
-// Expects the dev stack (docker/dev-stack) to be running with the S3 gateway
-// reachable at S3_ENDPOINT (default http://localhost:8333) and bucket
-// S3_BUCKET (default "ironhub"). Exercises put/get/delete plus a presigned
+// Loads .env first (like the app does), then falls back to the dev-stack
+// defaults: S3 gateway at S3_ENDPOINT (default http://localhost:8334) and
+// bucket S3_BUCKET (default "ironhub"). Exercises put/get/delete plus a presigned
 // download URL fetched exactly as a browser would (over HTTP, no SDK).
 
-process.env.S3_ENDPOINT ??= "http://localhost:8333"
+import "dotenv/config"
+
+process.env.S3_ENDPOINT ??= "http://localhost:8334"
 process.env.S3_PUBLIC_ENDPOINT ??= process.env.S3_ENDPOINT
 process.env.S3_BUCKET ??= "ironhub"
 process.env.S3_REGION ??= "us-east-1"
 process.env.S3_ACCESS_KEY ??= "ironhub"
-process.env.S3_SECRET_KEY ??= "ironhub-secret"
+process.env.S3_SECRET_KEY ??= "ironhub-local-secret"
 process.env.S3_FORCE_PATH_STYLE ??= "true"
 
 import {
