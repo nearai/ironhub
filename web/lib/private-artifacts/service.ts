@@ -16,6 +16,20 @@ type CreatePrivateArtifactInput = {
   sourceUrl?: string
 }
 
+export const MUTABLE_ARTIFACT_FIELDS = [
+  "title",
+  "description",
+  "visibility",
+  "sourceUrl",
+] as const
+
+type UpdatePrivateArtifactInput = {
+  title?: string
+  description?: string | null
+  visibility?: string
+  sourceUrl?: string | null
+}
+
 export async function listPrivateArtifacts(organizationId: string) {
   return prisma.privateArtifact.findMany({
     where: { organizationId },
@@ -77,6 +91,98 @@ export async function createPrivateArtifact(
     }
     throw error
   }
+}
+
+export async function updatePrivateArtifact(
+  organizationId: string,
+  id: string,
+  input: UpdatePrivateArtifactInput
+) {
+  const artifact = await getPrivateArtifact(organizationId, id)
+
+  const data: Prisma.PrivateArtifactUpdateInput = {}
+
+  if (input.title !== undefined) {
+    assertMaxLength(input.title, "title", 200)
+    data.title = input.title
+  }
+  if (input.description !== undefined) {
+    if (input.description) assertMaxLength(input.description, "description", 4000)
+    data.description = input.description
+  }
+  if (input.sourceUrl !== undefined) {
+    if (input.sourceUrl) assertHttpUrl(input.sourceUrl, "sourceUrl")
+    data.sourceUrl = input.sourceUrl
+  }
+  if (input.visibility !== undefined) {
+    data.visibility = assertEnum(input.visibility, VISIBILITIES, "visibility")
+  }
+
+  return prisma.privateArtifact.update({
+    where: { id: artifact.id },
+    data,
+  })
+}
+
+export async function deletePrivateArtifact(organizationId: string, id: string) {
+  const artifact = await getPrivateArtifact(organizationId, id)
+  await prisma.privateArtifact.delete({ where: { id: artifact.id } })
+  return artifact
+}
+
+const REQUIRED_CONTENT_KINDS_BY_TYPE: Record<string, readonly string[]> = {
+  tool: ["wasm", "capabilities"],
+  skill: ["skill_md"],
+}
+
+/**
+ * Verifies the artifact has every content kind required by its type before
+ * an install-link token is minted, so a token is never handed out for a
+ * manifest fetch that is guaranteed to fail.
+ */
+export async function assertArtifactContentComplete(
+  organizationId: string,
+  id: string
+) {
+  const artifact = await prisma.privateArtifact.findFirst({
+    where: { id, organizationId },
+    select: { id: true, type: true, content: { select: { kind: true } } },
+  })
+  if (!artifact) {
+    throw new Response("Artifact not found", { status: 404 })
+  }
+
+  const required = REQUIRED_CONTENT_KINDS_BY_TYPE[artifact.type]
+  if (!required) {
+    throw new Response(`Unsupported artifact type: ${artifact.type}`, {
+      status: 409,
+    })
+  }
+
+  const present = new Set(artifact.content.map((c) => c.kind))
+  const missing = required.filter((kind) => !present.has(kind))
+  if (missing.length > 0) {
+    throw new Response(
+      `Artifact is missing required content: ${missing.join(", ")}`,
+      { status: 409 }
+    )
+  }
+}
+
+export async function deletePrivateArtifactContentRow(
+  organizationId: string,
+  artifactId: string,
+  kind: string
+) {
+  const content = await prisma.privateArtifactContent.findFirst({
+    where: { artifactId, kind, artifact: { organizationId } },
+    select: { id: true },
+  })
+  if (!content) {
+    throw new Response("Content not found", { status: 404 })
+  }
+
+  await prisma.privateArtifactContent.delete({ where: { id: content.id } })
 }
 
 function assertValidArtifactName(name: string) {

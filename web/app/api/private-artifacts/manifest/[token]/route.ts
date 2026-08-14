@@ -1,5 +1,10 @@
 import { signDocument } from "@/lib/catalog/manifest-signing.server"
 import { handleApiError } from "@/lib/http/api"
+import {
+  createRateLimiter,
+  rateLimitExceededResponse,
+  resolveClientIp,
+} from "@/lib/http/rate-limit"
 import { buildPrivateArtifactManifest } from "@/lib/private-artifacts/manifest"
 import { verifyArtifactToken } from "@/lib/private-artifacts/token"
 
@@ -9,9 +14,19 @@ type Params = {
   params: Promise<{ token: string }>
 }
 
-export async function GET(_request: Request, { params }: Params) {
+// Public route (no session): rate limit per client IP, scoped by token so
+// one IP brute-forcing many tokens still shares a single budget per IP.
+const checkRateLimit = createRateLimiter({ limit: 30, windowMs: 60_000 })
+
+export async function GET(request: Request, { params }: Params) {
   try {
     const { token } = await params
+
+    const rateLimitKey = `manifest:${resolveClientIp(request)}:${token}`
+    const rateLimit = checkRateLimit(rateLimitKey)
+    if (!rateLimit.allowed) {
+      return rateLimitExceededResponse(rateLimit.retryAfterSeconds)
+    }
 
     const claims = verifyArtifactToken(token)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL

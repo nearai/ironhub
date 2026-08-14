@@ -1,4 +1,12 @@
 import { handleApiError } from "@/lib/http/api"
+// integration: minimal rate-limit guard added by wt-artifact-api; the body
+// of this route is being rewritten by wt-storage for S3-backed downloads.
+// Keep this diff small — only the two lines marked below were added.
+import {
+  createRateLimiter,
+  rateLimitExceededResponse,
+  resolveClientIp,
+} from "@/lib/http/rate-limit"
 import {
   getArtifactContentMetadata,
   parseContentKind,
@@ -12,9 +20,18 @@ type Params = {
 
 const PRESIGNED_URL_TTL_SECONDS = 300
 
-export async function GET(_request: Request, { params }: Params) {
+const checkRateLimit = createRateLimiter({ limit: 30, windowMs: 60_000 })
+
+export async function GET(request: Request, { params }: Params) {
   try {
     const { id, kind, token } = await params
+
+    // added: public route rate limit, keyed by client IP (scoped by token)
+    const rateLimit = checkRateLimit(`content:${resolveClientIp(request)}:${token}`)
+    if (!rateLimit.allowed) {
+      return rateLimitExceededResponse(rateLimit.retryAfterSeconds)
+    }
+
     const contentKind = parseContentKind(kind)
 
     const claims = verifyArtifactToken(token)
