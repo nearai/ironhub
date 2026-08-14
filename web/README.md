@@ -57,3 +57,33 @@ pnpm dlx shadcn@latest add button
 
 Keep generated primitives under `components/ui/`, and remove primitives again when
 no routed surface imports them.
+
+## Local development stack
+
+The private workspace (`/mvp`) needs PostgreSQL and an S3-compatible store. A
+single-image dev stack (PostgreSQL 16 + SeaweedFS S3) lives in
+`docker/dev-stack` and is wired up via the root `docker-compose.yml`:
+
+```bash
+docker compose up -d --build   # run from the repository root
+```
+
+Host ports: Postgres on `localhost:5433`, S3 API on `http://localhost:8334`
+(bucket `ironhub`, static local credentials — see `web/.env.example` for the
+matching `DATABASE_URL` and `S3_*` values). Then:
+
+```bash
+cd web
+pnpm install
+pnpm db:migrate        # apply Prisma migrations
+pnpm storage:smoke     # optional: verify S3 upload/download/presign
+pnpm dev
+```
+
+### Private workspace API overview
+
+- `GET|POST /api/private-artifacts`, `GET|PATCH|DELETE /api/private-artifacts/[id]` — artifact CRUD (org-scoped).
+- `PUT|DELETE /api/private-artifacts/[id]/content/[kind]` — blob upload/removal (`wasm`, `capabilities`, `skill_md`; 5 MB cap, stored in S3).
+- `POST /api/private-artifacts/[id]/token` — mint a 1-hour install token (requires complete content).
+- `GET /api/private-artifacts/manifest/[token]` and `.../content/[kind]/[token]` — public, token-authenticated, rate-limited; downloads 302 to short-lived presigned S3 URLs.
+- Organizations use BetterAuth's organization plugin (create, switch, members, roles, invites — no email is ever sent). Custom routes fill plugin gaps: `GET /api/orgs` (roles included) and `/api/orgs/invitations/{pending,[id]/accept,[id]/reject}` for in-app invitations.
