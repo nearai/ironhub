@@ -26,10 +26,13 @@ pub fn base_url() -> Result<String, String> {
             HOST_CONFIG_PATH
         )
     })?;
-    Ok(format!("https://{}", validate_host(&configured)?))
+    Ok(format!(
+        "https://{}",
+        validate_host(&configured, HOST_CONFIG_PATH)?
+    ))
 }
 
-pub fn validate_host(raw: &str) -> Result<String, String> {
+pub fn validate_host(raw: &str, config_path: &str) -> Result<String, String> {
     let lowered = raw.trim().trim_end_matches('/').to_ascii_lowercase();
     let host = lowered.strip_prefix("https://").unwrap_or(&lowered);
     let (name, port) = match host.split_once(':') {
@@ -37,7 +40,7 @@ pub fn validate_host(raw: &str) -> Result<String, String> {
         None => (host, None),
     };
     if name.is_empty() {
-        return Err(host_error("it is empty"));
+        return Err(host_error("it is empty", config_path));
     }
     if !name
         .bytes()
@@ -45,32 +48,36 @@ pub fn validate_host(raw: &str) -> Result<String, String> {
     {
         return Err(host_error(
             "it contains characters that are not valid in a hostname",
+            config_path,
         ));
     }
     if name.contains("..") || name.starts_with('.') || name.ends_with('.') {
-        return Err(host_error("it contains an empty label"));
+        return Err(host_error("it contains an empty label", config_path));
     }
     if let Some(port) = port {
-        validate_port(port)?;
+        validate_port(port, config_path)?;
     }
     Ok(host.to_string())
 }
 
-fn validate_port(port: &str) -> Result<(), String> {
+fn validate_port(port: &str, config_path: &str) -> Result<(), String> {
     let parsed: u32 = port
         .parse()
-        .map_err(|_| host_error("its port is not a number"))?;
+        .map_err(|_| host_error("its port is not a number", config_path))?;
     if parsed == 0 || parsed > 65535 {
-        return Err(host_error("its port is outside the range 1-65535"));
+        return Err(host_error(
+            "its port is outside the range 1-65535",
+            config_path,
+        ));
     }
     Ok(())
 }
 
-fn host_error(reason: &str) -> String {
+fn host_error(reason: &str, config_path: &str) -> String {
     format!(
-        "Grafana host in workspace file `{}` is not usable: {}. Write a bare hostname, \
-         optionally with a port, such as myorg.grafana.net or grafana.example.com:3000.",
-        HOST_CONFIG_PATH, reason
+        "Host in workspace file `{}` is not usable: {}. Write a bare hostname, optionally with \
+         a port, such as myorg.grafana.net or grafana.example.com:3000.",
+        config_path, reason
     )
 }
 
@@ -140,59 +147,63 @@ fn extract_error(body: &str) -> Option<String> {
 mod tests {
     use super::*;
 
+    fn check(raw: &str) -> Result<String, String> {
+        validate_host(raw, HOST_CONFIG_PATH)
+    }
+
     #[test]
     fn validate_host_accepts_grafana_cloud_hostname() {
-        assert_eq!(
-            validate_host("myorg.grafana.net").unwrap(),
-            "myorg.grafana.net"
-        );
+        assert_eq!(check("myorg.grafana.net").unwrap(), "myorg.grafana.net");
     }
 
     #[test]
     fn validate_host_normalizes_scheme_case_and_trailing_slash() {
         assert_eq!(
-            validate_host(" HTTPS://MyOrg.Grafana.Net/ ").unwrap(),
+            check(" HTTPS://MyOrg.Grafana.Net/ ").unwrap(),
             "myorg.grafana.net"
         );
     }
 
     #[test]
     fn validate_host_accepts_self_hosted_domain() {
-        assert_eq!(
-            validate_host("grafana.example.com").unwrap(),
-            "grafana.example.com"
-        );
+        assert_eq!(check("grafana.example.com").unwrap(), "grafana.example.com");
     }
 
     #[test]
     fn validate_host_accepts_explicit_port() {
         assert_eq!(
-            validate_host("grafana.example.com:3000").unwrap(),
+            check("grafana.example.com:3000").unwrap(),
             "grafana.example.com:3000"
         );
     }
 
     #[test]
     fn validate_host_rejects_invalid_port() {
-        assert!(validate_host("grafana.example.com:0").is_err());
-        assert!(validate_host("grafana.example.com:http").is_err());
+        assert!(check("grafana.example.com:0").is_err());
+        assert!(check("grafana.example.com:http").is_err());
     }
 
     #[test]
     fn validate_host_rejects_leading_or_trailing_dot() {
-        assert!(validate_host(".grafana.net").is_err());
-        assert!(validate_host("myorg.grafana.net.").is_err());
+        assert!(check(".grafana.net").is_err());
+        assert!(check("myorg.grafana.net.").is_err());
     }
 
     #[test]
     fn validate_host_rejects_embedded_path_and_credentials() {
-        assert!(validate_host("myorg.grafana.net/api").is_err());
-        assert!(validate_host("user@myorg.grafana.net").is_err());
+        assert!(check("myorg.grafana.net/api").is_err());
+        assert!(check("user@myorg.grafana.net").is_err());
     }
 
     #[test]
     fn validate_host_rejects_empty_input() {
-        assert!(validate_host("  ").is_err());
+        assert!(check("  ").is_err());
+    }
+
+    #[test]
+    fn host_error_names_the_workspace_file_it_read() {
+        let message = validate_host("bad host", "grafana/oncall_host").unwrap_err();
+        assert!(message.contains("grafana/oncall_host"), "{}", message);
     }
 
     #[test]

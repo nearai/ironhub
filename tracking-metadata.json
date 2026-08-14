@@ -122,9 +122,9 @@
     },
     "irm": {
       "author": "Brandon",
-      "useCases": "Read declared incidents, Follow an incident timeline, Inspect custom incident fields",
-      "valueTags": "Engineering, Monitoring",
-      "limits": "On-call schedules and escalation policies are served by a separate Grafana OnCall endpoint with its own deployment-specific base URL and are not covered. Write methods on the same API are deliberately not exposed. The query surface is limited to the filters confirmed in the published reference. Not yet verified against a live instance."
+      "useCases": "Read declared incidents, Follow an incident timeline, See who is on call now, Read escalation policies",
+      "valueTags": "Engineering, Monitoring, Incident response",
+      "limits": "Two APIs with two credentials: incidents use the Grafana service account token, on-call needs a separate OnCall API token and its own hostname. Configure only the first and the incident actions still work. on_call_now is point-in-time; historical shift windows via final_shifts are not exposed. Write methods on both APIs are deliberately not exposed. Not yet verified against a live instance."
     },
     "zulip": {
       "author": "Brandon",
@@ -376,6 +376,27 @@
     },
     "binance-ta-expert-v2": {
       "author": "cuongdcdev"
+    },
+    "source-health-monitor": {
+      "author": "Brandon"
+    },
+    "partner-request-intake": {
+      "author": "Brandon"
+    },
+    "action-extraction": {
+      "author": "Brandon"
+    },
+    "evidence-backed-report-draft": {
+      "author": "Brandon"
+    },
+    "incremental-source-sync": {
+      "author": "Brandon"
+    },
+    "knowledge-extraction": {
+      "author": "Brandon"
+    },
+    "sharing-review": {
+      "author": "Brandon"
     }
   }
 }

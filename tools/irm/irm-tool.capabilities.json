@@ -1,7 +1,7 @@
 {
   "version": "0.1.0",
   "wit_version": "0.3.0",
-  "description": "Grafana IRM incident read integration, for Grafana Cloud and self-hosted Grafana alike. Actions: list_incidents (recent incidents via IncidentsService.QueryIncidents), get_incident (one incident by ID), get_timeline (the incident activity feed via ActivityService.QueryActivity, filterable by tag and activity kind), list_fields (custom incident metadata fields). Calls the Grafana Incident JSON RPC API at /api/plugins/grafana-irm-app/resources/api/v1 on the same Grafana instance as the grafana tool, authenticated with the same service account token injected by the host as a Bearer header. Read-only: the tool declares, updates, and resolves nothing. The hostname is read from the shared workspace file `grafana/host`. On-call schedules and escalation policies live behind a separate Grafana OnCall endpoint and are not covered by this tool. INSTALL EDIT REQUIRED: replace YOUR_GRAFANA_HOST (2 places: allowlist.host and host_patterns) with your Grafana hostname before installing.",
+  "description": "Grafana IRM incident and on-call read integration, for Grafana Cloud and self-hosted Grafana alike. Incident actions: list_incidents (recent incidents via IncidentsService.QueryIncidents), get_incident (one incident by ID), get_timeline (the incident activity feed via ActivityService.QueryActivity, filterable by tag and activity kind), list_fields (custom incident metadata fields). These call the Grafana Incident JSON RPC API at /api/plugins/grafana-irm-app/resources/api/v1 on the same Grafana instance as the grafana tool, authenticated with the same service account token injected by the host as a Bearer header, with the hostname read from the shared workspace file `grafana/host`. On-call actions: list_on_call (schedules with their on_call_now membership via GET /api/v1/schedules/, filterable by name and team_id), list_escalation_chains (the chains to choose from via GET /api/v1/escalation_chains/), get_escalation_policy (ordered steps for one chain via GET /api/v1/escalation_policies/?escalation_chain_id=...). These call the separate Grafana OnCall API, which has its own hostname (workspace file `grafana/oncall_host`) and its own API token injected as a raw Authorization header with no scheme. The OnCall allowlist names those three exact path prefixes rather than all of /api/v1/, because on a self-hosted deployment the OnCall host is usually the Grafana host, where /api/v1/provisioning is Grafana's own alert-rule API and belongs to the grafana tool. Read-only throughout: the tool declares, updates, resolves, and pages nobody. INSTALL EDIT REQUIRED: replace YOUR_GRAFANA_HOST (2 places) with your Grafana hostname and YOUR_ONCALL_HOST (4 places) with the OnCall API hostname from your OnCall settings page before installing. On self-hosted deployments the two are usually the same value.",
   "effects": [],
   "http": {
     "allowlist": [
@@ -9,6 +9,21 @@
         "host": "YOUR_GRAFANA_HOST",
         "path_prefix": "/api/plugins/grafana-irm-app/",
         "methods": ["POST"]
+      },
+      {
+        "host": "YOUR_ONCALL_HOST",
+        "path_prefix": "/api/v1/schedules/",
+        "methods": ["GET"]
+      },
+      {
+        "host": "YOUR_ONCALL_HOST",
+        "path_prefix": "/api/v1/escalation_chains/",
+        "methods": ["GET"]
+      },
+      {
+        "host": "YOUR_ONCALL_HOST",
+        "path_prefix": "/api/v1/escalation_policies/",
+        "methods": ["GET"]
       }
     ],
     "credentials": {
@@ -17,6 +32,16 @@
         "location": { "type": "bearer" },
         "host_patterns": ["YOUR_GRAFANA_HOST"],
         "path_patterns": ["/api/plugins/grafana-irm-app/"]
+      },
+      "grafana_oncall_api_token": {
+        "secret_name": "grafana_oncall_api_token",
+        "location": { "type": "header", "name": "Authorization" },
+        "host_patterns": ["YOUR_ONCALL_HOST"],
+        "path_patterns": [
+          "/api/v1/schedules/",
+          "/api/v1/escalation_chains/",
+          "/api/v1/escalation_policies/"
+        ]
       }
     },
     "rate_limit": {
@@ -29,24 +54,28 @@
     "allowed_prefixes": ["grafana/"]
   },
   "secrets": {
-    "allowed_names": ["grafana_service_account_token"]
+    "allowed_names": ["grafana_service_account_token", "grafana_oncall_api_token"]
   },
   "auth": {
     "secret_name": "grafana_service_account_token",
     "display_name": "Grafana IRM",
     "static_token": {
       "env_var": "GRAFANA_SERVICE_ACCOUNT_TOKEN",
-      "instructions": "Grafana IRM runs on your Grafana instance and uses the same service account token as the grafana tool. If you already configured the grafana tool, this is the same secret and the same value."
+      "instructions": "Grafana IRM runs on your Grafana instance and uses the same service account token as the grafana tool. If you already configured the grafana tool, this is the same secret and the same value. The on-call actions need a second secret, `grafana_oncall_api_token`, created on the OnCall settings page; incident actions work without it."
     },
     "env_var": "GRAFANA_SERVICE_ACCOUNT_TOKEN",
     "setup_url": "https://grafana.com/docs/grafana-cloud/alerting-and-irm/irm/reference/incident-api/",
-    "instructions": "1. Edit this capabilities file and replace YOUR_GRAFANA_HOST in both places (`allowlist.host` and the credential's `host_patterns`) with your Grafana hostname, matching whatever you set for the grafana tool. Use the bare hostname with no scheme or path.\n2. In Grafana, create a service account with the Viewer role and add a token, or reuse the one you created for the grafana tool.\n3. Store the token on the IronClaw host:\n\n   ```sh\n   export GRAFANA_SERVICE_ACCOUNT_TOKEN=<service account token>\n   ```\n\n4. Write the same hostname to the workspace file `grafana/host`. The grafana and irm tools share this file.\n5. Run `ironclaw tool install irm` to register the tool."
+    "instructions": "1. Edit this capabilities file and replace YOUR_GRAFANA_HOST in both places (`allowlist.host` and the credential's `host_patterns`) with your Grafana hostname, matching whatever you set for the grafana tool. Use the bare hostname with no scheme or path.\n2. In Grafana, create a service account with the Viewer role and add a token, or reuse the one you created for the grafana tool.\n3. Store the token on the IronClaw host:\n\n   ```sh\n   export GRAFANA_SERVICE_ACCOUNT_TOKEN=<service account token>\n   ```\n\n4. Write the same hostname to the workspace file `grafana/host`. The grafana and irm tools share this file.\n5. For the on-call actions only: open Grafana OnCall, go to Settings, and read the API URL shown there. Replace YOUR_ONCALL_HOST in all four places (three `allowlist` entries and the OnCall credential's `host_patterns`) with that hostname, and write the same value to the workspace file `grafana/oncall_host`. On self-hosted deployments this is normally the same hostname as Grafana; Grafana Cloud serves OnCall from a regional hostname instead.\n6. For the on-call actions only: create an API token on that same OnCall settings page and store it:\n\n   ```sh\n   export GRAFANA_ONCALL_API_TOKEN=<oncall api token>\n   ```\n\n   OnCall expects this token as a bare Authorization header with no Bearer prefix, which is why it is a separate credential from the service account token.\n7. Run `ironclaw tool install irm` to register the tool."
   },
   "setup": {
     "required_secrets": [
       {
         "name": "grafana_service_account_token",
         "prompt": "Grafana service account token (same token as the grafana tool)"
+      },
+      {
+        "name": "grafana_oncall_api_token",
+        "prompt": "Grafana OnCall API token from the OnCall settings page (needed only for list_on_call and get_escalation_policy)"
       }
     ]
   }

@@ -25,6 +25,23 @@ pub enum IrmAction {
         activity_kind: Vec<String>,
     },
     ListFields,
+    ListOnCall {
+        #[serde(default)]
+        schedule_name: Option<String>,
+        #[serde(default)]
+        team_id: Option<String>,
+        #[serde(default)]
+        page: Option<u32>,
+    },
+    ListEscalationChains {
+        #[serde(default)]
+        page: Option<u32>,
+    },
+    GetEscalationPolicy {
+        escalation_chain_id: String,
+        #[serde(default)]
+        page: Option<u32>,
+    },
 }
 
 #[derive(Debug, Deserialize, JsonSchema, Clone, Copy, PartialEq, Eq, Default)]
@@ -145,6 +162,68 @@ mod tests {
     }
 
     #[test]
+    fn parse_list_on_call_defaults_to_every_schedule() {
+        match parse(r#"{"action":"list_on_call"}"#).unwrap() {
+            IrmAction::ListOnCall {
+                schedule_name,
+                team_id,
+                page,
+            } => {
+                assert!(schedule_name.is_none());
+                assert!(team_id.is_none());
+                assert!(page.is_none());
+            }
+            _ => panic!("wrong variant"),
+        }
+    }
+
+    #[test]
+    fn parse_list_on_call_with_filters() {
+        match parse(
+            r#"{"action":"list_on_call","schedule_name":"Primary","team_id":"T1","page":2}"#,
+        )
+        .unwrap()
+        {
+            IrmAction::ListOnCall {
+                schedule_name,
+                team_id,
+                page,
+            } => {
+                assert_eq!(schedule_name.as_deref(), Some("Primary"));
+                assert_eq!(team_id.as_deref(), Some("T1"));
+                assert_eq!(page, Some(2));
+            }
+            _ => panic!("wrong variant"),
+        }
+    }
+
+    #[test]
+    fn parse_list_escalation_chains_needs_nothing() {
+        match parse(r#"{"action":"list_escalation_chains"}"#).unwrap() {
+            IrmAction::ListEscalationChains { page } => assert!(page.is_none()),
+            _ => panic!("wrong variant"),
+        }
+    }
+
+    #[test]
+    fn parse_get_escalation_policy_with_a_chain_id() {
+        match parse(r#"{"action":"get_escalation_policy","escalation_chain_id":"F5CD4B2G3H"}"#)
+            .unwrap()
+        {
+            IrmAction::GetEscalationPolicy {
+                escalation_chain_id,
+                ..
+            } => assert_eq!(escalation_chain_id, "F5CD4B2G3H"),
+            _ => panic!("wrong variant"),
+        }
+    }
+
+    #[test]
+    fn parse_get_escalation_policy_requires_a_chain_id() {
+        assert!(parse(r#"{"action":"get_escalation_policy"}"#).is_err());
+    }
+
+    #[test]
     fn parse_unknown_action_fails() {
         assert!(parse(r#"{"action":"declare_incident"}"#).is_err());
     }
@@ -169,6 +248,9 @@ mod tests {
             "get_incident",
             "get_timeline",
             "list_fields",
+            "list_on_call",
+            "list_escalation_chains",
+            "get_escalation_policy",
         ] {
             assert!(json.contains(name), "schema missing action: {name}");
         }
