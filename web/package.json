@@ -13,6 +13,7 @@
     "test:discovery": "node --experimental-strip-types --test \"lib/discovery/*.test.mjs\"",
     "test:http": "node --experimental-strip-types --test \"lib/http/*.test.mjs\"",
     "test:private-artifacts": "node --experimental-strip-types --test \"lib/private-artifacts/*.test.mjs\"",
+    "test:orgs": "node --experimental-strip-types --test \"lib/orgs/*.test.mjs\"",
     "typecheck": "tsc --noEmit",
     "signing:check": "node scripts/check-manifest-signing.mjs && node scripts/check-install-payload-signing.mjs",
     "test:ui": "vitest run",

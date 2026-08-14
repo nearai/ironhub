@@ -188,6 +188,7 @@ model Member {
   role           String       @default("member")
   createdAt      DateTime     @map("created_at")
 
+  @@unique([organizationId, userId])
   @@index([organizationId])
   @@index([userId])
   @@map("member")

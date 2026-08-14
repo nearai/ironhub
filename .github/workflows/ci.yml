@@ -137,5 +137,14 @@ jobs:
       - name: Private artifacts tests
         run: pnpm --filter web test:private-artifacts
 
+      - name: Org tests
+        run: pnpm --filter web test:orgs
+
+      - name: Storage tests
+        run: pnpm --filter web test:storage
+
+      - name: UI tests
+        run: pnpm --filter web test:ui
+
       - name: Signing parity
         run: pnpm --filter web signing:check
