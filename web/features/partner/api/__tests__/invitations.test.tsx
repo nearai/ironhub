@@ -1,14 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("@/lib/auth/client", () => ({
   authClient: {
     organization: {
-      listUserInvitations: vi.fn(),
-      acceptInvitation: vi.fn(),
-      rejectInvitation: vi.fn(),
+      listInvitations: vi.fn(),
       inviteMember: vi.fn(),
       cancelInvitation: vi.fn(),
     },
@@ -32,45 +30,68 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 describe("invitations API hooks", () => {
-  it("lists pending invitations for the signed-in user", async () => {
-    vi.mocked(authClient.organization.listUserInvitations).mockResolvedValueOnce({
-      data: [
-        {
-          id: "inv1",
-          organizationId: "org1",
-          organizationName: "Acme",
-          email: "member@example.com",
-          role: "member",
-          status: "pending",
-          expiresAt: "2026-01-08T00:00:00.000Z",
-        },
-      ],
-      error: null,
-    } as never)
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn())
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it("lists pending invitations for the signed-in user via the custom route", async () => {
+    // BetterAuth's listUserInvitations hard-403s emailVerified=false users
+    // (every NEAR-wallet user), so this must go through /api/orgs/invitations/pending.
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          invitations: [
+            {
+              id: "inv1",
+              organizationId: "org1",
+              organization: { id: "org1", name: "Acme" },
+              email: "member@example.com",
+              role: "member",
+              status: "pending",
+              expiresAt: "2026-01-08T00:00:00.000Z",
+            },
+          ],
+        }),
+        { status: 200 }
+      )
+    )
 
     const { result } = renderHook(() => usePendingInvitations(), { wrapper })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/orgs/invitations/pending",
+      expect.objectContaining({})
+    )
     expect(result.current.data).toHaveLength(1)
     expect(result.current.data?.[0].email).toBe("member@example.com")
+    expect(result.current.data?.[0].organizationName).toBe("Acme")
   })
 
-  it("accepts an invitation and invalidates pending invitations", async () => {
-    vi.mocked(authClient.organization.acceptInvitation).mockResolvedValueOnce({
-      data: { invitation: { id: "inv1" } },
-      error: null,
-    } as never)
+  it("accepts an invitation via the custom route with setActive", async () => {
+    // Same emailVerified constraint as above applies to acceptInvitation.
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ invitation: { id: "inv1" } }), { status: 200 })
+    )
 
     const { result } = renderHook(() => useAcceptInvitation(), { wrapper })
 
-    await result.current.mutateAsync("inv1")
+    await result.current.mutateAsync({ invitationId: "inv1", setActive: true })
 
-    expect(authClient.organization.acceptInvitation).toHaveBeenCalledWith({
-      invitationId: "inv1",
-    })
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/orgs/invitations/inv1/accept",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ setActive: true }),
+      })
+    )
   })
 
-  it("creates an invitation by email + role", async () => {
+  it("creates an invitation by email + role via authClient.organization", async () => {
     vi.mocked(authClient.organization.inviteMember).mockResolvedValueOnce({
       data: { id: "inv2", email: "new@example.com", role: "member" },
       error: null,

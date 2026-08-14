@@ -1,6 +1,6 @@
 "use client"
 
-import { IconBell, IconCheck, IconX } from "@tabler/icons-react"
+import { IconAlertTriangle, IconBell, IconCheck, IconX } from "@tabler/icons-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 
@@ -10,14 +10,12 @@ import {
   usePendingInvitations,
   useRejectInvitation,
 } from "@/features/partner/api/invitations"
-import { useSetActiveOrganization } from "@/features/partner/api/orgs"
 import { useToast } from "@/features/partner/store/toast-provider"
 
 export function NotificationBell() {
-  const { data: invitations } = usePendingInvitations()
+  const { data: invitations, isError } = usePendingInvitations()
   const acceptInvitation = useAcceptInvitation()
   const rejectInvitation = useRejectInvitation()
-  const setActive = useSetActiveOrganization()
   const { notify } = useToast()
   const router = useRouter()
 
@@ -35,16 +33,15 @@ export function NotificationBell() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  const handleAccept = async (invitationId: string, organizationId: string) => {
+  const handleAccept = async (invitationId: string) => {
     try {
-      await acceptInvitation.mutateAsync(invitationId)
+      // setActive: true makes the server switch the caller's active org in
+      // the same request (server-side, so the session cookie is refreshed
+      // correctly) — no client-side authClient.organization.setActive call
+      // needed here.
+      await acceptInvitation.mutateAsync({ invitationId, setActive: true })
       notify("Invitation accepted")
-      try {
-        await setActive.mutateAsync(organizationId)
-        router.refresh()
-      } catch {
-        // switching active org is best-effort here
-      }
+      router.refresh()
     } catch (error) {
       notify(error instanceof Error ? error.message : "Failed to accept invitation", "error")
     }
@@ -83,7 +80,13 @@ export function NotificationBell() {
             Pending invitations
           </p>
           <div className="flex max-h-72 flex-col gap-1.5 overflow-y-auto">
-            {invitations?.map((invite) => (
+            {isError && (
+              <p className="flex items-center gap-1.5 px-2 py-3 text-xs font-semibold text-destructive">
+                <IconAlertTriangle className="size-3.5 shrink-0" />
+                Failed to load invitations.
+              </p>
+            )}
+            {!isError && invitations?.map((invite) => (
               <div
                 key={invite.id}
                 className="rounded-xl border border-[var(--ironhub-line)]/40 bg-background/40 p-2.5"
@@ -99,7 +102,7 @@ export function NotificationBell() {
                     type="button"
                     size="sm"
                     className="h-7 flex-1 rounded-full text-xs"
-                    onClick={() => handleAccept(invite.id, invite.organizationId)}
+                    onClick={() => handleAccept(invite.id)}
                   >
                     <IconCheck className="size-3" />
                     Accept
@@ -117,7 +120,7 @@ export function NotificationBell() {
                 </div>
               </div>
             ))}
-            {pendingCount === 0 && (
+            {!isError && pendingCount === 0 && (
               <p className="px-2 py-3 text-center text-xs text-muted-foreground">
                 No pending invitations.
               </p>

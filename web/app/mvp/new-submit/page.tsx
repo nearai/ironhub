@@ -3,7 +3,8 @@
 import React, { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ApiError } from "@/features/partner/api/client"
+import { useQueryClient } from "@tanstack/react-query"
+import { ApiError, uploadContent } from "@/features/partner/api/client"
 import { useCreateArtifact } from "@/features/partner/api/artifacts"
 import { useToast } from "@/features/partner/store/toast-provider"
 import { Button } from "@/components/ui/button"
@@ -38,6 +39,7 @@ function slugify(value: string) {
 export default function NewSubmitPage() {
   const router = useRouter()
   const { notify } = useToast()
+  const queryClient = useQueryClient()
   const createArtifact = useCreateArtifact()
 
   // High-level type selector: default to "skill" first!
@@ -219,6 +221,8 @@ export default function NewSubmitPage() {
     setIsSubmitting(true)
     setUploadStatus({})
 
+    let createdArtifactId: string | null = null
+
     try {
       const { artifact } = await createArtifact.mutateAsync({
         type,
@@ -228,18 +232,52 @@ export default function NewSubmitPage() {
         visibility,
         description: type === "tool" ? description : valueProp,
       })
+      createdArtifactId = artifact.id
 
-      await uploadArtifactContent(artifact.id, type, {
-        wasmFile,
-        capabilitiesText,
-        markdownContent: compileSkillMarkdown(),
-        setUploadStatus,
-      })
+      const put = async (kind: "wasm" | "capabilities" | "skill_md", file: Blob) => {
+        setUploadStatus((prev) => ({ ...prev, [kind]: "uploading" }))
+        try {
+          await uploadContent(`/api/private-artifacts/${artifact.id}/content/${kind}`, file)
+          setUploadStatus((prev) => ({ ...prev, [kind]: "done" }))
+        } catch (uploadError) {
+          setUploadStatus((prev) => ({ ...prev, [kind]: "error" }))
+          throw uploadError
+        }
+      }
+
+      if (type === "tool") {
+        if (wasmFile) await put("wasm", wasmFile)
+        await put("capabilities", new Blob([capabilitiesText], { type: "application/json" }))
+      } else {
+        await put(
+          "skill_md",
+          new Blob([compileSkillMarkdown()], { type: "text/markdown" })
+        )
+      }
+
+      // Uploads went through the raw client helper (not the React Query
+      // mutation hooks), so the artifacts list cache is stale until we
+      // invalidate it explicitly.
+      queryClient.invalidateQueries({ queryKey: ["private-artifacts"] })
 
       notify(`Created ${type}: ${finalTitle}`)
       router.push("/mvp/dashboard")
     } catch (error) {
-      setFormError(mapApiError(error))
+      if (createdArtifactId) {
+        // The artifact row was created but at least one content upload
+        // failed partway through. Retrying "Add to Space" as-is would just
+        // 409 on the name+version we already claimed, so send the user to
+        // the manage page to finish the upload instead of leaving them
+        // stuck on a dead-end form.
+        notify(
+          `${finalTitle} was created but a file failed to upload. Finish the upload from the item's Manage page.`,
+          "error"
+        )
+        queryClient.invalidateQueries({ queryKey: ["private-artifacts"] })
+        router.push(`/mvp/manage/${createdArtifactId}`)
+      } else {
+        setFormError(mapApiError(error))
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -759,46 +797,4 @@ export default function NewSubmitPage() {
       </form>
     </div>
   )
-}
-
-async function uploadArtifactContent(
-  artifactId: string,
-  type: "tool" | "skill",
-  opts: {
-    wasmFile: File | null
-    capabilitiesText: string
-    markdownContent: string
-    setUploadStatus: React.Dispatch<
-      React.SetStateAction<Record<string, "pending" | "uploading" | "done" | "error">>
-    >
-  }
-) {
-  const { wasmFile, capabilitiesText, markdownContent, setUploadStatus } = opts
-
-  const put = async (kind: string, body: Blob) => {
-    setUploadStatus((prev) => ({ ...prev, [kind]: "uploading" }))
-    const response = await fetch(`/api/private-artifacts/${artifactId}/content/${kind}`, {
-      method: "PUT",
-      body,
-    })
-    if (!response.ok) {
-      setUploadStatus((prev) => ({ ...prev, [kind]: "error" }))
-      let message = response.statusText
-      try {
-        const data = await response.json()
-        if (data?.error) message = data.error
-      } catch {
-        // ignore parse errors
-      }
-      throw new ApiError(response.status, message)
-    }
-    setUploadStatus((prev) => ({ ...prev, [kind]: "done" }))
-  }
-
-  if (type === "tool") {
-    if (wasmFile) await put("wasm", wasmFile)
-    await put("capabilities", new Blob([capabilitiesText], { type: "application/json" }))
-  } else {
-    await put("skill_md", new Blob([markdownContent], { type: "text/markdown" }))
-  }
 }

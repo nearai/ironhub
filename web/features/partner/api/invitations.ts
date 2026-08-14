@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { authClient } from "@/lib/auth/client"
+import { fetchJson } from "./client"
 import type { OrgRole } from "./orgs"
 
 export interface OrgInvitation {
@@ -75,25 +76,68 @@ export function useCancelInvitation(organizationId: string) {
   })
 }
 
-/** Invitations pending for the signed-in user, across all orgs (by email). */
+interface RawPendingInvitation {
+  id: string
+  organizationId: string
+  email: string
+  role: OrgRole | null
+  status: string
+  expiresAt: string
+  organization?: { id: string; name: string } | null
+}
+
+/**
+ * Invitations pending for the signed-in user, across all orgs (by email).
+ *
+ * Uses the custom `/api/orgs/invitations/pending` route: BetterAuth's
+ * `listUserInvitations` endpoint hard-403s users with `emailVerified=false`,
+ * which is every NEAR-wallet user in this app.
+ */
 export function usePendingInvitations() {
   return useQuery({
     queryKey: pendingInvitationsKey,
     queryFn: async () => {
-      const result = await authClient.organization.listUserInvitations()
-      return unwrap(result) as unknown as OrgInvitation[]
+      const data = await fetchJson<{ invitations: RawPendingInvitation[] }>(
+        "/api/orgs/invitations/pending"
+      )
+      return data.invitations.map(
+        (invite): OrgInvitation => ({
+          id: invite.id,
+          organizationId: invite.organizationId,
+          organizationName: invite.organization?.name,
+          email: invite.email,
+          role: invite.role,
+          status: invite.status,
+          expiresAt: invite.expiresAt,
+        })
+      )
     },
     refetchInterval: 60_000,
   })
 }
 
+/**
+ * Accept a pending invitation. Uses the custom
+ * `/api/orgs/invitations/[id]/accept` route (same emailVerified constraint
+ * as above); passing `setActive: true` makes the server switch the caller's
+ * active organization in the same request, so no follow-up
+ * `authClient.organization.setActive` call is needed — just invalidate and
+ * let the caller `router.refresh()`.
+ */
 export function useAcceptInvitation() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (invitationId: string) => {
-      const result = await authClient.organization.acceptInvitation({ invitationId })
-      return unwrap(result)
-    },
+    mutationFn: ({
+      invitationId,
+      setActive,
+    }: {
+      invitationId: string
+      setActive?: boolean
+    }) =>
+      fetchJson(`/api/orgs/invitations/${invitationId}/accept`, {
+        method: "POST",
+        body: JSON.stringify({ setActive: Boolean(setActive) }),
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: pendingInvitationsKey })
       queryClient.invalidateQueries({ queryKey: ["organizations"] })
@@ -104,10 +148,10 @@ export function useAcceptInvitation() {
 export function useRejectInvitation() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (invitationId: string) => {
-      const result = await authClient.organization.rejectInvitation({ invitationId })
-      return unwrap(result)
-    },
+    mutationFn: (invitationId: string) =>
+      fetchJson(`/api/orgs/invitations/${invitationId}/reject`, {
+        method: "POST",
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: pendingInvitationsKey })
     },

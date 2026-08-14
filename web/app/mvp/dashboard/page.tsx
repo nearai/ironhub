@@ -27,16 +27,18 @@ export default function DashboardPage() {
 
   const items = submissions ?? []
 
-  // Status rollup across all submissions (independent of active filters)
+  // Status rollup across all submissions (independent of active filters).
+  // Nothing currently transitions an artifact's status away from "draft" —
+  // review/publish workflows are still visual stubs — so a "Published"
+  // count would always read zero and mislead. Only surface counts that can
+  // actually vary today.
   const counts = {
     all: items.length,
     draft: items.filter((s) => s.status === "draft").length,
-    published: items.filter((s) => s.status === "published").length,
   }
 
   const summaryChips: { key: string; label: string; value: number; tone: string }[] = [
     { key: "all", label: "Total Items", value: counts.all, tone: "border-[var(--ironhub-line)] text-foreground" },
-    { key: "published", label: "Published", value: counts.published, tone: "border-emerald-500/25 text-emerald-600 dark:text-emerald-400" },
     { key: "draft", label: "Draft", value: counts.draft, tone: "border-amber-500/25 text-amber-600 dark:text-amber-400" },
   ]
 
@@ -152,7 +154,6 @@ export default function DashboardPage() {
               className="rounded-full select-none"
             >
               <NativeSelectOption value="all">All Statuses</NativeSelectOption>
-              <NativeSelectOption value="published">Published</NativeSelectOption>
               <NativeSelectOption value="draft">Draft</NativeSelectOption>
             </NativeSelect>
           </div>

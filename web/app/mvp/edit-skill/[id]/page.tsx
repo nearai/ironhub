@@ -1,6 +1,6 @@
 "use client"
 
-import React, { use, useEffect, useState } from "react"
+import React, { use, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useArtifact, useUpdateArtifact, useUploadArtifactContent } from "@/features/partner/api/artifacts"
@@ -42,14 +42,18 @@ export default function EditSkillPage({ params }: PageProps) {
   // UI state
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit")
   const [copiedPreview, setCopiedPreview] = useState(false)
+  // Guard so a background refetch (e.g. window focus) never clobbers an
+  // in-progress edit — only reseed the form when we land on a new artifact.
+  const seededArtifactIdRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (artifact) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (artifact && seededArtifactIdRef.current !== artifact.id) {
+      seededArtifactIdRef.current = artifact.id
+       
       setTitle(artifact.title)
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setValueProp(artifact.description || "")
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setVisibility(artifact.visibility)
     }
   }, [artifact])

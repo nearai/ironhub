@@ -1,6 +1,6 @@
 "use client"
 
-import React, { use, useEffect, useState } from "react"
+import React, { use, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useArtifact, useUpdateArtifact, useUploadArtifactContent } from "@/features/partner/api/artifacts"
@@ -35,16 +35,21 @@ export default function EditToolPage({ params }: PageProps) {
   const [description, setDescription] = useState("")
   const [visibility, setVisibility] = useState<"public" | "private">("private")
   const [wasmFile, setWasmFile] = useState<File | null>(null)
+  const [capabilitiesFile, setCapabilitiesFile] = useState<File | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  // Guard so a background refetch (e.g. window focus) never clobbers an
+  // in-progress edit — only reseed the form when we land on a new artifact.
+  const seededArtifactIdRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (artifact) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (artifact && seededArtifactIdRef.current !== artifact.id) {
+      seededArtifactIdRef.current = artifact.id
+       
       setTitle(artifact.title)
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setDescription(artifact.description || "")
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setVisibility(artifact.visibility)
     }
   }, [artifact])
@@ -91,6 +96,17 @@ export default function EditToolPage({ params }: PageProps) {
     if (file) acceptFile(file)
   }
 
+  const handleCapabilitiesFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.name.endsWith(".json")) {
+      notify("Capabilities must be a .json file", "error")
+      return
+    }
+    setCapabilitiesFile(file)
+    notify(`Selected capabilities file: ${file.name}`, "info")
+  }
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
@@ -98,6 +114,9 @@ export default function EditToolPage({ params }: PageProps) {
       await updateArtifact.mutateAsync({ title, description, visibility })
       if (wasmFile) {
         await uploadContent.mutateAsync({ kind: "wasm", file: wasmFile })
+      }
+      if (capabilitiesFile) {
+        await uploadContent.mutateAsync({ kind: "capabilities", file: capabilitiesFile })
       }
       notify(`Changes saved for ${title}`)
       router.push(`/mvp/manage/${id}`)
@@ -221,6 +240,33 @@ export default function EditToolPage({ params }: PageProps) {
                 <span className="flex items-center gap-1.5">
                   <IconFileZip className="size-4 text-emerald-600" />
                   {wasmFile.name}
+                </span>
+                <span className="text-xs bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase font-bold">
+                  Ready
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Capabilities re-upload */}
+          <div className="flex flex-col gap-2 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
+            <label className="text-xs font-bold text-muted-foreground uppercase">
+              Replace Capabilities (capabilities.json)
+            </label>
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleCapabilitiesFileChange}
+              className="block w-full text-xs text-muted-foreground file:mr-3 file:rounded-full file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-primary hover:file:bg-primary/20"
+            />
+            <span className="text-xs text-muted-foreground">
+              Leave empty to keep the current capabilities file.
+            </span>
+            {capabilitiesFile && (
+              <div className="flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-foreground font-semibold mt-1">
+                <span className="flex items-center gap-1.5">
+                  <IconFileZip className="size-4 text-emerald-600" />
+                  {capabilitiesFile.name}
                 </span>
                 <span className="text-xs bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase font-bold">
                   Ready

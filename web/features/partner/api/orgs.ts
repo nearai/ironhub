@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { authClient } from "@/lib/auth/client"
+import { fetchJson } from "./client"
 
 export type OrgRole = "owner" | "admin" | "member"
 
@@ -34,23 +35,21 @@ function unwrap<T>(result: { data: T | null; error: { message?: string } | null 
   return result.data
 }
 
-/** List organizations the current user belongs to, with their role in each. */
+/**
+ * List organizations the current user belongs to, with their role in each.
+ *
+ * Uses the custom `/api/orgs` route (not `authClient.organization.list`):
+ * BetterAuth's org endpoints hard-403 users with `emailVerified=false`,
+ * which is every NEAR-wallet user in this app, and the plain list endpoint
+ * doesn't return the caller's role anyway.
+ */
 export function useMyOrganizations() {
   return useQuery({
     queryKey: organizationsKey,
-    queryFn: async () => {
-      const result = await authClient.organization.list()
-      const orgs = unwrap(result) as unknown as Array<{
-        id: string
-        name: string
-        slug: string
-      }>
-
-      // The plain list endpoint does not include the caller's role; fetch
-      // membership role per-org via getFullOrganization is expensive, so we
-      // derive role lazily where needed (team page) instead of here.
-      return orgs.map((org) => ({ id: org.id, name: org.name, slug: org.slug }))
-    },
+    queryFn: () =>
+      fetchJson<{ organizations: MyOrganization[] }>("/api/orgs").then(
+        (data) => data.organizations
+      ),
   })
 }
 
@@ -58,7 +57,14 @@ export function useCreateOrganization() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (name: string) => {
-      const slug = `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "org"}-${Date.now()}`
+      const base =
+        name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .slice(0, 40) || "org"
+      const suffix = Math.random().toString(36).slice(2, 8)
+      const slug = `${base}-${suffix}`
       const result = await authClient.organization.create({ name, slug })
       return unwrap(result)
     },

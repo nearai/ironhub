@@ -1,34 +1,35 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PageHeader } from "@/features/shell/components/page-header"
 import { authClient } from "@/lib/auth/client"
-import { useMyOrganizations, useOrgMembers, useRenameOrganization } from "@/features/partner/api/orgs"
+import { useMyOrganizations, useRenameOrganization } from "@/features/partner/api/orgs"
 import { useToast } from "@/features/partner/store/toast-provider"
-import { IconBuildings, IconLoader2 } from "@tabler/icons-react"
+import { IconAlertTriangle, IconBuildings, IconLoader2 } from "@tabler/icons-react"
 
 export default function SettingsPage() {
   const { data: session } = authClient.useSession()
   const organizationId = session?.session.activeOrganizationId ?? undefined
-  const currentUserId = session?.user.id
 
-  const { data: organizations } = useMyOrganizations()
-  const { data: members } = useOrgMembers(organizationId)
+  const { data: organizations, isError, error } = useMyOrganizations()
   const renameOrg = useRenameOrganization(organizationId ?? "")
   const { notify } = useToast()
 
   const activeOrg = organizations?.find((org) => org.id === organizationId)
-  const currentMember = members?.find((m) => m.userId === currentUserId)
-  const isOwner = currentMember?.role === "owner"
+  const isOwner = activeOrg?.role === "owner"
 
   const [name, setName] = useState("")
+  // Guard so a background refetch (e.g. window focus) never clobbers an
+  // in-progress edit — only reseed the form when we land on a new org.
+  const seededOrgIdRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (activeOrg) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (activeOrg && seededOrgIdRef.current !== activeOrg.id) {
+      seededOrgIdRef.current = activeOrg.id
+       
       setName(activeOrg.name)
     }
   }, [activeOrg])
@@ -51,6 +52,13 @@ export default function SettingsPage() {
         title="Organization Settings"
         description="Manage your organization's identity."
       />
+
+      {isError && (
+        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive">
+          <IconAlertTriangle className="size-4 shrink-0" />
+          Failed to load organization{error instanceof Error ? `: ${error.message}` : "."}
+        </div>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="border border-[var(--ironhub-line)] bg-card/60 p-5 shadow-sm flex flex-col gap-4">

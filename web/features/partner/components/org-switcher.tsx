@@ -79,8 +79,26 @@ export function OrgSwitcher() {
   }
 
   const handleLeave = async (organizationId: string) => {
+    const wasActive = organizationId === activeOrganizationId
     try {
       await leaveOrg.mutateAsync(organizationId)
+
+      if (wasActive) {
+        // The session's activeOrganizationId is cookie-cached for up to 30
+        // days; if we don't repoint it at a remaining org right away, every
+        // subsequent private-artifacts request 403s until the cookie
+        // happens to expire. Repoint to the next available org, or prompt
+        // to create one if none remain.
+        const remaining = (organizations ?? []).filter((org) => org.id !== organizationId)
+        if (remaining.length > 0) {
+          await setActive.mutateAsync(remaining[0].id)
+        } else {
+          notify("You left your last organization — create a new one to continue.", "info")
+          setCreating(true)
+          setOpen(true)
+        }
+      }
+
       notify("Left organization", "info")
       router.refresh()
     } catch (error) {

@@ -69,6 +69,11 @@ export default function ManageSubmissionPage({ params }: PageProps) {
     )
   }
 
+  const expectedKinds =
+    artifact.type === "tool" ? ["wasm", "capabilities"] : ["skill_md"]
+  const uploadedKinds = new Set(artifact.content.map((c) => c.kind))
+  const isContentComplete = expectedKinds.every((kind) => uploadedKinds.has(kind as never))
+
   const handleCopyInstall = async () => {
     try {
       const { manifestUrl } = await mintToken.mutateAsync()
@@ -104,10 +109,6 @@ export default function ManageSubmissionPage({ params }: PageProps) {
     </Badge>
   )
 
-  const expectedKinds =
-    artifact.type === "tool" ? ["wasm", "capabilities"] : ["skill_md"]
-  const uploadedKinds = new Set(artifact.content.map((c) => c.kind))
-
   return (
     <div className="flex flex-col gap-6">
       {/* Navigation and Actions */}
@@ -124,7 +125,12 @@ export default function ManageSubmissionPage({ params }: PageProps) {
             type="button"
             variant="outline"
             onClick={handleCopyInstall}
-            disabled={mintToken.isPending}
+            disabled={mintToken.isPending || !isContentComplete}
+            title={
+              isContentComplete
+                ? undefined
+                : "Upload all required content files before minting an install link"
+            }
             className="rounded-full shadow-sm hover:shadow-md"
           >
             {mintToken.isPending ? (

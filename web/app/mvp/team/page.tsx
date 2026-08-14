@@ -21,6 +21,7 @@ import {
 } from "@/features/partner/api/invitations"
 import { useToast } from "@/features/partner/store/toast-provider"
 import {
+  IconAlertTriangle,
   IconUsers,
   IconMail,
   IconUserPlus,
@@ -28,14 +29,27 @@ import {
   IconClock,
   IconX,
 } from "@tabler/icons-react"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 export default function TeamPage() {
   const { data: session } = authClient.useSession()
   const organizationId = session?.session.activeOrganizationId ?? undefined
   const currentUserId = session?.user.id
 
-  const { data: members, isLoading: membersLoading } = useOrgMembers(organizationId)
-  const { data: invitations, isLoading: invitationsLoading } = useOrgInvitations(organizationId)
+  const { data: members, isLoading: membersLoading, isError: membersError } = useOrgMembers(organizationId)
+  const {
+    data: invitations,
+    isLoading: invitationsLoading,
+    isError: invitationsError,
+  } = useOrgInvitations(organizationId)
   const createInvitation = useCreateInvitation(organizationId ?? "")
   const cancelInvitation = useCancelInvitation(organizationId ?? "")
   const updateRole = useUpdateMemberRole(organizationId ?? "")
@@ -158,9 +172,15 @@ export default function TeamPage() {
             {invitationsLoading && (
               <p className="text-xs text-muted-foreground">Loading...</p>
             )}
+            {invitationsError && (
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-destructive">
+                <IconAlertTriangle className="size-3.5 shrink-0" />
+                Failed to load invitations.
+              </p>
+            )}
 
             <div className="flex flex-col gap-2">
-              {invitations
+              {!invitationsError && invitations
                 ?.filter((invite) => invite.status === "pending")
                 .map((invite) => (
                   <div
@@ -185,7 +205,7 @@ export default function TeamPage() {
                     )}
                   </div>
                 ))}
-              {!invitationsLoading && (invitations?.filter((i) => i.status === "pending").length ?? 0) === 0 && (
+              {!invitationsLoading && !invitationsError && (invitations?.filter((i) => i.status === "pending").length ?? 0) === 0 && (
                 <p className="text-xs text-muted-foreground">No pending invitations.</p>
               )}
             </div>
@@ -201,11 +221,22 @@ export default function TeamPage() {
             </h3>
 
             {membersLoading && <p className="text-xs text-muted-foreground">Loading members...</p>}
+            {membersError && (
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-destructive">
+                <IconAlertTriangle className="size-3.5 shrink-0" />
+                Failed to load members.
+              </p>
+            )}
 
             <div className="flex flex-col gap-3">
-              {members?.map((member) => {
+              {!membersError && members?.map((member) => {
                 const label = member.user?.name || member.user?.email || member.userId
                 const isSelf = member.userId === currentUserId
+                const isOwnerRow = member.role === "owner"
+                // Non-owners must never see role-change or removal controls
+                // on an owner's row, even if they otherwise manage members.
+                const canEditThisRow = canChangeRoles && !isSelf
+                const canRemoveThisRow = canManageMembers && !isSelf && (!isOwnerRow || canChangeRoles)
                 return (
                   <div
                     key={member.id}
@@ -227,7 +258,7 @@ export default function TeamPage() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      {canChangeRoles && !isSelf ? (
+                      {canEditThisRow ? (
                         <NativeSelect
                           value={member.role}
                           onChange={(e) => handleRoleChange(member.id, e.target.value as OrgRole)}
@@ -243,17 +274,46 @@ export default function TeamPage() {
                         </Badge>
                       )}
 
-                      {canManageMembers && !isSelf && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveMember(member.id, label)}
-                          className="h-7 w-7 rounded-full text-destructive/70 hover:text-destructive hover:bg-destructive/10"
-                          aria-label={`Remove ${label}`}
-                        >
-                          <IconTrash className="size-3.5" />
-                        </Button>
+                      {canRemoveThisRow && (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 rounded-full text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                              aria-label={`Remove ${label}`}
+                            >
+                              <IconTrash className="size-3.5" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-sm">
+                            <DialogHeader>
+                              <DialogTitle>Remove {label}?</DialogTitle>
+                              <DialogDescription>
+                                They will immediately lose access to this organization&apos;s Private Space.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="mt-2 flex gap-3">
+                              <DialogClose asChild>
+                                <Button type="button" variant="outline" className="flex-1 rounded-full">
+                                  Cancel
+                                </Button>
+                              </DialogClose>
+                              <DialogClose asChild>
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  onClick={() => handleRemoveMember(member.id, label)}
+                                  className="flex-1 rounded-full"
+                                >
+                                  <IconTrash className="size-4" />
+                                  Remove
+                                </Button>
+                              </DialogClose>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                       )}
                     </div>
                   </div>
