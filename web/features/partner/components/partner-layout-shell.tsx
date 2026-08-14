@@ -30,7 +30,9 @@ export function PartnerLayoutShell({ children }: PartnerLayoutShellProps) {
     <PartnerQueryProvider>
       <ToastProvider>
         <div className="mx-auto flex max-w-7xl flex-1 items-stretch">
-          <aside className="hidden w-64 shrink-0 border-r border-[var(--ironhub-line)] bg-background/40 backdrop-blur-md lg:block">
+          {/* relative z-30: backdrop-blur creates a stacking context, so the
+              sidebar (and the popovers inside it) must sit above <main>. */}
+          <aside className="relative z-30 hidden w-64 shrink-0 border-r border-[var(--ironhub-line)] bg-background/40 backdrop-blur-md lg:block">
             <div className="sticky top-16 flex h-[calc(100vh-4rem)] flex-col gap-6 p-6">
               <div className="flex items-start justify-between gap-2">
                 <div>
