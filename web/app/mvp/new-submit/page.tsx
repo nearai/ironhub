@@ -3,7 +3,9 @@
 import React, { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { usePartnerStore } from "@/features/partner/store/partner-store"
+import { ApiError } from "@/features/partner/api/client"
+import { useCreateArtifact } from "@/features/partner/api/artifacts"
+import { useToast } from "@/features/partner/store/toast-provider"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -21,11 +23,22 @@ import {
   IconCode,
   IconCopy,
   IconCheck,
+  IconLoader2,
 } from "@tabler/icons-react"
+
+function slugify(value: string) {
+  return (
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "item"
+  )
+}
 
 export default function NewSubmitPage() {
   const router = useRouter()
-  const { addSubmission, notify } = usePartnerStore()
+  const { notify } = useToast()
+  const createArtifact = useCreateArtifact()
 
   // High-level type selector: default to "skill" first!
   const [type, setType] = useState<"tool" | "skill">("skill")
@@ -37,7 +50,8 @@ export default function NewSubmitPage() {
 
   // Tool specific states
   const [description, setDescription] = useState("")
-  const [zipFile, setZipFile] = useState<string | null>(null)
+  const [wasmFile, setWasmFile] = useState<File | null>(null)
+  const [capabilitiesText, setCapabilitiesText] = useState('{\n  "permissions": []\n}\n')
   const [dragOver, setDragOver] = useState(false)
 
   // Skill specific states
@@ -51,6 +65,11 @@ export default function NewSubmitPage() {
   // Tab state for Skill creation (Edit vs Preview)
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit")
   const [copiedPreview, setCopiedPreview] = useState(false)
+
+  // Submission progress / errors
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
+  const [uploadStatus, setUploadStatus] = useState<Record<string, "pending" | "uploading" | "done" | "error">>({})
 
   // Handlers for Skill Use Cases list
   const handleAddUseCase = () => {
@@ -74,7 +93,7 @@ export default function NewSubmitPage() {
     const keywords = activationKeywordsText.split(",").map(t => t.trim()).filter(Boolean)
     const actTags = activationTagsText.split(",").map(t => t.trim()).filter(Boolean)
 
-    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "untitled-skill"
+    const slug = slugify(title || "untitled-skill")
 
     let yaml = `---\n`
     yaml += `name: ${slug}\n`
@@ -131,7 +150,7 @@ export default function NewSubmitPage() {
     }
   }
 
-  // Drag and drop handlers for Tool ZIP
+  // Drag and drop handlers for Tool WASM
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
     setDragOver(true)
@@ -141,80 +160,89 @@ export default function NewSubmitPage() {
     setDragOver(false)
   }
 
+  const acceptWasmFile = (file: File) => {
+    if (!file.name.endsWith(".wasm")) {
+      notify("Only .wasm files are accepted", "error")
+      return
+    }
+    setWasmFile(file)
+    if (!title) {
+      const cleanName = file.name.replace(".wasm", "")
+      setTitle(cleanName.charAt(0).toUpperCase() + cleanName.slice(1))
+    }
+    notify(`Selected package: ${file.name}`, "info")
+  }
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setDragOver(false)
     const file = e.dataTransfer.files[0]
-    if (file && (file.name.endsWith(".zip") || file.name.endsWith(".wasm"))) {
-      setZipFile(file.name)
-      if (!title) {
-        const cleanName = file.name.replace(".zip", "").replace(".wasm", "")
-        setTitle(cleanName.charAt(0).toUpperCase() + cleanName.slice(1))
-      }
-      notify(`Selected package: ${file.name}`, "info")
-    } else {
-      notify("Only .zip or .wasm files are accepted", "error")
-    }
+    if (file) acceptWasmFile(file)
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file && (file.name.endsWith(".zip") || file.name.endsWith(".wasm"))) {
-      setZipFile(file.name)
-      if (!title) {
-        const cleanName = file.name.replace(".zip", "").replace(".wasm", "")
-        setTitle(cleanName.charAt(0).toUpperCase() + cleanName.slice(1))
-      }
-      notify(`Selected package: ${file.name}`, "info")
-    } else {
-      notify("Only .zip or .wasm files are accepted", "error")
+    if (file) acceptWasmFile(file)
+  }
+
+  const mapApiError = (error: unknown): string => {
+    if (error instanceof ApiError) {
+      if (error.status === 409) return `Duplicate: ${error.message}`
+      if (error.status === 413) return "File is too large (5MB limit)."
+      if (error.status === 400) return error.message
+      return error.message
     }
+    return error instanceof Error ? error.message : "Something went wrong."
   }
 
   // Form submit handler
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError(null)
 
-    const finalTitle = title || (type === "skill" ? "Untitled Skill" : zipFile?.replace(".zip", "").replace(".wasm", "") || "Uploaded Package")
-
-    if (type === "skill") {
-      const valTags = valueTagsText.split(",").map(t => t.trim()).filter(Boolean)
-      const keywords = activationKeywordsText.split(",").map(t => t.trim()).filter(Boolean)
-      const actTags = activationTagsText.split(",").map(t => t.trim()).filter(Boolean)
-
-      addSubmission({
-        type: "skill",
-        title: finalTitle,
-        version: version || "1.0.0",
-        visibility,
-        sourceType: "prompt",
-        sourceDetail: markdownContent.slice(0, 100) + (markdownContent.length > 100 ? "..." : ""),
-        useCases: useCases.filter(Boolean),
-        valueProp,
-        valueTags: valTags,
-        activationKeywords: keywords,
-        activationTags: actTags,
-        markdownContent,
-        status: "in_review",
-      })
-
-      notify(`Created skill: ${finalTitle}`)
-    } else {
-      addSubmission({
-        type: "tool",
-        title: finalTitle,
-        version: version || "1.0.0",
-        visibility,
-        sourceType: "upload",
-        sourceDetail: zipFile || "package.zip",
-        valueProp: description,
-        status: "in_review",
-      })
-
-      notify(`Created tool: ${finalTitle}`)
+    if (type === "tool" && !wasmFile) {
+      setFormError("A .wasm file is required for tools.")
+      return
+    }
+    if (type === "tool") {
+      try {
+        JSON.parse(capabilitiesText)
+      } catch {
+        setFormError("Capabilities must be valid JSON.")
+        return
+      }
     }
 
-    router.push("/mvp/dashboard")
+    const finalTitle = title || (type === "skill" ? "Untitled Skill" : wasmFile?.name.replace(".wasm", "") || "Uploaded Tool")
+    const name = slugify(finalTitle)
+
+    setIsSubmitting(true)
+    setUploadStatus({})
+
+    try {
+      const { artifact } = await createArtifact.mutateAsync({
+        type,
+        name,
+        title: finalTitle,
+        version: version || "1.0.0",
+        visibility,
+        description: type === "tool" ? description : valueProp,
+      })
+
+      await uploadArtifactContent(artifact.id, type, {
+        wasmFile,
+        capabilitiesText,
+        markdownContent: compileSkillMarkdown(),
+        setUploadStatus,
+      })
+
+      notify(`Created ${type}: ${finalTitle}`)
+      router.push("/mvp/dashboard")
+    } catch (error) {
+      setFormError(mapApiError(error))
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -233,9 +261,6 @@ export default function NewSubmitPage() {
       <Card className="border border-[var(--ironhub-line)] bg-card/60 p-5 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="space-y-1">
-            {/* <span className="text-xs font-bold tracking-widest text-primary uppercase">
-              Internal Catalog
-            </span> */}
             <h1 className="mt-0.5 font-heading text-2xl font-bold leading-tight text-foreground">
               Add new Item
             </h1>
@@ -253,6 +278,7 @@ export default function NewSubmitPage() {
                 setTitle("")
                 setVersion("1.0.0")
                 setActiveTab("edit")
+                setFormError(null)
               }}
               className={`flex items-center gap-1 px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${type === "skill"
                 ? "bg-background text-primary shadow-sm"
@@ -269,6 +295,7 @@ export default function NewSubmitPage() {
                 setTitle("")
                 setVersion("1.0.0")
                 setActiveTab("edit")
+                setFormError(null)
               }}
               className={`flex items-center gap-1 px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${type === "tool"
                 ? "bg-background text-primary shadow-sm"
@@ -281,6 +308,12 @@ export default function NewSubmitPage() {
           </div>
         </div>
       </Card>
+
+      {formError && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive">
+          {formError}
+        </div>
+      )}
 
       {/* Form Submission */}
       <form onSubmit={handleSubmit} className="w-full flex flex-col gap-5">
@@ -333,10 +366,10 @@ export default function NewSubmitPage() {
               />
             </div>
 
-            {/* ZIP Dropzone */}
+            {/* WASM Dropzone */}
             <div className="flex flex-col gap-2 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
               <label className="text-xs font-bold text-muted-foreground uppercase">
-                Tool File Package (.zip / .wasm)
+                Tool Package (.wasm)
               </label>
               <div
                 onDragOver={handleDragOver}
@@ -349,30 +382,51 @@ export default function NewSubmitPage() {
               >
                 <input
                   type="file"
-                  accept=".zip,.wasm"
+                  accept=".wasm"
                   onChange={handleFileChange}
                   className="absolute inset-0 cursor-pointer opacity-0"
                 />
                 <IconUpload className="size-6 text-muted-foreground" />
                 <span className="text-xs font-semibold text-foreground mt-2 block">
-                  Drag new ZIP or WASM file here, or click to browse
+                  Drag your WASM file here, or click to browse
                 </span>
                 <span className="text-xs text-muted-foreground mt-1">
-                  Supports .zip and .wasm packages up to 50MB
+                  Supports .wasm packages up to 5MB
                 </span>
               </div>
 
-              {zipFile && (
+              {wasmFile && (
                 <div className="flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-foreground font-semibold mt-1">
                   <span className="flex items-center gap-1.5">
                     <IconFileZip className="size-4 text-emerald-600" />
-                    {zipFile}
+                    {wasmFile.name}
                   </span>
                   <span className="text-xs bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase font-bold">
-                    Ready
+                    {uploadStatus.wasm === "uploading"
+                      ? "Uploading..."
+                      : uploadStatus.wasm === "done"
+                        ? "Uploaded"
+                        : "Ready"}
                   </span>
                 </div>
               )}
+            </div>
+
+            {/* Capabilities JSON */}
+            <div className="flex flex-col gap-2 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
+              <label className="text-xs font-bold text-muted-foreground uppercase">
+                Capabilities (capabilities.json)
+              </label>
+              <textarea
+                required
+                value={capabilitiesText}
+                onChange={(e) => setCapabilitiesText(e.target.value)}
+                placeholder='{ "permissions": [] }'
+                className="flex min-h-[100px] w-full rounded-2xl border border-[var(--ironhub-line)] bg-background/50 px-4 py-3 font-mono text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary"
+              />
+              <span className="text-xs text-muted-foreground">
+                Declares what the WASM package is permitted to access. Must be valid JSON.
+              </span>
             </div>
 
             {/* Visibility Selection blocks */}
@@ -395,7 +449,7 @@ export default function NewSubmitPage() {
                   <div>
                     <span className="text-xs font-bold block">Private Space</span>
                     <span className="text-xs leading-normal text-muted-foreground/80 block mt-0.5">
-                      Internal to Circle Org Space only.
+                      Internal to your Org Space only.
                     </span>
                   </div>
                 </button>
@@ -425,7 +479,8 @@ export default function NewSubmitPage() {
               <Button type="button" variant="outline" asChild className="rounded-full">
                 <Link href="/mvp/dashboard">Cancel</Link>
               </Button>
-              <Button type="submit" className="rounded-full px-6 shadow-sm">
+              <Button type="submit" disabled={isSubmitting} className="rounded-full px-6 shadow-sm">
+                {isSubmitting && <IconLoader2 className="size-4 animate-spin" />}
                 Add to Space
               </Button>
             </div>
@@ -619,7 +674,7 @@ export default function NewSubmitPage() {
                       <div>
                         <span className="text-xs font-bold block">Private Space</span>
                         <span className="text-xs leading-normal text-muted-foreground/80 block mt-0.5">
-                          Internal to Circle Org Space only.
+                          Internal to your Org Space only.
                         </span>
                       </div>
                     </button>
@@ -694,7 +749,8 @@ export default function NewSubmitPage() {
               <Button type="button" variant="outline" asChild className="rounded-full">
                 <Link href="/mvp/dashboard">Cancel</Link>
               </Button>
-              <Button type="submit" className="rounded-full px-6 shadow-sm">
+              <Button type="submit" disabled={isSubmitting} className="rounded-full px-6 shadow-sm">
+                {isSubmitting && <IconLoader2 className="size-4 animate-spin" />}
                 Add to Space
               </Button>
             </div>
@@ -703,4 +759,46 @@ export default function NewSubmitPage() {
       </form>
     </div>
   )
+}
+
+async function uploadArtifactContent(
+  artifactId: string,
+  type: "tool" | "skill",
+  opts: {
+    wasmFile: File | null
+    capabilitiesText: string
+    markdownContent: string
+    setUploadStatus: React.Dispatch<
+      React.SetStateAction<Record<string, "pending" | "uploading" | "done" | "error">>
+    >
+  }
+) {
+  const { wasmFile, capabilitiesText, markdownContent, setUploadStatus } = opts
+
+  const put = async (kind: string, body: Blob) => {
+    setUploadStatus((prev) => ({ ...prev, [kind]: "uploading" }))
+    const response = await fetch(`/api/private-artifacts/${artifactId}/content/${kind}`, {
+      method: "PUT",
+      body,
+    })
+    if (!response.ok) {
+      setUploadStatus((prev) => ({ ...prev, [kind]: "error" }))
+      let message = response.statusText
+      try {
+        const data = await response.json()
+        if (data?.error) message = data.error
+      } catch {
+        // ignore parse errors
+      }
+      throw new ApiError(response.status, message)
+    }
+    setUploadStatus((prev) => ({ ...prev, [kind]: "done" }))
+  }
+
+  if (type === "tool") {
+    if (wasmFile) await put("wasm", wasmFile)
+    await put("capabilities", new Blob([capabilitiesText], { type: "application/json" }))
+  } else {
+    await put("skill_md", new Blob([markdownContent], { type: "text/markdown" }))
+  }
 }

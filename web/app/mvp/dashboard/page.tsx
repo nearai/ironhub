@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import Link from "next/link"
-import { usePartnerStore } from "@/features/partner/store/partner-store"
+import { useArtifacts } from "@/features/partner/api/artifacts"
 import { Button } from "@/components/ui/button"
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Card } from "@/components/ui/card"
@@ -15,35 +15,36 @@ import {
   IconArrowRight,
   IconWorld,
   IconLock,
+  IconAlertTriangle,
 } from "@tabler/icons-react"
 
 export default function DashboardPage() {
-  const { state } = usePartnerStore()
-  const { submissions } = state
+  const { data: submissions, isLoading, isError, error } = useArtifacts()
 
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [visibilityFilter, setVisibilityFilter] = useState("all")
 
+  const items = submissions ?? []
+
   // Status rollup across all submissions (independent of active filters)
   const counts = {
-    all: submissions.length,
-    approved: submissions.filter((s) => s.status === "approved").length,
-    in_review: submissions.filter((s) => s.status === "in_review").length,
-    rejected: submissions.filter((s) => s.status === "rejected").length,
+    all: items.length,
+    draft: items.filter((s) => s.status === "draft").length,
+    published: items.filter((s) => s.status === "published").length,
   }
 
   const summaryChips: { key: string; label: string; value: number; tone: string }[] = [
     { key: "all", label: "Total Items", value: counts.all, tone: "border-[var(--ironhub-line)] text-foreground" },
-    { key: "approved", label: "Approved", value: counts.approved, tone: "border-emerald-500/25 text-emerald-600 dark:text-emerald-400" },
-    { key: "in_review", label: "In Review", value: counts.in_review, tone: "border-amber-500/25 text-amber-600 dark:text-amber-400" },
-    { key: "rejected", label: "Rejected", value: counts.rejected, tone: "border-destructive/25 text-destructive" },
+    { key: "published", label: "Published", value: counts.published, tone: "border-emerald-500/25 text-emerald-600 dark:text-emerald-400" },
+    { key: "draft", label: "Draft", value: counts.draft, tone: "border-amber-500/25 text-amber-600 dark:text-amber-400" },
   ]
 
   // Filter submissions
-  const filteredSubmissions = submissions.filter((sub) => {
-    const matchesSearch = sub.title.toLowerCase().includes(search.toLowerCase()) ||
-      sub.sourceDetail.toLowerCase().includes(search.toLowerCase())
+  const filteredSubmissions = items.filter((sub) => {
+    const matchesSearch =
+      sub.title.toLowerCase().includes(search.toLowerCase()) ||
+      sub.name.toLowerCase().includes(search.toLowerCase())
     const matchesStatus = statusFilter === "all" || sub.status === statusFilter
     const matchesVisibility = visibilityFilter === "all" || sub.visibility === visibilityFilter
 
@@ -53,26 +54,24 @@ export default function DashboardPage() {
   // Helper for status badge style
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "approved":
+      case "published":
         return (
           <Badge className="border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider text-xs px-2 py-0.5 rounded-full">
-            ● Approved
+            ● Published
           </Badge>
         )
-      case "in_review":
+      case "draft":
         return (
           <Badge className="border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider text-xs px-2 py-0.5 rounded-full">
-            ● In Review
-          </Badge>
-        )
-      case "rejected":
-        return (
-          <Badge variant="destructive" className="font-semibold uppercase tracking-wider text-xs px-2 py-0.5 rounded-full">
-            ● Rejected
+            ● Draft
           </Badge>
         )
       default:
-        return null
+        return (
+          <Badge variant="outline" className="font-semibold uppercase tracking-wider text-xs px-2 py-0.5 rounded-full">
+            {status}
+          </Badge>
+        )
     }
   }
 
@@ -153,9 +152,8 @@ export default function DashboardPage() {
               className="rounded-full select-none"
             >
               <NativeSelectOption value="all">All Statuses</NativeSelectOption>
-              <NativeSelectOption value="approved">Approved</NativeSelectOption>
-              <NativeSelectOption value="in_review">In Review</NativeSelectOption>
-              <NativeSelectOption value="rejected">Rejected</NativeSelectOption>
+              <NativeSelectOption value="published">Published</NativeSelectOption>
+              <NativeSelectOption value="draft">Draft</NativeSelectOption>
             </NativeSelect>
           </div>
 
@@ -174,7 +172,28 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {isLoading && (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <Card
+              key={i}
+              className="h-40 animate-pulse border border-[var(--ironhub-line)] bg-card/40 p-5 shadow-sm"
+            />
+          ))}
+        </div>
+      )}
+
+      {isError && (
+        <div className="flex flex-col items-center justify-center gap-2 rounded-3xl border border-destructive/30 bg-destructive/5 py-16 text-center">
+          <IconAlertTriangle className="size-6 text-destructive" />
+          <p className="text-sm font-semibold text-destructive">
+            Failed to load your items{error instanceof Error ? `: ${error.message}` : "."}
+          </p>
+        </div>
+      )}
+
       {/* Grid List */}
+      {!isLoading && !isError && (
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {/* Actual Submissions */}
         {filteredSubmissions.map((sub) => {
@@ -209,11 +228,14 @@ export default function DashboardPage() {
                   <p>
                     <span className="font-semibold text-foreground">{sub.version}</span>
                     <span className="mx-1.5">•</span>
-                    <span>Updated {sub.updatedAt}</span>
+                    <span>Updated {new Date(sub.updatedAt).toLocaleString()}</span>
                   </p>
                   <p className="truncate text-muted-foreground/90">
-                    <span className="font-semibold text-foreground/80">{sub.sourceType === "upload" ? "File: " : "Prompt: "}</span>
-                    <span className="font-mono text-xs">{sub.sourceDetail}</span>
+                    <span className="font-semibold text-foreground/80">
+                      {sub.content.length > 0
+                        ? `${sub.content.length} file${sub.content.length === 1 ? "" : "s"} uploaded`
+                        : "No content uploaded yet"}
+                    </span>
                   </p>
                 </div>
               </div>
@@ -268,15 +290,18 @@ export default function DashboardPage() {
           </div>
         </Card>
       </div>
+      )}
 
-      {filteredSubmissions.length === 0 && (
+      {!isLoading && !isError && filteredSubmissions.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-[var(--ironhub-line)] py-16 text-center">
           <p className="text-sm font-semibold text-muted-foreground">
-            No items match your filters.
+            {items.length === 0 ? "No items yet — add your first skill or tool." : "No items match your filters."}
           </p>
-          <Button variant="link" size="sm" onClick={() => { setSearch(""); setStatusFilter("all"); setVisibilityFilter("all"); }}>
-            Clear Search & Filters
-          </Button>
+          {items.length > 0 && (
+            <Button variant="link" size="sm" onClick={() => { setSearch(""); setStatusFilter("all"); setVisibilityFilter("all"); }}>
+              Clear Search & Filters
+            </Button>
+          )}
         </div>
       )}
     </div>
