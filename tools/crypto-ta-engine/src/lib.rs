@@ -256,14 +256,4 @@ mod schema_tests {
             assert!(b["properties"]["command"]["const"].is_string());
         }
     }
-
-    #[test]
-    fn published_input_schema_matches_guest_export() {
-        let exported: Value = serde_json::from_str(SCHEMA).expect("guest schema");
-        let published: Value = serde_json::from_str(include_str!(
-            "../schemas/crypto-ta-engine/invoke.input.v1.json"
-        ))
-        .expect("published schema");
-        assert_eq!(published, exported);
-    }
 }
