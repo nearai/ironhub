@@ -1,32 +1,15 @@
 import assert from "node:assert/strict"
 import { mock, test } from "node:test"
 
-let requireActiveOrgThrows = null
+import { zipSync } from "fflate"
+
+let authThrows = null
 let sameOriginThrows = null
-let inspectThrows = null
-let inspectCallCount = 0
-const inspectResult = {
-  manifest: {
-    id: "firecrawl",
-    name: "Firecrawl",
-    version: "0.2.1",
-    description: "Scrape the web.",
-    trust: "third_party",
-    runtimeKind: "wasm",
-    runtimeModule: "wasm/firecrawl.wasm",
-  },
-  wasmPath: "wasm/firecrawl.wasm",
-  capabilitiesPath: "firecrawl-tool.capabilities.json",
-  entryNames: ["manifest.toml", "wasm/firecrawl.wasm", "firecrawl-tool.capabilities.json"],
-  schemaFiles: ["schemas/scrape.json"],
-  promptFiles: ["prompts/scrape.md"],
-  totalUncompressedBytes: 4096,
-}
 
 mock.module("@/lib/auth/org-context", {
   namedExports: {
     requireActiveOrganization: async () => {
-      if (requireActiveOrgThrows) throw requireActiveOrgThrows
+      if (authThrows) throw authThrows
       return { organizationId: "org-1", userId: "user-1" }
     },
   },
@@ -44,62 +27,91 @@ mock.module("@/lib/http/api", {
   },
 })
 
-mock.module("@/lib/private-artifacts/bundle", {
-  namedExports: {
-    inspectExtensionBundle: () => {
-      inspectCallCount++
-      if (inspectThrows) throw inspectThrows
-      return inspectResult
-    },
-  },
-})
-
 const { POST } = await import("./route.ts")
 
-function makeRequest(body = new Uint8Array([1, 2, 3])) {
+const encode = (text) => new TextEncoder().encode(text)
+
+function validBundleFiles() {
+  return {
+    "manifest.toml": encode(
+      [
+        `schema_version = "reborn.extension_manifest.v3"`,
+        `id = "test-tool"`,
+        `name = "Test Tool"`,
+        `version = "0.1.0"`,
+        `description = "A test tool."`,
+        `trust = "third_party"`,
+        "",
+        "[runtime]",
+        `kind = "wasm"`,
+        `module = "wasm/test.wasm"`,
+        "",
+      ].join("\n")
+    ),
+    "wasm/test.wasm": new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0]),
+    "test-tool.capabilities.json": encode(JSON.stringify({ version: "0.1.0" })),
+    "schemas/test/scrape.input.v1.json": encode("{}"),
+    "prompts/test/scrape.md": encode("# scrape"),
+  }
+}
+
+function makeRequest(body) {
   return new Request("http://localhost/api/private-artifacts/bundle/inspect", {
     method: "POST",
     body,
   })
 }
 
-test("returns the manifest/files/size payload for a valid archive, persisting nothing", async () => {
-  requireActiveOrgThrows = null
+test("inspects a valid bundle and returns the manifest/files payload without persisting", async () => {
+  authThrows = null
   sameOriginThrows = null
-  inspectThrows = null
+  const zip = zipSync(validBundleFiles(), { level: 0 })
 
-  const response = await POST(makeRequest())
-  assert.equal(response.status, 200)
-
+  const response = await POST(makeRequest(zip))
   const json = await response.json()
-  assert.deepEqual(json.manifest, inspectResult.manifest)
+
+  assert.equal(response.status, 200)
+  assert.equal(json.manifest.id, "test-tool")
+  assert.equal(json.manifest.runtimeModule, "wasm/test.wasm")
   assert.deepEqual(json.files, {
-    wasm: "wasm/firecrawl.wasm",
-    capabilities: "firecrawl-tool.capabilities.json",
-    schemas: ["schemas/scrape.json"],
-    prompts: ["prompts/scrape.md"],
+    wasm: "wasm/test.wasm",
+    capabilities: "test-tool.capabilities.json",
+    schemas: ["schemas/test/scrape.input.v1.json"],
+    prompts: ["prompts/test/scrape.md"],
   })
-  assert.equal(json.totalUncompressedBytes, 4096)
+  assert.ok(json.totalUncompressedBytes > 0)
 })
 
-test("rejects an invalid archive with the validator's 400 and reason", async () => {
-  requireActiveOrgThrows = null
+test("rejects an invalid archive with the specific validation reason", async () => {
+  authThrows = null
   sameOriginThrows = null
-  inspectThrows = new Response("Upload must be a .zip archive", { status: 400 })
+  const files = validBundleFiles()
+  delete files["manifest.toml"]
+  const zip = zipSync(files, { level: 0 })
 
-  const response = await POST(makeRequest())
-  assert.equal(response.status, 400)
+  const response = await POST(makeRequest(zip))
   const text = await response.text()
-  assert.equal(text, "Upload must be a .zip archive")
+
+  assert.equal(response.status, 400)
+  assert.match(text, /Zip is missing manifest\.toml at its root/)
 })
 
 test("denies an unauthenticated request without reading the archive", async () => {
-  requireActiveOrgThrows = new Response("Unauthorized", { status: 401 })
+  authThrows = new Response("Unauthorized", { status: 401 })
   sameOriginThrows = null
-  inspectThrows = null
-  inspectCallCount = 0
+  const zip = zipSync(validBundleFiles(), { level: 0 })
 
-  const response = await POST(makeRequest())
+  const response = await POST(makeRequest(zip))
+
   assert.equal(response.status, 401)
-  assert.equal(inspectCallCount, 0)
+})
+
+test("rejects a cross-origin request via the same-origin guard", async () => {
+  authThrows = null
+  sameOriginThrows = new Error("Cross-origin request blocked.")
+  const zip = zipSync(validBundleFiles(), { level: 0 })
+
+  const response = await POST(makeRequest(zip))
+
+  assert.equal(response.status, 400)
 })

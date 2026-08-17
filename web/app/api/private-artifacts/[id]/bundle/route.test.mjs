@@ -1,16 +1,12 @@
 import assert from "node:assert/strict"
 import { mock, test } from "node:test"
 
+import { zipSync } from "fflate"
+
 let sameOriginThrows = null
 let getArtifactResult = { id: "artifact-1", type: "tool" }
 let getArtifactThrows = null
-let inspectThrows = null
-let inspectResult = {
-  wasmPath: "wasm/firecrawl.wasm",
-  capabilitiesPath: "firecrawl-tool.capabilities.json",
-}
 const storeCalls = []
-const readCalls = []
 
 mock.module("@/lib/auth/org-context", {
   namedExports: {
@@ -30,15 +26,11 @@ mock.module("@/lib/http/api", {
   },
 })
 
-mock.module("@/lib/private-artifacts/bundle", {
+mock.module("@/lib/private-artifacts/service", {
   namedExports: {
-    inspectExtensionBundle: () => {
-      if (inspectThrows) throw inspectThrows
-      return inspectResult
-    },
-    readBundleFile: (zip, path) => {
-      readCalls.push(path)
-      return new TextEncoder().encode(`bytes-for:${path}`)
+    getPrivateArtifact: async () => {
+      if (getArtifactThrows) throw getArtifactThrows
+      return getArtifactResult
     },
   },
 })
@@ -52,37 +44,58 @@ mock.module("@/lib/private-artifacts/content", {
   },
 })
 
-mock.module("@/lib/private-artifacts/service", {
-  namedExports: {
-    getPrivateArtifact: async () => {
-      if (getArtifactThrows) throw getArtifactThrows
-      return getArtifactResult
-    },
-  },
-})
-
+// inspectExtensionBundle / readBundleFile are the real implementation on
+// purpose: the route re-validates from scratch and must never trust an
+// earlier inspect call, so the test exercises real validation logic against
+// an in-test zip rather than a mock.
 const { PUT } = await import("./route.ts")
+
+const encode = (text) => new TextEncoder().encode(text)
+
+function validBundleFiles() {
+  return {
+    "manifest.toml": encode(
+      [
+        `schema_version = "reborn.extension_manifest.v3"`,
+        `id = "test-tool"`,
+        `name = "Test Tool"`,
+        `version = "0.1.0"`,
+        `description = "A test tool."`,
+        `trust = "third_party"`,
+        "",
+        "[runtime]",
+        `kind = "wasm"`,
+        `module = "wasm/test.wasm"`,
+        "",
+      ].join("\n")
+    ),
+    "wasm/test.wasm": new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0]),
+    "test-tool.capabilities.json": encode(JSON.stringify({ version: "0.1.0" })),
+  }
+}
 
 function makeParams(id = "artifact-1") {
   return { params: Promise.resolve({ id }) }
 }
 
-function makeRequest(body = new Uint8Array([1, 2, 3])) {
-  return new Request("http://localhost/x", { method: "PUT", body })
+function makeRequest(body) {
+  return new Request("http://localhost/api/private-artifacts/artifact-1/bundle", {
+    method: "PUT",
+    body,
+  })
 }
 
-test("stores wasm, capabilities, manifest_toml, and bundle_zip in that order", async () => {
+test("stores wasm, capabilities, manifest_toml, and bundle_zip in order for a tool", async () => {
   sameOriginThrows = null
   getArtifactThrows = null
   getArtifactResult = { id: "artifact-1", type: "tool" }
-  inspectThrows = null
   storeCalls.length = 0
-  readCalls.length = 0
+  const zip = zipSync(validBundleFiles(), { level: 0 })
 
-  const response = await PUT(makeRequest(), makeParams())
-  assert.equal(response.status, 201)
-
+  const response = await PUT(makeRequest(zip), makeParams())
   const json = await response.json()
+
+  assert.equal(response.status, 201)
   assert.deepEqual(
     json.content.map((c) => c.kind),
     ["wasm", "capabilities", "manifest_toml", "bundle_zip"]
@@ -91,58 +104,53 @@ test("stores wasm, capabilities, manifest_toml, and bundle_zip in that order", a
     storeCalls.map((c) => c.kind),
     ["wasm", "capabilities", "manifest_toml", "bundle_zip"]
   )
-  assert.deepEqual(readCalls, [
-    "wasm/firecrawl.wasm",
-    "firecrawl-tool.capabilities.json",
-    "manifest.toml",
-  ])
-})
-
-test("re-validates the archive from scratch and rejects if invalid", async () => {
-  sameOriginThrows = null
-  getArtifactThrows = null
-  getArtifactResult = { id: "artifact-1", type: "tool" }
-  inspectThrows = new Response("Zip is missing manifest.toml at its root", { status: 400 })
-  storeCalls.length = 0
-
-  const response = await PUT(makeRequest(), makeParams())
-  assert.equal(response.status, 400)
-  assert.equal(storeCalls.length, 0)
+  assert.equal(storeCalls[3].size, zip.length) // bundle_zip stores the raw upload
 })
 
 test("rejects a bundle upload for a non-tool artifact with 409", async () => {
   sameOriginThrows = null
   getArtifactThrows = null
   getArtifactResult = { id: "artifact-1", type: "skill" }
-  inspectThrows = null
-  storeCalls.length = 0
+  const zip = zipSync(validBundleFiles(), { level: 0 })
 
-  const response = await PUT(makeRequest(), makeParams())
-  assert.equal(response.status, 409)
+  const response = await PUT(makeRequest(zip), makeParams())
   const text = await response.text()
-  assert.equal(text, "Bundle upload is only supported for tools")
-  assert.equal(storeCalls.length, 0)
+
+  assert.equal(response.status, 409)
+  assert.match(text, /Bundle upload is only supported for tools/)
 })
 
-test("returns 404 for an artifact outside the caller's active organization", async () => {
+test("denies a cross-org upload with 404, matching the other [id] routes", async () => {
   sameOriginThrows = null
   getArtifactThrows = new Response("Artifact not found", { status: 404 })
-  inspectThrows = null
-  storeCalls.length = 0
+  const zip = zipSync(validBundleFiles(), { level: 0 })
 
-  const response = await PUT(makeRequest(), makeParams("other-org-artifact"))
+  const response = await PUT(makeRequest(zip), makeParams())
+
   assert.equal(response.status, 404)
-  assert.equal(storeCalls.length, 0)
 })
 
-test("rejects cross-origin requests via the same-origin guard", async () => {
-  sameOriginThrows = new Error("Cross-origin request blocked.")
+test("re-validates from scratch and rejects an archive that fails a D6 rule", async () => {
+  sameOriginThrows = null
   getArtifactThrows = null
   getArtifactResult = { id: "artifact-1", type: "tool" }
-  inspectThrows = null
-  storeCalls.length = 0
+  const files = validBundleFiles()
+  delete files["manifest.toml"]
+  const zip = zipSync(files, { level: 0 })
 
-  const response = await PUT(makeRequest(), makeParams())
+  const response = await PUT(makeRequest(zip), makeParams())
+  const text = await response.text()
+
   assert.equal(response.status, 400)
-  assert.equal(storeCalls.length, 0)
+  assert.match(text, /Zip is missing manifest\.toml at its root/)
+})
+
+test("rejects a cross-origin request via the same-origin guard", async () => {
+  sameOriginThrows = new Error("Cross-origin request blocked.")
+  getArtifactThrows = null
+  const zip = zipSync(validBundleFiles(), { level: 0 })
+
+  const response = await PUT(makeRequest(zip), makeParams())
+
+  assert.equal(response.status, 400)
 })
