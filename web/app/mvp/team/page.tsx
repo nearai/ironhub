@@ -372,10 +372,10 @@ export default function TeamPage() {
       <div>
         <div className="mb-3">
           <h2 className="text-base font-medium text-foreground">
-            Space Members ({members?.length ?? 0})
+            People with access ({members?.length ?? 0})
           </h2>
           <p className="text-sm text-muted-foreground">
-            People who have access to this workspace and what they can do.
+            Everyone who can open this workspace, and what they are allowed to do.
           </p>
         </div>
 

@@ -108,7 +108,7 @@ describe("TeamPage", () => {
       await renderPage()
 
       await waitFor(() => {
-        expect(screen.getByText("Space Members (3)")).toBeInTheDocument()
+        expect(screen.getByText("People with access (3)")).toBeInTheDocument()
       })
 
       // Dialog is closed initially
@@ -214,7 +214,7 @@ describe("TeamPage", () => {
       await renderPage()
 
       await waitFor(() => {
-        expect(screen.getByText("Space Members (3)")).toBeInTheDocument()
+        expect(screen.getByText("People with access (3)")).toBeInTheDocument()
       })
 
       // Member row has remove button
@@ -238,7 +238,7 @@ describe("TeamPage", () => {
       await renderPage()
 
       await waitFor(() => {
-        expect(screen.getByText("Space Members (3)")).toBeInTheDocument()
+        expect(screen.getByText("People with access (3)")).toBeInTheDocument()
       })
 
       // Can remove admin
