@@ -28,24 +28,38 @@ function renderPage() {
   )
 }
 
-function fillCommonToolFields() {
+function openToolTab() {
   fireEvent.click(screen.getByRole("button", { name: /create tool/i }))
-  fireEvent.change(screen.getByPlaceholderText("e.g. USDC Payments"), {
-    target: { value: "USDC Payments" },
-  })
-  fireEvent.change(
-    screen.getByPlaceholderText("Provide a description of the tool capabilities..."),
-    { target: { value: "Pays things." } }
-  )
 }
 
-function selectWasmFile() {
-  const file = new File(["wasm bytes"], "usdc.wasm", { type: "application/wasm" })
-  const input = document.querySelector('input[type="file"][accept=".wasm"]') as HTMLInputElement
-  fireEvent.change(input, { target: { files: [file] } })
+function getZipInput() {
+  return document.querySelector('input[type="file"][accept=".zip"]') as HTMLInputElement
 }
 
-describe("new-submit create -> upload flow", () => {
+function selectFile(file: File) {
+  fireEvent.change(getZipInput(), { target: { files: [file] } })
+}
+
+const inspectManifest = {
+  manifest: {
+    id: "usdc-payments",
+    name: "USDC Payments",
+    version: "1.2.0",
+    description: "Pays things in USDC.",
+    trust: "third_party",
+    runtimeKind: "wasm",
+    runtimeModule: "wasm/usdc-payments.wasm",
+  },
+  files: {
+    wasm: "wasm/usdc-payments.wasm",
+    capabilities: "usdc-payments-tool.capabilities.json",
+    schemas: [],
+    prompts: [],
+  },
+  totalUncompressedBytes: 4096,
+}
+
+describe("new-submit tool tab (zip bundle flow)", () => {
   beforeEach(() => {
     pushMock.mockClear()
     vi.stubGlobal("fetch", vi.fn())
@@ -55,26 +69,102 @@ describe("new-submit create -> upload flow", () => {
     vi.unstubAllGlobals()
   })
 
-  it("creates the artifact then uploads wasm and capabilities, and redirects to the dashboard", async () => {
+  it("rejects a non-zip file in the client and makes no request", () => {
+    renderPage()
+    openToolTab()
+
+    const file = new File(["wasm bytes"], "usdc.wasm", { type: "application/wasm" })
+    selectFile(file)
+
+    expect(screen.getByText("Only .zip archives are accepted.")).toBeInTheDocument()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it("prefills title, artifact name, version, and description from a successful inspect response", async () => {
     vi.mocked(fetch).mockImplementation(async (input) => {
       const url = String(input)
-      if (url === "/api/private-artifacts") {
-        return new Response(
-          JSON.stringify({
-            artifact: { id: "artifact-1", title: "USDC Payments" },
-          }),
-          { status: 201 }
-        )
-      }
-      if (url.endsWith("/content/wasm") || url.endsWith("/content/capabilities")) {
-        return new Response(null, { status: 201 })
+      if (url === "/api/private-artifacts/bundle/inspect") {
+        return new Response(JSON.stringify(inspectManifest), { status: 200 })
       }
       throw new Error(`Unexpected fetch: ${url}`)
     })
 
     renderPage()
-    fillCommonToolFields()
-    selectWasmFile()
+    openToolTab()
+
+    const file = new File(["zip bytes"], "usdc-payments.zip", { type: "application/zip" })
+    selectFile(file)
+
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue("USDC Payments")
+    )
+    expect(screen.getByPlaceholderText("e.g. usdc-payments")).toHaveValue("usdc-payments")
+    expect(screen.getByPlaceholderText("e.g. 1.0.0")).toHaveValue("1.2.0")
+    expect(
+      screen.getByPlaceholderText("Provide a description of the tool capabilities...")
+    ).toHaveValue("Pays things in USDC.")
+
+    // Prefilled fields stay editable.
+    fireEvent.change(screen.getByPlaceholderText("e.g. USDC Payments"), {
+      target: { value: "USDC Payments v2" },
+    })
+    expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue("USDC Payments v2")
+  })
+
+  it("shows the server's wrapper-folder message verbatim and blocks submission", async () => {
+    const wrapperMessage =
+      'Zip must contain the extension files at its root, not inside a wrapper folder (found "usdc-payments/"). Re-zip the folder\'s contents, not the folder itself.'
+
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/bundle/inspect") {
+        return new Response(JSON.stringify({ error: wrapperMessage }), { status: 400 })
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    renderPage()
+    openToolTab()
+
+    const file = new File(["zip bytes"], "usdc-payments.zip", { type: "application/zip" })
+    selectFile(file)
+
+    await waitFor(() => expect(screen.getByText(wrapperMessage)).toBeInTheDocument())
+
+    const submitButton = screen.getByRole("button", { name: /add to space/i })
+    expect(submitButton).toBeDisabled()
+
+    fireEvent.click(submitButton)
+    expect(fetch).toHaveBeenCalledTimes(1) // only the failed inspect call, no create attempt
+  })
+
+  it("creates the artifact then uploads the bundle, and redirects to the dashboard", async () => {
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/bundle/inspect") {
+        return new Response(JSON.stringify(inspectManifest), { status: 200 })
+      }
+      if (url === "/api/private-artifacts") {
+        return new Response(
+          JSON.stringify({ artifact: { id: "artifact-1", title: "USDC Payments" } }),
+          { status: 201 }
+        )
+      }
+      if (url === "/api/private-artifacts/artifact-1/bundle") {
+        return new Response(JSON.stringify({ content: [] }), { status: 201 })
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    renderPage()
+    openToolTab()
+
+    const file = new File(["zip bytes"], "usdc-payments.zip", { type: "application/zip" })
+    selectFile(file)
+
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue("USDC Payments")
+    )
 
     fireEvent.click(screen.getByRole("button", { name: /add to space/i }))
 
@@ -82,47 +172,43 @@ describe("new-submit create -> upload flow", () => {
 
     const calledUrls = vi.mocked(fetch).mock.calls.map(([input]) => String(input))
     expect(calledUrls).toEqual([
+      "/api/private-artifacts/bundle/inspect",
       "/api/private-artifacts",
-      "/api/private-artifacts/artifact-1/content/wasm",
-      "/api/private-artifacts/artifact-1/content/capabilities",
+      "/api/private-artifacts/artifact-1/bundle",
     ])
   })
 
-  it("on a partial upload failure, redirects to the manage page instead of dead-ending the form", async () => {
+  it("on a partial bundle upload failure, redirects to the manage page instead of dead-ending the form", async () => {
     vi.mocked(fetch).mockImplementation(async (input) => {
       const url = String(input)
+      if (url === "/api/private-artifacts/bundle/inspect") {
+        return new Response(JSON.stringify(inspectManifest), { status: 200 })
+      }
       if (url === "/api/private-artifacts") {
         return new Response(
-          JSON.stringify({
-            artifact: { id: "artifact-2", title: "USDC Payments" },
-          }),
+          JSON.stringify({ artifact: { id: "artifact-2", title: "USDC Payments" } }),
           { status: 201 }
         )
       }
-      if (url.endsWith("/content/wasm")) {
-        return new Response(null, { status: 201 })
-      }
-      if (url.endsWith("/content/capabilities")) {
-        return new Response(JSON.stringify({ error: "storage unavailable" }), {
-          status: 500,
-        })
+      if (url === "/api/private-artifacts/artifact-2/bundle") {
+        return new Response(JSON.stringify({ error: "storage unavailable" }), { status: 500 })
       }
       throw new Error(`Unexpected fetch: ${url}`)
     })
 
     renderPage()
-    fillCommonToolFields()
-    selectWasmFile()
+    openToolTab()
+
+    const file = new File(["zip bytes"], "usdc-payments.zip", { type: "application/zip" })
+    selectFile(file)
+
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue("USDC Payments")
+    )
 
     fireEvent.click(screen.getByRole("button", { name: /add to space/i }))
 
-    // The artifact was created (POST succeeded) but capabilities upload
-    // failed — retrying "Add to Space" would 409 on name+version, so the
-    // user must be sent to the manage page to finish uploading instead of
-    // being stuck on the create form.
-    await waitFor(() =>
-      expect(pushMock).toHaveBeenCalledWith("/mvp/manage/artifact-2")
-    )
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/mvp/manage/artifact-2"))
     expect(pushMock).not.toHaveBeenCalledWith("/mvp/dashboard")
   })
 })
