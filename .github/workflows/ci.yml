@@ -143,6 +143,12 @@ jobs:
       - name: Storage tests
         run: pnpm --filter web test:storage
 
+      - name: Agent installation tests
+        run: pnpm --filter web test:agent-installations
+
+      - name: Discovery tests
+        run: pnpm --filter web test:discovery
+
       - name: UI tests
         run: pnpm --filter web test:ui
 
