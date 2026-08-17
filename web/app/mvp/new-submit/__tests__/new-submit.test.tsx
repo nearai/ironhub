@@ -29,7 +29,7 @@ function renderPage() {
 }
 
 function openToolTab() {
-  fireEvent.click(screen.getByRole("button", { name: /create tool/i }))
+  fireEvent.click(screen.getByRole("button", { name: /^tool\b/i }))
 }
 
 function getZipInput() {
@@ -38,6 +38,15 @@ function getZipInput() {
 
 function selectFile(file: File) {
   fireEvent.change(getZipInput(), { target: { files: [file] } })
+}
+
+function readBlobText(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsText(blob)
+  })
 }
 
 const inspectManifest = {
@@ -300,5 +309,145 @@ describe("new-submit tool tab (zip bundle flow)", () => {
 
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/mvp/manage/artifact-2"))
     expect(pushMock).not.toHaveBeenCalledWith("/mvp/dashboard")
+  })
+
+  it("renders the SKILL.md placeholder with a real newline and no literal backslash-n", () => {
+    renderPage()
+    const textarea = screen.getByPlaceholderText(/## Persona/)
+    const placeholder = textarea.getAttribute("placeholder") || ""
+    expect(placeholder).toContain("\n")
+    expect(placeholder).not.toContain("\\n")
+  })
+
+  it("does not mention capabilities.json, manifest.toml, or 'no longer required' in tool mode copy", () => {
+    renderPage()
+    openToolTab()
+    expect(screen.queryByText(/capabilities\.json/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/manifest\.toml/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/no longer required/i)).not.toBeInTheDocument()
+  })
+
+  it("renders visible helper text explaining why submit is disabled when no package is chosen in tool mode", () => {
+    renderPage()
+    openToolTab()
+    expect(screen.getByText("Upload a tool package to continue")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /add to space/i })).toBeDisabled()
+  })
+
+  it("renders numbered sections and no step counter in both skill and tool modes", () => {
+    renderPage()
+    expect(screen.queryByText(/step \d+ of \d+/i)).not.toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Step 1: What you are adding" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Step 2: Basics" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Step 3: Instructions" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Step 4: Who can see it" })).toBeInTheDocument()
+
+    // Switch to tool mode
+    openToolTab()
+    expect(screen.queryByText(/step \d+ of \d+/i)).not.toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Step 1: What you are adding" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Step 2: Tool package" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Step 3: Basics" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Step 4: Who can see it" })).toBeInTheDocument()
+  })
+
+  it("creates a skill artifact and uploads compiled markdown to skill_md, redirecting to the dashboard", async () => {
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts") {
+        return new Response(
+          JSON.stringify({ artifact: { id: "skill-1", title: "Invoice Auditor" } }),
+          { status: 201 }
+        )
+      }
+      if (url === "/api/private-artifacts/skill-1/content/skill_md") {
+        return new Response(null, { status: 200 })
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    renderPage()
+
+    fireEvent.change(screen.getByPlaceholderText("e.g. Invoice Auditor"), {
+      target: { value: "Invoice Auditor" },
+    })
+    fireEvent.change(screen.getByPlaceholderText("e.g. 1.0.0"), {
+      target: { value: "2.1.0" },
+    })
+    fireEvent.change(screen.getByPlaceholderText("Core value or pitch of this skill..."), {
+      target: { value: "Audits invoices." },
+    })
+    fireEvent.change(screen.getByPlaceholderText(/## Persona/), {
+      target: { value: "## Persona\n\nBe careful." },
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: /add to space/i }))
+
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/mvp/dashboard"))
+
+    const calls = vi.mocked(fetch).mock.calls
+    const calledUrls = calls.map(([input]) => String(input))
+    expect(calledUrls).toEqual([
+      "/api/private-artifacts",
+      "/api/private-artifacts/skill-1/content/skill_md",
+    ])
+
+    const [, skillUploadInit] = calls[1]
+    const bodyBlob = skillUploadInit?.body as Blob
+    expect(bodyBlob).toBeInstanceOf(Blob)
+    const bodyText = await readBlobText(bodyBlob)
+    expect(bodyText).toContain("name: invoice-auditor")
+    expect(bodyText).toContain("version: 2.1.0")
+    expect(bodyText).toContain("## Persona")
+    expect(bodyText).toContain("Be careful.")
+  })
+
+  it("clears inspected bundle state and prefilled identifier when switching away from tool mode and back", async () => {
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/bundle/inspect") {
+        return new Response(JSON.stringify(inspectManifest), { status: 200 })
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    renderPage()
+    openToolTab()
+
+    const file = new File(["zip bytes"], "usdc-payments.zip", { type: "application/zip" })
+    selectFile(file)
+
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText("e.g. usdc-payments")).toHaveValue("usdc-payments")
+    )
+    expect(screen.getByText("Inspected")).toBeInTheDocument()
+
+    // Switch to Skill mode
+    fireEvent.click(screen.getByRole("button", { name: /^skill\b/i }))
+
+    // Switch back to Tool mode
+    openToolTab()
+
+    expect(screen.queryByText("Inspected")).not.toBeInTheDocument()
+    expect(screen.queryByText("usdc-payments.zip")).not.toBeInTheDocument()
+    expect(screen.getByPlaceholderText("e.g. usdc-payments")).toHaveValue("")
+  })
+
+  it("clears bundle error when switching away from tool mode and back", () => {
+    renderPage()
+    openToolTab()
+
+    const file = new File(["wasm bytes"], "usdc.wasm", { type: "application/wasm" })
+    selectFile(file)
+
+    expect(screen.getByText("Only .zip archives are accepted.")).toBeInTheDocument()
+
+    // Switch to Skill mode
+    fireEvent.click(screen.getByRole("button", { name: /^skill\b/i }))
+
+    // Switch back to Tool mode
+    openToolTab()
+
+    expect(screen.queryByText("Only .zip archives are accepted.")).not.toBeInTheDocument()
   })
 })
