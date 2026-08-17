@@ -26,8 +26,6 @@ import {
   DataTable,
   type DataTableColumn,
   EmptyState,
-  FormProgress,
-  type FormProgressStep,
   FormSection,
   RelativeTime,
   StatCard,
@@ -621,89 +619,3 @@ describe("FormSection", () => {
   })
 })
 
-describe("FormProgress", () => {
-  const sampleSteps: FormProgressStep[] = [
-    { id: "details", label: "Details" },
-    { id: "permissions", label: "Permissions" },
-    { id: "review", label: "Review" },
-    { id: "publish", label: "Publish" },
-  ]
-
-  it("exposes nav with accessible name, defaulting to 'Form progress' and allowing custom label", () => {
-    const { rerender } = render(
-      <FormProgress steps={sampleSteps} currentId="details" />
-    )
-    expect(
-      screen.getByRole("navigation", { name: "Form progress" })
-    ).toBeInTheDocument()
-
-    rerender(
-      <FormProgress
-        steps={sampleSteps}
-        currentId="details"
-        label="Submission workflow"
-      />
-    )
-    expect(
-      screen.getByRole("navigation", { name: "Submission workflow" })
-    ).toBeInTheDocument()
-  })
-
-  it("renders all step labels in a list where aria-hidden connectors are excluded from listitem count", () => {
-    render(<FormProgress steps={sampleSteps} currentId="permissions" />)
-
-    const list = screen.getByRole("list")
-    expect(list).toBeInTheDocument()
-
-    const listItems = screen.getAllByRole("listitem")
-    expect(listItems).toHaveLength(sampleSteps.length)
-
-    sampleSteps.forEach((step) => {
-      expect(screen.getByText(step.label)).toBeInTheDocument()
-    })
-  })
-
-  it("sets aria-current='step' only on the current step and renders the step summary", () => {
-    render(<FormProgress steps={sampleSteps} currentId="permissions" />)
-
-    expect(screen.getByText("Step 2 of 4")).toBeInTheDocument()
-
-    const listItems = screen.getAllByRole("listitem")
-    expect(listItems[1]).toHaveAttribute("aria-current", "step")
-    expect(listItems[0]).not.toHaveAttribute("aria-current")
-    expect(listItems[2]).not.toHaveAttribute("aria-current")
-    expect(listItems[3]).not.toHaveAttribute("aria-current")
-  })
-
-  it("falls back to the first step when currentId does not match", () => {
-    render(<FormProgress steps={sampleSteps} currentId="unknown-id" />)
-
-    expect(screen.getByText("Step 1 of 4")).toBeInTheDocument()
-    const listItems = screen.getAllByRole("listitem")
-    expect(listItems[0]).toHaveAttribute("aria-current", "step")
-    expect(listItems[1]).not.toHaveAttribute("aria-current")
-  })
-
-  it("renders check icon instead of number for previous steps and steps flagged complete", () => {
-    const steps: FormProgressStep[] = [
-      { id: "first", label: "First" },
-      { id: "second", label: "Second" },
-      { id: "third", label: "Third", complete: true },
-    ]
-
-    render(<FormProgress steps={steps} currentId="second" />)
-
-    const listItems = screen.getAllByRole("listitem")
-    // 'first' is before current -> complete (check icon instead of 1)
-    expect(listItems[0].textContent).toBe("First")
-    expect(listItems[0].textContent).not.toContain("1")
-
-    // 'second' is current -> shows number 2
-    expect(listItems[1].textContent).toContain("2")
-    expect(listItems[1].textContent).toContain("Second")
-
-    // 'third' is flagged complete: true -> shows check icon instead of 3
-    expect(listItems[2].textContent).toBe("Third")
-    expect(listItems[2].textContent).not.toContain("3")
-  })
-})
