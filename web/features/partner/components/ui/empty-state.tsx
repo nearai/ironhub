@@ -7,6 +7,12 @@ export interface EmptyStateProps {
   description?: string
   action?: React.ReactNode
   secondaryAction?: React.ReactNode
+  /**
+   * "panel" (default) draws its own dashed container. Use "bare" when the empty
+   * state already sits inside one — inside a DataTable, for instance, where a
+   * dashed border nested in the table's solid one reads as a mistake.
+   */
+  variant?: "panel" | "bare"
   className?: string
 }
 
@@ -16,12 +22,15 @@ export function EmptyState({
   description,
   action,
   secondaryAction,
+  variant = "panel",
   className,
 }: EmptyStateProps) {
   return (
     <div
       className={cn(
-        "rounded-xl border border-dashed border-[var(--ironhub-line)] bg-muted/20 px-6 py-12 text-center",
+        "px-6 py-12 text-center",
+        variant === "panel" &&
+          "rounded-xl border border-dashed border-[var(--ironhub-line)] bg-muted/20",
         className
       )}
     >

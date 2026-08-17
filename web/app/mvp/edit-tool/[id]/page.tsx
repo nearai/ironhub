@@ -400,10 +400,12 @@ export default function EditToolPage({ params }: PageProps) {
               </span>
             </div>
 
+            {/* Neutral, not green: a file waiting to be uploaded is a fact, and
+                the emerald ramp means "published" everywhere else. */}
             {wasmFile && (
-              <div className="flex items-center justify-between rounded-lg border border-emerald-500/25 bg-emerald-500/10 p-3 text-sm text-foreground mt-1">
+              <div className="mt-1 flex items-center justify-between rounded-lg border border-[var(--ironhub-line)] bg-muted/40 p-3 text-sm text-foreground">
                 <span className="flex items-center gap-2 min-w-0">
-                  <IconFileZip className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  <IconFileZip className="size-4 shrink-0 text-muted-foreground" />
                   <span className="truncate">{wasmFile.name}</span>
                 </span>
                 <AttributeBadge className="shrink-0">

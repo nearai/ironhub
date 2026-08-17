@@ -400,12 +400,14 @@ export default function TeamPage() {
               </div>
             ) : membersError ? (
               <EmptyState
+                variant="bare"
                 icon={IconAlertTriangle}
                 title="Could not load members"
                 description="Could not fetch the members list."
               />
             ) : (
               <EmptyState
+                variant="bare"
                 icon={IconUsers}
                 title="No members found"
                 description="This workspace has no members."
@@ -444,12 +446,14 @@ export default function TeamPage() {
               </div>
             ) : invitationsError ? (
               <EmptyState
+                variant="bare"
                 icon={IconAlertTriangle}
                 title="Could not load invitations"
                 description="Could not fetch pending invitations."
               />
             ) : (
               <EmptyState
+                variant="bare"
                 icon={IconClock}
                 title="No pending invitations"
               />
