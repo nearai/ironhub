@@ -17,6 +17,7 @@ web/docs/
 .superpowers/
 openspec/
 .agent/
+.agents/
 .rtk/
 CLAUDE.md
 kent-notes

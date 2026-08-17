@@ -1,16 +1,96 @@
+import { Readable } from "node:stream"
+
 import { requireActiveOrganization } from "@/lib/auth/org-context"
 import { assertSameOriginRequest, handleApiError } from "@/lib/http/api"
 import {
+  CONTENT_MEDIA_TYPES,
   describeLimit,
+  getArtifactContentMetadata,
   MAX_CONTENT_BYTES_BY_KIND,
   parseContentKind,
+  REDIRECT_CONTENT_KINDS,
   storeArtifactContent,
 } from "@/lib/private-artifacts/content"
 import { deletePrivateArtifactContentRow } from "@/lib/private-artifacts/service"
-import { deleteObject } from "@/lib/storage"
+import {
+  deleteObject,
+  getObjectStream,
+  getPresignedDownloadUrl,
+} from "@/lib/storage"
 
 type Params = {
   params: Promise<{ id: string; kind: string }>
+}
+
+const PRESIGNED_URL_TTL_SECONDS = 300
+
+// GET is the owner-facing read path (design.md D4): an active-org session is
+// enough, no install token required, and there is no same-origin guard since
+// GET is a safe method. `getArtifactContentMetadata` already scopes the
+// lookup to the caller's organization and returns the same 404 for both
+// "artifact isn't in this org" and "no content of this kind" -- that's
+// intentional, it's what keeps this route from leaking artifact existence
+// across orgs.
+export async function GET(_request: Request, { params }: Params) {
+  try {
+    const { organizationId } = await requireActiveOrganization()
+    const { id, kind } = await params
+    const contentKind = parseContentKind(kind)
+
+    const content = await getArtifactContentMetadata(
+      organizationId,
+      id,
+      contentKind
+    )
+
+    if (REDIRECT_CONTENT_KINDS.has(contentKind)) {
+      const url = await getPresignedDownloadUrl(
+        content.storageKey,
+        PRESIGNED_URL_TTL_SECONDS
+      )
+      return new Response(null, {
+        status: 302,
+        headers: { Location: url, "Cache-Control": "no-store" },
+      })
+    }
+
+    let stream: Awaited<ReturnType<typeof getObjectStream>>
+    try {
+      stream = await getObjectStream(content.storageKey)
+    } catch (storageError) {
+      // The content row exists but the object itself is gone from the
+      // bucket (deleted out of band, bucket mismatch, ...). `getObjectStream`
+      // throws a plain Error for this, which `handleApiError` would turn
+      // into a 500 -- but from the caller's point of view this is exactly
+      // the same "nothing to read" situation as a missing content row, so
+      // answer it the same way instead of reporting a server fault for a
+      // data-integrity issue that isn't the caller's problem to retry past.
+      console.error(
+        `Content row exists but the object is missing from storage (key: ${content.storageKey}):`,
+        storageError
+      )
+      throw new Response("Content not found", { status: 404 })
+    }
+    // `stream` is a Node Readable when using the SDK's default Node request
+    // handler (the case for our S3-compatible dev/prod setup); the DOM
+    // `ReadableStream`/`Blob` cases are for non-Node runtimes and are not
+    // exercised here, but are handled defensively since the SDK's Body type
+    // is a union across all of them.
+    const body = (
+      stream instanceof Readable ? Readable.toWeb(stream) : stream
+    ) as unknown as ReadableStream
+
+    return new Response(body, {
+      status: 200,
+      headers: {
+        "Content-Type": CONTENT_MEDIA_TYPES[contentKind],
+        "Content-Length": String(content.sizeBytes),
+        "Cache-Control": "no-store",
+      },
+    })
+  } catch (error) {
+    return handleApiError(error)
+  }
 }
 
 export async function PUT(request: Request, { params }: Params) {
@@ -49,9 +129,6 @@ export async function PUT(request: Request, { params }: Params) {
   }
 }
 
-// integration note: this DELETE handler is additive next to the PUT above
-// (which wt-storage is rewriting for S3-backed uploads) to minimize merge
-// surface — it does not modify the PUT handler or content.ts.
 export async function DELETE(request: Request, { params }: Params) {
   try {
     const { organizationId } = await requireActiveOrganization()

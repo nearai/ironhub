@@ -27,7 +27,9 @@ mock.module("@/lib/http/api", {
 // from design.md D3 if content.ts's limits ever changed without this test
 // file being touched.
 const {
+  CONTENT_MEDIA_TYPES,
   MAX_CONTENT_BYTES_BY_KIND,
+  REDIRECT_CONTENT_KINDS,
   describeLimit: realDescribeLimit,
 } = await import("@/lib/private-artifacts/content.ts")
 
@@ -35,6 +37,17 @@ mock.module("@/lib/private-artifacts/content", {
   namedExports: {
     MAX_CONTENT_BYTES_BY_KIND,
     describeLimit: realDescribeLimit,
+    // route.ts's GET handler (exercised in route.get.test.mjs) imports these
+    // too. `mock.module` replaces the whole module for every importer, so an
+    // export omitted here is a hard link error even for handlers this file
+    // never calls. They come from the real module rather than being
+    // hand-written: a partial CONTENT_MEDIA_TYPES literal would have left
+    // manifest_toml and bundle_zip undefined.
+    CONTENT_MEDIA_TYPES,
+    REDIRECT_CONTENT_KINDS,
+    getArtifactContentMetadata: async () => {
+      throw new Error("not used by the PUT tests in this file")
+    },
     parseContentKind: (value) => {
       if (!Object.keys(MAX_CONTENT_BYTES_BY_KIND).includes(value)) {
         throw new Response(`Invalid content kind: ${value}`, { status: 400 })

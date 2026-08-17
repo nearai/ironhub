@@ -33,6 +33,17 @@ export const MAX_CONTENT_BYTES_BY_KIND: Record<ContentKind, number> = {
   bundle_zip: 25 * 1024 * 1024,
 }
 
+/**
+ * Kinds served as a 302 to a short-lived presigned URL rather than proxied
+ * through the Next process (design.md D4). Lives beside the kind table on
+ * purpose: a new binary kind added above without being listed here would
+ * silently start streaming multi-megabyte blobs through the server.
+ */
+export const REDIRECT_CONTENT_KINDS: ReadonlySet<ContentKind> = new Set([
+  "wasm",
+  "bundle_zip",
+])
+
 export function parseContentKind(value: string): ContentKind {
   if (!(CONTENT_KINDS as readonly string[]).includes(value)) {
     throw new Response(`Invalid content kind: ${value}`, { status: 400 })
