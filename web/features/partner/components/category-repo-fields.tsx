@@ -44,7 +44,8 @@ export function CategoryAndRepoFields({
           value={category}
           onChange={(e) => onCategoryChange(e.target.value)}
           aria-invalid={Boolean(categoryError)}
-          className="h-10 w-full rounded-lg"
+          className="w-full"
+          selectClassName="h-10 rounded-lg"
         >
           <NativeSelectOption value="">Uncategorised</NativeSelectOption>
           {CATEGORIES.map((c) => (
