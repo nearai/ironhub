@@ -242,8 +242,15 @@ describe("edit-skill content loading", () => {
 
     await renderPage()
 
+    // Wait for the seeded value itself, not just the button being enabled:
+    // `contentReady` (which enables the button) is derived directly from
+    // `skillContent.data` during render, but `description` is populated by
+    // a separate useEffect that runs one render later. Waiting only for the
+    // button can race ahead of that effect and interact with a still-blank
+    // form (see edit-tool's equivalent fix for the bug this caused there).
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /save & publish/i })).not.toBeDisabled()
+      expect(screen.getByDisplayValue("A skill.")).toBeInTheDocument()
     })
 
     // Edit only a known field -- description -- leaving `custom_owner_note`
@@ -269,5 +276,49 @@ describe("edit-skill content loading", () => {
     expect(uploadedText).toContain("custom_owner_note: keep me")
     expect(uploadedText).toContain("An updated skill description.")
     expect(uploadedText).toContain("Automate onboarding")
+  })
+
+  // Mirrors edit-tool's equivalent test: a metadata-only save (title only)
+  // must not re-upload skill_md when nothing the user edits changed. The
+  // baseline compared against is the as-loaded state re-serialized (not the
+  // literal fetched bytes), since js-yaml's dump normalizes formatting on
+  // its way through -- comparing against the raw fetched text would treat
+  // that normalization alone as a "change" and defeat this optimization.
+  it("does not re-upload skill_md on a metadata-only save when nothing in the form changed", async () => {
+    const putCalls = trackPutCalls()
+    const baseImpl = vi.mocked(fetch).getMockImplementation()!
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/artifact-1/content/skill_md" && init?.method !== "PUT") {
+        return new Response(storedFileWithUnknownKey, {
+          status: 200,
+          headers: { "Content-Type": "text/markdown; charset=utf-8" },
+        })
+      }
+      return baseImpl(input, init)
+    })
+
+    await renderPage()
+
+    // Wait for the seeded value, not just the button, for the same reason
+    // as the test above -- otherwise this test could pass or fail on
+    // timing rather than on the skip-when-unchanged logic under test.
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /save & publish/i })).not.toBeDisabled()
+      expect(screen.getByDisplayValue("Does the thing.")).toBeInTheDocument()
+    })
+
+    // Change only the title -- leave every frontmatter field and the body
+    // exactly as loaded.
+    fireEvent.change(screen.getByDisplayValue("My Skill"), {
+      target: { value: "My Renamed Skill" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: /save & publish/i }))
+
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalled()
+    })
+
+    expect(putCalls.length).toBe(0)
   })
 })

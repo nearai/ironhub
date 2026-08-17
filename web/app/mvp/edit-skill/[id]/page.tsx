@@ -71,6 +71,16 @@ export default function EditSkillPage({ params }: PageProps) {
   // ref) because it's read during render to build the "View Skill File"
   // preview.
   const [baseFrontmatter, setBaseFrontmatter] = useState<Record<string, unknown>>({})
+  // What `compileSkillMarkdown()` would produce from the as-loaded state,
+  // with zero form edits -- computed once at seed time, not the raw fetched
+  // text. js-yaml's dump normalizes formatting on the way through (see
+  // skill-md.ts's documented limitation), so comparing against the literal
+  // bytes read from the server would treat a purely-cosmetic
+  // re-serialization as "changed" on every single save. Comparing against
+  // this baseline instead only re-uploads when the *content* actually
+  // changed, matching the edit-tool capabilities editor's skip-when-
+  // unchanged behaviour.
+  const [originalSerialized, setOriginalSerialized] = useState<string | null>(null)
 
   // UI state
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit")
@@ -110,6 +120,7 @@ export default function EditSkillPage({ params }: PageProps) {
       setActivationKeywordsText(asStringArray(activation.keywords).join(", "))
       setActivationTagsText(asStringArray(activation.tags).join(", "))
       setMarkdownContent(body)
+      setOriginalSerialized(serializeSkillMd(frontmatter, body))
     }
   }, [skillContent.data, id])
 
@@ -243,10 +254,18 @@ export default function EditSkillPage({ params }: PageProps) {
     if (!contentReady) return
     try {
       await updateArtifact.mutateAsync({ title, description, visibility })
-      await uploadContent.mutateAsync({
-        kind: "skill_md",
-        file: new Blob([compileSkillMarkdown()], { type: "text/markdown" }),
-      })
+      // Only re-upload when the compiled file actually differs from the
+      // as-loaded baseline -- otherwise a metadata-only save (title,
+      // visibility) would rewrite an unchanged skill_md, minting a
+      // pointless new sha256 and, after js-yaml's normalization, silently
+      // reformatting bytes the user never touched.
+      const fileText = compileSkillMarkdown()
+      if (fileText !== originalSerialized) {
+        await uploadContent.mutateAsync({
+          kind: "skill_md",
+          file: new Blob([fileText], { type: "text/markdown" }),
+        })
+      }
       notify(`Changes saved for ${title}`)
       router.push(`/mvp/manage/${id}`)
     } catch (error) {
