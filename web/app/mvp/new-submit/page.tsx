@@ -42,6 +42,23 @@ function slugify(value: string) {
   )
 }
 
+/**
+ * Prefills the artifact-name field from a manifest.toml `id`, replacing only
+ * what the server's artifact-name charset (`service.ts`:
+ * `/^[a-z0-9][a-z0-9_-]*$/`) actually forbids. Unlike `slugify()` above —
+ * which is fine for deriving a name from a free-typed human title — this
+ * must NOT collapse `_`, since underscores are legal in both the manifest-id
+ * charset (D6 rule 8) and the artifact-name charset. Only `.` and other
+ * truly illegal characters get replaced.
+ */
+function sanitizeArtifactName(id: string) {
+  const cleaned = id
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/^[-_]+|[-_]+$/g, "")
+  return cleaned || "item"
+}
+
 export default function NewSubmitPage() {
   const router = useRouter()
   const { notify } = useToast()
@@ -215,10 +232,12 @@ export default function NewSubmitPage() {
       setInspectedManifest(result.manifest)
       setTitle(result.manifest.name)
       // manifest.toml `id` (D6 rule 8) allows `.` alongside lowercase
-      // alphanumerics — the artifact-name charset does not. Slugify for the
-      // prefill so e.g. "acme.firecrawl" becomes a valid, editable artifact
-      // name; the manifest's own `id` is left untouched in the stored file.
-      setArtifactName(slugify(result.manifest.id))
+      // alphanumerics and `_`/`-` — the artifact-name charset allows `_`/`-`
+      // but not `.`. Only strip what's actually illegal for this field, so
+      // e.g. "acme.firecrawl_tool" becomes "acme-firecrawl_tool", not a
+      // fully slugified name that would also destroy the legal underscore.
+      // The manifest's own `id` is left untouched in the stored file.
+      setArtifactName(sanitizeArtifactName(result.manifest.id))
       setVersion(result.manifest.version)
       setDescription(result.manifest.description)
       notify(`Inspected package: ${file.name}`, "info")
@@ -287,9 +306,15 @@ export default function NewSubmitPage() {
       createdArtifactId = artifact.id
 
       if (type === "tool") {
+        // Unreachable in practice — the submit button is disabled unless
+        // bundleReadyForSubmit (which requires zipFile) is true — but this
+        // narrows the type properly instead of asserting it with a cast.
+        if (!zipFile) {
+          throw new Error("No archive selected.")
+        }
         setUploadStatus((prev) => ({ ...prev, bundle: "uploading" }))
         try {
-          await uploadArtifactBundle.mutateAsync({ id: artifact.id, bytes: zipFile as File })
+          await uploadArtifactBundle.mutateAsync({ id: artifact.id, bytes: zipFile })
           setUploadStatus((prev) => ({ ...prev, bundle: "done" }))
         } catch (uploadError) {
           setUploadStatus((prev) => ({ ...prev, bundle: "error" }))

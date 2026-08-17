@@ -310,7 +310,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
               {artifact.visibility === "public" ? (
                 <>
                   <IconWorld className="size-3 text-muted-foreground" />
-                  Request public listing
+                  Public — pending review
                 </>
               ) : (
                 <>
@@ -392,7 +392,10 @@ export default function ManageSubmissionPage({ params }: PageProps) {
 
           {artifact.type === "tool" && (
             <div className="mt-3 flex flex-col gap-1.5">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase">
+              <label
+                htmlFor="bundle-reupload-input"
+                className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase"
+              >
                 <IconUpload className="size-3.5" />
                 Re-upload Extension Bundle (.zip)
               </label>
@@ -400,6 +403,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
                 Recovery path if a bundle upload failed partway through, or to replace the stored package.
               </p>
               <input
+                id="bundle-reupload-input"
                 type="file"
                 accept=".zip"
                 disabled={uploadArtifactBundle.isPending}
