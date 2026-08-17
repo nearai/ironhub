@@ -93,7 +93,7 @@ describe("edit-tool capabilities content loading", () => {
     await renderPage()
 
     await waitFor(() => {
-      expect(screen.getByText(/could not load the stored capabilities\.json/i)).toBeInTheDocument()
+      expect(screen.getByText(/stored permissions could not be loaded/i)).toBeInTheDocument()
     })
 
     const saveButton = screen.getByRole("button", { name: /save changes/i })
@@ -133,9 +133,9 @@ describe("edit-tool capabilities content loading", () => {
 
     await waitFor(() => {
       expect(
-        screen.queryByText(/could not load the stored capabilities\.json/i)
+        screen.queryByText(/stored permissions could not be loaded/i)
       ).not.toBeInTheDocument()
-      expect(screen.getByText(/no capabilities\.json is stored/i)).toBeInTheDocument()
+      expect(screen.getByText(/no permissions file is stored for this tool/i)).toBeInTheDocument()
       expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
     })
 
@@ -276,12 +276,12 @@ describe("edit-tool capabilities content loading", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/couldn.t refresh the stored capabilities\.json/i)
+        screen.getByText(/could not refresh the stored permissions/i)
       ).toBeInTheDocument()
     })
 
     const textarea = screen.getByPlaceholderText('{ "permissions": [] }')
-    expect(screen.queryByText(/could not load the stored capabilities\.json/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/stored permissions could not be loaded/i)).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
     expect(textarea).not.toBeDisabled()
     expect(textarea).toHaveValue(storedCapabilities)
