@@ -24,6 +24,18 @@ mock.module("@/lib/http/api", {
 
 mock.module("@/lib/private-artifacts/content", {
   namedExports: {
+    // route.ts's GET handler (added in a separate file, route.get.test.mjs)
+    // also imports these two -- listed here purely so importing the whole
+    // route module doesn't throw a missing-export error in this file, which
+    // only exercises PUT.
+    CONTENT_MEDIA_TYPES: {
+      skill_md: "text/markdown; charset=utf-8",
+      wasm: "application/wasm",
+      capabilities: "application/json",
+    },
+    getArtifactContentMetadata: async () => {
+      throw new Error("not used by the PUT tests in this file")
+    },
     parseContentKind: (value) => {
       if (!["wasm", "capabilities", "skill_md"].includes(value)) {
         throw new Response(`Invalid content kind: ${value}`, { status: 400 })
