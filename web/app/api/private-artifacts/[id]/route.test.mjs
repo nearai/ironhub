@@ -70,6 +70,13 @@ function patchRequest(body) {
   })
 }
 
+test("the real MUTABLE_ARTIFACT_FIELDS allow-list excludes status", () => {
+  // Guards the guard rail: this fails the moment someone widens the real
+  // list to include "status", even if the PATCH-level test below were ever
+  // weakened or bypassed.
+  assert.ok(!realMutableArtifactFields.includes("status"))
+})
+
 test("PATCH rejects a status field with 400 and does not touch the service", async () => {
   updateCalls.length = 0
   const response = await PATCH(patchRequest({ status: "published" }), makeParams())
