@@ -22,17 +22,19 @@ mock.module("@/lib/http/api", {
   },
 })
 
-const MAX_CONTENT_BYTES_BY_KIND = {
-  skill_md: 5 * 1024 * 1024,
-  wasm: 5 * 1024 * 1024,
-  capabilities: 5 * 1024 * 1024,
-  manifest_toml: 256 * 1024,
-  bundle_zip: 25 * 1024 * 1024,
-}
+// Import the real per-kind limit table (and its formatter) rather than
+// duplicating the numbers here -- a hand-copied table would silently drift
+// from design.md D3 if content.ts's limits ever changed without this test
+// file being touched.
+const {
+  MAX_CONTENT_BYTES_BY_KIND,
+  describeLimit: realDescribeLimit,
+} = await import("@/lib/private-artifacts/content.ts")
 
 mock.module("@/lib/private-artifacts/content", {
   namedExports: {
     MAX_CONTENT_BYTES_BY_KIND,
+    describeLimit: realDescribeLimit,
     parseContentKind: (value) => {
       if (!Object.keys(MAX_CONTENT_BYTES_BY_KIND).includes(value)) {
         throw new Response(`Invalid content kind: ${value}`, { status: 400 })

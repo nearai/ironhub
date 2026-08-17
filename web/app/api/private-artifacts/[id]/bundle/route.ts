@@ -1,11 +1,40 @@
 import { requireActiveOrganization } from "@/lib/auth/org-context"
 import { assertSameOriginRequest, handleApiError } from "@/lib/http/api"
 import { inspectExtensionBundle, readBundleFile } from "@/lib/private-artifacts/bundle"
-import { storeArtifactContent } from "@/lib/private-artifacts/content"
+import {
+  type ContentKind,
+  storeArtifactContent,
+} from "@/lib/private-artifacts/content"
 import { getPrivateArtifact } from "@/lib/private-artifacts/service"
 
 type Params = {
   params: Promise<{ id: string }>
+}
+
+// `storeArtifactContent` (content.ts) is the authoritative D3 size guard --
+// it applies to every caller, so a bundle can never smuggle a kind past its
+// limit just because bundle.ts's own per-entry cap (D6) is looser (e.g. a
+// 10MB wasm module in an archive well under the 25MB compressed cap, against
+// D3's 5MB wasm limit). It throws a generic 413 shaped for a direct content
+// upload, though. Here the "request" wasn't oversized -- one file inside the
+// author's archive was -- so we re-shape that into a 400 naming the specific
+// path, which is what the author needs to go fix.
+async function storeBundleContent(
+  organizationId: string,
+  artifactId: string,
+  kind: ContentKind,
+  path: string,
+  bytes: Uint8Array
+) {
+  try {
+    return await storeArtifactContent(organizationId, artifactId, kind, bytes)
+  } catch (error) {
+    if (error instanceof Response && error.status === 413) {
+      const detail = await error.text()
+      throw new Response(`${path}: ${detail}`, { status: 400 })
+    }
+    throw error
+  }
 }
 
 export async function PUT(request: Request, { params }: Params) {
@@ -33,31 +62,40 @@ export async function PUT(request: Request, { params }: Params) {
 
     const stored = []
     stored.push(
-      await storeArtifactContent(
+      await storeBundleContent(
         organizationId,
         id,
         "wasm",
+        inspected.wasmPath,
         readBundleFile(zip, inspected.wasmPath)
       )
     )
     stored.push(
-      await storeArtifactContent(
+      await storeBundleContent(
         organizationId,
         id,
         "capabilities",
+        inspected.capabilitiesPath,
         readBundleFile(zip, inspected.capabilitiesPath)
       )
     )
     stored.push(
-      await storeArtifactContent(
+      await storeBundleContent(
         organizationId,
         id,
         "manifest_toml",
+        "manifest.toml",
         readBundleFile(zip, "manifest.toml")
       )
     )
     stored.push(
-      await storeArtifactContent(organizationId, id, "bundle_zip", zip)
+      await storeBundleContent(
+        organizationId,
+        id,
+        "bundle_zip",
+        "the uploaded archive",
+        zip
+      )
     )
 
     return Response.json({ content: stored }, { status: 201 })

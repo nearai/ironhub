@@ -40,6 +40,12 @@ export function parseContentKind(value: string): ContentKind {
   return value as ContentKind
 }
 
+export function describeLimit(maxBytes: number): string {
+  return maxBytes >= 1024 * 1024
+    ? `${maxBytes / (1024 * 1024)}MB`
+    : `${maxBytes / 1024}KB`
+}
+
 export function artifactContentStorageKey(
   organizationId: string,
   artifactId: string,
@@ -48,12 +54,27 @@ export function artifactContentStorageKey(
   return `private-artifacts/${organizationId}/${artifactId}/${kind}`
 }
 
+// The authoritative size guard: every write path (the direct content
+// PUT route, and bundle ingest, which extracts several kinds out of one
+// zip) funnels through this function, so this is the one place a kind's
+// D3 limit cannot be bypassed. `PUT .../content/[kind]` also pre-checks
+// before hashing (cheaper, and produces its own 413 naming the limit) --
+// that early check is a fast path, not a substitute for this one, so the
+// two ingest paths can never silently disagree about the same table.
 export async function storeArtifactContent(
   organizationId: string,
   artifactId: string,
   kind: ContentKind,
   input: Uint8Array
 ) {
+  const maxBytes = MAX_CONTENT_BYTES_BY_KIND[kind]
+  if (input.length > maxBytes) {
+    throw new Response(
+      `Content exceeds the ${describeLimit(maxBytes)} limit for ${kind}`,
+      { status: 413 }
+    )
+  }
+
   const artifact = await prisma.privateArtifact.findFirst({
     where: { id: artifactId, organizationId },
     select: { id: true },

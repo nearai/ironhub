@@ -1,6 +1,7 @@
 import { requireActiveOrganization } from "@/lib/auth/org-context"
 import { assertSameOriginRequest, handleApiError } from "@/lib/http/api"
 import {
+  describeLimit,
   MAX_CONTENT_BYTES_BY_KIND,
   parseContentKind,
   storeArtifactContent,
@@ -10,12 +11,6 @@ import { deleteObject } from "@/lib/storage"
 
 type Params = {
   params: Promise<{ id: string; kind: string }>
-}
-
-function describeLimit(maxBytes: number): string {
-  return maxBytes >= 1024 * 1024
-    ? `${maxBytes / (1024 * 1024)}MB`
-    : `${maxBytes / 1024}KB`
 }
 
 export async function PUT(request: Request, { params }: Params) {
@@ -30,6 +25,10 @@ export async function PUT(request: Request, { params }: Params) {
     if (bytes.length === 0) {
       throw new Response("Empty content body", { status: 400 })
     }
+    // Fast path only: rejecting an oversized body before hashing/upload work
+    // is cheaper and produces a request-shaped 413. `storeArtifactContent`
+    // enforces the same D3 limit again unconditionally -- that's the
+    // authoritative guard every caller (including bundle ingest) inherits.
     if (bytes.length > maxBytes) {
       throw new Response(
         `Content exceeds the ${describeLimit(maxBytes)} limit`,

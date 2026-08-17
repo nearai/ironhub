@@ -6,6 +6,7 @@ import { zipSync } from "fflate"
 let sameOriginThrows = null
 let getArtifactResult = { id: "artifact-1", type: "tool" }
 let getArtifactThrows = null
+let overLimitKind = null
 const storeCalls = []
 
 mock.module("@/lib/auth/org-context", {
@@ -35,10 +36,19 @@ mock.module("@/lib/private-artifacts/service", {
   },
 })
 
+// Mirrors content.ts's real guard shape (413, generic message) closely
+// enough to prove the route's *translation* of that response into a
+// file-named 400 -- the actual limit enforcement is covered separately in
+// content.test.mjs against the real storeArtifactContent.
 mock.module("@/lib/private-artifacts/content", {
   namedExports: {
     storeArtifactContent: async (organizationId, id, kind, bytes) => {
-      storeCalls.push({ organizationId, id, kind, size: bytes.length })
+      if (kind === overLimitKind) {
+        throw new Response(`Content exceeds the 5MB limit for ${kind}`, {
+          status: 413,
+        })
+      }
+      storeCalls.push({ organizationId, id, kind, bytes })
       return { kind, sha256: `sha-${kind}`, sizeBytes: bytes.length }
     },
   },
@@ -89,8 +99,10 @@ test("stores wasm, capabilities, manifest_toml, and bundle_zip in order for a to
   sameOriginThrows = null
   getArtifactThrows = null
   getArtifactResult = { id: "artifact-1", type: "tool" }
+  overLimitKind = null
   storeCalls.length = 0
-  const zip = zipSync(validBundleFiles(), { level: 0 })
+  const files = validBundleFiles()
+  const zip = zipSync(files, { level: 0 })
 
   const response = await PUT(makeRequest(zip), makeParams())
   const json = await response.json()
@@ -104,7 +116,34 @@ test("stores wasm, capabilities, manifest_toml, and bundle_zip in order for a to
     storeCalls.map((c) => c.kind),
     ["wasm", "capabilities", "manifest_toml", "bundle_zip"]
   )
-  assert.equal(storeCalls[3].size, zip.length) // bundle_zip stores the raw upload
+  assert.equal(storeCalls[3].bytes.length, zip.length) // bundle_zip stores the raw upload
+  // The point of readBundleFile(zip, inspected.wasmPath) is that "wasm" gets
+  // the bytes of the entry named by [runtime].module -- not merely a
+  // same-sized or arbitrary entry. Storing the wrong file under the right
+  // kind would pass a size/count-only assertion but ship a broken module.
+  assert.deepEqual(Array.from(storeCalls[0].bytes), Array.from(files["wasm/test.wasm"]))
+  assert.deepEqual(
+    Array.from(storeCalls[1].bytes),
+    Array.from(files["test-tool.capabilities.json"])
+  )
+  assert.deepEqual(Array.from(storeCalls[2].bytes), Array.from(files["manifest.toml"]))
+})
+
+test("translates an over-the-D3-limit content kind into a 400 naming the file, not a 413", async () => {
+  sameOriginThrows = null
+  getArtifactThrows = null
+  getArtifactResult = { id: "artifact-1", type: "tool" }
+  overLimitKind = "wasm"
+  storeCalls.length = 0
+  const zip = zipSync(validBundleFiles(), { level: 0 })
+
+  const response = await PUT(makeRequest(zip), makeParams())
+  const text = await response.text()
+
+  assert.equal(response.status, 400)
+  assert.match(text, /wasm\/test\.wasm/) // names the offending path, not just the kind
+  assert.match(text, /Content exceeds the 5MB limit/)
+  overLimitKind = null
 })
 
 test("rejects a bundle upload for a non-tool artifact with 409", async () => {
