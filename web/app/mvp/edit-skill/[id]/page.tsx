@@ -15,16 +15,21 @@ import { VisibilitySelector } from "@/features/partner/components/visibility-sel
 import { CategoryAndRepoFields } from "@/features/partner/components/category-repo-fields"
 import { parseSkillMd, serializeSkillMd } from "@/lib/private-artifacts/skill-md"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
-  IconArrowLeft,
-  IconCopy,
+  WorkspacePageHeader,
+  FormSection,
+  EmptyState,
+  ViewToggle,
+} from "@/features/partner/components/ui"
+import {
+  IconAlertTriangle,
+  IconInfoCircle,
   IconCheck,
+  IconCopy,
   IconEdit,
   IconCode,
   IconLoader2,
-  IconAlertTriangle,
 } from "@tabler/icons-react"
 
 interface PageProps {
@@ -144,17 +149,29 @@ export default function EditSkillPage({ params }: PageProps) {
   }, [artifact])
 
   if (isLoading) {
-    return <div className="py-16 text-center text-sm text-muted-foreground">Loading skill...</div>
+    return (
+      <div className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-[var(--ironhub-line)] bg-card px-6 py-16 text-center text-sm text-muted-foreground shadow-[var(--ironhub-shadow)]">
+        <div className="flex items-center justify-center gap-2">
+          <IconLoader2 className="size-4 animate-spin" aria-hidden="true" />
+          <span>Loading this skill...</span>
+        </div>
+        <p>Fetching the details and the stored instructions.</p>
+      </div>
+    )
   }
 
   if (isError || !artifact || artifact.type !== "skill") {
     return (
-      <div className="text-center py-16">
-        <h3 className="text-lg font-bold text-foreground">Skill not found</h3>
-        <Button asChild variant="link" className="mt-2">
-          <Link href="/mvp/dashboard">Back to Dashboard</Link>
-        </Button>
-      </div>
+      <EmptyState
+        icon={IconAlertTriangle}
+        title="Skill not found"
+        description="This item does not exist, or it is not a skill."
+        action={
+          <Button asChild variant="default" className="h-11 rounded-lg sm:h-10">
+            <Link href="/mvp/dashboard">Back to dashboard</Link>
+          </Button>
+        }
+      />
     )
   }
 
@@ -332,46 +349,35 @@ export default function EditSkillPage({ params }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <Button asChild variant="ghost" size="sm" className="rounded-full text-muted-foreground hover:text-foreground h-8 -ml-2 px-3">
-          <Link href={`/mvp/manage/${id}`}>
-            <IconArrowLeft className="size-4" />
-            Back to Item details
-          </Link>
-        </Button>
-      </div>
-
-      <Card className="border border-[var(--ironhub-line)] bg-card/60 p-5 shadow-sm">
-        <div className="space-y-1">
-          <h1 className="mt-0.5 font-heading text-2xl font-bold leading-tight text-foreground">
-            Edit {artifact.title}
-          </h1>
-          <p className="text-xs text-muted-foreground leading-relaxed max-w-xl">
-            Update the skill description and instructions. Saving re-uploads the full SKILL.md content.
-          </p>
-        </div>
-      </Card>
+      <WorkspacePageHeader
+        backHref={`/mvp/manage/${id}`}
+        backLabel="Back to item details"
+        title={`Edit ${artifact.title}`}
+        description="Change this skill's details and instructions. Saving stores the whole file."
+      />
 
       {formError && (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive">
-          {formError}
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive flex items-start gap-2.5">
+          <IconAlertTriangle className="size-5 shrink-0 mt-0.5" />
+          <span>{formError}</span>
         </div>
       )}
 
       {contentFailed && (
-        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive">
-          <IconAlertTriangle className="size-4 shrink-0" />
-          <span>
-            Could not load the stored SKILL.md
-            {skillContent.error instanceof Error ? `: ${skillContent.error.message}` : "."} Saving is
-            disabled so an empty editor can&apos;t overwrite the stored file.
-          </span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          <div className="flex items-start gap-2.5">
+            <IconAlertTriangle className="size-5 shrink-0 mt-0.5" />
+            <span>
+              This skill&apos;s stored instructions could not be loaded
+              {skillContent.error instanceof Error ? `: ${skillContent.error.message}. ` : ". "}
+              Saving is turned off so an empty editor cannot overwrite what is stored.
+            </span>
+          </div>
           <Button
             type="button"
             variant="outline"
-            size="sm"
             onClick={() => skillContent.refetch()}
-            className="ml-auto h-7 shrink-0 rounded-full text-xs px-2.5"
+            className="h-10 rounded-lg text-sm px-3 shrink-0 self-start sm:self-center"
           >
             Retry
           </Button>
@@ -379,40 +385,36 @@ export default function EditSkillPage({ params }: PageProps) {
       )}
 
       {!contentFailed && fenceParseFailed && (
-        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive">
-          <IconAlertTriangle className="size-4 shrink-0" />
+        <div className="flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          <IconAlertTriangle className="size-5 shrink-0 mt-0.5" />
           <span>
-            The stored SKILL.md&apos;s frontmatter couldn&apos;t be parsed as valid YAML -- it&apos;s
-            shown as-is at the top of the body below. Saving is disabled until it&apos;s fixed: the
-            fields above would save as blank (and any custom keys as plain text, not real
-            frontmatter) until the YAML in the body is corrected. You can fix the YAML directly in
-            the body text below, or for a cleaner result, delete that old fence from the body
-            entirely and re-enter its values in the fields above -- editing in place keeps the old
-            fence as inert text once fixed, while deleting it lets the form fields become the real
-            frontmatter again.
+            The settings block at the top of the stored file is not valid YAML, so it is shown as-is at the start of the instructions below. Saving is turned off until it is fixed: the fields above would save as blank. Fix the YAML in the text below, or delete that block entirely and re-enter its values in the fields above.
           </span>
         </div>
       )}
 
       {contentAbsent && (
-        <div className="rounded-xl border border-[var(--ironhub-line)] bg-card/60 p-3 text-xs font-semibold text-muted-foreground">
-          No SKILL.md is stored for this skill yet. Fill in the form below and save to create it.
+        <div className="flex items-start gap-2.5 rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 text-sm text-muted-foreground">
+          <IconInfoCircle className="size-5 shrink-0 mt-0.5" />
+          <span>
+            This skill has no instructions yet. Fill in the sections below and save to create them.
+          </span>
         </div>
       )}
 
       {contentStaleRefreshFailed && (
-        <div className="flex items-center gap-2 rounded-xl border border-[var(--ironhub-line)] bg-card/60 p-3 text-xs font-semibold text-muted-foreground">
-          <IconAlertTriangle className="size-4 shrink-0" />
-          <span>
-            Couldn&apos;t refresh the stored SKILL.md. You&apos;re still editing the last version that
-            loaded successfully, and saving is unaffected.
-          </span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 text-sm text-muted-foreground">
+          <div className="flex items-start gap-2.5">
+            <IconInfoCircle className="size-5 shrink-0 mt-0.5" />
+            <span>
+              Could not refresh the stored instructions. You are still editing the last version that loaded, and saving still works.
+            </span>
+          </div>
           <Button
             type="button"
             variant="outline"
-            size="sm"
             onClick={() => skillContent.refetch()}
-            className="ml-auto h-7 shrink-0 rounded-full text-xs px-2.5"
+            className="h-10 rounded-lg text-sm px-3 shrink-0 self-start sm:self-center"
           >
             Retry
           </Button>
@@ -420,212 +422,252 @@ export default function EditSkillPage({ params }: PageProps) {
       )}
 
       {skillContent.isLoading && (
-        <div className="rounded-xl border border-[var(--ironhub-line)] bg-card/60 p-3 text-xs font-semibold text-muted-foreground">
-          Loading stored skill content…
+        <div className="flex items-start gap-2.5 rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 text-sm text-muted-foreground">
+          <IconLoader2 className="size-5 shrink-0 mt-0.5 animate-spin" />
+          <span>Loading this skill&apos;s stored instructions...</span>
         </div>
       )}
 
-      <div className="flex justify-end border-b border-[var(--ironhub-line)]/50 w-full -mb-1 animate-in fade-in duration-200">
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setActiveTab("edit")}
-            className={`flex items-center gap-1.5 px-4 py-2 border-b-2 text-xs font-bold transition-all duration-200 -mb-[1px] ${activeTab === "edit"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-          >
-            <IconEdit className="size-3.5" />
-            Edit Skill
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("preview")}
-            className={`flex items-center gap-1.5 px-4 py-2 border-b-2 text-xs font-bold transition-all duration-200 -mb-[1px] ${activeTab === "preview"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-          >
-            <IconCode className="size-3.5" />
-            View Skill File
-          </button>
-        </div>
-      </div>
-
-      <div className="w-full">
-        <form onSubmit={handleSave} className="w-full flex flex-col gap-5">
-          <div className={`w-full flex flex-col gap-5 ${activeTab === "edit" ? "block" : "hidden"}`}>
-            <Card className="border border-[var(--ironhub-line)] bg-card/60 p-6 shadow-sm flex flex-col gap-5">
-              <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
-                1. Frontmatter Metadata
-              </h3>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">
-                    System Title
-                  </label>
-                  <Input
-                    required
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="bg-background/50 text-sm rounded-full"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">
-                    Version
-                  </label>
-                  <Input disabled value={artifact.version} className="bg-muted/30 text-sm rounded-full" />
-                </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">
-                    Description
-                  </label>
-                  <Input
-                    required
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="What this skill does..."
-                    className="bg-background/50 text-sm rounded-full"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">
-                    Value Proposition
-                  </label>
-                  <Input
-                    required
-                    value={valueProp}
-                    onChange={(e) => setValueProp(e.target.value)}
-                    placeholder="Core value or pitch of this skill..."
-                    className="bg-background/50 text-sm rounded-full"
-                  />
-                </div>
-              </div>
-
-              {/* Use cases + tags -- frontmatter fields this editor exposes
-                  (design.md D5) beyond description/value_prop. */}
-              <div className="flex flex-col gap-1.5 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
-                <label className="text-xs font-bold text-muted-foreground uppercase">
-                  Key Use Cases (one per line)
-                </label>
-                <textarea
-                  value={useCasesText}
-                  onChange={(e) => setUseCasesText(e.target.value)}
-                  placeholder={"Automate client onboarding reports\nSummarize weekly usage"}
-                  className="flex min-h-[80px] w-full rounded-2xl border border-[var(--ironhub-line)] bg-background/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary"
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">
-                    Value Tags
-                  </label>
-                  <Input
-                    value={valueTagsText}
-                    onChange={(e) => setValueTagsText(e.target.value)}
-                    placeholder="Automation, Security"
-                    className="bg-background/50 text-xs font-mono rounded-full"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">
-                    Activation Keywords
-                  </label>
-                  <Input
-                    value={activationKeywordsText}
-                    onChange={(e) => setActivationKeywordsText(e.target.value)}
-                    placeholder="auth, login"
-                    className="bg-background/50 text-xs font-mono rounded-full"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">
-                    Activation Tags
-                  </label>
-                  <Input
-                    value={activationTagsText}
-                    onChange={(e) => setActivationTagsText(e.target.value)}
-                    placeholder="productivity"
-                    className="bg-background/50 text-xs font-mono rounded-full"
-                  />
-                </div>
-              </div>
-
-              <CategoryAndRepoFields
-                category={category}
-                onCategoryChange={setCategory}
-                categoryError={categoryError}
-                sourceUrl={sourceUrl}
-                onSourceUrlChange={setSourceUrl}
-                sourceUrlError={sourceUrlError}
+      <form onSubmit={handleSave} className="space-y-6">
+        <FormSection
+          step={1}
+          title="Basics"
+          description="The name, version and one-line summary people see."
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="skill-name" className="text-sm font-medium text-foreground">
+                Name
+              </label>
+              <Input
+                id="skill-name"
+                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="h-11 rounded-lg sm:h-10"
               />
+            </div>
 
-              <VisibilitySelector visibility={visibility} onChange={setVisibility} />
-            </Card>
-
-            <Card className="border border-[var(--ironhub-line)] bg-card/60 p-6 shadow-sm flex flex-col gap-3">
-              <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
-                2. Skill Guidelines (SKILL.MD)
-              </h3>
-              <textarea
-                placeholder="## Persona&#10;&#10;Describe how the agent should act..."
-                value={markdownContent}
-                onChange={(e) => setMarkdownContent(e.target.value)}
-                className="flex min-h-[400px] w-full rounded-2xl border border-[var(--ironhub-line)] bg-background/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary"
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="skill-version" className="text-sm font-medium text-foreground">
+                Version
+              </label>
+              <Input
+                id="skill-version"
+                disabled
+                aria-readonly="true"
+                value={artifact.version}
+                className="h-11 rounded-lg sm:h-10 border-[var(--ironhub-line)] bg-muted text-muted-foreground disabled:opacity-100"
               />
-            </Card>
+              <p className="text-sm text-muted-foreground">
+                Set when you publish an update. It cannot be changed here.
+              </p>
+            </div>
           </div>
 
-          <div className={`w-full flex flex-col gap-3 min-w-0 ${activeTab === "preview" ? "block" : "hidden"}`}>
-            <div className="flex justify-between items-center px-1">
-              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                Compiled file output (SKILL.md)
-              </span>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="skill-description" className="text-sm font-medium text-foreground">
+              Short description
+            </label>
+            <Input
+              id="skill-description"
+              required
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What this skill does..."
+              className="h-11 rounded-lg sm:h-10"
+            />
+            <p className="text-sm text-muted-foreground">
+              One line explaining what this does. This is what people see in the catalog.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="skill-value-prop" className="text-sm font-medium text-foreground">
+              Why someone would use it
+            </label>
+            <Input
+              id="skill-value-prop"
+              required
+              value={valueProp}
+              onChange={(e) => setValueProp(e.target.value)}
+              placeholder="Core value or pitch of this skill..."
+              className="h-11 rounded-lg sm:h-10"
+            />
+            <p className="text-sm text-muted-foreground">
+              The main benefit, in one line.
+            </p>
+          </div>
+        </FormSection>
+
+        <FormSection
+          step={2}
+          title="Finding and triggering it"
+          description="Helps the right skill turn up at the right moment."
+        >
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="skill-use-cases" className="text-sm font-medium text-foreground">
+              What it is for
+            </label>
+            <textarea
+              id="skill-use-cases"
+              value={useCasesText}
+              onChange={(e) => setUseCasesText(e.target.value)}
+              placeholder={"Automate client onboarding reports\nSummarize weekly usage"}
+              className="min-h-[80px] w-full rounded-lg border border-[var(--ironhub-line)] bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            <p className="text-sm text-muted-foreground">
+              One example per line of something a person would use this for.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="skill-topics" className="text-sm font-medium text-foreground">
+                Topics
+              </label>
+              <Input
+                id="skill-topics"
+                value={valueTagsText}
+                onChange={(e) => setValueTagsText(e.target.value)}
+                placeholder="Automation, Security"
+                className="h-11 rounded-lg sm:h-10"
+              />
+              <p className="text-sm text-muted-foreground">
+                What this skill is about. Used for browsing and search. Separate with commas.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="skill-trigger-words" className="text-sm font-medium text-foreground">
+                Trigger words
+              </label>
+              <Input
+                id="skill-trigger-words"
+                value={activationKeywordsText}
+                onChange={(e) => setActivationKeywordsText(e.target.value)}
+                placeholder="auth, login"
+                className="h-11 rounded-lg sm:h-10"
+              />
+              <p className="text-sm text-muted-foreground">
+                Words in a request that should bring this skill in. Separate with commas.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="skill-trigger-topics" className="text-sm font-medium text-foreground">
+                Trigger topics
+              </label>
+              <Input
+                id="skill-trigger-topics"
+                value={activationTagsText}
+                onChange={(e) => setActivationTagsText(e.target.value)}
+                placeholder="productivity"
+                className="h-11 rounded-lg sm:h-10"
+              />
+              <p className="text-sm text-muted-foreground">
+                Broader subjects that should bring this skill in. Separate with commas.
+              </p>
+            </div>
+          </div>
+
+          <div className="border-t border-[var(--ironhub-line)] pt-4">
+            <CategoryAndRepoFields
+              category={category}
+              onCategoryChange={setCategory}
+              categoryError={categoryError}
+              sourceUrl={sourceUrl}
+              onSourceUrlChange={setSourceUrl}
+              sourceUrlError={sourceUrlError}
+            />
+          </div>
+        </FormSection>
+
+        <FormSection
+          step={3}
+          title="Instructions"
+          description="What the assistant should do when this skill runs."
+          action={
+            <ViewToggle
+              value={activeTab}
+              onChange={setActiveTab}
+              options={[
+                { value: "edit", label: "Write", icon: IconEdit },
+                { value: "preview", label: "Preview file", icon: IconCode },
+              ]}
+              label="Instructions view"
+            />
+          }
+        >
+          <div className={activeTab === "edit" ? "block" : "hidden"}>
+            <textarea
+              placeholder={"## Persona\n\nDescribe how the agent should act..."}
+              value={markdownContent}
+              onChange={(e) => setMarkdownContent(e.target.value)}
+              className="min-h-[360px] w-full rounded-lg border border-[var(--ironhub-line)] bg-background px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </div>
+
+          <div className={activeTab === "preview" ? "block" : "hidden"}>
+            <div className="flex justify-end mb-3">
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
                 onClick={handleCopyCode}
-                className="h-7 rounded-full text-xs px-2.5 flex items-center gap-1"
+                className="h-10 rounded-lg text-sm px-3.5 flex items-center gap-1.5 sm:h-9"
               >
                 {copiedPreview ? (
                   <>
-                    <IconCheck className="size-3 text-emerald-600" /> Copied!
+                    <IconCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Copied!</span>
                   </>
                 ) : (
                   <>
-                    <IconCopy className="size-3" /> Copy Code
+                    <IconCopy className="size-4" />
+                    <span>Copy file</span>
                   </>
                 )}
               </Button>
             </div>
 
-            <div className="w-full overflow-auto max-h-[800px] border border-[var(--ironhub-line)] bg-slate-950 font-mono text-xs text-slate-300 rounded-2xl p-6 shadow-inner leading-relaxed whitespace-pre select-text selection:bg-primary/30">
+            <div className="w-full overflow-auto max-h-[36rem] rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 font-mono text-sm text-foreground whitespace-pre leading-relaxed select-text selection:bg-primary/30">
               {compileSkillMarkdown()}
             </div>
           </div>
+        </FormSection>
 
-          <div className="rounded-xl border border-[var(--ironhub-line)] bg-card/60 p-4 shadow-sm flex flex-row items-center justify-end gap-3 mt-4">
-            <Button type="button" variant="outline" asChild className="rounded-full">
+        <FormSection
+          step={4}
+          title="Who can see it"
+          description="Private stays inside this workspace."
+        >
+          <VisibilitySelector visibility={visibility} onChange={setVisibility} />
+        </FormSection>
+
+        <div className="border-t border-[var(--ironhub-line)] pt-6 flex flex-col gap-4">
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              asChild
+              className="h-11 rounded-lg px-6 sm:h-10 w-full sm:w-auto"
+            >
               <Link href={`/mvp/manage/${id}`}>Cancel</Link>
             </Button>
-            <Button type="submit" disabled={saveDisabled} className="rounded-full px-6 shadow-sm">
-              {isSaving && <IconLoader2 className="size-4 animate-spin" />}
-              Save & Publish
+            <Button
+              type="submit"
+              disabled={saveDisabled}
+              className="h-11 rounded-lg px-6 sm:h-10 w-full sm:w-auto"
+            >
+              {isSaving && <IconLoader2 className="size-4 animate-spin mr-1.5" />}
+              Save changes
             </Button>
           </div>
-        </form>
-      </div>
+          <p className="text-sm text-muted-foreground sm:text-right">
+            Publishing is handled on the item&apos;s details page.
+          </p>
+        </div>
+      </form>
     </div>
   )
 }

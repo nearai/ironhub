@@ -118,10 +118,10 @@ describe("edit-skill content loading", () => {
     await renderPage()
 
     await waitFor(() => {
-      expect(screen.getByText(/could not load the stored skill\.md/i)).toBeInTheDocument()
+      expect(screen.getByText(/stored instructions could not be loaded/i)).toBeInTheDocument()
     })
 
-    const saveButton = screen.getByRole("button", { name: /save & publish/i })
+    const saveButton = screen.getByRole("button", { name: /save changes/i })
     expect(saveButton).toBeDisabled()
 
     // B3: the guard must live in the submit handler, not just the button's
@@ -159,10 +159,10 @@ describe("edit-skill content loading", () => {
     await renderPage()
 
     await waitFor(() => {
-      expect(screen.getByText(/frontmatter couldn.t be parsed/i)).toBeInTheDocument()
+      expect(screen.getByText(/not valid yaml/i)).toBeInTheDocument()
     })
 
-    const saveButton = screen.getByRole("button", { name: /save & publish/i })
+    const saveButton = screen.getByRole("button", { name: /save changes/i })
     expect(saveButton).toBeDisabled()
 
     // Nothing was silently dropped: the whole original file, fence
@@ -184,7 +184,7 @@ describe("edit-skill content loading", () => {
     fireEvent.change(bodyField, { target: { value: fixed } })
 
     await waitFor(() => {
-      expect(screen.queryByText(/frontmatter couldn.t be parsed/i)).not.toBeInTheDocument()
+      expect(screen.queryByText(/not valid yaml/i)).not.toBeInTheDocument()
       expect(saveButton).not.toBeDisabled()
     })
 
@@ -259,7 +259,7 @@ describe("edit-skill content loading", () => {
     await renderPage()
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /save & publish/i })).not.toBeDisabled()
+      expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
       expect(screen.getByDisplayValue("Does the thing.")).toBeInTheDocument()
     })
 
@@ -275,8 +275,8 @@ describe("edit-skill content loading", () => {
       },
     })
 
-    expect(screen.queryByText(/frontmatter couldn.t be parsed/i)).not.toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /save & publish/i })).not.toBeDisabled()
+    expect(screen.queryByText(/not valid yaml/i)).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
   })
 
   it("treats a 404 (no content row yet) as a safe, savable empty state -- not a load failure", async () => {
@@ -296,9 +296,9 @@ describe("edit-skill content loading", () => {
     await renderPage()
 
     await waitFor(() => {
-      expect(screen.queryByText(/could not load the stored skill\.md/i)).not.toBeInTheDocument()
-      expect(screen.getByText(/no skill\.md is stored/i)).toBeInTheDocument()
-      expect(screen.getByRole("button", { name: /save & publish/i })).not.toBeDisabled()
+      expect(screen.queryByText(/stored instructions could not be loaded/i)).not.toBeInTheDocument()
+      expect(screen.getByText(/has no instructions yet/i)).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
     })
 
     // Nothing was ever stored -- the body textarea starts empty, not an
@@ -325,7 +325,7 @@ describe("edit-skill content loading", () => {
     await renderPage()
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /save & publish/i })).not.toBeDisabled()
+      expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
       expect(screen.getByDisplayValue("Does the thing.")).toBeInTheDocument()
     })
   })
@@ -358,7 +358,7 @@ describe("edit-skill content loading", () => {
     // button can race ahead of that effect and interact with a still-blank
     // form (see edit-tool's equivalent fix for the bug this caused there).
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /save & publish/i })).not.toBeDisabled()
+      expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
       expect(screen.getByDisplayValue("A skill.")).toBeInTheDocument()
     })
 
@@ -367,7 +367,7 @@ describe("edit-skill content loading", () => {
     const descriptionField = screen.getByDisplayValue("A skill.")
     fireEvent.change(descriptionField, { target: { value: "An updated skill description." } })
 
-    fireEvent.click(screen.getByRole("button", { name: /save & publish/i }))
+    fireEvent.click(screen.getByRole("button", { name: /save changes/i }))
 
     await waitFor(() => {
       expect(putCalls.length).toBe(1)
@@ -413,7 +413,7 @@ describe("edit-skill content loading", () => {
     // as the test above -- otherwise this test could pass or fail on
     // timing rather than on the skip-when-unchanged logic under test.
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /save & publish/i })).not.toBeDisabled()
+      expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
       expect(screen.getByDisplayValue("Does the thing.")).toBeInTheDocument()
     })
 
@@ -422,7 +422,7 @@ describe("edit-skill content loading", () => {
     fireEvent.change(screen.getByDisplayValue("My Skill"), {
       target: { value: "My Renamed Skill" },
     })
-    fireEvent.click(screen.getByRole("button", { name: /save & publish/i }))
+    fireEvent.click(screen.getByRole("button", { name: /save changes/i }))
 
     await waitFor(() => {
       expect(pushMock).toHaveBeenCalled()
@@ -453,7 +453,7 @@ describe("edit-skill content loading", () => {
     const { queryClient } = await renderPage()
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /save & publish/i })).not.toBeDisabled()
+      expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
       expect(screen.getByDisplayValue("Does the thing.")).toBeInTheDocument()
     })
 
@@ -481,10 +481,10 @@ describe("edit-skill content loading", () => {
     // disabled), a soft non-blocking note instead, and the button and the
     // already-loaded form are unaffected.
     await waitFor(() => {
-      expect(screen.getByText(/couldn.t refresh the stored skill\.md/i)).toBeInTheDocument()
+      expect(screen.getByText(/could not refresh the stored instructions/i)).toBeInTheDocument()
     })
-    expect(screen.queryByText(/could not load the stored skill\.md/i)).not.toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /save & publish/i })).not.toBeDisabled()
+    expect(screen.queryByText(/stored instructions could not be loaded/i)).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
     expect(screen.getByDisplayValue("Does the thing.")).toBeInTheDocument()
   })
 })

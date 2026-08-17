@@ -105,7 +105,7 @@ describe("edit-skill page — clearing the repository link", () => {
     const repoInput = await screen.findByPlaceholderText("https://github.com/org/repo")
     await waitFor(() => expect(repoInput).toHaveValue(BASE_ARTIFACT.sourceUrl))
 
-    const saveButton = screen.getByRole("button", { name: /save & publish/i })
+    const saveButton = screen.getByRole("button", { name: /save changes/i })
     // Wait for the stored file to be seeded, not just for the button to
     // enable: those land in different renders, and submitting in between
     // races the seeding effect.

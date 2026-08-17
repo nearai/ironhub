@@ -14,14 +14,19 @@ import { useToast } from "@/features/partner/store/toast-provider"
 import { VisibilitySelector } from "@/features/partner/components/visibility-selector"
 import { CategoryAndRepoFields } from "@/features/partner/components/category-repo-fields"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
-  IconArrowLeft,
+  WorkspacePageHeader,
+  FormSection,
+  EmptyState,
+  AttributeBadge,
+} from "@/features/partner/components/ui"
+import {
+  IconAlertTriangle,
+  IconInfoCircle,
   IconUpload,
   IconFileZip,
   IconLoader2,
-  IconAlertTriangle,
 } from "@tabler/icons-react"
 
 interface PageProps {
@@ -95,17 +100,29 @@ export default function EditToolPage({ params }: PageProps) {
   }, [artifact])
 
   if (isLoading) {
-    return <div className="py-16 text-center text-sm text-muted-foreground">Loading tool...</div>
+    return (
+      <div className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-[var(--ironhub-line)] bg-card px-6 py-16 text-center text-sm text-muted-foreground shadow-[var(--ironhub-shadow)]">
+        <div className="flex items-center justify-center gap-2">
+          <IconLoader2 className="size-4 animate-spin" aria-hidden="true" />
+          <span>Loading this tool...</span>
+        </div>
+        <p>Fetching the details and the stored permissions.</p>
+      </div>
+    )
   }
 
   if (isError || !artifact || artifact.type !== "tool") {
     return (
-      <div className="text-center py-16">
-        <h3 className="text-lg font-bold text-foreground">Tool not found</h3>
-        <Button asChild variant="link" className="mt-2">
-          <Link href="/mvp/dashboard">Back to Dashboard</Link>
-        </Button>
-      </div>
+      <EmptyState
+        icon={IconAlertTriangle}
+        title="Tool not found"
+        description="This item does not exist, or it is not a tool."
+        action={
+          <Button asChild variant="default" className="h-11 rounded-lg sm:h-10">
+            <Link href="/mvp/dashboard">Back to dashboard</Link>
+          </Button>
+        }
+      />
     )
   }
 
@@ -170,7 +187,7 @@ export default function EditToolPage({ params }: PageProps) {
     try {
       JSON.parse(capabilitiesDraft)
     } catch {
-      setFormError("Capabilities must be valid JSON.")
+      setFormError("Permissions must be valid JSON.")
       return
     }
 
@@ -209,49 +226,35 @@ export default function EditToolPage({ params }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <Button asChild variant="ghost" size="sm" className="rounded-full text-muted-foreground hover:text-foreground h-8 -ml-2 px-3">
-          <Link href={`/mvp/manage/${id}`}>
-            <IconArrowLeft className="size-4" />
-            Back to Item details
-          </Link>
-        </Button>
-      </div>
-
-      <Card className="border border-[var(--ironhub-line)] bg-card/60 p-5 shadow-sm">
-        <div className="space-y-1">
-          <span className="text-xs font-bold tracking-widest text-primary uppercase">
-            Internal Catalog
-          </span>
-          <h1 className="mt-0.5 font-heading text-2xl font-bold leading-tight text-foreground">
-            Edit {artifact.title}
-          </h1>
-          <p className="text-xs text-muted-foreground leading-relaxed max-w-xl">
-            Update the title, description, package archive, and visibility settings for this tool.
-          </p>
-        </div>
-      </Card>
+      <WorkspacePageHeader
+        backHref={`/mvp/manage/${id}`}
+        backLabel="Back to item details"
+        title={`Edit ${artifact.title}`}
+        description="Change this tool's details, program file and permissions."
+      />
 
       {formError && (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive">
-          {formError}
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive flex items-start gap-2.5">
+          <IconAlertTriangle className="size-5 shrink-0 mt-0.5" />
+          <span>{formError}</span>
         </div>
       )}
 
       {capabilitiesFailed && (
-        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive">
-          <IconAlertTriangle className="size-4 shrink-0" />
-          <span>
-            Could not load the stored capabilities.json
-            {capabilitiesError instanceof Error ? `: ${capabilitiesError.message}` : "."} Saving is
-            disabled so an empty editor can&apos;t overwrite the stored file.
-          </span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          <div className="flex items-start gap-2.5">
+            <IconAlertTriangle className="size-5 shrink-0 mt-0.5" />
+            <span>
+              This tool&apos;s stored permissions could not be loaded
+              {capabilitiesError instanceof Error ? `: ${capabilitiesError.message}. ` : ". "}
+              Saving is turned off so an empty editor cannot overwrite what is stored.
+            </span>
+          </div>
           <Button
             type="button"
             variant="outline"
-            size="sm"
             onClick={() => refetchCapabilities()}
-            className="ml-auto h-7 shrink-0 rounded-full text-xs px-2.5"
+            className="h-10 rounded-lg text-sm px-3 shrink-0 self-start sm:self-center"
           >
             Retry
           </Button>
@@ -259,25 +262,27 @@ export default function EditToolPage({ params }: PageProps) {
       )}
 
       {capabilitiesAbsent && (
-        <div className="rounded-xl border border-[var(--ironhub-line)] bg-card/60 p-3 text-xs font-semibold text-muted-foreground">
-          No capabilities.json is stored for this tool yet. Fill in the form below and save to
-          create it.
+        <div className="flex items-start gap-2.5 rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 text-sm text-muted-foreground">
+          <IconInfoCircle className="size-5 shrink-0 mt-0.5" />
+          <span>
+            No permissions file is stored for this tool. That is fine — add one only if this tool needs to reach something.
+          </span>
         </div>
       )}
 
       {capabilitiesStaleRefreshFailed && (
-        <div className="flex items-center gap-2 rounded-xl border border-[var(--ironhub-line)] bg-card/60 p-3 text-xs font-semibold text-muted-foreground">
-          <IconAlertTriangle className="size-4 shrink-0" />
-          <span>
-            Couldn&apos;t refresh the stored capabilities.json. You&apos;re still editing the last
-            version that loaded successfully, and saving is unaffected.
-          </span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 text-sm text-muted-foreground">
+          <div className="flex items-start gap-2.5">
+            <IconInfoCircle className="size-5 shrink-0 mt-0.5" />
+            <span>
+              Could not refresh the stored permissions. You are still editing the last version that loaded, and saving still works.
+            </span>
+          </div>
           <Button
             type="button"
             variant="outline"
-            size="sm"
             onClick={() => refetchCapabilities()}
-            className="ml-auto h-7 shrink-0 rounded-full text-xs px-2.5"
+            className="h-10 rounded-lg text-sm px-3 shrink-0 self-start sm:self-center"
           >
             Retry
           </Button>
@@ -285,55 +290,72 @@ export default function EditToolPage({ params }: PageProps) {
       )}
 
       {isCapabilitiesLoading && (
-        <div className="rounded-xl border border-[var(--ironhub-line)] bg-card/60 p-3 text-xs font-semibold text-muted-foreground">
-          Loading stored capabilities.json…
+        <div className="flex items-start gap-2.5 rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 text-sm text-muted-foreground">
+          <IconLoader2 className="size-5 shrink-0 mt-0.5 animate-spin" />
+          <span>Loading this tool&apos;s stored permissions...</span>
         </div>
       )}
 
-      <form onSubmit={handleSave} className="w-full flex flex-col gap-5">
-        <Card className="border border-[var(--ironhub-line)] bg-card/60 p-6 shadow-sm flex flex-col gap-5">
-          <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
-            1. Tool Metadata
-          </h3>
-
+      <form onSubmit={handleSave} className="space-y-6">
+        <FormSection
+          step={1}
+          title="Basics"
+          description="The name, version and one-line summary people see."
+        >
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase">
-                Tool Name
+              <label htmlFor="tool-name" className="text-sm font-medium text-foreground">
+                Name
               </label>
               <Input
+                id="tool-name"
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="bg-background/50 text-sm rounded-full"
+                className="h-11 rounded-lg sm:h-10"
               />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase">
+              <label htmlFor="tool-version" className="text-sm font-medium text-foreground">
                 Version
               </label>
               <Input
+                id="tool-version"
                 disabled
+                aria-readonly="true"
                 value={artifact.version}
-                className="bg-muted/30 text-sm rounded-full"
+                className="h-11 rounded-lg sm:h-10 border-[var(--ironhub-line)] bg-muted text-muted-foreground disabled:opacity-100"
               />
+              <p className="text-sm text-muted-foreground">
+                Set when you publish an update. It cannot be changed here.
+              </p>
             </div>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-muted-foreground uppercase">
-              Description / Value Proposition
+            <label htmlFor="tool-description" className="text-sm font-medium text-foreground">
+              Short description
             </label>
             <textarea
+              id="tool-description"
               required
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Provide a description of the tool capabilities..."
-              className="flex min-h-[100px] w-full rounded-2xl border border-[var(--ironhub-line)] bg-background/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary"
+              className="min-h-[100px] w-full rounded-lg border border-[var(--ironhub-line)] bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
+            <p className="text-sm text-muted-foreground">
+              One line explaining what this does. This is what people see in the catalog.
+            </p>
           </div>
+        </FormSection>
 
+        <FormSection
+          step={2}
+          title="Finding it"
+          description="Category and repository links for this tool."
+        >
           <CategoryAndRepoFields
             category={category}
             onCategoryChange={setCategory}
@@ -342,20 +364,26 @@ export default function EditToolPage({ params }: PageProps) {
             onSourceUrlChange={setSourceUrl}
             sourceUrlError={sourceUrlError}
           />
+        </FormSection>
 
-          {/* WASM Dropzone */}
-          <div className="flex flex-col gap-2 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
-            <label className="text-xs font-bold text-muted-foreground uppercase">
-              Replace Tool Package (.wasm)
+        <FormSection
+          step={3}
+          title="Program file"
+          description="The program that runs when someone uses this tool."
+        >
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-foreground">
+              Replace the program file
             </label>
             <div
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 text-center transition-all ${dragOver
+              className={`relative flex min-h-[120px] flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
+                dragOver
                   ? "border-primary bg-primary/5"
-                  : "border-[var(--ironhub-line)] bg-background/30 hover:border-primary/50"
-                }`}
+                  : "border-[var(--ironhub-line)] bg-background/50 hover:border-primary/50"
+              }`}
             >
               <input
                 type="file"
@@ -364,58 +392,82 @@ export default function EditToolPage({ params }: PageProps) {
                 className="absolute inset-0 cursor-pointer opacity-0"
               />
               <IconUpload className="size-6 text-muted-foreground" />
-              <span className="text-xs font-semibold text-foreground mt-2 block">
-                Drag a new WASM file here, or click to browse
+              <span className="text-sm font-medium text-foreground mt-2 block">
+                Drop a new program file here, or choose one
               </span>
-              <span className="text-xs text-muted-foreground mt-1">
-                Leave empty to keep the current package. Up to 5MB.
+              <span className="text-sm text-muted-foreground mt-1">
+                This is the compiled .wasm program that runs the tool. Leave it empty to keep the one already stored. Up to 5MB.
               </span>
             </div>
 
             {wasmFile && (
-              <div className="flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-foreground font-semibold mt-1">
-                <span className="flex items-center gap-1.5">
-                  <IconFileZip className="size-4 text-emerald-600" />
-                  {wasmFile.name}
+              <div className="flex items-center justify-between rounded-lg border border-emerald-500/25 bg-emerald-500/10 p-3 text-sm text-foreground mt-1">
+                <span className="flex items-center gap-2 min-w-0">
+                  <IconFileZip className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  <span className="truncate">{wasmFile.name}</span>
                 </span>
-                <span className="text-xs bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase font-bold">
-                  Ready
-                </span>
+                <AttributeBadge className="shrink-0">
+                  Ready to upload
+                </AttributeBadge>
               </div>
             )}
           </div>
+        </FormSection>
 
-          {/* Capabilities editor -- loaded from the stored capabilities.json
-              via the owner-facing content read (design.md D4/2.6), not a
-              blank/default document, so saving can't silently wipe it. */}
-          <div className="flex flex-col gap-2 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
-            <label className="text-xs font-bold text-muted-foreground uppercase">
-              Capabilities (capabilities.json)
+        <FormSection
+          step={4}
+          title="Permissions"
+          description="What this tool is allowed to reach."
+        >
+          <div className="flex flex-col gap-2">
+            <label htmlFor="tool-permissions" className="sr-only">
+              Permissions
             </label>
             <textarea
+              id="tool-permissions"
               required
               disabled={!capabilitiesReady}
               value={capabilitiesDraft}
               onChange={(e) => setCapabilitiesDraft(e.target.value)}
               placeholder='{ "permissions": [] }'
-              className="flex min-h-[100px] w-full rounded-2xl border border-[var(--ironhub-line)] bg-background/50 px-4 py-3 font-mono text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary disabled:opacity-60"
+              className="min-h-[220px] w-full rounded-lg border border-[var(--ironhub-line)] bg-background px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
             />
-            <span className="text-xs text-muted-foreground">
-              Declares what the WASM package is permitted to access. Must be valid JSON.
-            </span>
+            <p className="text-sm text-muted-foreground">
+              This declares what the package is allowed to access, and must be valid JSON or saving will be refused. Leave this as it is unless you were given something to paste in.
+            </p>
           </div>
+        </FormSection>
 
+        <FormSection
+          step={5}
+          title="Who can see it"
+          description="Private stays inside this workspace."
+        >
           <VisibilitySelector visibility={visibility} onChange={setVisibility} />
-        </Card>
+        </FormSection>
 
-        <div className="rounded-xl border border-[var(--ironhub-line)] bg-card/60 p-4 shadow-sm flex flex-row items-center justify-end gap-3">
-          <Button type="button" variant="outline" asChild className="rounded-full">
-            <Link href={`/mvp/manage/${id}`}>Cancel</Link>
-          </Button>
-          <Button type="submit" disabled={saveDisabled} className="rounded-full px-6 shadow-sm">
-            {isSaving && <IconLoader2 className="size-4 animate-spin" />}
-            Save Changes
-          </Button>
+        <div className="border-t border-[var(--ironhub-line)] pt-6 flex flex-col gap-4">
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              asChild
+              className="h-11 rounded-lg px-6 sm:h-10 w-full sm:w-auto"
+            >
+              <Link href={`/mvp/manage/${id}`}>Cancel</Link>
+            </Button>
+            <Button
+              type="submit"
+              disabled={saveDisabled}
+              className="h-11 rounded-lg px-6 sm:h-10 w-full sm:w-auto"
+            >
+              {isSaving && <IconLoader2 className="size-4 animate-spin mr-1.5" />}
+              Save changes
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground sm:text-right">
+            Publishing is handled on the item&apos;s details page.
+          </p>
         </div>
       </form>
     </div>
