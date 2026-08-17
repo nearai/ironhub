@@ -990,7 +990,7 @@ Describe how the agent should act...`}
         <div className="sticky bottom-4 z-20 rounded-xl border border-[var(--ironhub-line)] bg-card p-4 shadow-lg">
           <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
             {submitHint && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 {submitHint}
               </p>
             )}
