@@ -169,9 +169,17 @@ export default function EditSkillPage({ params }: PageProps) {
   }
 
   // A save that can't preserve content is worse than no save: block while
-  // the stored file is still loading or failed to load.
-  const contentReady = skillContent.isSuccess
-  const contentFailed = skillContent.isError
+  // we have never obtained a value for this artifact's skill_md (still
+  // loading, or the initial load failed). Gate on "do we have content",
+  // not "did the most recent fetch succeed" -- react-query keeps `data`
+  // around after a later background refetch fails (e.g. the user tabbed
+  // away and back after the 15s staleTime, one request blipped), and
+  // blocking save at that point would strand in-progress edits behind a
+  // red banner for no reason: we already have safe content to save on top
+  // of. A 404 resolves to `data: ""` (see useArtifactTextContent), not an
+  // error, so a never-created file is editable and savable too.
+  const contentReady = skillContent.data !== undefined
+  const contentFailed = skillContent.isError && skillContent.data === undefined
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()

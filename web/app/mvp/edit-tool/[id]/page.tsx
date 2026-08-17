@@ -90,9 +90,16 @@ export default function EditToolPage({ params }: PageProps) {
 
   // A save that cannot preserve the stored capabilities document is worse
   // than no save (same invariant as the skill editor, design.md D5): block
-  // saving while that read is in flight or failed, rather than silently
-  // falling back to a blank/default document.
-  const capabilitiesReady = !isCapabilitiesLoading && !isCapabilitiesError
+  // saving until we have obtained a value for this artifact's capabilities
+  // at least once. Gate on "do we have content" (`data !== undefined`),
+  // not on the latest fetch's success -- a later background refetch
+  // failing must not strand in-progress edits behind a blocked save when
+  // we already have safe content loaded. A 404 resolves to `data: ""` (see
+  // useArtifactTextContent), a legitimate "nothing stored yet" state, not
+  // an error -- that keeps a tool whose capabilities upload never
+  // completed during creation editable instead of permanently stuck.
+  const capabilitiesReady = capabilitiesText !== undefined
+  const capabilitiesFailed = isCapabilitiesError && capabilitiesText === undefined
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -138,10 +145,15 @@ export default function EditToolPage({ params }: PageProps) {
       if (wasmFile) {
         await uploadContent.mutateAsync({ kind: "wasm", file: wasmFile })
       }
-      await uploadContent.mutateAsync({
-        kind: "capabilities",
-        file: new Blob([capabilitiesDraft], { type: "application/json" }),
-      })
+      // Only re-upload capabilities when the draft actually differs from
+      // what was loaded -- otherwise every metadata-only save rewrites an
+      // unchanged blob and mints a pointless new sha256 for it.
+      if (capabilitiesDraft !== capabilitiesText) {
+        await uploadContent.mutateAsync({
+          kind: "capabilities",
+          file: new Blob([capabilitiesDraft], { type: "application/json" }),
+        })
+      }
       notify(`Changes saved for ${title}`)
       router.push(`/mvp/manage/${id}`)
     } catch (error) {
@@ -187,7 +199,7 @@ export default function EditToolPage({ params }: PageProps) {
         </div>
       )}
 
-      {isCapabilitiesError && (
+      {capabilitiesFailed && (
         <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive">
           <IconAlertTriangle className="size-4 shrink-0" />
           <span>
