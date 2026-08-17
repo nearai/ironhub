@@ -226,6 +226,7 @@ model PrivateArtifact {
   status         String                   @default("draft")
   description    String?
   sourceUrl      String?                  @map("source_url")
+  category       String?
   createdAt      DateTime                 @default(now()) @map("created_at")
   updatedAt      DateTime                 @updatedAt @map("updated_at")
 
