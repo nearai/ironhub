@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { Readable } from "node:stream"
 import { mock, test } from "node:test"
 
 // Separate file from route.test.mjs (which covers PUT) so this file's
@@ -7,6 +8,7 @@ import { mock, test } from "node:test"
 
 let metadataResult = null
 let metadataError = null
+let objectStreamImpl = async () => new Uint8Array([1, 2, 3, 4])
 
 mock.module("@/lib/auth/org-context", {
   namedExports: {
@@ -59,7 +61,7 @@ mock.module("@/lib/private-artifacts/service", {
 
 mock.module("@/lib/storage", {
   namedExports: {
-    getObjectStream: async () => new Uint8Array([1, 2, 3, 4]),
+    getObjectStream: async (key) => objectStreamImpl(key),
     getPresignedDownloadUrl: async (storageKey, ttlSeconds) =>
       `https://storage.test/${storageKey}?ttl=${ttlSeconds}`,
     deleteObject: async () => {},
@@ -75,6 +77,7 @@ function makeParams(kind = "skill_md", id = "artifact-1") {
 test("streams a text kind inline with the kind's media type and no-store caching", async () => {
   metadataError = null
   metadataResult = { storageKey: "private-artifacts/org-1/artifact-1/skill_md", sizeBytes: 42 }
+  objectStreamImpl = async () => new Uint8Array([1, 2, 3, 4])
 
   const response = await GET(new Request("http://localhost/x"), makeParams("skill_md"))
 
@@ -82,6 +85,39 @@ test("streams a text kind inline with the kind's media type and no-store caching
   assert.equal(response.headers.get("content-type"), "text/markdown; charset=utf-8")
   assert.equal(response.headers.get("cache-control"), "no-store")
   assert.ok(response.body)
+})
+
+// The `stream instanceof Readable` branch is the one that actually runs
+// against real S3-compatible storage in prod/dev (the SDK's default Node
+// request handler returns a Node Readable, not a Web ReadableStream or
+// Blob) -- exercise it with a real Readable rather than only the Uint8Array
+// stand-in above, and check the bytes it produces are the ones sent.
+test("streams a real Node Readable's bytes through to the response body", async () => {
+  metadataError = null
+  metadataResult = { storageKey: "private-artifacts/org-1/artifact-1/skill_md", sizeBytes: 11 }
+  objectStreamImpl = async () => Readable.from([Buffer.from("hello world")])
+
+  const response = await GET(new Request("http://localhost/x"), makeParams("skill_md"))
+
+  assert.equal(response.status, 200)
+  assert.equal(await response.text(), "hello world")
+})
+
+// content.ts:63-72's row can point at a storage key that no longer has an
+// object behind it (deleted out of band, ...). getObjectStream throws a
+// plain Error for that; the route must not let handleApiError turn it into
+// a 500 -- from the caller's side "the object is gone" and "there was
+// never a content row" both mean "there is nothing to read here".
+test("404s (not 500) when the content row exists but the storage object is missing", async () => {
+  metadataError = null
+  metadataResult = { storageKey: "private-artifacts/org-1/artifact-1/skill_md", sizeBytes: 42 }
+  objectStreamImpl = async () => {
+    throw new Error("Object not found: private-artifacts/org-1/artifact-1/skill_md")
+  }
+
+  const response = await GET(new Request("http://localhost/x"), makeParams("skill_md"))
+
+  assert.equal(response.status, 404)
 })
 
 test("redirects a binary kind to a presigned URL with a TTL of at most 300s", async () => {

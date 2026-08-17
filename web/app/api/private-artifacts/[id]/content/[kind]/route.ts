@@ -59,7 +59,23 @@ export async function GET(_request: Request, { params }: Params) {
       })
     }
 
-    const stream = await getObjectStream(content.storageKey)
+    let stream: Awaited<ReturnType<typeof getObjectStream>>
+    try {
+      stream = await getObjectStream(content.storageKey)
+    } catch (storageError) {
+      // The content row exists but the object itself is gone from the
+      // bucket (deleted out of band, bucket mismatch, ...). `getObjectStream`
+      // throws a plain Error for this, which `handleApiError` would turn
+      // into a 500 -- but from the caller's point of view this is exactly
+      // the same "nothing to read" situation as a missing content row, so
+      // answer it the same way instead of reporting a server fault for a
+      // data-integrity issue that isn't the caller's problem to retry past.
+      console.error(
+        `Content row exists but the object is missing from storage (key: ${content.storageKey}):`,
+        storageError
+      )
+      throw new Response("Content not found", { status: 404 })
+    }
     // `stream` is a Node Readable when using the SDK's default Node request
     // handler (the case for our S3-compatible dev/prod setup); the DOM
     // `ReadableStream`/`Blob` cases are for non-Node runtimes and are not
