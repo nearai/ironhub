@@ -198,8 +198,19 @@ describe("edit-tool capabilities content loading", () => {
 
     await renderPage()
 
+    // `capabilitiesReady` (which enables the button) and `capabilitiesDraft`
+    // (seeded by a separate useEffect, one render later) can be observed in
+    // different commits: the button can already be enabled on the render
+    // where `capabilitiesText` first resolves, before the effect that
+    // copies it into `capabilitiesDraft` has run. Waiting only for the
+    // button lets a submit race ahead of seeding, land with an empty draft,
+    // and upload it as if it were a real (spurious) change -- wait for the
+    // textarea to actually hold the loaded value too, exactly as the
+    // "seeds the capabilities editor" test above does, or this test can
+    // pass/fail on timing rather than on the skip-when-unchanged logic.
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
+      expect(screen.getByPlaceholderText('{ "permissions": [] }')).toHaveValue(storedCapabilities)
     })
 
     // Change only the title -- leave the capabilities draft exactly as loaded.
