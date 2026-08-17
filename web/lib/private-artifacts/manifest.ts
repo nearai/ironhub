@@ -51,8 +51,11 @@ export async function buildPrivateArtifactManifest(input: {
       sha256: content.sha256,
     }
   }
-  // manifest_toml is optional (design.md D3): older tools never had a
-  // bundle upload, so its absence must not block manifest generation.
+  // manifest_toml and capabilities are both optional (design.md D3):
+  // manifest.toml is now the authoritative metadata carrier, so
+  // *.capabilities.json may no longer exist for a given tool, and older
+  // tools never had a bundle upload at all. Neither absence may block
+  // manifest generation.
   const optionalHubArtifact = (kind: ContentKind): HubArtifact | undefined =>
     byKind.has(kind) ? hubArtifact(kind) : undefined
 
@@ -67,7 +70,7 @@ export async function buildPrivateArtifactManifest(input: {
       description: artifact.description ?? "",
       provenance: PRIVATE_PROVENANCE,
       wasm: hubArtifact("wasm"),
-      capabilities: hubArtifact("capabilities"),
+      capabilities: optionalHubArtifact("capabilities"),
       manifest: optionalHubArtifact("manifest_toml"),
     })
   } else if (artifact.type === "skill") {

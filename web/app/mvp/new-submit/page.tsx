@@ -545,7 +545,8 @@ export default function NewSubmitPage() {
                   Drag your extension .zip here, or click to browse
                 </span>
                 <span className="text-xs text-muted-foreground mt-1">
-                  manifest.toml, the wasm module, and a *.capabilities.json file at the archive root.
+                  manifest.toml and the wasm module at the archive root. A *.capabilities.json
+                  file is no longer required.
                 </span>
               </div>
 

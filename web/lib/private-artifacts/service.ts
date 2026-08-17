@@ -211,8 +211,18 @@ export async function unpublishPrivateArtifact(organizationId: string, id: strin
   })
 }
 
+// design.md D3: manifest.toml (schema reborn.extension_manifest.v3) is now
+// the authoritative metadata carrier for a tool -- it owns effects,
+// default_permission, and the secrets handle list that *.capabilities.json
+// used to carry. `capabilities` therefore moved from required to optional;
+// `manifest_toml` took its place. This is a deliberate breaking change to
+// completeness, made on the owner's call: a tool created before bundle
+// ingest existed has a `capabilities` row but no `manifest_toml` row, so it
+// now reads as incomplete and is unpublishable until re-uploaded as a zip.
+// No migration/backfill/grandfathering here on purpose -- surface it
+// honestly through content_complete below instead.
 const REQUIRED_CONTENT_KINDS_BY_TYPE: Record<string, readonly string[]> = {
-  tool: ["wasm", "capabilities"],
+  tool: ["wasm", "manifest_toml"],
   skill: ["skill_md"],
 }
 
@@ -308,23 +318,11 @@ export async function getArtifactChecks(
   ]
 
   if (artifact.type === "tool") {
-    checks.push(
-      presentKinds.has("manifest_toml")
-        ? {
-            id: "manifest_present",
-            label: "Extension manifest uploaded",
-            status: "pass",
-            detail: "manifest.toml is stored for this tool.",
-          }
-        : {
-            id: "manifest_present",
-            label: "Extension manifest uploaded",
-            status: "warn",
-            detail:
-              "manifest.toml is not stored. Tools created before bundle ingest may lack it.",
-          }
-    )
-
+    // No standalone manifest_present check (design.md D8, revised): once
+    // manifest_toml became a required kind, content_complete above already
+    // fails and names it -- a second row calling the same fact a `warn`
+    // read as contradictory (one row implying the absence is tolerable,
+    // the other being the hard publish gate). One fact, one row.
     checks.push(
       await checkCapabilitiesValidJson(organizationId, id, presentKinds)
     )
@@ -426,9 +424,12 @@ async function checkCapabilitiesValidJson(
 ): Promise<ArtifactCheck> {
   const label = "Capabilities file is valid JSON"
 
-  // Nothing was read, so nothing may report `pass` — the manage page renders
-  // these verbatim and a green tick here would claim a file we never opened.
-  // `content_complete` and `wasm_present` already fail on absence, so warn.
+  // capabilities is optional (design.md D3): manifest.toml now owns the
+  // data it used to carry, so a tool with no capabilities row is a
+  // legitimate state, not a defect — this must not report `fail` merely
+  // because there is no row. Nothing was read either, so it may not report
+  // `pass` — the manage page renders these verbatim and a green tick here
+  // would claim a file we never opened. `warn` is the only honest status.
   if (!presentKinds.has("capabilities")) {
     return {
       id: "capabilities_valid_json",

@@ -82,6 +82,50 @@ test("inspects a valid bundle and returns the manifest/files payload without per
   assert.ok(json.totalUncompressedBytes > 0)
 })
 
+test("inspects a bundle with no *.capabilities.json and reports files.capabilities as null", async () => {
+  // design.md D3/D6: capabilities is optional, so an archive with none must
+  // inspect cleanly rather than being rejected.
+  authThrows = null
+  sameOriginThrows = null
+  const files = validBundleFiles()
+  delete files["test-tool.capabilities.json"]
+  const zip = zipSync(files, { level: 0 })
+
+  const response = await POST(makeRequest(zip))
+  const json = await response.json()
+
+  assert.equal(response.status, 200)
+  assert.equal(json.files.capabilities, null)
+})
+
+test("rejects an archive with two *.capabilities.json files at its root with the exact D6 message", async () => {
+  authThrows = null
+  sameOriginThrows = null
+  const files = validBundleFiles()
+  files["other-tool.capabilities.json"] = encode(JSON.stringify({ version: "0.1.0" }))
+  const zip = zipSync(files, { level: 0 })
+
+  const response = await POST(makeRequest(zip))
+  const text = await response.text()
+
+  assert.equal(response.status, 400)
+  assert.match(text, /^Zip must contain at most one \*\.capabilities\.json at its root \(found 2\)$/)
+})
+
+test("rejects an archive whose single capabilities file is not valid JSON", async () => {
+  authThrows = null
+  sameOriginThrows = null
+  const files = validBundleFiles()
+  files["test-tool.capabilities.json"] = encode("{ not json")
+  const zip = zipSync(files, { level: 0 })
+
+  const response = await POST(makeRequest(zip))
+  const text = await response.text()
+
+  assert.equal(response.status, 400)
+  assert.match(text, /^test-tool\.capabilities\.json is not valid JSON$/)
+})
+
 test("rejects an invalid archive with the specific validation reason", async () => {
   authThrows = null
   sameOriginThrows = null

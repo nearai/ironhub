@@ -8,6 +8,11 @@ let getArtifactResult = { id: "artifact-1", type: "tool" }
 let getArtifactThrows = null
 let overLimitKind = null
 const storeCalls = []
+const deleteCalls = []
+// Simulates whether a `capabilities` row already exists in storage, so
+// deleteArtifactContent's real "404 when nothing to delete" behavior can be
+// exercised without a real Prisma/S3 backend.
+let existingCapabilitiesRow = false
 
 mock.module("@/lib/auth/org-context", {
   namedExports: {
@@ -40,6 +45,12 @@ mock.module("@/lib/private-artifacts/service", {
 // enough to prove the route's *translation* of that response into a
 // file-named 400 -- the actual limit enforcement is covered separately in
 // content.test.mjs against the real storeArtifactContent.
+//
+// This mock's namedExports MUST list every export route.ts actually imports
+// from "@/lib/private-artifacts/content" -- node:test's mock.module replaces
+// the whole module by resolved identity, so an import the route added later
+// (deleteArtifactContent) silently fails to link if this list falls behind,
+// crashing the entire file's module load rather than one test.
 mock.module("@/lib/private-artifacts/content", {
   namedExports: {
     storeArtifactContent: async (organizationId, id, kind, bytes) => {
@@ -50,6 +61,13 @@ mock.module("@/lib/private-artifacts/content", {
       }
       storeCalls.push({ organizationId, id, kind, bytes })
       return { kind, sha256: `sha-${kind}`, sizeBytes: bytes.length }
+    },
+    deleteArtifactContent: async (organizationId, id, kind) => {
+      deleteCalls.push({ organizationId, id, kind })
+      if (kind === "capabilities" && !existingCapabilitiesRow) {
+        throw new Response("Content not found", { status: 404 })
+      }
+      existingCapabilitiesRow = false
     },
   },
 })
@@ -101,6 +119,8 @@ test("stores wasm, capabilities, manifest_toml, and bundle_zip in order for a to
   getArtifactResult = { id: "artifact-1", type: "tool" }
   overLimitKind = null
   storeCalls.length = 0
+  deleteCalls.length = 0
+  existingCapabilitiesRow = false
   const files = validBundleFiles()
   const zip = zipSync(files, { level: 0 })
 
@@ -116,6 +136,9 @@ test("stores wasm, capabilities, manifest_toml, and bundle_zip in order for a to
     storeCalls.map((c) => c.kind),
     ["wasm", "capabilities", "manifest_toml", "bundle_zip"]
   )
+  // A bundle that carries a capabilities file must never attempt to clear
+  // one -- the store path and the clear path are mutually exclusive.
+  assert.deepEqual(deleteCalls, [])
   assert.equal(storeCalls[3].bytes.length, zip.length) // bundle_zip stores the raw upload
   // The point of readBundleFile(zip, inspected.wasmPath) is that "wasm" gets
   // the bytes of the entry named by [runtime].module -- not merely a
@@ -127,6 +150,67 @@ test("stores wasm, capabilities, manifest_toml, and bundle_zip in order for a to
     Array.from(files["test-tool.capabilities.json"])
   )
   assert.deepEqual(Array.from(storeCalls[2].bytes), Array.from(files["manifest.toml"]))
+})
+
+test("stores wasm, manifest_toml, and bundle_zip (no capabilities row) for a first-time bundle with no *.capabilities.json", async () => {
+  // design.md D3/D6: capabilities is optional. An archive without one is a
+  // fully valid upload and must write no `capabilities` content row. There
+  // was never a row to begin with, so the clear attempt 404s and that must
+  // be swallowed, not surfaced as an error.
+  sameOriginThrows = null
+  getArtifactThrows = null
+  getArtifactResult = { id: "artifact-1", type: "tool" }
+  overLimitKind = null
+  storeCalls.length = 0
+  deleteCalls.length = 0
+  existingCapabilitiesRow = false
+  const files = validBundleFiles()
+  delete files["test-tool.capabilities.json"]
+  const zip = zipSync(files, { level: 0 })
+
+  const response = await PUT(makeRequest(zip), makeParams())
+  const json = await response.json()
+
+  assert.equal(response.status, 201)
+  assert.deepEqual(
+    json.content.map((c) => c.kind),
+    ["wasm", "manifest_toml", "bundle_zip"]
+  )
+  assert.deepEqual(
+    storeCalls.map((c) => c.kind),
+    ["wasm", "manifest_toml", "bundle_zip"]
+  )
+  assert.ok(!storeCalls.some((c) => c.kind === "capabilities"))
+  assert.deepEqual(deleteCalls, [{ organizationId: "org-1", id: "artifact-1", kind: "capabilities" }])
+})
+
+test("a re-upload that drops *.capabilities.json clears the stale capabilities row from an earlier upload", async () => {
+  // The bug this guards against: storeArtifactContent only upserts, it never
+  // deletes. Without an explicit clear, re-uploading a bundle with the
+  // capabilities file removed would leave the old row in place, and the
+  // signed manifest would keep advertising bytes the current archive no
+  // longer contains.
+  sameOriginThrows = null
+  getArtifactThrows = null
+  getArtifactResult = { id: "artifact-1", type: "tool" }
+  overLimitKind = null
+  storeCalls.length = 0
+  deleteCalls.length = 0
+  existingCapabilitiesRow = true // simulates a capabilities row from an earlier upload
+  const files = validBundleFiles()
+  delete files["test-tool.capabilities.json"]
+  const zip = zipSync(files, { level: 0 })
+
+  const response = await PUT(makeRequest(zip), makeParams())
+  const json = await response.json()
+
+  assert.equal(response.status, 201)
+  assert.deepEqual(
+    json.content.map((c) => c.kind),
+    ["wasm", "manifest_toml", "bundle_zip"]
+  )
+  assert.deepEqual(deleteCalls, [{ organizationId: "org-1", id: "artifact-1", kind: "capabilities" }])
+  assert.equal(existingCapabilitiesRow, false, "the stale row must actually be cleared")
 })
 
 test("translates an over-the-D3-limit content kind into a 400 naming the file, not a 413", async () => {

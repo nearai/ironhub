@@ -18,7 +18,7 @@ export type HubToolEntry = {
   description: string
   provenance: Provenance
   wasm: HubArtifact
-  capabilities: HubArtifact
+  capabilities?: HubArtifact
   manifest?: HubArtifact
   schemas?: Record<string, HubArtifact>
   prompts?: Record<string, HubArtifact>

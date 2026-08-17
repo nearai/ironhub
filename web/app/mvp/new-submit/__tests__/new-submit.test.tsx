@@ -111,6 +111,40 @@ describe("new-submit tool tab (zip bundle flow)", () => {
     expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue("USDC Payments v2")
   })
 
+  it("prefills normally and enables submission from an inspect response with no capabilities file", async () => {
+    // design.md D3/D6: a bundle without *.capabilities.json is now a valid
+    // upload, and the inspect response reports `files.capabilities: null`
+    // for it. The form doesn't read `files.capabilities` at all -- this
+    // pins that a null there doesn't blow up rendering or leave the
+    // "Inspected" state looking broken/empty, and the submit button still
+    // enables from the manifest fields alone.
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/bundle/inspect") {
+        return new Response(
+          JSON.stringify({
+            ...inspectManifest,
+            files: { ...inspectManifest.files, capabilities: null },
+          }),
+          { status: 200 }
+        )
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    renderPage()
+    openToolTab()
+
+    const file = new File(["zip bytes"], "usdc-payments.zip", { type: "application/zip" })
+    selectFile(file)
+
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue("USDC Payments")
+    )
+    expect(screen.getByText("Inspected")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /add to space/i })).not.toBeDisabled()
+  })
+
   it("prefills the artifact name replacing only what's illegal for that field, preserving a legal underscore", async () => {
     // manifest.toml `id` (D6 rule 8) allows "." and "_"; the server's
     // artifact-name charset (service.ts: /^[a-z0-9][a-z0-9_-]*$/) allows "_"

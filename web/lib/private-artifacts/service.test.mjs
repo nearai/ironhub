@@ -287,13 +287,41 @@ test("publishPrivateArtifact is blocked by missing required content", async () =
 })
 
 test("publishPrivateArtifact succeeds once content and category are both set", async () => {
+  // design.md D3: a tool's required kinds are wasm + manifest_toml.
+  // capabilities is optional and deliberately absent here to prove it is no
+  // longer part of the completeness gate.
   const seeded = seedArtifact({
     id: "pub-ok",
-    content: [{ kind: "wasm" }, { kind: "capabilities" }],
+    content: [{ kind: "wasm" }, { kind: "manifest_toml" }],
     category: "Dev Tools",
   })
   const artifact = await publishPrivateArtifact("org-1", seeded.id)
   assert.equal(artifact.status, "published")
+})
+
+test("publishPrivateArtifact 409s naming manifest_toml for a tool with wasm + capabilities but no manifest_toml", async () => {
+  // The exact "pre-existing tool" shape design.md D3 calls out: created
+  // before bundle ingest existed, so it has capabilities but never got a
+  // manifest_toml row. This is a deliberate breaking change to
+  // completeness, not a bug -- the 409 must name manifest_toml so the owner
+  // knows to re-upload as a zip.
+  const seeded = seedArtifact({
+    id: "pub-pre-bundle-ingest-tool",
+    content: [{ kind: "wasm" }, { kind: "capabilities" }],
+    category: "Dev Tools",
+  })
+  let threw = false
+  try {
+    await publishPrivateArtifact("org-1", seeded.id)
+  } catch (error) {
+    threw = true
+    assert.ok(error instanceof Response)
+    assert.equal(error.status, 409)
+    const text = await error.text()
+    assert.match(text, /manifest_toml/)
+  }
+  assert.ok(threw, "expected publishPrivateArtifact to throw")
+  assert.equal(artifacts.get(seeded.id).status, "draft")
 })
 
 test("unpublishPrivateArtifact returns a published artifact to draft", async () => {
@@ -332,7 +360,6 @@ test("getArtifactChecks reports every check pass/warn and publishable for a comp
   const ids = checks.map((check) => check.id)
   assert.deepEqual(ids, [
     "content_complete",
-    "manifest_present",
     "capabilities_valid_json",
     "wasm_present",
     "category_set",
@@ -384,7 +411,10 @@ test("getArtifactChecks warns rather than fails when the signing key is unset", 
     id: "checks-no-signing-key",
     type: "tool",
     category: "Dev Tools",
-    content: [{ kind: "wasm" }, { kind: "capabilities" }],
+    // Content complete (wasm + manifest_toml per design.md D3) so the only
+    // thing under test -- the signing-key check -- is isolated from
+    // content_complete also failing and dragging publishable down with it.
+    content: [{ kind: "wasm" }, { kind: "capabilities" }, { kind: "manifest_toml" }],
   })
 
   const { checks, publishable } = await getArtifactChecks("org-1", seeded.id)
@@ -426,7 +456,10 @@ test("getArtifactChecks warns rather than fails when capabilities cannot be read
       id: "checks-unreadable-capabilities",
       type: "tool",
       category: "Dev Tools",
-      content: [{ kind: "wasm" }, { kind: "capabilities" }],
+      // Content complete (wasm + manifest_toml) so the only thing under
+      // test -- the storage-read failure -- is isolated from
+      // content_complete also failing and dragging publishable down with it.
+      content: [{ kind: "wasm" }, { kind: "capabilities" }, { kind: "manifest_toml" }],
     })
 
     const { checks, publishable } = await getArtifactChecks("org-1", seeded.id)

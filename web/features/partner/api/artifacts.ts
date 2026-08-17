@@ -72,7 +72,10 @@ export interface BundleManifest {
 
 export interface InspectedBundleFiles {
   wasm: string
-  capabilities: string
+  // null when the archive carries no root *.capabilities.json — that's a
+  // legitimate state now that manifest.toml owns the data it used to carry
+  // (design.md D3/D6), not a broken or incomplete inspect result.
+  capabilities: string | null
   schemas: string[]
   prompts: string[]
 }

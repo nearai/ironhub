@@ -26,9 +26,18 @@ const BASE_ARTIFACT = {
   category: "Dev Tools",
   description: "Crawl the web.",
   sourceUrl: null,
+  // Deliberately the shape of a modern, bundle-ingested tool: wasm +
+  // manifest_toml (design.md D3's required kinds for a tool) plus the
+  // still-optional capabilities. This keeps BASE_ARTIFACT content-complete
+  // under the manage page's local `expectedKinds` gate (mirrors
+  // service.ts's REQUIRED_CONTENT_KINDS_BY_TYPE) so it stays a stable
+  // "everything is fine" fixture for tests that aren't about completeness.
+  // A test that specifically wants an incomplete/pre-bundle-ingest tool
+  // (wasm + capabilities, no manifest_toml) builds its own content array.
   content: [
     { kind: "wasm", sha256: "a".repeat(64), sizeBytes: 100, createdAt: "2026-01-01T00:00:00.000Z" },
     { kind: "capabilities", sha256: "b".repeat(64), sizeBytes: 50, createdAt: "2026-01-01T00:00:00.000Z" },
+    { kind: "manifest_toml", sha256: "c".repeat(64), sizeBytes: 25, createdAt: "2026-01-01T00:00:00.000Z" },
   ],
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
@@ -142,6 +151,58 @@ describe("manage page — review checks and publish/unpublish", () => {
     expect(failingRow.textContent).not.toContain("Pass")
 
     expect(screen.getByRole("button", { name: /^publish$/i })).toBeDisabled()
+
+    // BASE_ARTIFACT is deliberately content-complete (wasm + manifest_toml)
+    // -- pins that the manage page's local completeness gate for "Copy
+    // Install Link" agrees with service.ts's REQUIRED_CONTENT_KINDS_BY_TYPE,
+    // independent of whatever the mocked /checks endpoint above reports
+    // (that route is unpublishable here purely on category/repo, not
+    // content).
+    expect(screen.getByRole("button", { name: /copy install link/i })).not.toBeDisabled()
+  })
+
+  it("disables Copy Install Link for a pre-bundle-ingest tool (wasm + capabilities, no manifest_toml)", async () => {
+    // design.md D3: this is the exact shape a tool created before bundle
+    // ingest existed has -- content_complete now fails for it, and the
+    // manage page's local gate must not silently disagree and let an
+    // install link be minted for content the server considers incomplete.
+    const preBundleIngestTool = {
+      ...BASE_ARTIFACT,
+      content: BASE_ARTIFACT.content.filter((c) => c.kind !== "manifest_toml"),
+    }
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/artifact-1") {
+        return new Response(
+          JSON.stringify({ artifact: { ...preBundleIngestTool, status: "draft" } }),
+          { status: 200 }
+        )
+      }
+      if (url === "/api/private-artifacts/artifact-1/checks") {
+        return new Response(
+          JSON.stringify({
+            checks: [
+              {
+                id: "content_complete",
+                label: "Content complete",
+                status: "fail",
+                detail: "Missing required content: manifest_toml.",
+              },
+            ],
+            publishable: false,
+          }),
+          { status: 200 }
+        )
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    await renderPage()
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /copy install link/i })).toBeInTheDocument()
+    )
+    expect(screen.getByRole("button", { name: /copy install link/i })).toBeDisabled()
   })
 
   it("renders a lone failing check's own visible status text, not a fabricated pass indicator", async () => {

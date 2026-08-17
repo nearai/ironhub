@@ -109,8 +109,13 @@ export default function ManageSubmissionPage({ params }: PageProps) {
     )
   }
 
+  // Mirrors service.ts's REQUIRED_CONTENT_KINDS_BY_TYPE (design.md D3):
+  // manifest.toml is now the authoritative metadata carrier for a tool, so
+  // it -- not capabilities -- is what gates completeness here. Left out of
+  // sync with the server table, this local gate would silently disagree
+  // with the `content_complete` check the checks panel renders below it.
   const expectedKinds: ContentKind[] =
-    artifact.type === "tool" ? ["wasm", "capabilities"] : ["skill_md"]
+    artifact.type === "tool" ? ["wasm", "manifest_toml"] : ["skill_md"]
   const uploadedKinds = new Set(artifact.content.map((c) => c.kind))
   const isContentComplete = expectedKinds.every((kind) => uploadedKinds.has(kind))
   // manifest_toml and bundle_zip are optional archival kinds a bundle upload

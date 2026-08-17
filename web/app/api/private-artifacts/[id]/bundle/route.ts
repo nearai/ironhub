@@ -3,6 +3,7 @@ import { assertSameOriginRequest, handleApiError } from "@/lib/http/api"
 import { inspectExtensionBundle, readBundleFile } from "@/lib/private-artifacts/bundle"
 import {
   type ContentKind,
+  deleteArtifactContent,
   storeArtifactContent,
 } from "@/lib/private-artifacts/content"
 import { getPrivateArtifact } from "@/lib/private-artifacts/service"
@@ -33,6 +34,19 @@ async function storeBundleContent(
       const detail = await error.text()
       throw new Response(`${path}: ${detail}`, { status: 400 })
     }
+    throw error
+  }
+}
+
+// Clears a stale `capabilities` row (and its S3 object) left by an earlier
+// upload when the current re-upload's archive carries no *.capabilities.json.
+// A no-op, not an error, when there was never a row to begin with -- the
+// common case for a tool's first bundle upload.
+async function clearStaleCapabilities(organizationId: string, artifactId: string) {
+  try {
+    await deleteArtifactContent(organizationId, artifactId, "capabilities")
+  } catch (error) {
+    if (error instanceof Response && error.status === 404) return
     throw error
   }
 }
@@ -70,15 +84,26 @@ export async function PUT(request: Request, { params }: Params) {
         readBundleFile(zip, inspected.wasmPath)
       )
     )
-    stored.push(
-      await storeBundleContent(
-        organizationId,
-        id,
-        "capabilities",
-        inspected.capabilitiesPath,
-        readBundleFile(zip, inspected.capabilitiesPath)
+    // capabilities is optional (design.md D3/D6): manifest.toml is now the
+    // authoritative metadata carrier, so an archive with none is valid and
+    // simply writes no `capabilities` row. But storeArtifactContent only
+    // upserts -- it never deletes -- so a *re-upload* that dropped
+    // *.capabilities.json from an earlier bundle must explicitly clear any
+    // stale row here, or the signed manifest keeps advertising bytes the
+    // current archive no longer contains.
+    if (inspected.capabilitiesPath) {
+      stored.push(
+        await storeBundleContent(
+          organizationId,
+          id,
+          "capabilities",
+          inspected.capabilitiesPath,
+          readBundleFile(zip, inspected.capabilitiesPath)
+        )
       )
-    )
+    } else {
+      await clearStaleCapabilities(organizationId, id)
+    }
     stored.push(
       await storeBundleContent(
         organizationId,

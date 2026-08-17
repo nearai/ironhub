@@ -33,7 +33,7 @@ export type BundleManifest = {
 export type InspectedBundle = {
   manifest: BundleManifest
   wasmPath: string
-  capabilitiesPath: string
+  capabilitiesPath: string | null
   entryNames: string[]
   schemaFiles: string[]
   promptFiles: string[]
@@ -779,28 +779,37 @@ export function inspectExtensionBundle(zip: Uint8Array): InspectedBundle {
     describeKindMismatch(runtimeModule, "wasm")
   )
 
-  // 10. Exactly one *.capabilities.json at the root, valid JSON. Rule 3c:
-  // apply its D3 cap here too.
+  // 10. Capabilities file -- optional. manifest.toml (schema
+  // reborn.extension_manifest.v3) already carries effects, default_permission,
+  // and the secrets handle list per tool, so *.capabilities.json is the
+  // legacy carrier of data the manifest now owns. Zero or one root-level
+  // match is accepted; two or more is still a rejection (ambiguous which one
+  // describes the extension). When present it must still parse as JSON.
+  // Rule 3c: apply its D3 cap here too.
   const capabilitiesCandidates = visibleEntries.filter(
     (entry) => !entry.name.includes("/") && entry.name.endsWith(".capabilities.json")
   )
-  if (capabilitiesCandidates.length !== 1) {
+  if (capabilitiesCandidates.length > 1) {
     throw badRequest(
-      `Zip must contain exactly one *.capabilities.json at its root (found ${capabilitiesCandidates.length})`
+      `Zip must contain at most one *.capabilities.json at its root (found ${capabilitiesCandidates.length})`
     )
   }
-  const capabilitiesEntry = capabilitiesCandidates[0]
-  const capabilitiesBytes = extractVerifiedEntry(
-    zip,
-    capabilitiesEntry.name,
-    MAX_KIND_BYTES_DURING_INSPECT.capabilities,
-    describeKindMismatch(capabilitiesEntry.name, "capabilities")
-  )
-  const capabilitiesText = new TextDecoder("utf-8", { fatal: false }).decode(capabilitiesBytes)
-  try {
-    JSON.parse(capabilitiesText)
-  } catch {
-    throw badRequest(`${capabilitiesEntry.name} is not valid JSON`)
+  let capabilitiesPath: string | null = null
+  if (capabilitiesCandidates.length === 1) {
+    const capabilitiesEntry = capabilitiesCandidates[0]
+    const capabilitiesBytes = extractVerifiedEntry(
+      zip,
+      capabilitiesEntry.name,
+      MAX_KIND_BYTES_DURING_INSPECT.capabilities,
+      describeKindMismatch(capabilitiesEntry.name, "capabilities")
+    )
+    const capabilitiesText = new TextDecoder("utf-8", { fatal: false }).decode(capabilitiesBytes)
+    try {
+      JSON.parse(capabilitiesText)
+    } catch {
+      throw badRequest(`${capabilitiesEntry.name} is not valid JSON`)
+    }
+    capabilitiesPath = capabilitiesEntry.name
   }
 
   const runtimeKindValue = runtimeTable?.kind
@@ -819,7 +828,7 @@ export function inspectExtensionBundle(zip: Uint8Array): InspectedBundle {
       runtimeModule,
     },
     wasmPath: runtimeModule,
-    capabilitiesPath: capabilitiesEntry.name,
+    capabilitiesPath,
     entryNames: entries.filter((entry) => !entry.isDirectory).map((entry) => entry.name),
     schemaFiles: visibleEntries
       .filter((entry) => entry.name.startsWith("schemas/"))

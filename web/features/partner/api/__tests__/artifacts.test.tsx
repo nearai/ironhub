@@ -113,6 +113,31 @@ describe("artifacts API hooks", () => {
     })
   })
 
+  it("round-trips a null capabilities path when the archive carries no *.capabilities.json", async () => {
+    // design.md D3/D6: capabilities is now optional -- an inspect response
+    // for an archive with none must come back as `null`, not an absent key
+    // or an empty string, so the caller can tell "no file" apart from "file
+    // named the empty string".
+    const inspected = {
+      manifest: {
+        id: "usdc-payments",
+        name: "USDC Payments",
+        version: "1.0.0",
+        description: "Pays things.",
+      },
+      files: { wasm: "wasm/x.wasm", capabilities: null, schemas: [], prompts: [] },
+      totalUncompressedBytes: 1234,
+    }
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(inspected), { status: 200 }))
+
+    const { result } = renderHook(() => useInspectBundle(), { wrapper })
+    const zipBytes = new Blob([new Uint8Array([0x50, 0x4b, 0x03, 0x04])])
+
+    const data = await result.current.mutateAsync(zipBytes)
+
+    expect(data.files.capabilities).toBeNull()
+  })
+
   it("defensively normalizes a missing checks array from the checks endpoint", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       new Response(JSON.stringify({ publishable: false }), { status: 200 })

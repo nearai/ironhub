@@ -259,7 +259,12 @@ export async function createInstallIntent(input: {
   return { redirectUrl, message: payload, expiresAt: expiresAt.toISOString() }
 }
 
-async function resolveInstallArtifact(input: {
+// Exported for testability only -- not part of the route-facing API surface
+// (createInstallIntent is). resolvePrivateInstall's capabilities-optional
+// fix below has no other unit-test seam short of mocking the entire
+// createInstallIntent pipeline (agent-installation ownership, shared-key
+// decryption, signing), none of which this bug touches.
+export async function resolveInstallArtifact(input: {
   slug: string
   userId: string
   organizationId?: string
@@ -269,11 +274,16 @@ async function resolveInstallArtifact(input: {
     const manifest = await buildUnifiedManifest()
     const manifestTool = manifest.tools.find((t) => t.name === item.slug)
     const manifestSkill = manifest.skills.find((s) => s.name === item.slug)
+    // capabilities is optional on HubToolEntry now (design.md D3: manifest.toml
+    // is the authoritative metadata carrier). All published catalog tools still
+    // ship both today, so this only changes behavior for a future tool entry
+    // that genuinely has none -- it folds into the digest instead of throwing.
     const digest = manifestTool
-      ? artifactDigest([
-          manifestTool.wasm.sha256,
-          manifestTool.capabilities.sha256,
-        ])
+      ? artifactDigest(
+          manifestTool.capabilities
+            ? [manifestTool.wasm.sha256, manifestTool.capabilities.sha256]
+            : [manifestTool.wasm.sha256]
+        )
       : manifestSkill
         ? artifactDigest([manifestSkill.skill_md.sha256])
         : null
@@ -318,12 +328,18 @@ async function resolvePrivateInstall(
   const sha = new Map(artifact.content.map((c) => [c.kind, c.sha256]))
   let digest: string
   if (artifact.type === "tool") {
+    // capabilities is optional (design.md D3: manifest.toml is now the
+    // authoritative metadata carrier) -- wasm is the only kind still
+    // unconditionally required. Mirrors resolveInstallArtifact's public-
+    // catalog branch above: a capabilities-less tool that passed
+    // content_complete (wasm + manifest_toml) must resolve an install here
+    // too, or a contract-valid, publishable artifact becomes uninstallable.
     const wasm = sha.get("wasm")
-    const capabilities = sha.get("capabilities")
-    if (!wasm || !capabilities) {
+    if (!wasm) {
       throw new Error("Private tool is missing installable content.")
     }
-    digest = artifactDigest([wasm, capabilities])
+    const capabilities = sha.get("capabilities")
+    digest = artifactDigest(capabilities ? [wasm, capabilities] : [wasm])
   } else if (artifact.type === "skill") {
     const skillMd = sha.get("skill_md")
     if (!skillMd) {

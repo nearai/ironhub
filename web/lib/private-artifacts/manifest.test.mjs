@@ -86,12 +86,39 @@ test("skills are unaffected: no manifest field is ever attached to a skill entry
 })
 
 test("still throws 409 when a required (non-optional) kind is missing", async () => {
-  findFirstResult = toolArtifact(["wasm"]) // capabilities missing
+  findFirstResult = toolArtifact([]) // wasm missing -- the only kind still unconditionally required
 
   await assert.rejects(
     () => buildPrivateArtifactManifest(baseInput()),
     (error) => error instanceof Response && error.status === 409
   )
+})
+
+test("emits the optional capabilities hub artifact when a capabilities row exists", async () => {
+  findFirstResult = toolArtifact(["wasm", "capabilities", "manifest_toml"])
+
+  const manifest = await buildPrivateArtifactManifest(baseInput())
+
+  const tool = manifest.tools[0]
+  assert.ok(tool.capabilities, "expected the capabilities hub artifact to be present")
+  assert.equal(tool.capabilities.sha256, "sha-capabilities")
+})
+
+test("omits the capabilities hub artifact without throwing when no capabilities row exists", async () => {
+  // The pre-bundle-ingest-vs-bundle-ingest situation is now symmetric with
+  // manifest_toml: manifest.toml (design.md D3) owns the data
+  // *.capabilities.json used to carry, so a tool created via a bundle
+  // upload that had none is a valid, complete tool -- not missing anything.
+  findFirstResult = toolArtifact(["wasm", "manifest_toml"])
+
+  const manifest = await buildPrivateArtifactManifest(baseInput())
+
+  const tool = manifest.tools[0]
+  assert.equal(tool.capabilities, undefined)
+  // Must not even round-trip as a null through JSON -- absence should mean
+  // absence, matching HubToolEntry.capabilities being optional rather than
+  // nullable (the same guarantee already required of `manifest`).
+  assert.equal("capabilities" in JSON.parse(JSON.stringify(manifest.tools[0])), false)
 })
 
 test("throws 404 when the artifact does not exist in the organization", async () => {

@@ -101,6 +101,18 @@ test("accepts a well-formed bundle and returns the parsed manifest + layout", ()
   assert.ok(inspected.totalUncompressedBytes > 0)
 })
 
+test("accepts a bundle with no *.capabilities.json at all -- manifest.toml now owns that data (design.md D3/D6)", () => {
+  const files = baseFiles()
+  delete files["test-tool.capabilities.json"]
+  const zip = zipOf(files)
+
+  const inspected = inspectExtensionBundle(zip)
+
+  assert.equal(inspected.capabilitiesPath, null)
+  assert.equal(inspected.manifest.id, "test-tool")
+  assert.equal(inspected.wasmPath, "wasm/test.wasm")
+})
+
 test("readBundleFile reads back the resolved wasm module", () => {
   const zip = zipOf(baseFiles())
   const bytes = readBundleFile(zip, "wasm/test.wasm")
@@ -293,21 +305,11 @@ const rejectionCases = [
     message: /^manifest\.toml is missing required field: \[runtime\]\.module$/,
   },
   {
-    name: "rule 10: zero capabilities files",
-    zip: () => {
-      const files = baseFiles()
-      delete files["test-tool.capabilities.json"]
-      return zipOf(files)
-    },
-    status: 400,
-    message: /^Zip must contain exactly one \*\.capabilities\.json at its root \(found 0\)$/,
-  },
-  {
     name: "rule 10: multiple capabilities files",
     zip: () =>
       zipOf({ ...baseFiles(), "other-tool.capabilities.json": encode("{}") }),
     status: 400,
-    message: /^Zip must contain exactly one \*\.capabilities\.json at its root \(found 2\)$/,
+    message: /^Zip must contain at most one \*\.capabilities\.json at its root \(found 2\)$/,
   },
   {
     name: "rule 10: capabilities file is not valid JSON",
@@ -744,16 +746,17 @@ test("a [runtime].module pointing at a stripped __MACOSX/ entry is rejected, not
 
 // --- Rule 10 root-only re-check: nested capabilities files don't count -----
 
-test("a *.capabilities.json only under schemas/ counts as zero root capabilities files", async () => {
+test("a *.capabilities.json only under schemas/ counts as zero root capabilities files -- accepted, not a rejection", () => {
+  // Zero root-level matches is a legitimate state (design.md D3/D6): the
+  // nested file is simply invisible to rule 10, not miscounted as "found 1".
   const files = baseFiles()
   delete files["test-tool.capabilities.json"]
   files["schemas/test-tool.capabilities.json"] = encode(JSON.stringify({ version: "0.1.0" }))
   const zip = zipOf(files)
-  await assertRejection(
-    zip,
-    400,
-    /^Zip must contain exactly one \*\.capabilities\.json at its root \(found 0\)$/
-  )
+
+  const inspected = inspectExtensionBundle(zip)
+
+  assert.equal(inspected.capabilitiesPath, null)
 })
 
 // --- Two simultaneous rule violations: the earlier rule wins ---------------
