@@ -166,16 +166,42 @@ describe("new-submit tool tab (zip bundle flow)", () => {
       expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue("USDC Payments")
     )
 
+    // Exercise category + repository link too, so the body assertion below
+    // pins those exact field names reaching the create request rather than
+    // just their falsy defaults — a route mocked purely by URL would never
+    // catch a field going missing or misnamed.
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "Dev Tools" } })
+    fireEvent.change(screen.getByPlaceholderText("https://github.com/org/repo"), {
+      target: { value: "https://github.com/acme/usdc-payments" },
+    })
+
     fireEvent.click(screen.getByRole("button", { name: /add to space/i }))
 
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/mvp/dashboard"))
 
-    const calledUrls = vi.mocked(fetch).mock.calls.map(([input]) => String(input))
+    const calls = vi.mocked(fetch).mock.calls
+    const calledUrls = calls.map(([input]) => String(input))
     expect(calledUrls).toEqual([
       "/api/private-artifacts/bundle/inspect",
       "/api/private-artifacts",
       "/api/private-artifacts/artifact-1/bundle",
     ])
+
+    const [, createInit] = calls[1]
+    const createBody = JSON.parse(String(createInit?.body))
+    expect(createBody).toMatchObject({
+      category: "Dev Tools",
+      sourceUrl: "https://github.com/acme/usdc-payments",
+    })
+
+    // The live bundle upload must send an explicit application/zip
+    // Content-Type (design.md D6) rather than whatever the browser derives
+    // from File.type — a raw `uploadContent()` PUT wouldn't set this header.
+    const [, bundleUploadInit] = calls[2]
+    expect(bundleUploadInit).toMatchObject({
+      method: "PUT",
+      headers: { "Content-Type": "application/zip" },
+    })
   })
 
   it("on a partial bundle upload failure, redirects to the manage page instead of dead-ending the form", async () => {

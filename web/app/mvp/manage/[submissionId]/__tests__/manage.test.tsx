@@ -55,6 +55,7 @@ async function renderPage(submissionId = "artifact-1") {
     )
     await new Promise((resolve) => setTimeout(resolve, 0))
   })
+  return queryClient
 }
 
 describe("manage page — review checks and publish/unpublish", () => {
@@ -114,6 +115,137 @@ describe("manage page — review checks and publish/unpublish", () => {
     expect(screen.getByText("Repository link set")).toBeInTheDocument()
     expect(screen.getByText("sourceUrl is not set.")).toBeInTheDocument()
 
+    // Row count matches the mocked endpoint exactly — a client-side splice
+    // (e.g. an extra fabricated pass row) or a dropped row would fail this.
+    const rows = document.querySelectorAll("[data-check-id]")
+    expect(rows).toHaveLength(3)
+
+    // Each row's rendered status is driven by the server's own status field
+    // (via a discriminator no icon-color-only regression can fake past) —
+    // pin it can never read "pass" for a check the server reported failing
+    // or warning, and vice versa.
+    expect(document.querySelector('[data-check-id="content_complete"]')).toHaveAttribute(
+      "data-check-status",
+      "pass"
+    )
+    expect(document.querySelector('[data-check-id="category_set"]')).toHaveAttribute(
+      "data-check-status",
+      "fail"
+    )
+    expect(document.querySelector('[data-check-id="repo_link_set"]')).toHaveAttribute(
+      "data-check-status",
+      "warn"
+    )
+
+    const failingRow = document.querySelector('[data-check-id="category_set"]') as HTMLElement
+    expect(failingRow.textContent).toContain("Fail")
+    expect(failingRow.textContent).not.toContain("Pass")
+
+    expect(screen.getByRole("button", { name: /^publish$/i })).toBeDisabled()
+  })
+
+  it("never shows a passing indicator for a check the server reports as failing, even if every icon branch were collapsed to pass", async () => {
+    // A regression test that would still pass under the specific bug this
+    // requirement exists to prevent: splicing a fabricated {status:"pass"}
+    // row client-side, or hardcoding every icon to the pass icon, both leave
+    // the *text* assertions above green. This test additionally requires the
+    // row's own status attribute to disagree with a hardcoded "pass" — it
+    // fails if the discriminator is removed or ignored.
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/artifact-1") {
+        return new Response(
+          JSON.stringify({ artifact: { ...BASE_ARTIFACT, status: "draft" } }),
+          { status: 200 }
+        )
+      }
+      if (url === "/api/private-artifacts/artifact-1/checks") {
+        return new Response(
+          JSON.stringify({
+            checks: [
+              {
+                id: "wasm_present",
+                label: "WASM present",
+                status: "fail",
+                detail: "wasm content is missing.",
+              },
+            ],
+            publishable: false,
+          }),
+          { status: 200 }
+        )
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    await renderPage()
+
+    await waitFor(() =>
+      expect(document.querySelector('[data-check-id="wasm_present"]')).toBeInTheDocument()
+    )
+    expect(document.querySelector('[data-check-id="wasm_present"]')).toHaveAttribute(
+      "data-check-status",
+      "fail"
+    )
+    expect(document.querySelectorAll('[data-check-status="pass"]')).toHaveLength(0)
+  })
+
+  it("gates the checks list and Publish on isError, so a failed refetch cannot leave stale rows or a stale publishable state on screen", async () => {
+    let callCount = 0
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/artifact-1") {
+        return new Response(
+          JSON.stringify({ artifact: { ...BASE_ARTIFACT, status: "draft" } }),
+          { status: 200 }
+        )
+      }
+      if (url === "/api/private-artifacts/artifact-1/checks") {
+        callCount += 1
+        if (callCount === 1) {
+          return new Response(
+            JSON.stringify({
+              checks: [
+                {
+                  id: "content_complete",
+                  label: "Content complete",
+                  status: "pass",
+                  detail: "All required content is present.",
+                },
+              ],
+              publishable: true,
+            }),
+            { status: 200 }
+          )
+        }
+        return new Response(JSON.stringify({ error: "checks service unavailable" }), {
+          status: 500,
+        })
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    const queryClient = await renderPage()
+
+    const publishButton = await screen.findByRole("button", { name: /^publish$/i })
+    await waitFor(() => expect(publishButton).not.toBeDisabled())
+    expect(document.querySelector('[data-check-id="content_complete"]')).toBeInTheDocument()
+
+    // React Query keeps the last-good `data` across a failed refetch, so
+    // this forces exactly the scenario the isError gate exists for: a
+    // background refetch that 500s while stale pass data is still cached.
+    await act(async () => {
+      await queryClient.refetchQueries({
+        queryKey: ["private-artifacts", "artifact-1", "checks"],
+      })
+    })
+
+    await waitFor(() =>
+      expect(screen.getByText(/failed to load review checks/i)).toBeInTheDocument()
+    )
+    // The stale passing row must not still be on screen next to the error.
+    expect(document.querySelector('[data-check-id="content_complete"]')).not.toBeInTheDocument()
+    // Publish must not still be enabled off stale `publishable: true`.
     expect(screen.getByRole("button", { name: /^publish$/i })).toBeDisabled()
   })
 

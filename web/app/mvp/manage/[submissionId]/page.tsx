@@ -10,6 +10,9 @@ import {
   useMintInstallToken,
   usePublishArtifact,
   useUnpublishArtifact,
+  useUploadArtifactBundle,
+  type ArtifactCheck,
+  type ContentKind,
 } from "@/features/partner/api/artifacts"
 import { ApiError } from "@/features/partner/api/client"
 import { useToast } from "@/features/partner/store/toast-provider"
@@ -29,8 +32,11 @@ import {
   IconAlertTriangle,
   IconX,
   IconRocket,
+  IconRocketOff,
   IconCategory,
   IconLink,
+  IconFileZip,
+  IconUpload,
 } from "@tabler/icons-react"
 import {
   Dialog,
@@ -46,6 +52,31 @@ interface PageProps {
   params: Promise<{ submissionId: string }>
 }
 
+/** Status carries its own visible text + icon shape — never color alone. */
+const CHECK_STATUS_META: Record<
+  ArtifactCheck["status"],
+  { Icon: typeof IconCheck; iconWrap: string; badge: string; label: string }
+> = {
+  pass: {
+    Icon: IconCheck,
+    iconWrap: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    badge: "border-emerald-500/25 text-emerald-600 dark:text-emerald-400",
+    label: "Pass",
+  },
+  warn: {
+    Icon: IconAlertTriangle,
+    iconWrap: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    badge: "border-amber-500/25 text-amber-600 dark:text-amber-400",
+    label: "Warn",
+  },
+  fail: {
+    Icon: IconX,
+    iconWrap: "bg-destructive/10 text-destructive",
+    badge: "border-destructive/30 text-destructive",
+    label: "Fail",
+  },
+}
+
 export default function ManageSubmissionPage({ params }: PageProps) {
   const { submissionId } = use(params)
   const router = useRouter()
@@ -56,10 +87,12 @@ export default function ManageSubmissionPage({ params }: PageProps) {
   const mintToken = useMintInstallToken(submissionId)
   const publishArtifact = usePublishArtifact(submissionId)
   const unpublishArtifact = useUnpublishArtifact(submissionId)
+  const uploadArtifactBundle = useUploadArtifactBundle()
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [copiedInstall, setCopiedInstall] = useState(false)
   const [publishError, setPublishError] = useState<string | null>(null)
+  const [bundleReuploadError, setBundleReuploadError] = useState<string | null>(null)
 
   if (isLoading) {
     return <div className="py-16 text-center text-sm text-muted-foreground">Loading item...</div>
@@ -76,10 +109,15 @@ export default function ManageSubmissionPage({ params }: PageProps) {
     )
   }
 
-  const expectedKinds =
+  const expectedKinds: ContentKind[] =
     artifact.type === "tool" ? ["wasm", "capabilities"] : ["skill_md"]
   const uploadedKinds = new Set(artifact.content.map((c) => c.kind))
-  const isContentComplete = expectedKinds.every((kind) => uploadedKinds.has(kind as never))
+  const isContentComplete = expectedKinds.every((kind) => uploadedKinds.has(kind))
+  // manifest_toml and bundle_zip are optional archival kinds a bundle upload
+  // also writes (design.md D3/D6) — surface them too so the manage page
+  // reflects everything actually stored, not just the required kinds.
+  const additionalKinds = Array.from(uploadedKinds).filter((kind) => !expectedKinds.includes(kind))
+  const displayKinds = [...expectedKinds, ...additionalKinds]
 
   const handleCopyInstall = async () => {
     try {
@@ -129,6 +167,30 @@ export default function ManageSubmissionPage({ params }: PageProps) {
       notify(`${artifact.title} moved back to draft`, "info")
     } catch (error) {
       notify(error instanceof Error ? error.message : "Failed to unpublish item.", "error")
+    }
+  }
+
+  // Real recovery path for a tool whose bundle upload failed after the
+  // artifact row was already created (design.md D6: this page is the
+  // recovery surface for a partial upload) — re-runs the same PUT the
+  // create flow uses, with the same explicit `application/zip` type.
+  const handleBundleReupload = async (file: File) => {
+    setBundleReuploadError(null)
+    if (!file.name.toLowerCase().endsWith(".zip")) {
+      setBundleReuploadError("Only .zip archives are accepted.")
+      return
+    }
+    try {
+      await uploadArtifactBundle.mutateAsync({ id: artifact.id, bytes: file })
+      notify("Extension bundle uploaded")
+    } catch (error) {
+      setBundleReuploadError(
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Failed to upload bundle."
+      )
     }
   }
 
@@ -248,7 +310,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
               {artifact.visibility === "public" ? (
                 <>
                   <IconWorld className="size-3 text-muted-foreground" />
-                  Public Hub
+                  Request public listing
                 </>
               ) : (
                 <>
@@ -295,8 +357,8 @@ export default function ManageSubmissionPage({ params }: PageProps) {
             Content Files
           </h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {expectedKinds.map((kind) => {
-              const uploaded = uploadedKinds.has(kind as never)
+            {displayKinds.map((kind) => {
+              const uploaded = uploadedKinds.has(kind)
               const content = artifact.content.find((c) => c.kind === kind)
               return (
                 <div
@@ -327,6 +389,46 @@ export default function ManageSubmissionPage({ params }: PageProps) {
               )
             })}
           </div>
+
+          {artifact.type === "tool" && (
+            <div className="mt-3 flex flex-col gap-1.5">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase">
+                <IconUpload className="size-3.5" />
+                Re-upload Extension Bundle (.zip)
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Recovery path if a bundle upload failed partway through, or to replace the stored package.
+              </p>
+              <input
+                type="file"
+                accept=".zip"
+                disabled={uploadArtifactBundle.isPending}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  e.target.value = ""
+                  if (file) void handleBundleReupload(file)
+                }}
+                className="block w-full text-xs text-muted-foreground file:mr-3 file:rounded-full file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-primary hover:file:bg-primary/20"
+              />
+              {uploadArtifactBundle.isPending && (
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                  <IconLoader2 className="size-3.5 animate-spin" />
+                  Uploading...
+                </span>
+              )}
+              {uploadArtifactBundle.isSuccess && !uploadArtifactBundle.isPending && !bundleReuploadError && (
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                  <IconFileZip className="size-3.5" />
+                  Bundle uploaded
+                </span>
+              )}
+              {bundleReuploadError && (
+                <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive">
+                  {bundleReuploadError}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Review checks — rendered verbatim from the server; no check is invented client-side. */}
@@ -350,7 +452,11 @@ export default function ManageSubmissionPage({ params }: PageProps) {
             </p>
           )}
 
-          {checks.data && (
+          {/* Gate on !isError too — React Query keeps the last-good `data`
+              across a failed refetch, so without this a failed background
+              refetch would leave stale (possibly all-passing) rows on
+              screen alongside the error message above. */}
+          {checks.data && !checks.isError && (
             <div className="mt-4 flex flex-col gap-2">
               {checks.data.checks.length === 0 && (
                 <p className="text-xs text-muted-foreground italic leading-normal">
@@ -358,22 +464,27 @@ export default function ManageSubmissionPage({ params }: PageProps) {
                 </p>
               )}
               {checks.data.checks.map((check) => {
-                const style =
-                  check.status === "pass"
-                    ? { Icon: IconCheck, wrap: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" }
-                    : check.status === "warn"
-                      ? { Icon: IconAlertTriangle, wrap: "bg-amber-500/10 text-amber-600 dark:text-amber-400" }
-                      : { Icon: IconX, wrap: "bg-destructive/10 text-destructive" }
+                const meta = CHECK_STATUS_META[check.status]
                 return (
                   <div
                     key={check.id}
+                    data-check-id={check.id}
+                    data-check-status={check.status}
                     className="flex items-center gap-2 rounded-xl border border-[var(--ironhub-line)]/50 bg-background/30 p-3.5 text-xs"
                   >
-                    <div className={`flex size-5 shrink-0 items-center justify-center rounded-full ${style.wrap}`}>
-                      <style.Icon className="size-3.5" />
+                    <div
+                      className={`flex size-5 shrink-0 items-center justify-center rounded-full ${meta.iconWrap}`}
+                      aria-hidden="true"
+                    >
+                      <meta.Icon className="size-3.5" />
                     </div>
                     <div>
                       <span className="font-semibold text-foreground">{check.label}</span>
+                      <span
+                        className={`ml-2 rounded-full border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${meta.badge}`}
+                      >
+                        {meta.label}
+                      </span>
                       <p className="text-muted-foreground/90">{check.detail}</p>
                     </div>
                   </div>
@@ -388,7 +499,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
             </div>
           )}
 
-          <div className="mt-4">
+          <div className="mt-4 flex flex-col items-start gap-1.5">
             {artifact.status === "published" ? (
               <Button
                 type="button"
@@ -400,29 +511,46 @@ export default function ManageSubmissionPage({ params }: PageProps) {
                 {unpublishArtifact.isPending ? (
                   <IconLoader2 className="size-4 animate-spin" />
                 ) : (
-                  <IconRocket className="size-4" />
+                  <IconRocketOff className="size-4" />
                 )}
                 Unpublish
               </Button>
             ) : (
-              <Button
-                type="button"
-                onClick={handlePublish}
-                disabled={publishArtifact.isPending || checks.isLoading || !checks.data?.publishable}
-                title={
-                  checks.data && !checks.data.publishable
-                    ? "Resolve the failing checks above before publishing"
-                    : undefined
-                }
-                className="rounded-full"
-              >
-                {publishArtifact.isPending ? (
-                  <IconLoader2 className="size-4 animate-spin" />
-                ) : (
-                  <IconRocket className="size-4" />
+              <>
+                <Button
+                  type="button"
+                  onClick={handlePublish}
+                  disabled={
+                    publishArtifact.isPending ||
+                    checks.isLoading ||
+                    checks.isError ||
+                    !checks.data?.publishable
+                  }
+                  aria-describedby={
+                    checks.data && !checks.isError && !checks.data.publishable
+                      ? "publish-blocked-reason"
+                      : undefined
+                  }
+                  title={
+                    checks.data && !checks.isError && !checks.data.publishable
+                      ? "Resolve the failing checks above before publishing"
+                      : undefined
+                  }
+                  className="rounded-full"
+                >
+                  {publishArtifact.isPending ? (
+                    <IconLoader2 className="size-4 animate-spin" />
+                  ) : (
+                    <IconRocket className="size-4" />
+                  )}
+                  Publish
+                </Button>
+                {checks.data && !checks.isError && !checks.data.publishable && (
+                  <p id="publish-blocked-reason" className="text-xs text-muted-foreground">
+                    Resolve the failing checks above before publishing.
+                  </p>
                 )}
-                Publish
-              </Button>
+              </>
             )}
           </div>
         </div>

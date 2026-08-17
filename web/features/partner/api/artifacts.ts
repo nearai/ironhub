@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
-import { fetchJson, fetchText, uploadContent } from "./client"
+import { ApiError, fetchJson, uploadContent } from "./client"
 
 export type ArtifactType = "tool" | "skill"
 export type ArtifactVisibility = "private" | "public"
@@ -13,9 +13,6 @@ export type ContentKind =
   | "skill_md"
   | "manifest_toml"
   | "bundle_zip"
-
-/** Content kinds the owner content-read route streams inline as text (design.md D4). */
-export type TextContentKind = "skill_md" | "capabilities" | "manifest_toml"
 
 /** Content summary as returned by the artifact list/detail read routes — never the storageKey. */
 export interface ArtifactContent {
@@ -50,7 +47,7 @@ export interface CreateArtifactInput {
   version: string
   visibility?: ArtifactVisibility
   description?: string
-  sourceUrl?: string
+  sourceUrl?: string | null
   category?: string | null
 }
 
@@ -86,8 +83,15 @@ export interface InspectedBundle {
   totalUncompressedBytes: number
 }
 
+/** design.md D6's bundle-upload response omits `createdAt` — the row hasn't been re-fetched, just written. */
+export interface BundleContentSummary {
+  kind: ContentKind
+  sha256: string
+  sizeBytes: number
+}
+
 export interface BundleUploadResult {
-  content: ArtifactContent[]
+  content: BundleContentSummary[]
 }
 
 export interface ArtifactCheck {
@@ -195,25 +199,6 @@ export function useDeleteArtifactContent(id: string) {
   })
 }
 
-/**
- * Owner-facing read of a text content kind (design.md D4). Binary kinds
- * (`wasm`, `bundle_zip`) redirect to a presigned URL server-side rather than
- * streaming inline, so they are not exposed through this hook — link to the
- * route directly for those instead.
- */
-export function useArtifactContent(id: string | undefined, kind: TextContentKind) {
-  return useQuery({
-    queryKey: id
-      ? ([...artifactKey(id), "content", kind] as const)
-      : (["private-artifacts", "unknown", "content", kind] as const),
-    queryFn: () =>
-      fetchText(`/api/private-artifacts/${id}/content/${kind}`, {
-        cache: "no-store",
-      }),
-    enabled: Boolean(id),
-  })
-}
-
 export function useMintInstallToken(id: string) {
   return useMutation({
     mutationFn: () =>
@@ -241,23 +226,23 @@ export function useInspectBundle() {
 }
 
 /**
- * Stores a validated extension bundle against an existing tool artifact
- * (design.md D6). Bound to a known artifact id, so it's meant for re-upload
- * flows on an existing artifact — the create flow uploads the first bundle
- * with the raw `uploadContent`-style call once the artifact id is known,
- * mirroring how `useUploadArtifactContent` is not used for the initial
- * content upload on create either.
+ * Stores a validated extension bundle against a tool artifact (design.md D6).
+ * The target `id` is passed per-call rather than bound at hook-creation time,
+ * so a single call site can serve both the create flow (the id isn't known
+ * until after `useCreateArtifact` resolves) and a re-upload flow on the
+ * manage page (the id is stable but the hook still needs to be declared
+ * unconditionally at the top of the component).
  */
-export function useUploadArtifactBundle(id: string) {
+export function useUploadArtifactBundle() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (bytes: Blob) =>
+    mutationFn: ({ id, bytes }: { id: string; bytes: Blob }) =>
       fetchJson<BundleUploadResult>(`/api/private-artifacts/${id}/bundle`, {
         method: "PUT",
         headers: { "Content-Type": "application/zip" },
         body: bytes,
       }),
-    onSuccess: () => {
+    onSuccess: (_data, { id }) => {
       queryClient.invalidateQueries({ queryKey: artifactsKey })
       queryClient.invalidateQueries({ queryKey: artifactKey(id) })
       queryClient.invalidateQueries({ queryKey: artifactChecksKey(id) })
@@ -284,11 +269,16 @@ export function usePublishArtifact(id: string) {
       fetchJson<{ artifact: PrivateArtifact }>(`/api/private-artifacts/${id}/publish`, {
         method: "POST",
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: artifactsKey })
-      queryClient.invalidateQueries({ queryKey: artifactKey(id) })
-      queryClient.invalidateQueries({ queryKey: artifactChecksKey(id) })
-    },
+    // Awaited so callers that show a success toast after `mutateAsync`
+    // resolves see it land only once the cached artifact/checks have
+    // actually refetched — otherwise the toast can appear before the
+    // status badge updates.
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: artifactsKey }),
+        queryClient.invalidateQueries({ queryKey: artifactKey(id) }),
+        queryClient.invalidateQueries({ queryKey: artifactChecksKey(id) }),
+      ]),
   })
 }
 
@@ -299,10 +289,42 @@ export function useUnpublishArtifact(id: string) {
       fetchJson<{ artifact: PrivateArtifact }>(`/api/private-artifacts/${id}/unpublish`, {
         method: "POST",
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: artifactsKey })
-      queryClient.invalidateQueries({ queryKey: artifactKey(id) })
-      queryClient.invalidateQueries({ queryKey: artifactChecksKey(id) })
-    },
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: artifactsKey }),
+        queryClient.invalidateQueries({ queryKey: artifactKey(id) }),
+        queryClient.invalidateQueries({ queryKey: artifactChecksKey(id) }),
+      ]),
   })
+}
+
+/**
+ * Routes a create/update save error to the specific field it names (D1's
+ * `Invalid category: <value>`, D2's `sourceUrl must be...`) or a generic
+ * form-level message otherwise. Extracted so each save handler's catch block
+ * can make one additive call instead of branching inline ahead of its
+ * existing `error instanceof ApiError` handling — the edit pages' catch
+ * blocks are also touched by wt-content-read's content-loading work, so
+ * keeping this logic out of them keeps that merge mechanical.
+ */
+export function describeArtifactSaveError(error: unknown): {
+  field: "category" | "sourceUrl" | null
+  message: string
+} {
+  if (error instanceof ApiError) {
+    if (error.status === 400 && /^Invalid category:/.test(error.message)) {
+      return { field: "category", message: error.message }
+    }
+    if (/sourceUrl must be/.test(error.message)) {
+      return { field: "sourceUrl", message: error.message }
+    }
+    return {
+      field: null,
+      message: error.status === 409 ? `Duplicate: ${error.message}` : error.message,
+    }
+  }
+  return {
+    field: null,
+    message: error instanceof Error ? error.message : "Something went wrong.",
+  }
 }

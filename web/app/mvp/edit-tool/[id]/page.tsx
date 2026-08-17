@@ -3,23 +3,23 @@
 import React, { use, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useArtifact, useUpdateArtifact, useUploadArtifactContent } from "@/features/partner/api/artifacts"
-import { ApiError } from "@/features/partner/api/client"
+import {
+  describeArtifactSaveError,
+  useArtifact,
+  useUpdateArtifact,
+  useUploadArtifactContent,
+} from "@/features/partner/api/artifacts"
 import { useToast } from "@/features/partner/store/toast-provider"
-import { CATEGORIES } from "@/lib/catalog/inference"
+import { VisibilitySelector } from "@/features/partner/components/visibility-selector"
+import { CategoryAndRepoFields } from "@/features/partner/components/category-repo-fields"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import {
   IconArrowLeft,
   IconUpload,
   IconFileZip,
-  IconLock,
-  IconWorld,
   IconLoader2,
-  IconCategory,
-  IconLink,
 } from "@tabler/icons-react"
 
 interface PageProps {
@@ -55,13 +55,22 @@ export default function EditToolPage({ params }: PageProps) {
       seededArtifactIdRef.current = artifact.id
        
       setTitle(artifact.title)
-
+       
       setDescription(artifact.description || "")
-
+       
       setVisibility(artifact.visibility)
+    }
+  }, [artifact])
 
+  // Separate from the metadata-seeding effect above — that effect is owned
+  // by wt-content-read's content-loading rewrite, so this lane's category/repo
+  // seeding gets its own artifact-id guard rather than sitting inside code
+  // another lane is actively restructuring.
+  const seededFieldsArtifactIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (artifact && seededFieldsArtifactIdRef.current !== artifact.id) {
+      seededFieldsArtifactIdRef.current = artifact.id
       setCategory(artifact.category ?? "")
-
       setSourceUrl(artifact.sourceUrl ?? "")
     }
   }, [artifact])
@@ -130,7 +139,7 @@ export default function EditToolPage({ params }: PageProps) {
         description,
         visibility,
         category: category || null,
-        sourceUrl: sourceUrl.trim() || undefined,
+        sourceUrl: sourceUrl.trim() || null,
       })
       if (wasmFile) {
         await uploadContent.mutateAsync({ kind: "wasm", file: wasmFile })
@@ -141,15 +150,10 @@ export default function EditToolPage({ params }: PageProps) {
       notify(`Changes saved for ${title}`)
       router.push(`/mvp/manage/${id}`)
     } catch (error) {
-      if (error instanceof ApiError && error.status === 400 && /^Invalid category:/.test(error.message)) {
-        setCategoryError(error.message)
-      } else if (error instanceof ApiError && /sourceUrl must be/.test(error.message)) {
-        setSourceUrlError(error.message)
-      } else if (error instanceof ApiError) {
-        setFormError(error.status === 409 ? `Duplicate: ${error.message}` : error.message)
-      } else {
-        setFormError(error instanceof Error ? error.message : "Failed to save changes.")
-      }
+      const described = describeArtifactSaveError(error)
+      if (described.field === "category") setCategoryError(described.message)
+      else if (described.field === "sourceUrl") setSourceUrlError(described.message)
+      else setFormError(described.message)
     }
   }
 
@@ -230,52 +234,14 @@ export default function EditToolPage({ params }: PageProps) {
             />
           </div>
 
-          {/* Category & repository link */}
-          <div className="grid gap-4 sm:grid-cols-2 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
-            <div className="flex flex-col gap-1.5">
-              <label className="flex items-center gap-1 text-xs font-bold text-muted-foreground uppercase">
-                <IconCategory className="size-3.5" />
-                Category
-              </label>
-              <NativeSelect
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                aria-invalid={Boolean(categoryError)}
-                className="w-full rounded-full select-none"
-              >
-                <NativeSelectOption value="">Uncategorised</NativeSelectOption>
-                {CATEGORIES.map((c) => (
-                  <NativeSelectOption key={c} value={c}>
-                    {c}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-              {categoryError && (
-                <span className="text-xs font-semibold text-destructive">{categoryError}</span>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="flex items-center gap-1 text-xs font-bold text-muted-foreground uppercase">
-                <IconLink className="size-3.5" />
-                Repository Link
-              </label>
-              <Input
-                type="url"
-                placeholder="https://github.com/org/repo"
-                value={sourceUrl}
-                onChange={(e) => setSourceUrl(e.target.value)}
-                aria-invalid={Boolean(sourceUrlError)}
-                className="bg-background/50 text-sm rounded-full"
-              />
-              <span className="text-xs text-muted-foreground">
-                Optional. Accepts a GitHub, GitLab, or Bitbucket URL.
-              </span>
-              {sourceUrlError && (
-                <span className="text-xs font-semibold text-destructive">{sourceUrlError}</span>
-              )}
-            </div>
-          </div>
+          <CategoryAndRepoFields
+            category={category}
+            onCategoryChange={setCategory}
+            categoryError={categoryError}
+            sourceUrl={sourceUrl}
+            onSourceUrlChange={setSourceUrl}
+            sourceUrlError={sourceUrlError}
+          />
 
           {/* WASM Dropzone */}
           <div className="flex flex-col gap-2 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
@@ -346,50 +312,7 @@ export default function EditToolPage({ params }: PageProps) {
             )}
           </div>
 
-          {/* Visibility Selection blocks */}
-          <div className="flex flex-col gap-2 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
-            <label className="text-xs font-bold text-muted-foreground uppercase">
-              Visibility & Distribution
-            </label>
-            <div className="grid grid-cols-2 gap-3 mt-0.5 max-w-xl">
-              <button
-                type="button"
-                onClick={() => setVisibility("private")}
-                className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left transition-all ${visibility === "private"
-                    ? "border-primary bg-primary/5 text-foreground shadow-sm"
-                    : "border-[var(--ironhub-line)]/50 bg-background/30 text-muted-foreground hover:bg-muted/10"
-                  }`}
-              >
-                <div className={`flex size-8 shrink-0 items-center justify-center rounded-xl ${visibility === "private" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
-                  <IconLock className="size-4" />
-                </div>
-                <div>
-                  <span className="text-xs font-bold block">Private Space</span>
-                  <span className="text-xs leading-normal text-muted-foreground/80 block mt-0.5">
-                    Internal to your Org Space only.
-                  </span>
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setVisibility("public")}
-                className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left transition-all ${visibility === "public"
-                    ? "border-primary bg-primary/5 text-foreground shadow-sm"
-                    : "border-[var(--ironhub-line)]/50 bg-background/30 text-muted-foreground hover:bg-muted/10"
-                  }`}
-              >
-                <div className={`flex size-8 shrink-0 items-center justify-center rounded-xl ${visibility === "public" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
-                  <IconWorld className="size-4" />
-                </div>
-                <div>
-                  <span className="text-xs font-bold block">Request public listing</span>
-                  <span className="text-xs leading-normal text-muted-foreground/80 block mt-0.5">
-                    Stays private to your org until an IronHub reviewer approves the listing.
-                  </span>
-                </div>
-              </button>
-            </div>
-          </div>
+          <VisibilitySelector visibility={visibility} onChange={setVisibility} />
         </Card>
 
         <div className="rounded-xl border border-[var(--ironhub-line)] bg-card/60 p-4 shadow-sm flex flex-row items-center justify-end gap-3">

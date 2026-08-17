@@ -4,12 +4,15 @@ import type { ReactNode } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
+  describeArtifactSaveError,
   useArtifactChecks,
   useArtifacts,
   useCreateArtifact,
   useInspectBundle,
   usePublishArtifact,
+  useUploadArtifactBundle,
 } from "../artifacts"
+import { ApiError } from "../client"
 
 function wrapper({ children }: { children: ReactNode }) {
   const queryClient = new QueryClient({

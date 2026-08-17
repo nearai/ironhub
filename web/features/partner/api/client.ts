@@ -56,17 +56,3 @@ export async function uploadContent(
     throw new ApiError(response.status, await parseErrorMessage(response))
   }
 }
-
-/** Like fetchJson, but for text-bodied responses (e.g. owner content reads of markdown/TOML). */
-export async function fetchText(
-  input: string,
-  init?: RequestInit
-): Promise<string> {
-  const response = await fetch(input, init)
-
-  if (!response.ok) {
-    throw new ApiError(response.status, await parseErrorMessage(response))
-  }
-
-  return response.text()
-}

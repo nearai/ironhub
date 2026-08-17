@@ -1,23 +1,26 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { ApiError, uploadContent } from "@/features/partner/api/client"
-import { useCreateArtifact, useInspectBundle } from "@/features/partner/api/artifacts"
+import {
+  describeArtifactSaveError,
+  useCreateArtifact,
+  useInspectBundle,
+  useUploadArtifactBundle,
+} from "@/features/partner/api/artifacts"
 import { useToast } from "@/features/partner/store/toast-provider"
-import { CATEGORIES } from "@/lib/catalog/inference"
+import { VisibilitySelector } from "@/features/partner/components/visibility-selector"
+import { CategoryAndRepoFields } from "@/features/partner/components/category-repo-fields"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import {
   IconArrowLeft,
   IconUpload,
   IconFileZip,
-  IconLock,
-  IconWorld,
   IconPlus,
   IconTrash,
   IconTool,
@@ -27,8 +30,7 @@ import {
   IconCopy,
   IconCheck,
   IconLoader2,
-  IconCategory,
-  IconLink,
+  IconAlertTriangle,
 } from "@tabler/icons-react"
 
 function slugify(value: string) {
@@ -40,132 +42,13 @@ function slugify(value: string) {
   )
 }
 
-/** Shared visibility control — copy matches design.md D9 on every create/edit form. */
-function VisibilitySelector({
-  visibility,
-  onChange,
-}: {
-  visibility: "public" | "private"
-  onChange: (value: "public" | "private") => void
-}) {
-  return (
-    <div className="flex flex-col gap-2 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
-      <label className="text-xs font-bold text-muted-foreground uppercase">
-        Visibility & Distribution
-      </label>
-      <div className="grid grid-cols-2 gap-3 mt-0.5 max-w-xl">
-        <button
-          type="button"
-          onClick={() => onChange("private")}
-          className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left transition-all ${visibility === "private"
-            ? "border-primary bg-primary/5 text-foreground shadow-sm"
-            : "border-[var(--ironhub-line)]/50 bg-background/30 text-muted-foreground hover:bg-muted/10"
-            }`}
-        >
-          <div className={`flex size-8 shrink-0 items-center justify-center rounded-xl ${visibility === "private" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
-            <IconLock className="size-4" />
-          </div>
-          <div>
-            <span className="text-xs font-bold block">Private Space</span>
-            <span className="text-xs leading-normal text-muted-foreground/80 block mt-0.5">
-              Internal to your Org Space only.
-            </span>
-          </div>
-        </button>
-        <button
-          type="button"
-          onClick={() => onChange("public")}
-          className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left transition-all ${visibility === "public"
-            ? "border-primary bg-primary/5 text-foreground shadow-sm"
-            : "border-[var(--ironhub-line)]/50 bg-background/30 text-muted-foreground hover:bg-muted/10"
-            }`}
-        >
-          <div className={`flex size-8 shrink-0 items-center justify-center rounded-xl ${visibility === "public" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
-            <IconWorld className="size-4" />
-          </div>
-          <div>
-            <span className="text-xs font-bold block">Request public listing</span>
-            <span className="text-xs leading-normal text-muted-foreground/80 block mt-0.5">
-              Stays private to your org until an IronHub reviewer approves the listing.
-            </span>
-          </div>
-        </button>
-      </div>
-    </div>
-  )
-}
-
-/** Shared category + repository fields — same markup on the create form and both edit forms. */
-function CategoryAndRepoFields({
-  category,
-  onCategoryChange,
-  categoryError,
-  sourceUrl,
-  onSourceUrlChange,
-  sourceUrlError,
-}: {
-  category: string
-  onCategoryChange: (value: string) => void
-  categoryError: string | null
-  sourceUrl: string
-  onSourceUrlChange: (value: string) => void
-  sourceUrlError: string | null
-}) {
-  return (
-    <div className="grid gap-4 sm:grid-cols-2 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
-      <div className="flex flex-col gap-1.5">
-        <label className="flex items-center gap-1 text-xs font-bold text-muted-foreground uppercase">
-          <IconCategory className="size-3.5" />
-          Category
-        </label>
-        <NativeSelect
-          value={category}
-          onChange={(e) => onCategoryChange(e.target.value)}
-          aria-invalid={Boolean(categoryError)}
-          className="w-full rounded-full select-none"
-        >
-          <NativeSelectOption value="">Uncategorised</NativeSelectOption>
-          {CATEGORIES.map((c) => (
-            <NativeSelectOption key={c} value={c}>
-              {c}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-        {categoryError && (
-          <span className="text-xs font-semibold text-destructive">{categoryError}</span>
-        )}
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <label className="flex items-center gap-1 text-xs font-bold text-muted-foreground uppercase">
-          <IconLink className="size-3.5" />
-          Repository Link
-        </label>
-        <Input
-          type="url"
-          placeholder="https://github.com/org/repo"
-          value={sourceUrl}
-          onChange={(e) => onSourceUrlChange(e.target.value)}
-          aria-invalid={Boolean(sourceUrlError)}
-          className="bg-background/50 text-sm rounded-full"
-        />
-        <span className="text-xs text-muted-foreground">
-          Optional. Accepts a GitHub, GitLab, or Bitbucket URL.
-        </span>
-        {sourceUrlError && (
-          <span className="text-xs font-semibold text-destructive">{sourceUrlError}</span>
-        )}
-      </div>
-    </div>
-  )
-}
-
 export default function NewSubmitPage() {
   const router = useRouter()
   const { notify } = useToast()
   const queryClient = useQueryClient()
   const createArtifact = useCreateArtifact()
   const inspectBundle = useInspectBundle()
+  const uploadArtifactBundle = useUploadArtifactBundle()
 
   // High-level type selector: default to "skill" first!
   const [type, setType] = useState<"tool" | "skill">("skill")
@@ -209,7 +92,13 @@ export default function NewSubmitPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [uploadStatus, setUploadStatus] = useState<Record<string, "pending" | "uploading" | "done" | "error">>({})
 
+  // Bumped on every zip selection so a slow-to-resolve inspect from a
+  // previously selected file can't overwrite state after a faster-resolving
+  // later selection — only the most recent request's result is applied.
+  const inspectRequestIdRef = useRef(0)
+
   const resetToolBundleState = () => {
+    inspectRequestIdRef.current += 1
     setZipFile(null)
     setInspectedManifest(null)
     setBundleError(null)
@@ -306,6 +195,7 @@ export default function NewSubmitPage() {
   }
 
   const acceptZipFile = async (file: File) => {
+    const requestId = ++inspectRequestIdRef.current
     setBundleError(null)
     setInspectedManifest(null)
 
@@ -319,13 +209,21 @@ export default function NewSubmitPage() {
 
     try {
       const result = await inspectBundle.mutateAsync(file)
+      // A newer selection was made while this inspect was in flight —
+      // discard this stale result so it can't overwrite the newer one.
+      if (inspectRequestIdRef.current !== requestId) return
       setInspectedManifest(result.manifest)
       setTitle(result.manifest.name)
-      setArtifactName(result.manifest.id)
+      // manifest.toml `id` (D6 rule 8) allows `.` alongside lowercase
+      // alphanumerics — the artifact-name charset does not. Slugify for the
+      // prefill so e.g. "acme.firecrawl" becomes a valid, editable artifact
+      // name; the manifest's own `id` is left untouched in the stored file.
+      setArtifactName(slugify(result.manifest.id))
       setVersion(result.manifest.version)
       setDescription(result.manifest.description)
       notify(`Inspected package: ${file.name}`, "info")
     } catch (error) {
+      if (inspectRequestIdRef.current !== requestId) return
       setBundleError(
         error instanceof ApiError
           ? error.message
@@ -347,14 +245,6 @@ export default function NewSubmitPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) void acceptZipFile(file)
-  }
-
-  const mapApiError = (error: unknown): string => {
-    if (error instanceof ApiError) {
-      if (error.status === 409) return `Duplicate: ${error.message}`
-      return error.message
-    }
-    return error instanceof Error ? error.message : "Something went wrong."
   }
 
   const bundleReadyForSubmit = Boolean(zipFile && inspectedManifest && !bundleError)
@@ -389,6 +279,9 @@ export default function NewSubmitPage() {
         visibility,
         description: type === "tool" ? description : valueProp,
         category: category || null,
+        // Unlike edit forms (which must be able to send an explicit `null`
+        // to clear an existing value), create has nothing to clear — an
+        // absent key and a stored `null` are equivalent here.
         sourceUrl: sourceUrl.trim() || undefined,
       })
       createdArtifactId = artifact.id
@@ -396,10 +289,7 @@ export default function NewSubmitPage() {
       if (type === "tool") {
         setUploadStatus((prev) => ({ ...prev, bundle: "uploading" }))
         try {
-          // The freshly-created artifact id isn't known until this point, so
-          // this uses the raw client helper rather than a bound mutation hook
-          // — same pattern as the skill_md upload below.
-          await uploadContent(`/api/private-artifacts/${artifact.id}/bundle`, zipFile as File)
+          await uploadArtifactBundle.mutateAsync({ id: artifact.id, bytes: zipFile as File })
           setUploadStatus((prev) => ({ ...prev, bundle: "done" }))
         } catch (uploadError) {
           setUploadStatus((prev) => ({ ...prev, bundle: "error" }))
@@ -408,6 +298,8 @@ export default function NewSubmitPage() {
       } else {
         setUploadStatus((prev) => ({ ...prev, skill_md: "uploading" }))
         try {
+          // The freshly-created artifact id isn't known until this point, so
+          // this uses the raw client helper rather than a bound mutation hook.
           await uploadContent(
             `/api/private-artifacts/${artifact.id}/content/skill_md`,
             new Blob([compileSkillMarkdown()], { type: "text/markdown" })
@@ -419,9 +311,11 @@ export default function NewSubmitPage() {
         }
       }
 
-      // Uploads went through the raw client helper (not the React Query
-      // mutation hooks), so the artifacts list cache is stale until we
-      // invalidate it explicitly.
+      // The skill_md path went through the raw client helper (not a React
+      // Query mutation hook), so the artifacts list cache is stale until we
+      // invalidate it explicitly. (The tool/bundle path already invalidated
+      // via useUploadArtifactBundle's onSuccess — this is a harmless no-op
+      // refetch for that case.)
       queryClient.invalidateQueries({ queryKey: ["private-artifacts"] })
 
       notify(`Created ${type}: ${finalTitle}`)
@@ -432,19 +326,20 @@ export default function NewSubmitPage() {
         // through. Retrying "Add to Space" as-is would just 409 on the
         // name+version we already claimed, so send the user to the manage
         // page to finish the upload instead of leaving them stuck on a
-        // dead-end form.
+        // dead-end form. Surface the server's actual reason rather than a
+        // generic sentence — a 400 from re-validation, a 413, or a 409 all
+        // deserve to be seen.
         notify(
-          `${finalTitle} was created but a file failed to upload. Finish the upload from the item's Manage page.`,
+          `${finalTitle} was created, but the upload failed: ${describeArtifactSaveError(error).message} Finish the upload from the item's Manage page.`,
           "error"
         )
         queryClient.invalidateQueries({ queryKey: ["private-artifacts"] })
         router.push(`/mvp/manage/${createdArtifactId}`)
-      } else if (error instanceof ApiError && error.status === 400 && /^Invalid category:/.test(error.message)) {
-        setCategoryError(error.message)
-      } else if (error instanceof ApiError && /sourceUrl must be/.test(error.message)) {
-        setSourceUrlError(error.message)
       } else {
-        setFormError(mapApiError(error))
+        const described = describeArtifactSaveError(error)
+        if (described.field === "category") setCategoryError(described.message)
+        else if (described.field === "sourceUrl") setSourceUrlError(described.message)
+        else setFormError(described.message)
       }
     } finally {
       setIsSubmitting(false)
@@ -485,6 +380,8 @@ export default function NewSubmitPage() {
                 setVersion("1.0.0")
                 setActiveTab("edit")
                 setFormError(null)
+                setCategoryError(null)
+                setSourceUrlError(null)
                 resetToolBundleState()
               }}
               className={`flex items-center gap-1 px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${type === "skill"
@@ -503,6 +400,8 @@ export default function NewSubmitPage() {
                 setVersion("1.0.0")
                 setActiveTab("edit")
                 setFormError(null)
+                setCategoryError(null)
+                setSourceUrlError(null)
                 resetToolBundleState()
               }}
               className={`flex items-center gap-1 px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${type === "tool"
@@ -633,23 +532,38 @@ export default function NewSubmitPage() {
               )}
 
               {bundleError && (
-                <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive mt-1">
-                  {bundleError}
+                <div className="flex items-start gap-1.5 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive mt-1">
+                  <IconAlertTriangle className="size-3.5 shrink-0 mt-0.5" />
+                  <span>{bundleError}</span>
                 </div>
               )}
 
               {zipFile && bundleReadyForSubmit && (
-                <div className="flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-foreground font-semibold mt-1">
+                <div
+                  className={`flex items-center justify-between rounded-xl border p-3 text-xs text-foreground font-semibold mt-1 ${uploadStatus.bundle === "error"
+                    ? "border-destructive/30 bg-destructive/5"
+                    : "border-emerald-500/20 bg-emerald-500/5"
+                    }`}
+                >
                   <span className="flex items-center gap-1.5">
-                    <IconFileZip className="size-4 text-emerald-600" />
+                    <IconFileZip
+                      className={`size-4 ${uploadStatus.bundle === "error" ? "text-destructive" : "text-emerald-600"}`}
+                    />
                     {zipFile.name}
                   </span>
-                  <span className="text-xs bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase font-bold">
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full uppercase font-bold ${uploadStatus.bundle === "error"
+                      ? "bg-destructive/10 text-destructive border border-destructive/30"
+                      : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                      }`}
+                  >
                     {uploadStatus.bundle === "uploading"
                       ? "Uploading..."
                       : uploadStatus.bundle === "done"
                         ? "Uploaded"
-                        : "Inspected"}
+                        : uploadStatus.bundle === "error"
+                          ? "Upload failed"
+                          : "Inspected"}
                   </span>
                 </div>
               )}
