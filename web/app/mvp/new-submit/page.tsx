@@ -14,23 +14,26 @@ import {
 import { useToast } from "@/features/partner/store/toast-provider"
 import { VisibilitySelector } from "@/features/partner/components/visibility-selector"
 import { CategoryAndRepoFields } from "@/features/partner/components/category-repo-fields"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import {
-  IconArrowLeft,
-  IconUpload,
-  IconFileZip,
-  IconPlus,
-  IconTrash,
-  IconTool,
-  IconSparkles,
-  IconEdit,
+  FormSection,
+  WorkspacePageHeader,
+} from "@/features/partner/components/ui"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/shared/utils"
+import {
+  IconAlertTriangle,
+  IconCheck,
   IconCode,
   IconCopy,
-  IconCheck,
+  IconEdit,
+  IconFileZip,
   IconLoader2,
-  IconAlertTriangle,
+  IconPlus,
+  IconSparkles,
+  IconTool,
+  IconTrash,
+  IconUpload,
 } from "@tabler/icons-react"
 
 function slugify(value: string) {
@@ -371,34 +374,46 @@ export default function NewSubmitPage() {
     }
   }
 
+  const submitHint =
+    type !== "tool"
+      ? null
+      : inspectBundle.isPending
+        ? "Checking your package…"
+        : bundleError
+          ? "Fix the problem with your package above to continue"
+          : !bundleReadyForSubmit
+            ? "Upload a tool package to continue"
+            : null
+
   return (
-    <div className="flex flex-col gap-6">
-      {/* Navigation */}
-      <div>
-        <Button asChild variant="ghost" size="sm" className="rounded-full text-muted-foreground hover:text-foreground h-8 -ml-2 px-3">
-          <Link href="/mvp/dashboard">
-            <IconArrowLeft className="size-4" />
-            Back to Dashboard
-          </Link>
-        </Button>
-      </div>
+    <div className="flex flex-col gap-6 pb-12">
+      <WorkspacePageHeader
+        backHref="/mvp/dashboard"
+        backLabel="Back to dashboard"
+        title="Add a skill or tool"
+        description="Create a skill from instructions you write, or upload a packaged tool as a .zip file."
+      />
 
-      {/* Seamless unified Header Card */}
-      <Card className="border border-[var(--ironhub-line)] bg-card/60 p-5 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="mt-0.5 font-heading text-2xl font-bold leading-tight text-foreground">
-              Add new Item
-            </h1>
-            <p className="text-xs text-muted-foreground leading-relaxed max-w-xl">
-              Register a new custom AI prompt-based skill or packaged extension for your organization catalog.
-            </p>
-          </div>
+      {formError && (
+        <div
+          role="alert"
+          className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm font-normal text-destructive"
+        >
+          {formError}
+        </div>
+      )}
 
-          {/* Type Switcher */}
-          <div className="flex rounded-full border border-[var(--ironhub-line)] p-1 bg-muted/20 shrink-0 self-start md:self-center">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        {/* Step 1: What you are adding */}
+        <FormSection
+          step={1}
+          title="What you are adding"
+          description="Choose whether you are creating a skill or a packaged tool."
+        >
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <button
               type="button"
+              aria-pressed={type === "skill"}
               onClick={() => {
                 setType("skill")
                 setTitle("")
@@ -409,16 +424,36 @@ export default function NewSubmitPage() {
                 setSourceUrlError(null)
                 resetToolBundleState()
               }}
-              className={`flex items-center gap-1 px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${type === "skill"
-                ? "bg-background text-primary shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-                }`}
+              className={cn(
+                "flex min-h-[40px] flex-col gap-2 rounded-xl border p-4 text-left transition-colors",
+                type === "skill"
+                  ? "border-primary bg-primary/5 text-foreground"
+                  : "border-[var(--ironhub-line)] bg-card text-muted-foreground hover:bg-muted/50"
+              )}
             >
-              <IconSparkles className="size-3.5" />
-              Create Skill
+              <div className="flex items-center gap-2">
+                <div
+                  className={cn(
+                    "flex size-8 shrink-0 items-center justify-center rounded-lg",
+                    type === "skill"
+                      ? "bg-primary/20 text-primary"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  <IconSparkles className="size-4" aria-hidden="true" />
+                </div>
+                <span className="text-sm font-semibold text-foreground">
+                  Skill
+                </span>
+              </div>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Instructions you write that tell an assistant how to do something. Nothing to upload.
+              </p>
             </button>
+
             <button
               type="button"
+              aria-pressed={type === "tool"}
               onClick={() => {
                 setType("tool")
                 setTitle("")
@@ -429,426 +464,559 @@ export default function NewSubmitPage() {
                 setSourceUrlError(null)
                 resetToolBundleState()
               }}
-              className={`flex items-center gap-1 px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${type === "tool"
-                ? "bg-background text-primary shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-                }`}
+              className={cn(
+                "flex min-h-[40px] flex-col gap-2 rounded-xl border p-4 text-left transition-colors",
+                type === "tool"
+                  ? "border-primary bg-primary/5 text-foreground"
+                  : "border-[var(--ironhub-line)] bg-card text-muted-foreground hover:bg-muted/50"
+              )}
             >
-              <IconTool className="size-3.5" />
-              Create Tool
+              <div className="flex items-center gap-2">
+                <div
+                  className={cn(
+                    "flex size-8 shrink-0 items-center justify-center rounded-lg",
+                    type === "tool"
+                      ? "bg-primary/20 text-primary"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  <IconTool className="size-4" aria-hidden="true" />
+                </div>
+                <span className="text-sm font-semibold text-foreground">
+                  Tool
+                </span>
+              </div>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                A packaged program you upload as a .zip file.
+              </p>
             </button>
           </div>
-        </div>
-      </Card>
+        </FormSection>
 
-      {formError && (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive">
-          {formError}
-        </div>
-      )}
-
-      {/* Form Submission */}
-      <form onSubmit={handleSubmit} className="w-full flex flex-col gap-5">
-
-        {type === "tool" ? (
-          /* TOOL FORM SETUP */
-          <Card className="border border-[var(--ironhub-line)] bg-card/60 p-6 shadow-sm flex flex-col gap-5">
-            <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
-              1. Tool Metadata
-            </h3>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase">
-                  Tool Name
-                </label>
-                <Input
-                  required
-                  placeholder="e.g. USDC Payments"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="bg-background/50 text-sm rounded-full"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase">
-                  Artifact Name (ID)
-                </label>
-                <Input
-                  required
-                  placeholder="e.g. usdc-payments"
-                  value={artifactName}
-                  onChange={(e) => setArtifactName(e.target.value)}
-                  className="bg-background/50 text-sm rounded-full"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase">
-                  Version Code / Tag
-                </label>
-                <Input
-                  required
-                  placeholder="e.g. 1.0.0"
-                  value={version}
-                  onChange={(e) => setVersion(e.target.value)}
-                  className="bg-background/50 text-sm rounded-full"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase">
-                Description / Value Proposition
-              </label>
-              <textarea
-                required
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Provide a description of the tool capabilities..."
-                className="flex min-h-[100px] w-full rounded-2xl border border-[var(--ironhub-line)] bg-background/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary"
-              />
-            </div>
-
-            <CategoryAndRepoFields
-              category={category}
-              onCategoryChange={setCategory}
-              categoryError={categoryError}
-              sourceUrl={sourceUrl}
-              onSourceUrlChange={setSourceUrl}
-              sourceUrlError={sourceUrlError}
-            />
-
-            {/* Extension bundle dropzone */}
-            <div className="flex flex-col gap-2 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
-              <label className="text-xs font-bold text-muted-foreground uppercase">
-                Extension Package (.zip)
-              </label>
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 text-center transition-all ${dragOver
-                  ? "border-primary bg-primary/5"
-                  : "border-[var(--ironhub-line)] bg-background/30 hover:border-primary/50"
-                  }`}
-              >
-                <input
-                  type="file"
-                  accept=".zip"
-                  onChange={handleFileChange}
-                  className="absolute inset-0 cursor-pointer opacity-0"
-                />
-                <IconUpload className="size-6 text-muted-foreground" />
-                <span className="text-xs font-semibold text-foreground mt-2 block">
-                  Drag your extension .zip here, or click to browse
-                </span>
-                <span className="text-xs text-muted-foreground mt-1">
-                  manifest.toml and the wasm module at the archive root. A *.capabilities.json
-                  file is no longer required.
-                </span>
-              </div>
-
-              {inspectBundle.isPending && (
-                <div className="flex items-center gap-1.5 rounded-xl border border-[var(--ironhub-line)]/50 bg-background/30 p-3 text-xs text-muted-foreground font-semibold mt-1">
-                  <IconLoader2 className="size-3.5 animate-spin" />
-                  Inspecting archive...
-                </div>
-              )}
-
-              {bundleError && (
-                <div className="flex items-start gap-1.5 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive mt-1">
-                  <IconAlertTriangle className="size-3.5 shrink-0 mt-0.5" />
-                  <span>{bundleError}</span>
-                </div>
-              )}
-
-              {zipFile && bundleReadyForSubmit && (
-                <div
-                  className={`flex items-center justify-between rounded-xl border p-3 text-xs text-foreground font-semibold mt-1 ${uploadStatus.bundle === "error"
-                    ? "border-destructive/30 bg-destructive/5"
-                    : "border-emerald-500/20 bg-emerald-500/5"
-                    }`}
-                >
-                  <span className="flex items-center gap-1.5">
-                    <IconFileZip
-                      className={`size-4 ${uploadStatus.bundle === "error" ? "text-destructive" : "text-emerald-600"}`}
-                    />
-                    {zipFile.name}
-                  </span>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full uppercase font-bold ${uploadStatus.bundle === "error"
-                      ? "bg-destructive/10 text-destructive border border-destructive/30"
-                      : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
-                      }`}
-                  >
-                    {uploadStatus.bundle === "uploading"
-                      ? "Uploading..."
-                      : uploadStatus.bundle === "done"
-                        ? "Uploaded"
-                        : uploadStatus.bundle === "error"
-                          ? "Upload failed"
-                          : "Inspected"}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <VisibilitySelector visibility={visibility} onChange={setVisibility} />
-
-            {/* Cleaned Actions Bar */}
-            <div className="rounded-xl border border-[var(--ironhub-line)] bg-card/60 p-4 shadow-sm flex flex-row items-center justify-end gap-3">
-              <Button type="button" variant="outline" asChild className="rounded-full">
-                <Link href="/mvp/dashboard">Cancel</Link>
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting || !bundleReadyForSubmit || inspectBundle.isPending}
-                className="rounded-full px-6 shadow-sm"
-              >
-                {isSubmitting && <IconLoader2 className="size-4 animate-spin" />}
-                Add to Space
-              </Button>
-            </div>
-          </Card>
-        ) : (
-          /* SKILL FORM SETUP */
+        {type === "skill" ? (
           <>
-
-            {/* Skill View Mode Switcher */}
-            <div className="flex justify-end border-b border-[var(--ironhub-line)]/50 w-full mb-3 animate-in fade-in duration-200">
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("edit")}
-                  className={`flex items-center gap-1.5 px-4 py-2 border-b-2 text-xs font-bold transition-all duration-200 -mb-[1px] ${activeTab === "edit"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                    }`}
-                >
-                  <IconEdit className="size-3.5" />
-                  Edit Skill
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("preview")}
-                  className={`flex items-center gap-1.5 px-4 py-2 border-b-2 text-xs font-bold transition-all duration-200 -mb-[1px] ${activeTab === "preview"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                    }`}
-                >
-                  <IconCode className="size-3.5" />
-                  View Skill File
-                </button>
-              </div>
-            </div>
-
-            {/* Form Fields view when activeTab is edit */}
-            <div className={`w-full flex flex-col gap-5 ${activeTab === "edit" ? "block" : "hidden"}`}>
-
-              <Card className="border border-[var(--ironhub-line)] bg-card/60 p-6 shadow-sm flex flex-col gap-5">
-
-
-
-                <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
-                  1. Frontmatter Metadata
-                </h3>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-muted-foreground uppercase">
-                      Skill Name
-                    </label>
-                    <Input
-                      required
-                      placeholder="e.g. Invoice Auditor"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      className="bg-background/50 text-sm rounded-full"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-muted-foreground uppercase">
-                      Version Code / Tag
-                    </label>
-                    <Input
-                      required
-                      placeholder="e.g. 1.0.0"
-                      value={version}
-                      onChange={(e) => setVersion(e.target.value)}
-                      className="bg-background/50 text-sm rounded-full"
-                    />
-                  </div>
+            {/* SKILL Step 2: Basics */}
+            <FormSection
+              step={2}
+              title="Basics"
+              description="Name, version and how people find this skill."
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="skill-name" className="text-sm font-medium text-foreground">
+                    Skill name
+                  </label>
+                  <Input
+                    id="skill-name"
+                    aria-describedby="skill-name-help"
+                    required
+                    placeholder="e.g. Invoice Auditor"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
+                  />
+                  <p id="skill-name-help" className="text-xs text-muted-foreground">
+                    The name members see in the catalog. We create a short identifier from it automatically.
+                  </p>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">
-                    Value Proposition / Summary Description
+                  <label htmlFor="skill-version" className="text-sm font-medium text-foreground">
+                    Version
                   </label>
                   <Input
+                    id="skill-version"
+                    aria-describedby="skill-version-help"
                     required
-                    value={valueProp}
-                    onChange={(e) => setValueProp(e.target.value)}
-                    placeholder="Core value or pitch of this skill..."
-                    className="bg-background/50 text-sm rounded-full"
+                    placeholder="e.g. 1.0.0"
+                    value={version}
+                    onChange={(e) => setVersion(e.target.value)}
+                    className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
                   />
+                  <p id="skill-version-help" className="text-xs text-muted-foreground">
+                    Your own version number, for example 1.0.0. This cannot be changed later.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="skill-description" className="text-sm font-medium text-foreground">
+                  Short description
+                </label>
+                <Input
+                  id="skill-description"
+                  aria-describedby="skill-description-help"
+                  required
+                  value={valueProp}
+                  onChange={(e) => setValueProp(e.target.value)}
+                  placeholder="Core value or pitch of this skill..."
+                  className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
+                />
+                <p id="skill-description-help" className="text-xs text-muted-foreground">
+                  One line explaining what this does.
+                </p>
+              </div>
+
+              <CategoryAndRepoFields
+                category={category}
+                onCategoryChange={setCategory}
+                categoryError={categoryError}
+                sourceUrl={sourceUrl}
+                onSourceUrlChange={setSourceUrl}
+                sourceUrlError={sourceUrlError}
+              />
+
+              {/* Key Use Cases */}
+              <div className="flex flex-col gap-2.5 border-t border-[var(--ironhub-line)]/50 pt-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <span className="text-sm font-medium text-foreground">
+                      What it&apos;s for
+                    </span>
+                    <p className="text-xs text-muted-foreground">
+                      Examples of what someone would use this skill for.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddUseCase}
+                    className="h-10 min-h-[40px] gap-1 rounded-lg px-3 text-sm"
+                  >
+                    <IconPlus className="size-3.5" aria-hidden="true" />
+                    <span>Add Use Case</span>
+                  </Button>
                 </div>
 
-                <CategoryAndRepoFields
-                  category={category}
-                  onCategoryChange={setCategory}
-                  categoryError={categoryError}
-                  sourceUrl={sourceUrl}
-                  onSourceUrlChange={setSourceUrl}
-                  sourceUrlError={sourceUrlError}
-                />
+                <div className="flex flex-col gap-2">
+                  {useCases.map((uc, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <Input
+                        required
+                        aria-label={`Use case ${index + 1}`}
+                        placeholder="e.g. Automate client onboarding reports..."
+                        value={uc}
+                        onChange={(e) => handleUseCaseChange(index, e.target.value)}
+                        className="h-10 min-h-[40px] flex-1 rounded-lg bg-background/50 text-sm"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveUseCase(index)}
+                        aria-label="Remove use case"
+                        className="size-10 min-h-[40px] min-w-[40px] shrink-0 rounded-lg text-destructive hover:bg-destructive/10"
+                      >
+                        <IconTrash className="size-4" aria-hidden="true" />
+                      </Button>
+                    </div>
+                  ))}
+                  {useCases.length === 0 && (
+                    <p className="text-xs leading-normal text-muted-foreground">
+                      Add an example of what someone would use this for.
+                    </p>
+                  )}
+                </div>
+              </div>
 
-                {/* Use Cases list builder */}
-                <div className="flex flex-col gap-2.5 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-bold text-muted-foreground uppercase">
-                      Key Use Cases
-                    </label>
+              {/* Tag Grid */}
+              <div className="grid gap-4 border-t border-[var(--ironhub-line)]/50 pt-4 sm:grid-cols-3">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="skill-topics" className="text-sm font-medium text-foreground">
+                    Topics
+                  </label>
+                  <Input
+                    id="skill-topics"
+                    aria-describedby="skill-topics-help"
+                    value={valueTagsText}
+                    onChange={(e) => setValueTagsText(e.target.value)}
+                    placeholder="Automation, Security"
+                    className="h-10 min-h-[40px] rounded-lg bg-background/50 font-mono text-sm"
+                  />
+                  <p id="skill-topics-help" className="text-xs text-muted-foreground">
+                    What this skill is about. Used for browsing and search.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="skill-trigger-words" className="text-sm font-medium text-foreground">
+                    Trigger words
+                  </label>
+                  <Input
+                    id="skill-trigger-words"
+                    aria-describedby="skill-trigger-words-help"
+                    value={activationKeywordsText}
+                    onChange={(e) => setActivationKeywordsText(e.target.value)}
+                    placeholder="auth, login"
+                    className="h-10 min-h-[40px] rounded-lg bg-background/50 font-mono text-sm"
+                  />
+                  <p id="skill-trigger-words-help" className="text-xs text-muted-foreground">
+                    Words in a request that should bring this skill in.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="skill-trigger-topics" className="text-sm font-medium text-foreground">
+                    Trigger topics
+                  </label>
+                  <Input
+                    id="skill-trigger-topics"
+                    aria-describedby="skill-trigger-topics-help"
+                    value={activationTagsText}
+                    onChange={(e) => setActivationTagsText(e.target.value)}
+                    placeholder="productivity"
+                    className="h-10 min-h-[40px] rounded-lg bg-background/50 font-mono text-sm"
+                  />
+                  <p id="skill-trigger-topics-help" className="text-xs text-muted-foreground">
+                    Broader subjects that should bring this skill in.
+                  </p>
+                </div>
+              </div>
+            </FormSection>
+
+            {/* SKILL Step 3: Instructions */}
+            <FormSection
+              step={3}
+              title="Instructions"
+              description="What the assistant should do when this skill runs."
+              action={
+                <div
+                  role="group"
+                  aria-label="Instructions view"
+                  className="inline-flex rounded-lg border border-[var(--ironhub-line)] bg-muted/20 p-1"
+                >
+                  <button
+                    type="button"
+                    aria-pressed={activeTab === "edit"}
+                    onClick={() => setActiveTab("edit")}
+                    className={cn(
+                      "inline-flex min-h-[40px] min-w-[40px] items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      activeTab === "edit"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <IconEdit className="size-3.5" aria-hidden="true" />
+                    <span>Write</span>
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={activeTab === "preview"}
+                    onClick={() => setActiveTab("preview")}
+                    className={cn(
+                      "inline-flex min-h-[40px] min-w-[40px] items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      activeTab === "preview"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <IconCode className="size-3.5" aria-hidden="true" />
+                    <span>Preview</span>
+                  </button>
+                </div>
+              }
+            >
+              {activeTab === "edit" ? (
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="skill-markdown" className="sr-only">
+                    Instructions for the assistant
+                  </label>
+                  <textarea
+                    id="skill-markdown"
+                    required={type === "skill" && activeTab === "edit"}
+                    placeholder={`## Persona
+
+Describe how the agent should act...`}
+                    value={markdownContent}
+                    onChange={(e) => setMarkdownContent(e.target.value)}
+                    className="flex min-h-[300px] w-full rounded-lg border border-[var(--ironhub-line)] bg-background/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                  />
+                </div>
+              ) : (
+                <div className="flex min-w-0 flex-col gap-3">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Preview of the file we will create
+                    </span>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={handleAddUseCase}
-                      className="h-6 rounded-full text-xs px-2.5 flex items-center gap-0.5"
+                      onClick={handleCopyCode}
+                      className="h-10 min-h-[40px] gap-1.5 rounded-lg px-3 text-sm"
                     >
-                      <IconPlus className="size-3" /> Add Use Case
+                      {copiedPreview ? (
+                        <>
+                          <IconCheck className="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                          <span>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <IconCopy className="size-3.5" aria-hidden="true" />
+                          <span>Copy Code</span>
+                        </>
+                      )}
                     </Button>
                   </div>
 
-                  <div className="flex flex-col gap-2">
-                    {useCases.map((uc, index) => (
-                      <div key={index} className="flex gap-2 items-center">
-                        <Input
-                          required
-                          placeholder="e.g. Automate client onboarding reports..."
-                          value={uc}
-                          onChange={(e) => handleUseCaseChange(index, e.target.value)}
-                          className="bg-background/50 text-sm flex-1 rounded-full"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveUseCase(index)}
-                          className="h-8 w-8 rounded-full text-destructive hover:bg-destructive/10 shrink-0"
-                        >
-                          <IconTrash className="size-3.5" />
-                        </Button>
-                      </div>
-                    ))}
-                    {useCases.length === 0 && (
-                      <p className="text-xs text-muted-foreground italic leading-normal">
-                        No use cases added yet. Click Add to define features.
-                      </p>
-                    )}
+                  <div className="max-h-[600px] w-full min-w-0 overflow-auto rounded-lg border border-[var(--ironhub-line)] bg-muted p-5 font-mono text-xs leading-relaxed text-foreground shadow-inner select-text selection:bg-primary/30 whitespace-pre">
+                    {compileSkillMarkdown()}
                   </div>
                 </div>
+              )}
+            </FormSection>
 
-                {/* Comma tags */}
-                <div className="grid gap-4 sm:grid-cols-3 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-muted-foreground uppercase">
-                      Value Tags
-                    </label>
-                    <Input
-                      value={valueTagsText}
-                      onChange={(e) => setValueTagsText(e.target.value)}
-                      placeholder="Automation, Security"
-                      className="bg-background/50 text-xs font-mono rounded-full"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-muted-foreground uppercase">
-                      Activation Keywords
-                    </label>
-                    <Input
-                      value={activationKeywordsText}
-                      onChange={(e) => setActivationKeywordsText(e.target.value)}
-                      placeholder="auth, login"
-                      className="bg-background/50 text-xs font-mono rounded-full"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-muted-foreground uppercase">
-                      Activation Tags
-                    </label>
-                    <Input
-                      value={activationTagsText}
-                      onChange={(e) => setActivationTagsText(e.target.value)}
-                      placeholder="productivity"
-                      className="bg-background/50 text-xs font-mono rounded-full"
-                    />
-                  </div>
-                </div>
-
-                <VisibilitySelector visibility={visibility} onChange={setVisibility} />
-              </Card>
-
-              <Card className="border border-[var(--ironhub-line)] bg-card/60 p-6 shadow-sm flex flex-col gap-3">
-                <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
-                  2. Skill Guidelines (SKILL.MD)
-                </h3>
-                <textarea
-                  required={type === "skill" && activeTab === "edit"}
-                  placeholder="e.g. ## Persona\n\nDescribe how the agent should act..."
-                  value={markdownContent}
-                  onChange={(e) => setMarkdownContent(e.target.value)}
-                  className="flex min-h-[300px] w-full rounded-2xl border border-[var(--ironhub-line)] bg-background/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary"
-                />
-              </Card>
-            </div>
-
-            {/* Read-Only Compiled Preview View */}
-            <div className={`w-full flex flex-col gap-3 min-w-0 ${activeTab === "preview" ? "block" : "hidden"}`}>
-              <div className="flex justify-between items-center px-1">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                  Compiled file output (SKILL.md)
-                </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyCode}
-                  className="h-7 rounded-full text-xs px-2.5 flex items-center gap-1"
-                >
-                  {copiedPreview ? (
-                    <>
-                      <IconCheck className="size-3 text-emerald-600" /> Copied!
-                    </>
-                  ) : (
-                    <>
-                      <IconCopy className="size-3" /> Copy Code
-                    </>
+            {/* SKILL Step 4: Who can see it */}
+            <FormSection
+              step={4}
+              title="Who can see it"
+              description="Choose who can find and use this skill."
+            >
+              <VisibilitySelector visibility={visibility} onChange={setVisibility} />
+            </FormSection>
+          </>
+        ) : (
+          <>
+            {/* TOOL Step 2: Tool package */}
+            <FormSection
+              step={2}
+              title="Tool package"
+              description="Upload the .zip you were given for this tool. It should contain the program file and its setup details."
+            >
+              <div className="flex flex-col gap-2">
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={cn(
+                    "relative flex min-h-[120px] flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/40",
+                    dragOver
+                      ? "border-primary bg-primary/5"
+                      : "border-[var(--ironhub-line)] bg-background/30 hover:border-primary/50"
                   )}
-                </Button>
+                >
+                  <input
+                    type="file"
+                    accept=".zip"
+                    onChange={handleFileChange}
+                    aria-label="Choose a .zip tool package"
+                    className="absolute inset-0 size-full cursor-pointer opacity-0"
+                  />
+                  <IconUpload
+                    className={cn(
+                      "size-6",
+                      dragOver ? "text-primary" : "text-muted-foreground"
+                    )}
+                    aria-hidden="true"
+                  />
+                  <span
+                    className={cn(
+                      "mt-2 block text-sm font-medium",
+                      dragOver ? "text-primary" : "text-foreground"
+                    )}
+                  >
+                    {dragOver ? "Drop to upload" : "Drag a .zip file here, or click to choose one"}
+                  </span>
+                </div>
+
+                {inspectBundle.isPending && (
+                  <div className="flex items-center gap-2 rounded-lg border border-[var(--ironhub-line)]/50 bg-background/30 p-3 text-xs font-medium text-muted-foreground">
+                    <IconLoader2 className="size-4 animate-spin text-primary shrink-0" aria-hidden="true" />
+                    <span>Inspecting archive...</span>
+                  </div>
+                )}
+
+                {bundleError && (
+                  <div
+                    role="alert"
+                    className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm font-normal text-destructive"
+                  >
+                    <IconAlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                    <span>{bundleError}</span>
+                  </div>
+                )}
+
+                {zipFile && bundleReadyForSubmit && (
+                  <div
+                    className={cn(
+                      "flex items-center justify-between rounded-lg border p-3 text-xs font-medium",
+                      uploadStatus.bundle === "error"
+                        ? "border-destructive/30 bg-destructive/5 text-destructive"
+                        : "border-emerald-500/20 bg-emerald-500/5 text-foreground"
+                    )}
+                  >
+                    <span className="flex min-w-0 items-center gap-2 truncate">
+                      <IconFileZip
+                        className={cn(
+                          "size-4 shrink-0",
+                          uploadStatus.bundle === "error"
+                            ? "text-destructive"
+                            : "text-emerald-600 dark:text-emerald-400"
+                        )}
+                        aria-hidden="true"
+                      />
+                      <span className="truncate">{zipFile.name}</span>
+                    </span>
+                    <span
+                      className={cn(
+                        "inline-flex h-6 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium",
+                        uploadStatus.bundle === "error"
+                          ? "border-destructive/30 bg-destructive/10 text-destructive"
+                          : "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                      )}
+                    >
+                      <span className="size-1.5 rounded-full bg-current" aria-hidden="true" />
+                      <span>
+                        {uploadStatus.bundle === "uploading"
+                          ? "Uploading..."
+                          : uploadStatus.bundle === "done"
+                            ? "Uploaded"
+                            : uploadStatus.bundle === "error"
+                              ? "Upload failed"
+                              : "Inspected"}
+                      </span>
+                    </span>
+                  </div>
+                )}
+              </div>
+            </FormSection>
+
+            {/* TOOL Step 3: Basics */}
+            <FormSection
+              step={3}
+              title="Basics"
+              description="Name, version and how people find this tool."
+            >
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="tool-name" className="text-sm font-medium text-foreground">
+                    Tool name
+                  </label>
+                  <Input
+                    id="tool-name"
+                    aria-describedby="tool-name-help"
+                    required
+                    placeholder="e.g. USDC Payments"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
+                  />
+                  <p id="tool-name-help" className="text-xs text-muted-foreground">
+                    The name members see in the catalog.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="tool-artifact-name" className="text-sm font-medium text-foreground">
+                    Identifier
+                  </label>
+                  <Input
+                    id="tool-artifact-name"
+                    aria-describedby="tool-artifact-name-help"
+                    required
+                    placeholder="e.g. usdc-payments"
+                    value={artifactName}
+                    onChange={(e) => setArtifactName(e.target.value)}
+                    className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
+                  />
+                  <p id="tool-artifact-name-help" className="text-xs text-muted-foreground">
+                    A short lowercase name used in links and commands, for example usdc-payments. This cannot be changed later.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="tool-version" className="text-sm font-medium text-foreground">
+                    Version
+                  </label>
+                  <Input
+                    id="tool-version"
+                    aria-describedby="tool-version-help"
+                    required
+                    placeholder="e.g. 1.0.0"
+                    value={version}
+                    onChange={(e) => setVersion(e.target.value)}
+                    className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
+                  />
+                  <p id="tool-version-help" className="text-xs text-muted-foreground">
+                    Your own version number, for example 1.0.0. This cannot be changed later.
+                  </p>
+                </div>
               </div>
 
-              <div className="w-full overflow-auto max-h-[600px] border border-[var(--ironhub-line)] bg-slate-950 font-mono text-xs text-slate-300 rounded-2xl p-6 shadow-inner leading-relaxed whitespace-pre select-text selection:bg-primary/30">
-                {compileSkillMarkdown()}
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="tool-description" className="text-sm font-medium text-foreground">
+                  Short description
+                </label>
+                <textarea
+                  id="tool-description"
+                  aria-describedby="tool-description-help"
+                  required
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Provide a description of the tool capabilities..."
+                  className="flex min-h-[100px] w-full rounded-lg border border-[var(--ironhub-line)] bg-background/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                />
+                <p id="tool-description-help" className="text-xs text-muted-foreground">
+                  One line explaining what this tool does.
+                </p>
               </div>
-            </div>
 
-            {/* Cleaned Actions Bar - Visible in both edit and preview tabs */}
-            <div className="rounded-xl border border-[var(--ironhub-line)] bg-card/60 p-4 shadow-sm flex flex-row items-center justify-end gap-3 mt-4">
-              <Button type="button" variant="outline" asChild className="rounded-full">
-                <Link href="/mvp/dashboard">Cancel</Link>
-              </Button>
-              <Button type="submit" disabled={isSubmitting} className="rounded-full px-6 shadow-sm">
-                {isSubmitting && <IconLoader2 className="size-4 animate-spin" />}
-                Add to Space
-              </Button>
-            </div>
+              <CategoryAndRepoFields
+                category={category}
+                onCategoryChange={setCategory}
+                categoryError={categoryError}
+                sourceUrl={sourceUrl}
+                onSourceUrlChange={setSourceUrl}
+                sourceUrlError={sourceUrlError}
+              />
+            </FormSection>
+
+            {/* TOOL Step 4: Who can see it */}
+            <FormSection
+              step={4}
+              title="Who can see it"
+              description="Choose who can find and use this tool."
+            >
+              <VisibilitySelector visibility={visibility} onChange={setVisibility} />
+            </FormSection>
           </>
         )}
+
+        {/* Sticky submit bar: one surface (bg-card) and the single raised overlay
+            step (shadow-lg, same as Dialog/Sheet) in both themes — the resting
+            --ironhub-shadow used by FormSection is too weak for a bar that floats
+            over those cards. */}
+        <div className="sticky bottom-4 z-20 rounded-xl border border-[var(--ironhub-line)] bg-card p-4 shadow-lg">
+          <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+            {submitHint && (
+              <p className="text-xs text-muted-foreground">
+                {submitHint}
+              </p>
+            )}
+            <div className="flex items-center justify-end gap-3 sm:ml-auto">
+              <Button
+                type="button"
+                variant="outline"
+                asChild
+                className="h-10 min-h-[40px] rounded-lg px-4"
+              >
+                <Link href="/mvp/dashboard">Cancel</Link>
+              </Button>
+              <Button
+                type="submit"
+                disabled={
+                  isSubmitting ||
+                  (type === "tool" && (!bundleReadyForSubmit || inspectBundle.isPending))
+                }
+                className="h-10 min-h-[40px] rounded-lg px-6 shadow-sm"
+              >
+                {isSubmitting && <IconLoader2 className="size-4 animate-spin" />}
+                <span>Add to Space</span>
+              </Button>
+            </div>
+          </div>
+        </div>
       </form>
     </div>
   )
