@@ -4,8 +4,8 @@ import test from "node:test"
 import { zipSync } from "fflate"
 
 import { inspectExtensionBundle, readBundleFile } from "./bundle.ts"
-
-const encode = (text) => new TextEncoder().encode(text)
+import { MAX_CONTENT_BYTES_BY_KIND } from "./content.ts"
+import { buildRawZipArchive, crc32 as rawCrc32, encode } from "./zip-test-support.mjs"
 
 // Unix external-attributes mode bits for a symlink (S_IFLNK | rwxrwxrwx),
 // shifted into the upper 16 bits the way zip central directory records
@@ -363,9 +363,9 @@ function findCentralDirectoryOffset(zip, entryName) {
   throw new Error(`central directory entry not found: ${entryName}`)
 }
 
-// --- Rule 2b: unsupported compression method / encrypted entries -----------
+// --- Rule 3b: unsupported compression method / encrypted entries -----------
 
-test("rule 2b: unsupported compression method message names the entry", async () => {
+test("rule 3b: unsupported compression method message names the entry", async () => {
   const zip = zipOf({ ...baseFiles(), "evil.bin": encode("payload") })
   const offset = findCentralDirectoryOffset(zip, "evil.bin")
   writeU16LE(zip, offset + 10, 12) // bzip2 -- fflate cannot decode this
@@ -376,7 +376,7 @@ test("rule 2b: unsupported compression method message names the entry", async ()
   )
 })
 
-test("rule 2b: an encrypted entry is rejected during inspect, not at upload", async () => {
+test("rule 3b: an encrypted entry is rejected during inspect, not at upload", async () => {
   const zip = zipOf({ ...baseFiles(), "evil.bin": encode("payload") })
   const offset = findCentralDirectoryOffset(zip, "evil.bin")
   const flags = readU16LE(zip, offset + 8)
@@ -384,9 +384,19 @@ test("rule 2b: an encrypted entry is rejected during inspect, not at upload", as
   await assertRejection(zip, 400, /^Zip entries must not be encrypted: evil\.bin$/)
 })
 
+test("ordering: unsafe entry path (rule 3) fires before unsupported compression method (rule 3b)", async () => {
+  // A single entry that is both unsafely named (".." segment) and uses an
+  // unsupported compression method. Rule 3 runs before rule 3b, so the
+  // unsafe-path message must win, not the compression-method message.
+  const zip = zipOf({ ...baseFiles(), "../escape.bin": encode("payload") })
+  const offset = findCentralDirectoryOffset(zip, "../escape.bin")
+  writeU16LE(zip, offset + 10, 12) // bzip2 -- also unsupported, but must not win
+  await assertRejection(zip, 400, /^Zip contains an unsafe entry path: \.\.\/escape\.bin$/)
+})
+
 // --- Declared size / crc32 vs. actual extracted bytes -----------------------
 
-test("readBundleFile rejects a declared size smaller than the real decompressed content", () => {
+test("readBundleFile rejects a declared size smaller than the real decompressed content", async () => {
   // A real, fully compressible 100-byte payload; fflate would happily
   // truncate its inflate output to whatever size we declare, so declaring 10
   // must be caught by readBundleFile even though fflate itself never errors.
@@ -396,15 +406,20 @@ test("readBundleFile rejects a declared size smaller than the real decompressed 
   const offset = findCentralDirectoryOffset(zip, "wasm/big.wasm")
   writeU32LE(zip, offset + 24, 10) // declared uncompressed size: 10, real: 100
 
-  assert.throws(
-    () => readBundleFile(zip, "wasm/big.wasm"),
-    (error) =>
-      error instanceof Response &&
-      error.status === 400
-  )
+  let threw = false
+  try {
+    readBundleFile(zip, "wasm/big.wasm")
+  } catch (error) {
+    threw = true
+    assert.ok(error instanceof Response)
+    assert.equal(error.status, 400)
+    const text = await error.text()
+    assert.match(text, /^Zip entry wasm\/big\.wasm does not match its declared size or checksum$/)
+  }
+  assert.ok(threw, "expected readBundleFile to throw")
 })
 
-test("readBundleFile rejects a declared-zero entry that actually decompresses to real content", () => {
+test("readBundleFile rejects a declared-zero entry that actually decompresses to real content", async () => {
   const payload = new Uint8Array(100)
   for (let i = 0; i < payload.length; i++) payload[i] = i % 251
   const zip = zipOf({ ...baseFiles(), "wasm/big.wasm": payload }, { level: 6 })
@@ -414,14 +429,17 @@ test("readBundleFile rejects a declared-zero entry that actually decompresses to
   // fflate returns a genuinely empty (but still object-typed, truthy)
   // Uint8Array here -- an `if (!bytes)` truthiness guard would never catch
   // this. The explicit length/crc32 check must.
-  assert.throws(
-    () => readBundleFile(zip, "wasm/big.wasm"),
-    (error) => {
-      assert.ok(error instanceof Response)
-      assert.equal(error.status, 400)
-      return true
-    }
-  )
+  let threw = false
+  try {
+    readBundleFile(zip, "wasm/big.wasm")
+  } catch (error) {
+    threw = true
+    assert.ok(error instanceof Response)
+    assert.equal(error.status, 400)
+    const text = await error.text()
+    assert.match(text, /^Zip entry wasm\/big\.wasm does not match its declared size or checksum$/)
+  }
+  assert.ok(threw, "expected readBundleFile to throw")
 })
 
 test("readBundleFile rejects a crc32 mismatch even when the declared length is correct", async () => {
@@ -443,152 +461,237 @@ test("readBundleFile rejects a crc32 mismatch even when the declared length is c
   assert.ok(threw, "expected readBundleFile to throw on crc32 mismatch")
 })
 
-test("a corrupted wasm module fails at upload-time extraction, not silently as a 0-byte artifact", () => {
-  // End-to-end version of the above via inspectExtensionBundle + readBundleFile,
-  // the same sequence [id]/bundle/route.ts runs: the manifest resolves the
-  // module path, but reading it back must still catch the corruption.
+test("a corrupted wasm module is caught during inspect itself (rule 3c), not deferred to upload", async () => {
+  // Rule 3c: inspect now resolves and verifies wasm/capabilities/manifest_toml
+  // the same way upload does, so a corrupted module never inspects clean.
   const payload = new Uint8Array(100)
   for (let i = 0; i < payload.length; i++) payload[i] = i % 251
   const zip = zipOf({ ...baseFiles(), "wasm/test.wasm": payload }, { level: 6 })
   const offset = findCentralDirectoryOffset(zip, "wasm/test.wasm")
   writeU32LE(zip, offset + 24, 0) // forge the module's declared size to 0
 
-  const inspected = inspectExtensionBundle(zip) // rules 1-10 don't read wasm bytes
-  assert.equal(inspected.wasmPath, "wasm/test.wasm")
+  await assertRejection(
+    zip,
+    400,
+    /^Zip entry wasm\/test\.wasm does not match its declared size or checksum$/
+  )
+  // readBundleFile independently catches the same corruption -- the route
+  // never trusts inspect and re-extracts from scratch.
   assert.throws(
-    () => readBundleFile(zip, inspected.wasmPath),
+    () => readBundleFile(zip, "wasm/test.wasm"),
     (error) => error instanceof Response && error.status === 400
   )
 })
 
-// --- Zip64: full 64-bit declared sizes, not truncated to the low dword -----
+// --- Zip64: full 64-bit declared sizes, only honoured with a locator ------
+//
+// These archives are load-bearing: each one includes a real, parseable
+// manifest.toml (and capabilities.json) so the wasm entry is actually
+// resolved and read via extractVerifiedEntry, the same path a real inspect
+// call takes. A fixture with no manifest.toml never gets that far in either
+// a correct or a broken implementation, which would make it pass vacuously.
 
-function u32Bytes(value) {
-  return [value & 0xff, (value >>> 8) & 0xff, (value >>> 16) & 0xff, (value >>> 24) & 0xff]
+function rawBundleEntries(overrides = {}) {
+  return [
+    { name: "manifest.toml", content: encode(manifestToml(overrides.manifestFields)), method: 0 },
+    {
+      name: "test-tool.capabilities.json",
+      content: encode(JSON.stringify({ version: "0.1.0" })),
+      method: 0,
+    },
+  ]
 }
 
-/**
- * Hand-builds a minimal zip64 archive with a single entry whose central
- * directory declares an uncompressed size of 2**32 + 100 -- unrepresentable
- * in the fixed 32-bit field, so it's encoded via the zip64 extra field the
- * way a real archiver (or an attacker) would. fflate cannot be asked to
- * produce this via zipSync, so this is built by hand from the raw APPNOTE
- * layout. The actual "compressed data" bytes are never read by a correctly
- * behaving validator (rejection must happen from central-directory metadata
- * alone), so they're a few throwaway bytes.
- */
-function buildZip64BombArchive() {
-  const name = encode("bomb.bin")
-  const fakeCompressedData = new Uint8Array([0, 0, 0, 0])
-  const declaredUncompressedLow = 100
-  const declaredUncompressedHigh = 1 // total: 2**32 + 100
-  const declaredCompressedLow = fakeCompressedData.length
-  const declaredCompressedHigh = 0
-
-  const localHeader = new Uint8Array(30)
-  writeU32LE(localHeader, 0, 0x04034b50) // local file header signature
-  writeU16LE(localHeader, 4, 20) // version needed
-  writeU16LE(localHeader, 6, 0) // general purpose flag
-  writeU16LE(localHeader, 8, 8) // method: deflate
-  writeU32LE(localHeader, 10, 0) // mod time/date
-  writeU32LE(localHeader, 14, 0) // crc32 (unused -- rejection happens before any read)
-  writeU32LE(localHeader, 18, fakeCompressedData.length) // compressed size (local, unused)
-  writeU32LE(localHeader, 22, 0) // uncompressed size (local, unused)
-  writeU16LE(localHeader, 26, name.length)
-  writeU16LE(localHeader, 28, 0) // extra length
-
-  const localHeaderOffset = 0
-  const dataOffset = localHeader.length + name.length
-  const centralDirOffset = dataOffset + fakeCompressedData.length
-
-  const zip64Extra = new Uint8Array([
-    1, 0, // tag: zip64 extended information
-    16, 0, // size: two 8-byte fields (uncompressed, then compressed)
-    ...u32Bytes(declaredUncompressedLow),
-    ...u32Bytes(declaredUncompressedHigh),
-    ...u32Bytes(declaredCompressedLow),
-    ...u32Bytes(declaredCompressedHigh),
-  ])
-
-  const centralHeader = new Uint8Array(46)
-  writeU32LE(centralHeader, 0, 0x02014b50)
-  writeU16LE(centralHeader, 4, 0x0314) // version made by: unix
-  writeU16LE(centralHeader, 6, 45) // version needed: zip64
-  writeU16LE(centralHeader, 8, 0) // general purpose flag
-  writeU16LE(centralHeader, 10, 8) // method: deflate
-  writeU32LE(centralHeader, 16, 0) // crc32 (unused)
-  writeU32LE(centralHeader, 20, 0xffffffff) // compressed size sentinel
-  writeU32LE(centralHeader, 24, 0xffffffff) // uncompressed size sentinel
-  writeU16LE(centralHeader, 28, name.length)
-  writeU16LE(centralHeader, 30, zip64Extra.length)
-  writeU16LE(centralHeader, 32, 0) // comment length
-  writeU16LE(centralHeader, 34, 0) // disk number start
-  writeU16LE(centralHeader, 36, 0) // internal attrs
-  writeU32LE(centralHeader, 38, 0) // external attrs
-  writeU32LE(centralHeader, 42, localHeaderOffset)
-
-  const centralDirSize = centralHeader.length + name.length + zip64Extra.length
-  const eocd = new Uint8Array(22)
-  writeU32LE(eocd, 0, 0x06054b50)
-  writeU16LE(eocd, 4, 0) // disk number
-  writeU16LE(eocd, 6, 0) // disk with central dir
-  writeU16LE(eocd, 8, 1) // entries on this disk
-  writeU16LE(eocd, 10, 1) // total entries
-  writeU32LE(eocd, 16, centralDirOffset)
-  writeU32LE(eocd, 12, centralDirSize)
-  writeU16LE(eocd, 20, 0) // comment length
-
-  const parts = [localHeader, name, fakeCompressedData, centralHeader, name, zip64Extra, eocd]
-  const total = parts.reduce((sum, part) => sum + part.length, 0)
-  const out = new Uint8Array(total)
-  let pos = 0
-  for (const part of parts) {
-    out.set(part, pos)
-    pos += part.length
-  }
-  return out
-}
-
-test("zip64 bomb: a small archive declaring a >4GB uncompressed size is rejected without a matching allocation", () => {
-  const zip = buildZip64BombArchive()
-  assert.ok(zip.length < 300, `expected a tiny archive on the wire, got ${zip.length} bytes`)
-
-  const before = process.memoryUsage()
-
-  let rejected = false
-  let status
-  try {
-    inspectExtensionBundle(zip)
-  } catch (error) {
-    rejected = true
-    if (error instanceof Response) {
-      status = error.status
-    }
-  }
-
-  const after = process.memoryUsage()
+function assertNoLargeAllocation(before, after) {
   const arrayBufferGrowth = after.arrayBuffers - before.arrayBuffers
-  const heapGrowth = after.rss - before.rss
-
-  assert.ok(rejected, "expected inspectExtensionBundle to reject the zip64 bomb")
-  assert.equal(status, 400)
-  // The real bug this guards against allocated hundreds of MB to multiple
-  // GB (fflate preallocating `new u8(su)` from the forged declared size).
-  // A correct fix rejects from central-directory metadata alone, before any
-  // allocation sized by that declared value ever happens.
+  const rssGrowth = after.rss - before.rss
   assert.ok(
     arrayBufferGrowth < 50 * 1024 * 1024,
     `expected no large-buffer allocation, but arrayBuffers grew by ${arrayBufferGrowth} bytes`
   )
   assert.ok(
-    heapGrowth < 200 * 1024 * 1024,
-    `expected no large RSS growth, but rss grew by ${heapGrowth} bytes`
+    rssGrowth < 200 * 1024 * 1024,
+    `expected no large RSS growth, but rss grew by ${rssGrowth} bytes`
   )
+}
+
+test("zip64 no-locator bomb: a lying small size in an ignored zip64 extra field is rejected, not honoured", () => {
+  // The wasm entry's fixed central-directory fields are the zip64 sentinel
+  // (0xFFFFFFFF), and its zip64 extra field lies "100 bytes" -- but there is
+  // no zip64 EOCD locator anywhere in the archive. fflate only ever
+  // consults a per-entry zip64 extra field when a locator is present
+  // (fflate/esm/index.mjs: `if (z && nf)`); without one it keeps the raw
+  // sentinel. bundle.ts must mirror that gate exactly, or it sees the small
+  // lie, passes every cap, and fflate (with no locator) allocates ~4.29GB.
+  const wasmContent = new Uint8Array(2000)
+  for (let i = 0; i < wasmContent.length; i++) wasmContent[i] = i % 251
+
+  const zip = buildRawZipArchive({
+    includeZip64Locator: false,
+    entries: [
+      ...rawBundleEntries(),
+      {
+        name: "wasm/test.wasm",
+        content: wasmContent,
+        method: 8,
+        forceZip64Extra: true,
+        declaredUncompressedSize: 100, // the lie
+        declaredCompressedSize: 100,
+      },
+    ],
+  })
+  assert.ok(zip.length < 2000, `expected a tiny archive on the wire, got ${zip.length} bytes`)
+
+  const before = process.memoryUsage()
+  assert.throws(
+    () => inspectExtensionBundle(zip),
+    (error) => error instanceof Response && error.status === 400
+  )
+  assertNoLargeAllocation(before, process.memoryUsage())
 })
 
-test("zip64 bomb: the rejection message is the total-uncompressed cap message", async () => {
-  const zip = buildZip64BombArchive()
+test("zip64 no-locator bomb: rejection message is the total-uncompressed cap message", async () => {
+  const wasmContent = new Uint8Array(2000)
+  for (let i = 0; i < wasmContent.length; i++) wasmContent[i] = i % 251
+
+  const zip = buildRawZipArchive({
+    includeZip64Locator: false,
+    entries: [
+      ...rawBundleEntries(),
+      {
+        name: "wasm/test.wasm",
+        content: wasmContent,
+        method: 8,
+        forceZip64Extra: true,
+        declaredUncompressedSize: 100,
+        declaredCompressedSize: 100,
+      },
+    ],
+  })
   await assertRejection(zip, 400, /^Zip archive is too large \(max 100MB uncompressed\)$/)
+})
+
+test("zip64 no-locator, 'accepted' variant: declaring the entry's true (honest) size still gets rejected", () => {
+  // Same no-locator shape, but the zip64 extra field declares its real,
+  // honest size (not an arbitrary lie) -- proving the fix rejects because
+  // there is no locator at all, regardless of what story the (ignored)
+  // extra field tells.
+  const wasmContent = new Uint8Array(2000)
+  for (let i = 0; i < wasmContent.length; i++) wasmContent[i] = i % 251
+
+  const zip = buildRawZipArchive({
+    includeZip64Locator: false,
+    entries: [
+      ...rawBundleEntries(),
+      {
+        name: "wasm/test.wasm",
+        content: wasmContent,
+        method: 8,
+        forceZip64Extra: true,
+        declaredUncompressedSize: wasmContent.length, // honest
+        declaredCompressedSize: wasmContent.length,
+      },
+    ],
+  })
+
+  const before = process.memoryUsage()
+  assert.throws(
+    () => inspectExtensionBundle(zip),
+    (error) => error instanceof Response && error.status === 400
+  )
+  assertNoLargeAllocation(before, process.memoryUsage())
+})
+
+// --- T1/T2/T3: crc-consistent truncation (declared size and crc32 are both
+// attacker-supplied, so comparing them to each other alone proves nothing) -
+
+test("T1: declared 64 bytes + crc32 of only the first 64 real bytes, real stream 6MB", async () => {
+  const realContent = new Uint8Array(6 * 1024 * 1024)
+  for (let i = 0; i < realContent.length; i++) realContent[i] = i % 251
+
+  const zip = buildRawZipArchive({
+    includeZip64Locator: false,
+    entries: [
+      ...rawBundleEntries(),
+      {
+        name: "wasm/test.wasm",
+        content: realContent,
+        method: 8,
+        declaredUncompressedSize: 64,
+        declaredCrc32: rawCrc32(realContent.subarray(0, 64)), // crc of the truncated prefix
+      },
+    ],
+  })
+
+  const before = process.memoryUsage()
+  await assertRejection(
+    zip,
+    400,
+    /^Zip entry wasm\/test\.wasm does not match its declared size or checksum$/
+  )
+  assertNoLargeAllocation(before, process.memoryUsage())
+})
+
+test("T2: declared 0 bytes + crc32(empty)=0, real stream 6MB", async () => {
+  const realContent = new Uint8Array(6 * 1024 * 1024)
+  for (let i = 0; i < realContent.length; i++) realContent[i] = (i * 7) % 251
+
+  const zip = buildRawZipArchive({
+    includeZip64Locator: false,
+    entries: [
+      ...rawBundleEntries(),
+      {
+        name: "wasm/test.wasm",
+        content: realContent,
+        method: 8,
+        declaredUncompressedSize: 0,
+        declaredCrc32: 0,
+      },
+    ],
+  })
+
+  const before = process.memoryUsage()
+  await assertRejection(
+    zip,
+    400,
+    /^Zip entry wasm\/test\.wasm does not match its declared size or checksum$/
+  )
+  assertNoLargeAllocation(before, process.memoryUsage())
+})
+
+test("T3: capabilities.json truncated to a still-valid JSON prefix is rejected, not accepted as valid JSON", async () => {
+  // Real content is a valid JSON object immediately followed by 6MB of
+  // padding bytes. The declared size/crc32 are computed from that exact
+  // JSON-object-length prefix of the real content (not a separately
+  // re-serialized value), so a naive "does the truncated result parse as
+  // JSON" check would accept it -- it does parse, just as the wrong object.
+  const jsonPrefix = encode(JSON.stringify({ a: 1, b: 2 }))
+  const padding = new Uint8Array(6 * 1024 * 1024)
+  for (let i = 0; i < padding.length; i++) padding[i] = i % 251
+  const realCapabilities = new Uint8Array(jsonPrefix.length + padding.length)
+  realCapabilities.set(jsonPrefix, 0)
+  realCapabilities.set(padding, jsonPrefix.length)
+
+  const zip = buildRawZipArchive({
+    includeZip64Locator: false,
+    entries: [
+      { name: "manifest.toml", content: encode(manifestToml()), method: 0 },
+      {
+        name: "test-tool.capabilities.json",
+        content: realCapabilities,
+        method: 8,
+        declaredUncompressedSize: jsonPrefix.length,
+        declaredCrc32: rawCrc32(realCapabilities.subarray(0, jsonPrefix.length)),
+      },
+      { name: "wasm/test.wasm", content: new Uint8Array([1, 2, 3, 4]), method: 0 },
+    ],
+  })
+
+  await assertRejection(
+    zip,
+    400,
+    /^Zip entry test-tool\.capabilities\.json does not match its declared size or checksum$/
+  )
 })
 
 // --- Fix 8: [runtime].module must resolve to a *visible* entry -------------
@@ -645,4 +748,35 @@ test("ordering: unsafe entry path (rule 3) fires before wrapper-directory (rule 
   wrapped["firecrawl/../evil.bin"] = encode("x")
   const zip = zipOf(wrapped)
   await assertRejection(zip, 400, /^Zip contains an unsafe entry path: firecrawl\/\.\.\/evil\.bin$/)
+})
+
+// --- Rule 3c: D3 per-kind caps enforced during inspect, not just upload ----
+
+test("rule 3c: a wasm module over content.ts's real D3 cap is rejected during inspect", async () => {
+  // Uses content.ts's *real* exported table, not a hand-copied number, so
+  // this fails if bundle.ts's internal MAX_KIND_BYTES_DURING_INSPECT table
+  // ever drifts from design.md D3's source of truth.
+  const oversized = new Uint8Array(MAX_CONTENT_BYTES_BY_KIND.wasm + 1)
+  for (let i = 0; i < oversized.length; i++) oversized[i] = i % 251
+  const zip = zipOf({ ...baseFiles({ wasmBytes: undefined }), "wasm/test.wasm": oversized })
+  await assertRejection(
+    zip,
+    400,
+    new RegExp(
+      `^Content exceeds the ${MAX_CONTENT_BYTES_BY_KIND.wasm / (1024 * 1024)}MB limit for wasm$`
+    )
+  )
+})
+
+test("rule 3c: a manifest.toml over content.ts's real D3 cap is rejected during inspect", async () => {
+  const padding = " ".repeat(MAX_CONTENT_BYTES_BY_KIND.manifest_toml)
+  const oversizedToml = manifestToml() + `# ${padding}\n`
+  const zip = zipOf(baseFiles({ manifestToml: oversizedToml }))
+  await assertRejection(
+    zip,
+    400,
+    new RegExp(
+      `^Content exceeds the ${MAX_CONTENT_BYTES_BY_KIND.manifest_toml / 1024}KB limit for manifest_toml$`
+    )
+  )
 })
