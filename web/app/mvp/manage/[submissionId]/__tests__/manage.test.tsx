@@ -18,11 +18,12 @@ const BASE_ARTIFACT = {
   id: "artifact-1",
   organizationId: "org1",
   createdById: "u1",
-  type: "tool",
+  type: "tool" as const,
   name: "firecrawl",
   title: "Firecrawl",
   version: "1.0.0",
-  visibility: "private",
+  visibility: "private" as const,
+  status: "draft" as const,
   category: "Dev Tools",
   description: "Crawl the web.",
   sourceUrl: null,
@@ -35,9 +36,24 @@ const BASE_ARTIFACT = {
   // A test that specifically wants an incomplete/pre-bundle-ingest tool
   // (wasm + capabilities, no manifest_toml) builds its own content array.
   content: [
-    { kind: "wasm", sha256: "a".repeat(64), sizeBytes: 100, createdAt: "2026-01-01T00:00:00.000Z" },
-    { kind: "capabilities", sha256: "b".repeat(64), sizeBytes: 50, createdAt: "2026-01-01T00:00:00.000Z" },
-    { kind: "manifest_toml", sha256: "c".repeat(64), sizeBytes: 25, createdAt: "2026-01-01T00:00:00.000Z" },
+    {
+      kind: "wasm" as const,
+      sha256: "a".repeat(64),
+      sizeBytes: 100,
+      createdAt: "2026-01-01T00:00:00.000Z",
+    },
+    {
+      kind: "capabilities" as const,
+      sha256: "b".repeat(64),
+      sizeBytes: 50,
+      createdAt: "2026-01-01T00:00:00.000Z",
+    },
+    {
+      kind: "manifest_toml" as const,
+      sha256: "c".repeat(64),
+      sizeBytes: 25,
+      createdAt: "2026-01-01T00:00:00.000Z",
+    },
   ],
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
@@ -118,7 +134,9 @@ describe("manage page — review checks and publish/unpublish", () => {
 
     await renderPage()
 
-    await waitFor(() => expect(screen.getByText("Content complete")).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByText("Content complete")).toBeInTheDocument()
+    )
     expect(screen.getByText("Category set")).toBeInTheDocument()
     expect(screen.getByText("category is not set.")).toBeInTheDocument()
     expect(screen.getByText("Repository link set")).toBeInTheDocument()
@@ -133,35 +151,41 @@ describe("manage page — review checks and publish/unpublish", () => {
     // (via a discriminator no icon-color-only regression can fake past) —
     // pin it can never read "pass" for a check the server reported failing
     // or warning, and vice versa.
-    expect(document.querySelector('[data-check-id="content_complete"]')).toHaveAttribute(
-      "data-check-status",
-      "pass"
-    )
-    expect(document.querySelector('[data-check-id="category_set"]')).toHaveAttribute(
-      "data-check-status",
-      "fail"
-    )
-    expect(document.querySelector('[data-check-id="repo_link_set"]')).toHaveAttribute(
-      "data-check-status",
-      "warn"
-    )
+    expect(
+      document.querySelector('[data-check-id="content_complete"]')
+    ).toHaveAttribute("data-check-status", "pass")
+    expect(
+      document.querySelector('[data-check-id="category_set"]')
+    ).toHaveAttribute("data-check-status", "fail")
+    expect(
+      document.querySelector('[data-check-id="repo_link_set"]')
+    ).toHaveAttribute("data-check-status", "warn")
 
-    const failingRow = document.querySelector('[data-check-id="category_set"]') as HTMLElement
-    expect(failingRow.textContent).toContain("Fail")
-    expect(failingRow.textContent).not.toContain("Pass")
+    const failingRow = document.querySelector(
+      '[data-check-id="category_set"]'
+    ) as HTMLElement
+    expect(failingRow.textContent).toContain("Blocked")
+    expect(failingRow.textContent).not.toContain("Passed")
+
+    const warningRow = document.querySelector(
+      '[data-check-id="repo_link_set"]'
+    ) as HTMLElement
+    expect(warningRow.textContent).toContain("Warning")
 
     expect(screen.getByRole("button", { name: /^publish$/i })).toBeDisabled()
 
     // BASE_ARTIFACT is deliberately content-complete (wasm + manifest_toml)
     // -- pins that the manage page's local completeness gate for "Copy
-    // Install Link" agrees with service.ts's REQUIRED_CONTENT_KINDS_BY_TYPE,
+    // install link" agrees with service.ts's REQUIRED_CONTENT_KINDS_BY_TYPE,
     // independent of whatever the mocked /checks endpoint above reports
     // (that route is unpublishable here purely on category/repo, not
     // content).
-    expect(screen.getByRole("button", { name: /copy install link/i })).not.toBeDisabled()
+    expect(
+      screen.getByRole("button", { name: /copy install link/i })
+    ).not.toBeDisabled()
   })
 
-  it("disables Copy Install Link for a pre-bundle-ingest tool (wasm + capabilities, no manifest_toml)", async () => {
+  it("disables Copy install link for a pre-bundle-ingest tool (wasm + capabilities, no manifest_toml)", async () => {
     // design.md D3: this is the exact shape a tool created before bundle
     // ingest existed has -- content_complete now fails for it, and the
     // manage page's local gate must not silently disagree and let an
@@ -174,7 +198,9 @@ describe("manage page — review checks and publish/unpublish", () => {
       const url = String(input)
       if (url === "/api/private-artifacts/artifact-1") {
         return new Response(
-          JSON.stringify({ artifact: { ...preBundleIngestTool, status: "draft" } }),
+          JSON.stringify({
+            artifact: { ...preBundleIngestTool, status: "draft" },
+          }),
           { status: 200 }
         )
       }
@@ -200,9 +226,13 @@ describe("manage page — review checks and publish/unpublish", () => {
     await renderPage()
 
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /copy install link/i })).toBeInTheDocument()
+      expect(
+        screen.getByRole("button", { name: /copy install link/i })
+      ).toBeInTheDocument()
     )
-    expect(screen.getByRole("button", { name: /copy install link/i })).toBeDisabled()
+    expect(
+      screen.getByRole("button", { name: /copy install link/i })
+    ).toBeDisabled()
   })
 
   it("renders a lone failing check's own visible status text, not a fabricated pass indicator", async () => {
@@ -243,14 +273,20 @@ describe("manage page — review checks and publish/unpublish", () => {
     await renderPage()
 
     await waitFor(() =>
-      expect(document.querySelector('[data-check-id="wasm_present"]')).toBeInTheDocument()
+      expect(
+        document.querySelector('[data-check-id="wasm_present"]')
+      ).toBeInTheDocument()
     )
-    const row = document.querySelector('[data-check-id="wasm_present"]') as HTMLElement
+    const row = document.querySelector(
+      '[data-check-id="wasm_present"]'
+    ) as HTMLElement
 
-    expect(row.textContent).toContain("Fail")
-    expect(row.textContent).not.toContain("Pass")
+    expect(row.textContent).toContain("Blocked")
+    expect(row.textContent).not.toContain("Passed")
     expect(row).toHaveAttribute("data-check-status", "fail")
-    expect(document.querySelectorAll('[data-check-status="pass"]')).toHaveLength(0)
+    expect(
+      document.querySelectorAll('[data-check-status="pass"]')
+    ).toHaveLength(0)
   })
 
   it("gates the checks list and Publish on isError, so a failed refetch cannot leave stale rows or a stale publishable state on screen", async () => {
@@ -281,18 +317,25 @@ describe("manage page — review checks and publish/unpublish", () => {
             { status: 200 }
           )
         }
-        return new Response(JSON.stringify({ error: "checks service unavailable" }), {
-          status: 500,
-        })
+        return new Response(
+          JSON.stringify({ error: "checks service unavailable" }),
+          {
+            status: 500,
+          }
+        )
       }
       throw new Error(`Unexpected fetch: ${url}`)
     })
 
     const queryClient = await renderPage()
 
-    const publishButton = await screen.findByRole("button", { name: /^publish$/i })
+    const publishButton = await screen.findByRole("button", {
+      name: /^publish$/i,
+    })
     await waitFor(() => expect(publishButton).not.toBeDisabled())
-    expect(document.querySelector('[data-check-id="content_complete"]')).toBeInTheDocument()
+    expect(
+      document.querySelector('[data-check-id="content_complete"]')
+    ).toBeInTheDocument()
 
     // React Query keeps the last-good `data` across a failed refetch, so
     // this forces exactly the scenario the isError gate exists for: a
@@ -304,10 +347,14 @@ describe("manage page — review checks and publish/unpublish", () => {
     })
 
     await waitFor(() =>
-      expect(screen.getByText(/failed to load review checks/i)).toBeInTheDocument()
+      expect(
+        screen.getByText(/failed to load review checks/i)
+      ).toBeInTheDocument()
     )
     // The stale passing row must not still be on screen next to the error.
-    expect(document.querySelector('[data-check-id="content_complete"]')).not.toBeInTheDocument()
+    expect(
+      document.querySelector('[data-check-id="content_complete"]')
+    ).not.toBeInTheDocument()
     // Publish must not still be enabled off stale `publishable: true`.
     expect(screen.getByRole("button", { name: /^publish$/i })).toBeDisabled()
   })
@@ -338,24 +385,34 @@ describe("manage page — review checks and publish/unpublish", () => {
           { status: 200 }
         )
       }
-      if (url === "/api/private-artifacts/artifact-1/publish" && init?.method === "POST") {
+      if (
+        url === "/api/private-artifacts/artifact-1/publish" &&
+        init?.method === "POST"
+      ) {
         status = "published"
-        return new Response(JSON.stringify({ artifact: { ...BASE_ARTIFACT, status } }), {
-          status: 200,
-        })
+        return new Response(
+          JSON.stringify({ artifact: { ...BASE_ARTIFACT, status } }),
+          {
+            status: 200,
+          }
+        )
       }
       throw new Error(`Unexpected fetch: ${url}`)
     })
 
     await renderPage()
 
-    const publishButton = await screen.findByRole("button", { name: /^publish$/i })
+    const publishButton = await screen.findByRole("button", {
+      name: /^publish$/i,
+    })
     await waitFor(() => expect(publishButton).not.toBeDisabled())
 
     fireEvent.click(publishButton)
 
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /^unpublish$/i })).toBeInTheDocument()
+      expect(
+        screen.getByRole("button", { name: /^unpublish$/i })
+      ).toBeInTheDocument()
     )
   })
 
@@ -366,7 +423,9 @@ describe("manage page — review checks and publish/unpublish", () => {
     vi.mocked(fetch).mockImplementation(async (input, init) => {
       const url = String(input)
       if (url === "/api/private-artifacts/artifact-1") {
-        return new Response(JSON.stringify({ artifact: toolWithNoContent }), { status: 200 })
+        return new Response(JSON.stringify({ artifact: toolWithNoContent }), {
+          status: 200,
+        })
       }
       if (url === "/api/private-artifacts/artifact-1/checks") {
         return new Response(
@@ -384,18 +443,30 @@ describe("manage page — review checks and publish/unpublish", () => {
           { status: 200 }
         )
       }
-      if (url === "/api/private-artifacts/artifact-1/bundle" && init?.method === "PUT") {
-        return new Response(JSON.stringify({ content: [{ kind: "wasm", sha256: "a", sizeBytes: 1 }] }), {
-          status: 201,
-        })
+      if (
+        url === "/api/private-artifacts/artifact-1/bundle" &&
+        init?.method === "PUT"
+      ) {
+        return new Response(
+          JSON.stringify({
+            content: [{ kind: "wasm", sha256: "a", sizeBytes: 1 }],
+          }),
+          {
+            status: 201,
+          }
+        )
       }
       throw new Error(`Unexpected fetch: ${url}`)
     })
 
     await renderPage()
 
-    const input = await screen.findByLabelText(/re-upload extension bundle/i)
-    const file = new File(["zip bytes"], "firecrawl.zip", { type: "application/zip" })
+    const input = await screen.findByLabelText(
+      /replace the uploaded package/i
+    )
+    const file = new File(["zip bytes"], "firecrawl.zip", {
+      type: "application/zip",
+    })
 
     await act(async () => {
       fireEvent.change(input, { target: { files: [file] } })
@@ -404,38 +475,56 @@ describe("manage page — review checks and publish/unpublish", () => {
 
     const bundleCall = vi
       .mocked(fetch)
-      .mock.calls.find(([reqInput]) => String(reqInput) === "/api/private-artifacts/artifact-1/bundle")
+      .mock.calls.find(
+        ([reqInput]) =>
+          String(reqInput) === "/api/private-artifacts/artifact-1/bundle"
+      )
     expect(bundleCall).toBeDefined()
     expect(bundleCall?.[1]).toMatchObject({
       method: "PUT",
       headers: { "Content-Type": "application/zip" },
     })
 
-    await waitFor(() => expect(screen.getByText("Bundle uploaded")).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByText("Bundle uploaded")).toBeInTheDocument()
+    )
   })
 
   it("rejects a non-zip file on the re-upload control without making a request", async () => {
     vi.mocked(fetch).mockImplementation(async (input) => {
       const url = String(input)
       if (url === "/api/private-artifacts/artifact-1") {
-        return new Response(JSON.stringify({ artifact: BASE_ARTIFACT }), { status: 200 })
+        return new Response(JSON.stringify({ artifact: BASE_ARTIFACT }), {
+          status: 200,
+        })
       }
       if (url === "/api/private-artifacts/artifact-1/checks") {
-        return new Response(JSON.stringify({ checks: [], publishable: false }), { status: 200 })
+        return new Response(
+          JSON.stringify({ checks: [], publishable: false }),
+          { status: 200 }
+        )
       }
       throw new Error(`Unexpected fetch: ${url}`)
     })
 
     await renderPage()
 
-    const input = await screen.findByLabelText(/re-upload extension bundle/i)
+    const input = await screen.findByLabelText(
+      /replace the uploaded package/i
+    )
     const callsBefore = vi.mocked(fetch).mock.calls.length
 
     fireEvent.change(input, {
-      target: { files: [new File(["x"], "firecrawl.wasm", { type: "application/wasm" })] },
+      target: {
+        files: [
+          new File(["x"], "firecrawl.wasm", { type: "application/wasm" }),
+        ],
+      },
     })
 
-    expect(screen.getByText("Only .zip archives are accepted.")).toBeInTheDocument()
+    expect(
+      screen.getByText("Only .zip archives are accepted.")
+    ).toBeInTheDocument()
     expect(vi.mocked(fetch).mock.calls.length).toBe(callsBefore)
   })
 
@@ -464,7 +553,10 @@ describe("manage page — review checks and publish/unpublish", () => {
           { status: 200 }
         )
       }
-      if (url === "/api/private-artifacts/artifact-1/publish" && init?.method === "POST") {
+      if (
+        url === "/api/private-artifacts/artifact-1/publish" &&
+        init?.method === "POST"
+      ) {
         return new Response(
           JSON.stringify({ error: "category must be set before publishing" }),
           { status: 409 }
@@ -475,15 +567,21 @@ describe("manage page — review checks and publish/unpublish", () => {
 
     await renderPage()
 
-    const publishButton = await screen.findByRole("button", { name: /^publish$/i })
+    const publishButton = await screen.findByRole("button", {
+      name: /^publish$/i,
+    })
     await waitFor(() => expect(publishButton).not.toBeDisabled())
 
     fireEvent.click(publishButton)
 
     await waitFor(() =>
-      expect(screen.getByText("category must be set before publishing")).toBeInTheDocument()
+      expect(
+        screen.getByText("category must be set before publishing")
+      ).toBeInTheDocument()
     )
     // Status is unchanged — still offering "Publish", not "Unpublish".
-    expect(screen.getByRole("button", { name: /^publish$/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /^publish$/i })
+    ).toBeInTheDocument()
   })
 })

@@ -1,342 +1,481 @@
 "use client"
 
-import React, { useState } from "react"
+import * as React from "react"
 import Link from "next/link"
-import { useArtifacts } from "@/features/partner/api/artifacts"
-import { CATEGORIES } from "@/lib/catalog/inference"
-import { Button } from "@/components/ui/button"
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
-import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import {
+  IconFilterOff,
+  IconLayoutGrid,
+  IconLock,
   IconPlus,
   IconSearch,
   IconSparkles,
+  IconTable,
   IconTool,
-  IconArrowRight,
   IconWorld,
-  IconLock,
-  IconAlertTriangle,
-  IconCategory,
 } from "@tabler/icons-react"
+
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
+import {
+  type PrivateArtifact,
+  useArtifacts,
+} from "@/features/partner/api/artifacts"
+import { ArtifactCard } from "@/features/partner/components/ui/artifact-card"
+import {
+  DataTable,
+  type DataTableColumn,
+} from "@/features/partner/components/ui/data-table"
+import { EmptyState } from "@/features/partner/components/ui/empty-state"
+import { RelativeTime } from "@/features/partner/components/ui/relative-time"
+import { StatCard, StatRow } from "@/features/partner/components/ui/stat-card"
+import { StatusBadge } from "@/features/partner/components/ui/status-badge"
+import { ViewToggle } from "@/features/partner/components/ui/view-toggle"
+import { WorkspacePageHeader } from "@/features/partner/components/ui/workspace-page-header"
+import { CATEGORIES } from "@/lib/catalog/inference"
+
+function useIsBelowMd(): boolean {
+  const subscribe = React.useCallback((callback: () => void) => {
+    if (typeof window === "undefined" || !window.matchMedia) {
+      return () => {}
+    }
+    const mql = window.matchMedia("(max-width: 767px)")
+    mql.addEventListener("change", callback)
+    return () => mql.removeEventListener("change", callback)
+  }, [])
+
+  const getSnapshot = React.useCallback(() => {
+    if (typeof window === "undefined" || !window.matchMedia) {
+      return false
+    }
+    return window.matchMedia("(max-width: 767px)").matches
+  }, [])
+
+  const getServerSnapshot = React.useCallback(() => false, [])
+
+  return React.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+}
+
+function filterOptionLabel(prefix: string, label: string): string {
+  return `${prefix}: ${label}`
+}
+
+const VIEW_OPTIONS = [
+  { value: "table" as const, label: "Table", icon: IconTable },
+  { value: "cards" as const, label: "Cards", icon: IconLayoutGrid },
+]
 
 export default function DashboardPage() {
   const { data: submissions, isLoading, isError, error } = useArtifacts()
 
-  const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [visibilityFilter, setVisibilityFilter] = useState("all")
-  const [categoryFilter, setCategoryFilter] = useState("all")
+  const [search, setSearch] = React.useState("")
+  const [typeFilter, setTypeFilter] = React.useState("all")
+  const [statusFilter, setStatusFilter] = React.useState("all")
+  const [visibilityFilter, setVisibilityFilter] = React.useState("all")
+  const [categoryFilter, setCategoryFilter] = React.useState("all")
 
-  const items = submissions ?? []
+  const [view, setView] = React.useState<"table" | "cards">("table")
 
-  // Status rollup across all submissions (independent of active filters).
-  // "published" is now a reachable status via the publish route, so all
-  // counts reflect real, varying state.
-  const counts = {
-    all: items.length,
-    draft: items.filter((s) => s.status === "draft").length,
-    published: items.filter((s) => s.status === "published").length,
+  React.useEffect(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const stored = window.sessionStorage.getItem("ironhub.mvp.catalogView")
+        if (stored === "table" || stored === "cards") {
+          // The sessionStorage view preference must be applied after mount so the server-rendered default ("table") and the first client render agree (design decision D3).
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setView(stored)
+        }
+      }
+    } catch {
+      // Ignore sessionStorage exceptions
+    }
+  }, [])
+
+  const handleViewChange = React.useCallback((next: "table" | "cards") => {
+    setView(next)
+    try {
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem("ironhub.mvp.catalogView", next)
+      }
+    } catch {
+      // Ignore sessionStorage exceptions
+    }
+  }, [])
+
+  const isBelowMd = useIsBelowMd()
+  const effectiveView = isBelowMd ? "cards" : view
+
+  const items = React.useMemo(() => submissions ?? [], [submissions])
+
+  const totalCount = items.length
+  const skillCount = items.filter((item) => item.type === "skill").length
+  const toolCount = items.filter((item) => item.type === "tool").length
+  const draftCount = items.filter((item) => item.status === "draft").length
+
+  const filteredItems = React.useMemo(() => {
+    return items.filter((item) => {
+      const matchesSearch =
+        !search.trim() ||
+        item.title.toLowerCase().includes(search.toLowerCase()) ||
+        item.name.toLowerCase().includes(search.toLowerCase())
+      const matchesType = typeFilter === "all" || item.type === typeFilter
+      const matchesStatus =
+        statusFilter === "all" || item.status === statusFilter
+      const matchesVisibility =
+        visibilityFilter === "all" || item.visibility === visibilityFilter
+      const matchesCategory =
+        categoryFilter === "all" ||
+        (categoryFilter === "uncategorised"
+          ? !item.category
+          : item.category === categoryFilter)
+
+      return (
+        matchesSearch &&
+        matchesType &&
+        matchesStatus &&
+        matchesVisibility &&
+        matchesCategory
+      )
+    })
+  }, [items, search, typeFilter, statusFilter, visibilityFilter, categoryFilter])
+
+  const handleClearFilters = () => {
+    setSearch("")
+    setTypeFilter("all")
+    setStatusFilter("all")
+    setVisibilityFilter("all")
+    setCategoryFilter("all")
   }
 
-  const summaryChips: { key: string; label: string; value: number; tone: string }[] = [
-    { key: "all", label: "Total Items", value: counts.all, tone: "border-[var(--ironhub-line)] text-foreground" },
-    { key: "draft", label: "Draft", value: counts.draft, tone: "border-amber-500/25 text-amber-600 dark:text-amber-400" },
-    { key: "published", label: "Published", value: counts.published, tone: "border-emerald-500/25 text-emerald-600 dark:text-emerald-400" },
+  const columns: DataTableColumn<PrivateArtifact>[] = [
+    {
+      key: "name",
+      header: "Name",
+      wrap: true,
+      cellClassName: "max-w-[20rem]",
+      cell: (row) => (
+        <Link
+          href={`/mvp/manage/${row.id}`}
+          className="group block min-w-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          <div className="truncate text-sm font-medium text-foreground group-hover:text-primary">
+            {row.title}
+          </div>
+          <div className="truncate font-mono text-xs text-muted-foreground">
+            {row.name}
+          </div>
+        </Link>
+      ),
+    },
+    {
+      key: "type",
+      header: "Type",
+      cell: (row) => {
+        const Icon = row.type === "skill" ? IconSparkles : IconTool
+        return (
+          <span className="inline-flex items-center gap-1.5 text-sm text-foreground">
+            <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
+            <span>{row.type === "skill" ? "Skill" : "Tool"}</span>
+          </span>
+        )
+      },
+    },
+    {
+      key: "category",
+      header: "Category",
+      cell: (row) =>
+        row.category ? (
+          <span className="text-sm text-foreground">{row.category}</span>
+        ) : (
+          <span className="text-sm italic text-muted-foreground">
+            Uncategorised
+          </span>
+        ),
+    },
+    {
+      key: "visibility",
+      header: "Visibility",
+      cell: (row) => {
+        const Icon = row.visibility === "private" ? IconLock : IconWorld
+        return (
+          <span className="inline-flex items-center gap-1.5 text-sm text-foreground">
+            <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
+            <span>{row.visibility === "private" ? "Private" : "Public"}</span>
+          </span>
+        )
+      },
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (row) => <StatusBadge status={row.status} />,
+    },
+    {
+      key: "updatedAt",
+      header: "Updated",
+      cell: (row) => (
+        <RelativeTime
+          value={row.updatedAt}
+          className="text-xs text-muted-foreground"
+        />
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      srOnlyHeader: true,
+      align: "right",
+      cell: (row) => (
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="h-10 rounded-lg text-primary sm:h-8"
+        >
+          <Link href={`/mvp/manage/${row.id}`}>Manage</Link>
+        </Button>
+      ),
+    },
   ]
 
-  // Filter submissions
-  const filteredSubmissions = items.filter((sub) => {
-    const matchesSearch =
-      sub.title.toLowerCase().includes(search.toLowerCase()) ||
-      sub.name.toLowerCase().includes(search.toLowerCase())
-    const matchesStatus = statusFilter === "all" || sub.status === statusFilter
-    const matchesVisibility = visibilityFilter === "all" || sub.visibility === visibilityFilter
-    const matchesCategory =
-      categoryFilter === "all" ||
-      (categoryFilter === "uncategorised" ? !sub.category : sub.category === categoryFilter)
+  const emptyState =
+    items.length === 0 ? (
+      <EmptyState
+        icon={IconSparkles}
+        title="No skills or tools yet"
+        description="Add your first skill or tool to share it with your organization."
+        action={
+          <Button asChild className="h-10 rounded-lg">
+            <Link href="/mvp/new-submit">Add skill or tool</Link>
+          </Button>
+        }
+      />
+    ) : (
+      <EmptyState
+        icon={IconFilterOff}
+        title="Nothing matches these filters"
+        description="Try a different search term, or clear the filters to see everything again."
+        action={
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 rounded-lg"
+            onClick={handleClearFilters}
+          >
+            Clear filters
+          </Button>
+        }
+      />
+    )
 
-    return matchesSearch && matchesStatus && matchesVisibility && matchesCategory
+  const tableEmptyState = React.cloneElement(emptyState, {
+    className: "border-0 bg-transparent",
   })
 
-  // Helper for status badge style
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "published":
-        return (
-          <Badge className="border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider text-xs px-2 py-0.5 rounded-full">
-            ● Published
-          </Badge>
-        )
-      case "draft":
-        return (
-          <Badge className="border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider text-xs px-2 py-0.5 rounded-full">
-            ● Draft
-          </Badge>
-        )
-      default:
-        return (
-          <Badge variant="outline" className="font-semibold uppercase tracking-wider text-xs px-2 py-0.5 rounded-full">
-            {status}
-          </Badge>
-        )
-    }
-  }
-
   return (
-    <div className="flex flex-col gap-8">
-      {/* Hero Heading Section */}
-      <Card className="relative overflow-hidden border border-[var(--ironhub-line)] bg-card/60 p-6 shadow-sm sm:p-8">
-        {/* Ambient background glow */}
-        <div className="absolute right-0 top-0 -z-10 h-32 w-64 bg-primary/5 blur-3xl rounded-full" />
-
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-1 sm:space-y-2">
-            <span className="text-xs font-bold tracking-widest text-primary uppercase sm:text-sm">
-              Private Space Dashboard
-            </span>
-            {/* <h1 className="font-heading text-2xl font-bold leading-tight sm:text-4xl text-foreground">
-              Internal Catalog
-            </h1> */}
-            <p className="max-w-xl text-xs text-muted-foreground sm:text-sm leading-relaxed">
-              Manage and deploy skills and tools for your organization.
-            </p>
-          </div>
-
-          <Button asChild className="shrink-0 rounded-full shadow-md transition-all duration-300 hover:shadow-lg self-start sm:self-center">
+    <div className="flex flex-col gap-6">
+      {/* 1. Page Header */}
+      <WorkspacePageHeader
+        title="Your skills and tools"
+        description="Everything your organization has added to its private space."
+        action={
+          <Button asChild className="h-10 rounded-lg">
             <Link href="/mvp/new-submit">
-              <IconPlus className="size-4" />
-              Add Skill / Tool
+              <IconPlus className="size-4" aria-hidden="true" />
+              <span>Add skill or tool</span>
             </Link>
           </Button>
-        </div>
+        }
+      />
 
-        {/* Status Summary Chips */}
-        <div className=" flex flex-wrap gap-2.5 border-t border-[var(--ironhub-line)]/50 pt-5">
-          {summaryChips.map((chip) => {
-            const isActive = statusFilter === chip.key
-            return (
-              <button
-                key={chip.key}
-                type="button"
-                onClick={() => setStatusFilter(chip.key)}
-                aria-pressed={isActive}
-                className={`flex items-center gap-2 rounded-2xl border px-3.5 py-1.5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${chip.tone} ${isActive
-                  ? "bg-primary/5 ring-1 ring-primary/40 border-primary/30"
-                  : "bg-background/40 hover:bg-background/80"
-                  }`}
-              >
-                <span className="text-sm font-bold tabular-nums">{chip.value}</span>
-                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-                  {chip.label}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      </Card>
-
-      {/* Filter Toolbar */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-[var(--ironhub-line)] bg-background/50 p-4 shadow-sm sm:flex-row sm:items-center">
-        {/* Search */}
-        <div className="relative flex-1 flex items-center bg-[#f5f4ef] dark:bg-slate-950/80 border border-[#cbdfe6] dark:border-slate-800 rounded-full px-3.5 py-1.5 focus-within:ring-2 focus-within:ring-[#0072f5]/20 focus-within:border-[#0072f5] transition-all">
-          <IconSearch className="size-4 text-muted-foreground shrink-0" />
-          <input
-            type="text"
-            placeholder="Search your skills and tools..."
-            className="flex-1 bg-transparent border-0 outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:outline-none text-sm text-slate-800 dark:text-slate-100 placeholder:text-muted-foreground/80 px-2.5 py-0.5"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-muted-foreground uppercase">Status:</span>
-            <NativeSelect
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-full select-none"
-            >
-              <NativeSelectOption value="all">All Statuses</NativeSelectOption>
-              <NativeSelectOption value="draft">Draft</NativeSelectOption>
-              <NativeSelectOption value="published">Published</NativeSelectOption>
-            </NativeSelect>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-muted-foreground uppercase">Visibility:</span>
-            <NativeSelect
-              value={visibilityFilter}
-              onChange={(e) => setVisibilityFilter(e.target.value)}
-              className="rounded-full select-none"
-            >
-              <NativeSelectOption value="all">All Visibilities</NativeSelectOption>
-              <NativeSelectOption value="public">Public</NativeSelectOption>
-              <NativeSelectOption value="private">Private</NativeSelectOption>
-            </NativeSelect>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-muted-foreground uppercase">Category:</span>
-            <NativeSelect
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="rounded-full select-none"
-            >
-              <NativeSelectOption value="all">All Categories</NativeSelectOption>
-              <NativeSelectOption value="uncategorised">Uncategorised</NativeSelectOption>
-              {CATEGORIES.map((c) => (
-                <NativeSelectOption key={c} value={c}>
-                  {c}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-          </div>
-        </div>
-      </div>
-
-      {isLoading && (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {[0, 1, 2].map((i) => (
-            <Card
+      {isLoading ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {[0, 1, 2, 3].map((i) => (
+            <div
               key={i}
-              className="h-40 animate-pulse border border-[var(--ironhub-line)] bg-card/40 p-5 shadow-sm"
+              className="h-52 animate-pulse rounded-xl border border-[var(--ironhub-line)] bg-card"
             />
           ))}
         </div>
-      )}
-
-      {isError && (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-3xl border border-destructive/30 bg-destructive/5 py-16 text-center">
-          <IconAlertTriangle className="size-6 text-destructive" />
-          <p className="text-sm font-semibold text-destructive">
-            Failed to load your items{error instanceof Error ? `: ${error.message}` : "."}
-          </p>
+      ) : isError ? (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
+          Failed to load your items
+          {error instanceof Error ? `: ${error.message}` : "."}
         </div>
-      )}
+      ) : (
+        <>
+          {/* 2. KPI Row */}
+          <StatRow columns={4}>
+            <StatCard
+              label="Total items"
+              value={totalCount}
+              selected={
+                !search &&
+                typeFilter === "all" &&
+                statusFilter === "all" &&
+                visibilityFilter === "all" &&
+                categoryFilter === "all"
+              }
+              onSelect={handleClearFilters}
+            />
+            <StatCard
+              label="Skills"
+              value={skillCount}
+              selected={typeFilter === "skill"}
+              onSelect={() => {
+                setTypeFilter(typeFilter === "skill" ? "all" : "skill")
+              }}
+            />
+            <StatCard
+              label="Tools"
+              value={toolCount}
+              selected={typeFilter === "tool"}
+              onSelect={() => {
+                setTypeFilter(typeFilter === "tool" ? "all" : "tool")
+              }}
+            />
+            <StatCard
+              label="Drafts"
+              value={draftCount}
+              tone="draft"
+              selected={statusFilter === "draft"}
+              onSelect={() => {
+                setStatusFilter(statusFilter === "draft" ? "all" : "draft")
+              }}
+            />
+          </StatRow>
 
-      {/* Grid List */}
-      {!isLoading && !isError && (
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {/* Actual Submissions */}
-        {filteredSubmissions.map((sub) => {
-          const Icon = sub.type === "skill" ? IconSparkles : IconTool
-
-          return (
-            <Card
-              key={sub.id}
-              className="group relative flex flex-col justify-between overflow-hidden border border-[var(--ironhub-line)] bg-card/60 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:bg-card/90 hover:shadow-md"
-            >
-              <div>
-                {/* Card Top */}
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <Icon className="size-4" />
-                    </div>
-                    <div>
-                      <span className="text-xs font-bold uppercase tracking-widest text-primary/80">
-                        {sub.type}
-                      </span>
-                      <h3 className="text-sm font-bold text-foreground">
-                        {sub.title}
-                      </h3>
-                    </div>
-                  </div>
-                  {getStatusBadge(sub.status)}
-                </div>
-
-                {/* Subtitle & Metadata */}
-                <div className="mt-4 flex flex-col gap-1 text-xs text-muted-foreground">
-                  <p>
-                    <span className="font-semibold text-foreground">{sub.version}</span>
-                    <span className="mx-1.5">•</span>
-                    <span>Updated {new Date(sub.updatedAt).toLocaleString()}</span>
-                  </p>
-                  <p className="truncate text-muted-foreground/90">
-                    <span className="font-semibold text-foreground/80">
-                      {sub.content.length > 0
-                        ? `${sub.content.length} file${sub.content.length === 1 ? "" : "s"} uploaded`
-                        : "No content uploaded yet"}
-                    </span>
-                  </p>
-                </div>
-              </div>
-
-              {/* Card Footer Actions */}
-              <div className="mt-6 flex items-center justify-between border-t border-[var(--ironhub-line)]/50 pt-3">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <Badge variant="outline" className="text-xs gap-1 px-2 py-0.5 rounded-full">
-                    {sub.visibility === "public" ? (
-                      <>
-                        <IconWorld className="size-3 text-muted-foreground" />
-                        Public
-                      </>
-                    ) : (
-                      <>
-                        <IconLock className="size-3 text-muted-foreground" />
-                        Private
-                      </>
-                    )}
-                  </Badge>
-                  <Badge
-                    variant="outline"
-                    className={`text-xs gap-1 px-2 py-0.5 rounded-full ${sub.category ? "" : "text-muted-foreground/70 italic"}`}
-                  >
-                    <IconCategory className="size-3 text-muted-foreground" />
-                    {sub.category ?? "Uncategorised"}
-                  </Badge>
-                </div>
-                <Button asChild variant="ghost" size="sm" className="group/btn h-8 rounded-full text-xs font-semibold text-primary hover:text-primary-deep">
-                  <Link href={`/mvp/manage/${sub.id}`}>
-                    Manage
-                    <IconArrowRight className="size-3 transition-transform duration-200 group-hover/btn:translate-x-0.5" />
-                  </Link>
-                </Button>
-              </div>
-            </Card>
-          )
-        })}
-
-        {/* Special Submit Card */}
-        <Card className="flex flex-col justify-between border border-dashed border-[var(--ironhub-line)] bg-muted/10 p-5 shadow-none transition-all duration-300 hover:border-primary/40 hover:bg-muted/20">
-          <div>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-              <IconPlus className="size-4" />
+          {/* 3. Filter Toolbar */}
+          <div className="flex flex-col gap-3 rounded-xl border border-[var(--ironhub-line)] bg-card p-3 shadow-[var(--ironhub-shadow)]">
+            <div className="relative w-full">
+              <IconSearch
+                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <Input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name"
+                aria-label="Search your skills and tools"
+                className="h-10 rounded-lg pl-9"
+              />
             </div>
-            <h3 className="mt-3 text-sm font-bold text-foreground">
-              Add Skill or Tool
-            </h3>
-            <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
-              Publish a new tool or skill for your organization via package upload or custom prompt configurations.
-            </p>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <NativeSelect
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                aria-label="Filter by type"
+                className="w-full sm:w-auto"
+                selectClassName="h-10 rounded-lg"
+              >
+                <NativeSelectOption value="all">All types</NativeSelectOption>
+                <NativeSelectOption value="skill">
+                  {filterOptionLabel("Type", "Skills")}
+                </NativeSelectOption>
+                <NativeSelectOption value="tool">
+                  {filterOptionLabel("Type", "Tools")}
+                </NativeSelectOption>
+              </NativeSelect>
+
+              <NativeSelect
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                aria-label="Filter by status"
+                className="w-full sm:w-auto"
+                selectClassName="h-10 rounded-lg"
+              >
+                <NativeSelectOption value="all">All statuses</NativeSelectOption>
+                <NativeSelectOption value="draft">
+                  {filterOptionLabel("Status", "Drafts")}
+                </NativeSelectOption>
+                <NativeSelectOption value="published">
+                  {filterOptionLabel("Status", "Published")}
+                </NativeSelectOption>
+              </NativeSelect>
+
+              <NativeSelect
+                value={visibilityFilter}
+                onChange={(e) => setVisibilityFilter(e.target.value)}
+                aria-label="Filter by visibility"
+                className="w-full sm:w-auto"
+                selectClassName="h-10 rounded-lg"
+              >
+                <NativeSelectOption value="all">
+                  All visibilities
+                </NativeSelectOption>
+                <NativeSelectOption value="private">
+                  {filterOptionLabel("Visibility", "Private")}
+                </NativeSelectOption>
+                <NativeSelectOption value="public">
+                  {filterOptionLabel("Visibility", "Public")}
+                </NativeSelectOption>
+              </NativeSelect>
+
+              <NativeSelect
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                aria-label="Filter by category"
+                className="w-full sm:w-auto"
+                selectClassName="h-10 rounded-lg"
+              >
+                <NativeSelectOption value="all">
+                  All categories
+                </NativeSelectOption>
+                <NativeSelectOption value="uncategorised">
+                  {filterOptionLabel("Category", "Uncategorised")}
+                </NativeSelectOption>
+                {CATEGORIES.map((category) => (
+                  <NativeSelectOption key={category} value={category}>
+                    {filterOptionLabel("Category", category)}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+
+              <div className="hidden md:block md:ml-auto">
+                <ViewToggle
+                  value={view}
+                  onChange={handleViewChange}
+                  options={VIEW_OPTIONS}
+                  label="View"
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="mt-6 pt-3">
-            <Button asChild variant="outline" size="sm" className="w-full rounded-full text-xs font-semibold">
-              <Link href="/mvp/new-submit">
-                Create Item
-                <IconArrowRight className="size-3 ml-1" />
-              </Link>
-            </Button>
-          </div>
-        </Card>
-      </div>
-      )}
-
-      {!isLoading && !isError && filteredSubmissions.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-[var(--ironhub-line)] py-16 text-center">
-          <p className="text-sm font-semibold text-muted-foreground">
-            {items.length === 0 ? "No items yet — add your first skill or tool." : "No items match your filters."}
-          </p>
-          {items.length > 0 && (
-            <Button variant="link" size="sm" onClick={() => { setSearch(""); setStatusFilter("all"); setVisibilityFilter("all"); setCategoryFilter("all"); }}>
-              Clear Search & Filters
-            </Button>
+          {/* 4. Table or Cards View */}
+          {effectiveView === "table" ? (
+            <DataTable<PrivateArtifact>
+              columns={columns}
+              rows={filteredItems}
+              rowKey={(r) => r.id}
+              caption="Your skills and tools"
+              empty={tableEmptyState}
+            />
+          ) : filteredItems.length === 0 ? (
+            emptyState
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {filteredItems.map((item) => (
+                <ArtifactCard
+                  key={item.id}
+                  type={item.type}
+                  title={item.title}
+                  version={item.version}
+                  status={item.status}
+                  description={item.description}
+                  visibility={item.visibility}
+                  category={item.category}
+                  fileCount={item.content.length}
+                  updatedAt={item.updatedAt}
+                  href={`/mvp/manage/${item.id}`}
+                  actionLabel="Manage"
+                />
+              ))}
+            </div>
           )}
-        </div>
+        </>
       )}
     </div>
   )
