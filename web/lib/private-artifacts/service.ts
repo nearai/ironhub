@@ -74,8 +74,10 @@ export async function createPrivateArtifact(
   assertValidArtifactVersion(input.version)
   assertMaxLength(input.title, "title", 200)
   if (input.description) assertMaxLength(input.description, "description", 4000)
-  if (input.sourceUrl) assertHttpUrl(input.sourceUrl, "sourceUrl")
-  if (input.category) assertEnum(input.category, CATEGORIES, "category")
+  const sourceUrl = normalizeOptionalField(input.sourceUrl)
+  if (sourceUrl) assertHttpUrl(sourceUrl, "sourceUrl")
+  const category = normalizeOptionalField(input.category)
+  if (category) assertEnum(category, CATEGORIES, "category")
   const type = assertEnum(input.type, ARTIFACT_TYPES, "type")
   const visibility = input.visibility
     ? assertEnum(input.visibility, VISIBILITIES, "visibility")
@@ -93,8 +95,8 @@ export async function createPrivateArtifact(
         version: input.version,
         visibility,
         description: input.description,
-        sourceUrl: input.sourceUrl,
-        category: input.category,
+        sourceUrl,
+        category,
       },
     })
   } catch (error) {
@@ -129,12 +131,14 @@ export async function updatePrivateArtifact(
     data.description = input.description
   }
   if (input.sourceUrl !== undefined) {
-    if (input.sourceUrl) assertHttpUrl(input.sourceUrl, "sourceUrl")
-    data.sourceUrl = input.sourceUrl
+    const sourceUrl = normalizeOptionalField(input.sourceUrl)
+    if (sourceUrl) assertHttpUrl(sourceUrl, "sourceUrl")
+    data.sourceUrl = sourceUrl
   }
   if (input.category !== undefined) {
-    if (input.category) assertEnum(input.category, CATEGORIES, "category")
-    data.category = input.category
+    const category = normalizeOptionalField(input.category)
+    if (category) assertEnum(category, CATEGORIES, "category")
+    data.category = category
   }
   if (input.visibility !== undefined) {
     data.visibility = assertEnum(input.visibility, VISIBILITIES, "visibility")
@@ -390,47 +394,69 @@ async function checkCapabilitiesValidJson(
   artifactId: string,
   presentKinds: Set<string>
 ): Promise<ArtifactCheck> {
+  const label = "Capabilities file is valid JSON"
+
+  // Nothing was read, so nothing may report `pass` — the manage page renders
+  // these verbatim and a green tick here would claim a file we never opened.
+  // `content_complete` and `wasm_present` already fail on absence, so warn.
   if (!presentKinds.has("capabilities")) {
     return {
       id: "capabilities_valid_json",
-      label: "Capabilities file is valid JSON",
-      status: "pass",
-      detail: "No capabilities content stored yet.",
+      label,
+      status: "warn",
+      detail: "No capabilities content is stored, so it could not be checked.",
+    }
+  }
+
+  const content = await prisma.privateArtifactContent.findFirst({
+    where: { artifactId, kind: "capabilities", artifact: { organizationId } },
+    select: { storageKey: true },
+  })
+  if (!content) {
+    // Only reachable if the row was deleted between the two queries.
+    return {
+      id: "capabilities_valid_json",
+      label,
+      status: "warn",
+      detail: "No capabilities content is stored, so it could not be checked.",
+    }
+  }
+
+  // An unreachable object store is an infrastructure problem, not corrupt
+  // data — reporting it as `fail` would tell the owner their file is broken
+  // when it is fine, so the two failures stay distinguishable.
+  let bytes: Buffer
+  try {
+    bytes = await streamToBuffer(await getObjectStream(content.storageKey))
+  } catch (error) {
+    console.error(
+      `Failed to read capabilities content for artifact ${artifactId}:`,
+      error
+    )
+    return {
+      id: "capabilities_valid_json",
+      label,
+      status: "warn",
+      detail: "Stored capabilities content could not be read from storage.",
     }
   }
 
   try {
-    const content = await prisma.privateArtifactContent.findFirst({
-      where: {
-        artifactId,
-        kind: "capabilities",
-        artifact: { organizationId },
-      },
-      select: { storageKey: true },
-    })
-    if (!content) {
-      return {
-        id: "capabilities_valid_json",
-        label: "Capabilities file is valid JSON",
-        status: "pass",
-        detail: "No capabilities content stored yet.",
-      }
-    }
-    const bytes = await streamToBuffer(await getObjectStream(content.storageKey))
     JSON.parse(bytes.toString("utf8"))
-    return {
-      id: "capabilities_valid_json",
-      label: "Capabilities file is valid JSON",
-      status: "pass",
-      detail: "Stored capabilities content parses as JSON.",
-    }
   } catch {
     return {
       id: "capabilities_valid_json",
-      label: "Capabilities file is valid JSON",
+      label,
       status: "fail",
       detail: "Stored capabilities content does not parse as JSON.",
     }
+  }
+
+  return {
+    id: "capabilities_valid_json",
+    label,
+    status: "pass",
+    detail: "Stored capabilities content parses as JSON.",
   }
 }
 
@@ -495,6 +521,17 @@ function assertMaxLength(value: string, field: string, max: number) {
   }
 }
 
+/**
+ * A cleared form field arrives as `""`, which is "unset" rather than a value to
+ * validate — collapse it to null so it clears the column instead of slipping
+ * past the `if (value)` validator guards and storing an empty string.
+ */
+function normalizeOptionalField(value: string | null | undefined) {
+  if (value === undefined) return undefined
+  const trimmed = value?.trim() ?? ""
+  return trimmed === "" ? null : trimmed
+}
+
 const ALLOWED_SOURCE_URL_HOSTS = new Set([
   "github.com",
   "gitlab.com",
@@ -510,8 +547,16 @@ function assertHttpUrl(value: string, field: string) {
     throw new Response(`${field} must be a valid URL`, { status: 400 })
   }
 
+  // Reject embedded credentials: `https://looks-legit.com@github.com/x` passes
+  // the host check but renders with an attacker-chosen prefix wherever the URL
+  // is shown as link text.
   const host = parsed.hostname.replace(/^www\./, "")
-  if (parsed.protocol !== "https:" || !ALLOWED_SOURCE_URL_HOSTS.has(host)) {
+  if (
+    parsed.protocol !== "https:" ||
+    parsed.username !== "" ||
+    parsed.password !== "" ||
+    !ALLOWED_SOURCE_URL_HOSTS.has(host)
+  ) {
     throw new Response(
       `${field} must be an https URL on github.com, gitlab.com, or bitbucket.org`,
       { status: 400 }

@@ -62,9 +62,15 @@ const { prisma, artifacts } = makeFakeDb()
 mock.module("../db", { namedExports: { prisma } })
 
 let objectBytes = new TextEncoder().encode("{}")
+// Set to an Error to simulate the object store being unreachable, which must
+// stay distinguishable from bytes that simply do not parse.
+let storageError = null
 mock.module("../storage", {
   namedExports: {
-    getObjectStream: async () => objectBytes,
+    getObjectStream: async () => {
+      if (storageError) throw storageError
+      return objectBytes
+    },
   },
 })
 
@@ -359,4 +365,132 @@ test("getArtifactChecks warns rather than fails when the signing key is unset", 
 
   assert.equal(signingCheck.status, "warn")
   assert.equal(publishable, true)
+})
+
+test("getArtifactChecks never reports capabilities_valid_json as pass when nothing was read", async () => {
+  objectBytes = new TextEncoder().encode("{}")
+
+  const seeded = seedArtifact({
+    id: "checks-absent-capabilities",
+    type: "tool",
+    category: "Dev Tools",
+    content: [{ kind: "wasm" }],
+  })
+
+  const { checks } = await getArtifactChecks("org-1", seeded.id)
+  const capCheck = checks.find((check) => check.id === "capabilities_valid_json")
+
+  // A green tick here would claim a file that was never opened.
+  assert.equal(capCheck.status, "warn")
+  // Absence is already reported by content_complete; it must not double-fail.
+  const completeCheck = checks.find((check) => check.id === "content_complete")
+  assert.equal(completeCheck.status, "fail")
+})
+
+test("getArtifactChecks warns rather than fails when capabilities cannot be read from storage", async () => {
+  storageError = new Error("S3 unreachable")
+  const originalConsoleError = console.error
+  console.error = () => {}
+
+  try {
+    const seeded = seedArtifact({
+      id: "checks-unreadable-capabilities",
+      type: "tool",
+      category: "Dev Tools",
+      content: [{ kind: "wasm" }, { kind: "capabilities" }],
+    })
+
+    const { checks, publishable } = await getArtifactChecks("org-1", seeded.id)
+    const capCheck = checks.find(
+      (check) => check.id === "capabilities_valid_json"
+    )
+
+    // Infrastructure failure must not be reported as corrupt data.
+    assert.equal(capCheck.status, "warn")
+    assert.match(capCheck.detail, /could not be read/)
+    assert.equal(publishable, true)
+  } finally {
+    console.error = originalConsoleError
+    storageError = null
+  }
+})
+
+// --- cross-organization scoping -------------------------------------------
+
+test("publishPrivateArtifact 404s for an artifact in another organization", async () => {
+  const seeded = seedArtifact({
+    id: "cross-org-publish",
+    content: [{ kind: "wasm" }, { kind: "capabilities" }],
+    category: "Dev Tools",
+  })
+  await assert.rejects(
+    () => publishPrivateArtifact("org-2", seeded.id),
+    (error) => error instanceof Response && error.status === 404
+  )
+  assert.equal(artifacts.get(seeded.id).status, "draft")
+})
+
+test("unpublishPrivateArtifact 404s for an artifact in another organization", async () => {
+  const seeded = seedArtifact({
+    id: "cross-org-unpublish",
+    content: [{ kind: "wasm" }, { kind: "capabilities" }],
+    category: "Dev Tools",
+    status: "published",
+  })
+  await assert.rejects(
+    () => unpublishPrivateArtifact("org-2", seeded.id),
+    (error) => error instanceof Response && error.status === 404
+  )
+  assert.equal(artifacts.get(seeded.id).status, "published")
+})
+
+test("getArtifactChecks 404s for an artifact in another organization", async () => {
+  const seeded = seedArtifact({ id: "cross-org-checks" })
+  await assert.rejects(
+    () => getArtifactChecks("org-2", seeded.id),
+    (error) => error instanceof Response && error.status === 404
+  )
+})
+
+// --- cleared optional fields ---------------------------------------------
+
+test("an empty category is stored as null rather than an empty string", async () => {
+  const artifact = await createPrivateArtifact(
+    "org-1",
+    "user-1",
+    baseCreateInput({ name: "cat-empty", category: "" })
+  )
+  assert.equal(artifact.category, null)
+})
+
+test("patching an empty category clears it instead of storing an empty string", async () => {
+  const seeded = seedArtifact({ id: "patch-cat-clear", category: "Dev Tools" })
+  const artifact = await updatePrivateArtifact("org-1", seeded.id, {
+    category: "",
+  })
+  assert.equal(artifact.category, null)
+})
+
+test("an empty sourceUrl is stored as null and skips URL validation", async () => {
+  const artifact = await createPrivateArtifact(
+    "org-1",
+    "user-1",
+    baseCreateInput({ name: "repo-empty", sourceUrl: "   " })
+  )
+  assert.equal(artifact.sourceUrl, null)
+})
+
+test("createPrivateArtifact rejects a sourceUrl with embedded credentials", async () => {
+  await assert.rejects(
+    () =>
+      createPrivateArtifact(
+        "org-1",
+        "user-1",
+        baseCreateInput({
+          name: "repo-userinfo",
+          sourceUrl: "https://totally-real-repo.com@github.com/org/repo",
+        })
+      ),
+    (error) => error instanceof Response && error.status === 400
+  )
 })
