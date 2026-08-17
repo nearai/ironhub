@@ -40,20 +40,20 @@ export function PartnerNav({ onNavigate }: PartnerNavProps) {
             variant={isActive ? "secondary" : "ghost"}
             size="sm"
             className={cn(
-              "justify-start rounded-xl px-3 py-5 transition-all duration-200",
+              "h-10 w-full justify-start rounded-lg px-3 text-sm font-medium transition-colors",
               isActive
-                ? "bg-primary/8 border-l-2 border-primary pl-2.5 font-semibold text-primary"
-                : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
+                : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
             )}
           >
             <Link href={item.href} onClick={onNavigate}>
               <Icon
                 className={cn(
                   "size-4 shrink-0",
-                  isActive ? "text-primary" : "text-muted-foreground",
+                  isActive ? "text-primary" : "text-muted-foreground"
                 )}
               />
-              {item.label}
+              <span>{item.label}</span>
             </Link>
           </Button>
         )

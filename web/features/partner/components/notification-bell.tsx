@@ -62,13 +62,13 @@ export function NotificationBell() {
         type="button"
         variant="outline"
         size="icon"
-        className="relative rounded-full"
+        className="relative size-10 rounded-lg"
         aria-label="Notifications"
         onClick={() => setOpen((v) => !v)}
       >
-        <IconBell className="size-4" />
+        <IconBell className="size-4" aria-hidden="true" />
         {pendingCount > 0 && (
-          <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+          <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-primary text-xs font-bold leading-none text-primary-foreground">
             {pendingCount > 9 ? "9+" : pendingCount}
           </span>
         )}
@@ -82,21 +82,21 @@ export function NotificationBell() {
         // edge of the viewport, where a right-anchored panel this wide
         // would extend further left and clip off-screen — so it switches
         // to left-anchored (opening rightward) there instead.
-        <div className="absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-[var(--ironhub-line)] bg-popover p-2 shadow-lg lg:left-0 lg:right-auto">
-          <p className="px-2 pb-1 pt-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+        <div className="absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-[var(--ironhub-line)] bg-popover p-2 shadow-lg lg:left-0 lg:right-auto">
+          <p className="px-2 pb-1 pt-1 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Pending invitations
           </p>
           <div className="flex max-h-72 flex-col gap-1.5 overflow-y-auto">
             {isError && (
               <p className="flex items-center gap-1.5 px-2 py-3 text-xs font-semibold text-destructive">
-                <IconAlertTriangle className="size-3.5 shrink-0" />
+                <IconAlertTriangle className="size-3.5 shrink-0" aria-hidden="true" />
                 Failed to load invitations.
               </p>
             )}
             {!isError && invitations?.map((invite) => (
               <div
                 key={invite.id}
-                className="rounded-xl border border-[var(--ironhub-line)]/40 bg-background/40 p-2.5"
+                className="rounded-lg border border-[var(--ironhub-line)]/40 bg-muted/20 p-2.5"
               >
                 <p className="text-xs font-semibold text-foreground">
                   {invite.organizationName || invite.organizationId}
@@ -108,20 +108,20 @@ export function NotificationBell() {
                   <Button
                     type="button"
                     size="sm"
-                    className="h-7 flex-1 rounded-full text-xs"
+                    className="h-10 flex-1 rounded-lg text-sm"
                     onClick={() => handleAccept(invite.id)}
                   >
-                    <IconCheck className="size-3" />
+                    <IconCheck className="size-4" aria-hidden="true" />
                     Accept
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-7 flex-1 rounded-full text-xs"
+                    className="h-10 flex-1 rounded-lg text-sm"
                     onClick={() => handleReject(invite.id)}
                   >
-                    <IconX className="size-3" />
+                    <IconX className="size-4" aria-hidden="true" />
                     Decline
                   </Button>
                 </div>

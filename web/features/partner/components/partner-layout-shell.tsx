@@ -1,7 +1,6 @@
 "use client"
 
-import { IconMenu2, IconPlus } from "@tabler/icons-react"
-import Link from "next/link"
+import { IconMenu2 } from "@tabler/icons-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -29,33 +28,32 @@ export function PartnerLayoutShell({ children }: PartnerLayoutShellProps) {
   return (
     <PartnerQueryProvider>
       <ToastProvider>
-        <div className="mx-auto flex max-w-7xl flex-1 items-stretch">
+        <div className="mx-auto flex w-full max-w-[1240px] min-h-[calc(100vh-4rem-1px)] flex-1 items-stretch px-5 sm:px-8">
           {/* relative z-30: backdrop-blur creates a stacking context, so the
               sidebar (and the popovers inside it) must sit above <main>. */}
-          <aside className="relative z-30 hidden w-64 shrink-0 border-r border-[var(--ironhub-line)] bg-background/40 backdrop-blur-md lg:block">
-            <div className="sticky top-16 flex h-[calc(100vh-4rem)] flex-col gap-6 p-6">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                    Private Space
+          <aside className="relative z-30 hidden w-60 shrink-0 border-r border-[var(--ironhub-line)] lg:block xl:w-64">
+            <div className="sticky top-16 flex flex-col gap-6 py-6 pr-6">
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    Private space
                   </p>
-                  <OrgSwitcher />
+                  <NotificationBell />
                 </div>
-                <NotificationBell />
+                <OrgSwitcher className="mt-2 w-full" />
               </div>
 
+              <div className="border-t border-[var(--ironhub-line)]" />
+
               <PartnerNav />
-              <Button asChild className="w-full rounded-xl shadow-sm bg-primary text-primary-foreground hover:bg-primary/95 transition-all duration-200 mt-auto font-semibold shrink-0">
-                <Link href="/mvp/new-submit">
-                  <IconPlus className="size-4 mr-1.5" />
-                  Add Skill / Tool
-                </Link>
-              </Button>
-              <PartnerSupportCard />
+
+              <div className="border-t border-[var(--ironhub-line)] pt-4">
+                <PartnerSupportCard />
+              </div>
             </div>
           </aside>
 
-          <main className="min-w-0 flex-1 px-4 py-8 sm:px-6 lg:p-8">
+          <main className="min-w-0 flex-1 py-6 lg:py-8 lg:pl-8">
             <div className="mb-4 flex items-center justify-between gap-3 lg:hidden">
               <div className="flex items-center gap-3">
                 <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
@@ -63,41 +61,40 @@ export function PartnerLayoutShell({ children }: PartnerLayoutShellProps) {
                     <Button
                       variant="outline"
                       size="icon"
-                      className="rounded-full"
+                      className="size-10 rounded-lg"
                       aria-label="Open partner menu"
                     >
-                      <IconMenu2 className="size-4" />
+                      <IconMenu2 className="size-4" aria-hidden="true" />
                     </Button>
                   </SheetTrigger>
-                  <SheetContent side="left" className="w-72 p-6">
-                    <SheetHeader className="p-0">
-                      <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                        Private Space
-                      </p>
-                      <SheetTitle className="text-sm">
-                        <OrgSwitcher />
-                      </SheetTitle>
+                  <SheetContent side="left" className="flex h-full w-72 flex-col gap-6 overflow-y-auto p-6">
+                    <SheetHeader className="p-0 text-left">
+                      <SheetTitle className="sr-only">Private Space Navigation</SheetTitle>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                          Private space
+                        </p>
+                        <OrgSwitcher className="mt-2 w-full" />
+                      </div>
                     </SheetHeader>
-                    <div className="mt-6 flex h-full flex-col gap-6">
-                      <PartnerNav onNavigate={() => setMobileNavOpen(false)} />
-                      <Button asChild className="w-full rounded-xl shadow-sm bg-primary text-primary-foreground hover:bg-primary/95 transition-all duration-200 mt-auto font-semibold shrink-0">
-                        <Link href="/mvp/new-submit" onClick={() => setMobileNavOpen(false)}>
-                          <IconPlus className="size-4 mr-1.5" />
-                          Add Skill / Tool
-                        </Link>
-                      </Button>
+
+                    <div className="border-t border-[var(--ironhub-line)]" />
+
+                    <PartnerNav onNavigate={() => setMobileNavOpen(false)} />
+
+                    <div className="border-t border-[var(--ironhub-line)] pt-4">
                       <PartnerSupportCard />
                     </div>
                   </SheetContent>
                 </Sheet>
-                <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                  Private Space
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Private space
                 </span>
               </div>
               <NotificationBell />
             </div>
 
-            <div className="ih-fade-up max-w-5xl">{children}</div>
+            <div className="ih-fade-up">{children}</div>
           </main>
         </div>
       </ToastProvider>

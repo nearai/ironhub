@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { authClient } from "@/lib/auth/client"
+import { cn } from "@/lib/shared/utils"
 import {
   useCreateOrganization,
   useLeaveOrganization,
@@ -21,7 +22,11 @@ import {
 } from "@/features/partner/api/orgs"
 import { useToast } from "@/features/partner/store/toast-provider"
 
-export function OrgSwitcher() {
+export interface OrgSwitcherProps {
+  className?: string
+}
+
+export function OrgSwitcher({ className }: OrgSwitcherProps = {}) {
   const { data: session } = authClient.useSession()
   const activeOrganizationId = session?.session.activeOrganizationId
   const { data: organizations, isLoading } = useMyOrganizations()
@@ -107,29 +112,31 @@ export function OrgSwitcher() {
   }
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className={cn("relative", className)}>
       <button
         type="button"
+        aria-expanded={open}
+        aria-haspopup="menu"
         onClick={() => setOpen((v) => !v)}
-        className="mt-1 flex items-center gap-1.5 rounded-lg text-sm font-semibold text-foreground hover:text-primary"
+        className="flex h-10 w-full items-center gap-2 rounded-lg border border-[var(--ironhub-line)] bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted/40"
       >
-        <IconBuilding className="size-3.5 text-muted-foreground shrink-0" />
-        <span className="max-w-[9rem] truncate">
+        <IconBuilding className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <span className="min-w-0 flex-1 truncate text-left">
           {activeOrg?.name || (isLoading ? "Loading..." : "Select organization")}
         </span>
-        <IconChevronDown className="size-3.5 text-muted-foreground shrink-0" />
+        <IconChevronDown className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-72 rounded-2xl border border-[var(--ironhub-line)] bg-popover p-2 shadow-lg">
-          <p className="px-2 pb-1 pt-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+        <div className="absolute left-0 top-full z-50 mt-2 w-72 rounded-xl border border-[var(--ironhub-line)] bg-popover p-2 shadow-lg">
+          <p className="px-2 pb-1 pt-1 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             My organizations
           </p>
-          <div className="flex max-h-56 flex-col gap-0.5 overflow-y-auto">
+          <div className="flex max-h-56 flex-col gap-1 overflow-y-auto">
             {organizations?.map((org) => (
               <div
                 key={org.id}
-                className="flex items-center justify-between gap-2 overflow-hidden rounded-xl px-2 py-1.5 text-xs hover:bg-muted/40"
+                className="flex min-h-10 items-center justify-between gap-2 overflow-hidden rounded-lg px-2 py-1.5 text-sm hover:bg-muted/40"
               >
                 <button
                   type="button"
@@ -137,9 +144,9 @@ export function OrgSwitcher() {
                   className="flex min-w-0 flex-1 items-center gap-2 text-left font-semibold text-foreground"
                 >
                   {org.id === activeOrganizationId ? (
-                    <IconCheck className="size-3.5 shrink-0 text-primary" />
+                    <IconCheck className="size-3.5 shrink-0 text-primary" aria-hidden="true" />
                   ) : (
-                    <span className="size-3.5 shrink-0" />
+                    <span className="size-3.5 shrink-0" aria-hidden="true" />
                   )}
                   <span className="min-w-0 truncate">{org.name}</span>
                 </button>
@@ -147,9 +154,9 @@ export function OrgSwitcher() {
                   type="button"
                   onClick={() => handleLeave(org.id)}
                   aria-label={`Leave ${org.name}`}
-                  className="shrink-0 rounded-full p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  className="flex size-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                 >
-                  <IconDoorExit className="size-3.5" />
+                  <IconDoorExit className="size-4" aria-hidden="true" />
                 </button>
               </div>
             ))}
@@ -166,12 +173,12 @@ export function OrgSwitcher() {
                   value={newOrgName}
                   onChange={(e) => setNewOrgName(e.target.value)}
                   placeholder="Organization name"
-                  className="h-8 rounded-full text-xs"
+                  className="h-10 rounded-lg text-sm"
                 />
                 <Button
                   type="button"
                   size="sm"
-                  className="h-8 rounded-full text-xs"
+                  className="h-10 rounded-lg text-sm"
                   disabled={createOrg.isPending}
                   onClick={handleCreate}
                 >
@@ -182,9 +189,9 @@ export function OrgSwitcher() {
               <button
                 type="button"
                 onClick={() => setCreating(true)}
-                className="flex w-full items-center gap-1.5 rounded-xl px-2 py-1.5 text-xs font-semibold text-primary hover:bg-primary/5"
+                className="flex h-10 w-full items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-primary hover:bg-primary/5"
               >
-                <IconPlus className="size-3.5" />
+                <IconPlus className="size-3.5" aria-hidden="true" />
                 Create organization
               </button>
             )}
