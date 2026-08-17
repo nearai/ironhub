@@ -34,6 +34,12 @@ export async function getObjectStream(key: string) {
     new GetObjectCommand({ Bucket: getStorageBucket(), Key: key })
   )
   if (!result.Body) {
+    // NOTE: the "Object not found:" prefix is load-bearing -- the private
+    // content read route (app/api/private-artifacts/[id]/content/[kind])
+    // pattern-matches this exact prefix to tell a genuine absence from a
+    // real storage failure. Rewording it drops that case to a 500 instead
+    // of a 404, which fails safe (blocks saving rather than inviting an
+    // overwrite), but keep it in sync if you do change it.
     throw new Error(`Object not found: ${key}`)
   }
   return result.Body

@@ -126,6 +126,56 @@ test("404s (not 500) when the content row exists but the storage object is missi
   assert.equal(response.status, 404)
 })
 
+test("404s when the SDK itself reports NoSuchKey", async () => {
+  metadataError = null
+  metadataResult = { storageKey: "private-artifacts/org-1/artifact-1/skill_md", sizeBytes: 42 }
+  objectStreamImpl = async () => {
+    const err = new Error("The specified key does not exist.")
+    err.name = "NoSuchKey"
+    err.$metadata = { httpStatusCode: 404 }
+    throw err
+  }
+
+  const response = await GET(new Request("http://localhost/x"), makeParams("skill_md"))
+
+  assert.equal(response.status, 404)
+})
+
+// NB1 regression: a real infrastructure failure (timeout, throttling,
+// expired credentials, a misconfigured bucket, ...) must NOT be answered
+// as 404. The owner-facing client maps 404 to "nothing is stored yet,
+// safe to save a fresh file" -- mapping a transient storage failure to
+// 404 would tell the owner their real content doesn't exist and invite
+// them to overwrite it with a near-empty one.
+test("500s (not 404) when getObjectStream fails for a reason other than a missing object", async () => {
+  metadataError = null
+  metadataResult = { storageKey: "private-artifacts/org-1/artifact-1/skill_md", sizeBytes: 42 }
+  objectStreamImpl = async () => {
+    const err = new Error("Connection timed out")
+    err.name = "TimeoutError"
+    throw err
+  }
+
+  const response = await GET(new Request("http://localhost/x"), makeParams("skill_md"))
+
+  assert.equal(response.status, 500)
+})
+
+test("500s (not 404) for a 503 SlowDown throttling error", async () => {
+  metadataError = null
+  metadataResult = { storageKey: "private-artifacts/org-1/artifact-1/skill_md", sizeBytes: 42 }
+  objectStreamImpl = async () => {
+    const err = new Error("Please reduce your request rate.")
+    err.name = "SlowDown"
+    err.$metadata = { httpStatusCode: 503 }
+    throw err
+  }
+
+  const response = await GET(new Request("http://localhost/x"), makeParams("skill_md"))
+
+  assert.equal(response.status, 500)
+})
+
 test("redirects a binary kind to a presigned URL with a TTL of at most 300s", async () => {
   metadataError = null
   metadataResult = { storageKey: "private-artifacts/org-1/artifact-1/wasm", sizeBytes: 100 }

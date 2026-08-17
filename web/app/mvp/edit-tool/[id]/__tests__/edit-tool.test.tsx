@@ -53,6 +53,7 @@ async function renderPage() {
     )
     await new Promise((resolve) => setTimeout(resolve, 0))
   })
+  return queryClient
 }
 
 describe("edit-tool capabilities content loading", () => {
@@ -224,5 +225,65 @@ describe("edit-tool capabilities content loading", () => {
     })
 
     expect(capabilitiesPutCalls.length).toBe(0)
+  })
+
+  // N6 regression: a background refetch failing *after* an initial success
+  // must not block saving, disable the textarea, or clear the draft -- the
+  // user still has real, safe content loaded to save on top of.
+  it("does not block saving or disable the editor when a background refetch fails after an initial success", async () => {
+    const storedCapabilities = JSON.stringify({ permissions: ["net"] }, null, 2)
+
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/artifact-1") {
+        return new Response(JSON.stringify({ artifact }), { status: 200 })
+      }
+      if (url === "/api/private-artifacts/artifact-1/content/capabilities") {
+        return new Response(storedCapabilities, {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    const queryClient = await renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
+      expect(screen.getByPlaceholderText('{ "permissions": [] }')).toHaveValue(storedCapabilities)
+    })
+
+    // Now make the content route fail, and force a refetch (standing in
+    // for the real trigger -- refetchOnWindowFocus after staleTime elapses).
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/artifact-1") {
+        return new Response(JSON.stringify({ artifact }), { status: 200 })
+      }
+      if (url === "/api/private-artifacts/artifact-1/content/capabilities") {
+        return new Response(JSON.stringify({ error: "Internal error" }), { status: 500 })
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    await act(async () => {
+      queryClient.refetchQueries({
+        queryKey: ["private-artifact-content", "artifact-1", "capabilities"],
+      })
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/couldn.t refresh the stored capabilities\.json/i)
+      ).toBeInTheDocument()
+    })
+
+    const textarea = screen.getByPlaceholderText('{ "permissions": [] }')
+    expect(screen.queryByText(/could not load the stored capabilities\.json/i)).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
+    expect(textarea).not.toBeDisabled()
+    expect(textarea).toHaveValue(storedCapabilities)
   })
 })

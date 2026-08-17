@@ -24,6 +24,25 @@ type Params = {
 
 const PRESIGNED_URL_TTL_SECONDS = 300
 
+// True only for a genuine "the object does not exist" failure -- an S3
+// NoSuchKey/NotFound exception (matched by name or by the SDK's own
+// $metadata.httpStatusCode) or getObjectStream's own synthesized "Object
+// not found:" Error for a Body-less response. Anything else (timeouts,
+// throttling, expired credentials, a misconfigured bucket, a network
+// blip, ...) is a real infrastructure failure, not an absence, and MUST
+// NOT be answered as 404: the owner-facing client maps 404 to "nothing is
+// stored yet, safe to save a fresh file" (design.md D5 lane review B2). A
+// transient storage failure mapped to 404 would tell the owner their real
+// SKILL.md/capabilities.json doesn't exist and invite them to overwrite it
+// with a near-empty one -- the exact bug this route exists to prevent.
+function isMissingObjectError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  if (error.name === "NoSuchKey" || error.name === "NotFound") return true
+  const metadata = (error as { $metadata?: { httpStatusCode?: number } }).$metadata
+  if (metadata?.httpStatusCode === 404) return true
+  return error.message.startsWith("Object not found:")
+}
+
 // GET is the owner-facing read path (design.md D4): an active-org session is
 // enough, no install token required, and there is no same-origin guard since
 // GET is a safe method. `getArtifactContentMetadata` already scopes the
@@ -58,18 +77,27 @@ export async function GET(_request: Request, { params }: Params) {
     try {
       stream = await getObjectStream(content.storageKey)
     } catch (storageError) {
-      // The content row exists but the object itself is gone from the
-      // bucket (deleted out of band, bucket mismatch, ...). `getObjectStream`
-      // throws a plain Error for this, which `handleApiError` would turn
-      // into a 500 -- but from the caller's point of view this is exactly
-      // the same "nothing to read" situation as a missing content row, so
-      // answer it the same way instead of reporting a server fault for a
-      // data-integrity issue that isn't the caller's problem to retry past.
+      if (isMissingObjectError(storageError)) {
+        // The content row exists but the object itself is genuinely gone
+        // from the bucket (deleted out of band, bucket mismatch, ...) --
+        // from the caller's point of view this is the same "nothing to
+        // read" situation as a missing content row, so answer it the same
+        // way instead of reporting a server fault for a data-integrity
+        // issue that isn't the caller's problem to retry past.
+        console.error(
+          `Content row exists but the object is missing from storage (key: ${content.storageKey}):`,
+          storageError
+        )
+        throw new Response("Content not found", { status: 404 })
+      }
+      // A real storage failure, not an absence -- see isMissingObjectError.
+      // Surface it as a failure so the client blocks saving instead of
+      // treating this artifact as never having had content.
       console.error(
-        `Content row exists but the object is missing from storage (key: ${content.storageKey}):`,
+        `Failed to read stored content (key: ${content.storageKey}):`,
         storageError
       )
-      throw new Response("Content not found", { status: 404 })
+      throw new Response("Failed to read stored content", { status: 500 })
     }
     // `stream` is a Node Readable when using the SDK's default Node request
     // handler (the case for our S3-compatible dev/prod setup); the DOM

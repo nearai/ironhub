@@ -71,7 +71,7 @@ async function renderPage() {
     )
     await new Promise((resolve) => setTimeout(resolve, 0))
   })
-  return result!
+  return { ...result!, queryClient }
 }
 
 /** Tracks every PUT to the skill_md content route across a test. */
@@ -131,7 +131,7 @@ describe("edit-skill content loading", () => {
     expect(putCalls.length).toBe(0)
   })
 
-  it("flags a fenceParseFailed file as blocked, distinctly from a load failure, and blocks the actual PUT", async () => {
+  it("flags a fenceParseFailed file as blocked, distinctly from a load failure, blocks the PUT, and lifts once the user fixes the YAML in the body", async () => {
     const malformed = [
       "---",
       "name: s",
@@ -165,9 +165,118 @@ describe("edit-skill content loading", () => {
     const saveButton = screen.getByRole("button", { name: /save & publish/i })
     expect(saveButton).toBeDisabled()
 
+    // Nothing was silently dropped: the whole original file, fence
+    // included, is sitting in the body textarea, editable.
+    const bodyField = screen.getByPlaceholderText(/describe how the agent should act/i)
+    expect(bodyField).toHaveValue(malformed)
+
     fireEvent.submit(saveButton.closest("form")!)
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(putCalls.length).toBe(0)
+
+    // NB2: the block must be liftable -- fix the YAML directly in the body
+    // (quote the value so the colon-in-value no longer looks like a nested
+    // mapping) and saving should become available again.
+    const fixed = malformed.replace(
+      "description: Handles auth: login and logout",
+      'description: "Handles auth: login and logout"'
+    )
+    fireEvent.change(bodyField, { target: { value: fixed } })
+
+    await waitFor(() => {
+      expect(screen.queryByText(/frontmatter couldn.t be parsed/i)).not.toBeInTheDocument()
+      expect(saveButton).not.toBeDisabled()
+    })
+
+    // The fenceParseFailed load never seeded description/value_prop (the
+    // original frontmatter was unparseable, so both fields started blank)
+    // and both are `required` -- fill them so jsdom's own constraint
+    // validation doesn't block the submit for a reason unrelated to what
+    // this test is checking.
+    fireEvent.change(screen.getByPlaceholderText("What this skill does..."), {
+      target: { value: "Handles auth." },
+    })
+    fireEvent.change(screen.getByPlaceholderText("Core value or pitch of this skill..."), {
+      target: { value: "Auth made easy." },
+    })
+
+    fireEvent.click(saveButton)
+
+    await waitFor(() => {
+      expect(putCalls.length).toBe(1)
+    })
+
+    // NB2c: pin the repair-path outcome rather than leaving it unexamined.
+    // Editing the fence in place (instead of deleting it) produces a
+    // double-fenced file -- the old frontmatter is now inert text inside
+    // the body, not real frontmatter -- but nothing is lost and it's
+    // stable (reparses cleanly, doesn't degrade further on a later save).
+    // This is the accepted, documented outcome; the banner's "or delete
+    // the old fence" guidance is the way to avoid it.
+    const uploadedText = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result))
+      reader.onerror = () => reject(reader.error)
+      reader.readAsText(putCalls[0].body)
+    })
+    const expectedBytes = [
+      "---",
+      "name: my-skill",
+      "version: 1.0.0",
+      "description: Handles auth.",
+      "value_prop: Auth made easy.",
+      "---",
+      "---",
+      "name: s",
+      'description: "Handles auth: login and logout"',
+      "use_cases:",
+      "  - Log a user in",
+      "---",
+      "",
+      "Body.",
+    ].join("\n")
+    expect(uploadedText).toBe(expectedBytes)
+  })
+
+  // NB2b regression: a *healthy* file must never be locked out by text the
+  // user types afterward. Documenting a frontmatter example inside a
+  // skill's own instructions is ordinary content for this kind of editor.
+  it("does not block saving when the user types a --- fence into the body of an otherwise valid, loaded file", async () => {
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/artifact-1") {
+        return new Response(JSON.stringify({ artifact }), { status: 200 })
+      }
+      if (url === "/api/private-artifacts/artifact-1/content/skill_md") {
+        return new Response(storedFileWithUnknownKey, {
+          status: 200,
+          headers: { "Content-Type": "text/markdown; charset=utf-8" },
+        })
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    await renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /save & publish/i })).not.toBeDisabled()
+      expect(screen.getByDisplayValue("Does the thing.")).toBeInTheDocument()
+    })
+
+    const bodyField = screen.getByPlaceholderText(/describe how the agent should act/i)
+    // A user documenting a frontmatter example at the *top* of the body --
+    // parseSkillMd only looks for a fence at position 0, so this has to be
+    // the very first thing in the textarea to reproduce NB2b. The example
+    // (unquoted colon-in-value) would fail to parse in isolation, but the
+    // *stored* file loaded cleanly, so this must not block saving.
+    fireEvent.change(bodyField, {
+      target: {
+        value: "---\nUsage: run it like: this\n---\n\n## Persona\n\nBe helpful.",
+      },
+    })
+
+    expect(screen.queryByText(/frontmatter couldn.t be parsed/i)).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /save & publish/i })).not.toBeDisabled()
   })
 
   it("treats a 404 (no content row yet) as a safe, savable empty state -- not a load failure", async () => {
@@ -320,5 +429,62 @@ describe("edit-skill content loading", () => {
     })
 
     expect(putCalls.length).toBe(0)
+  })
+
+  // N6 regression: a background refetch failing *after* an initial success
+  // must not block saving or wipe the loaded form -- the user still has
+  // real, safe content to save on top of. This is the one path item 3's
+  // review had to verify by hand; pin it here.
+  it("does not block saving or clear the form when a background refetch fails after an initial success", async () => {
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/artifact-1") {
+        return new Response(JSON.stringify({ artifact }), { status: 200 })
+      }
+      if (url === "/api/private-artifacts/artifact-1/content/skill_md") {
+        return new Response(storedFileWithUnknownKey, {
+          status: 200,
+          headers: { "Content-Type": "text/markdown; charset=utf-8" },
+        })
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    const { queryClient } = await renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /save & publish/i })).not.toBeDisabled()
+      expect(screen.getByDisplayValue("Does the thing.")).toBeInTheDocument()
+    })
+
+    // Now make the content route fail, and force a refetch (standing in for
+    // the real trigger -- refetchOnWindowFocus after staleTime elapses).
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/artifact-1") {
+        return new Response(JSON.stringify({ artifact }), { status: 200 })
+      }
+      if (url === "/api/private-artifacts/artifact-1/content/skill_md") {
+        return new Response(JSON.stringify({ error: "Internal error" }), { status: 500 })
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    await act(async () => {
+      queryClient.refetchQueries({
+        queryKey: ["private-artifact-content", "artifact-1", "skill_md"],
+      })
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+
+    // Not the hard-failure banner (that would wrongly claim saving is
+    // disabled), a soft non-blocking note instead, and the button and the
+    // already-loaded form are unaffected.
+    await waitFor(() => {
+      expect(screen.getByText(/couldn.t refresh the stored skill\.md/i)).toBeInTheDocument()
+    })
+    expect(screen.queryByText(/could not load the stored skill\.md/i)).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /save & publish/i })).not.toBeDisabled()
+    expect(screen.getByDisplayValue("Does the thing.")).toBeInTheDocument()
   })
 })

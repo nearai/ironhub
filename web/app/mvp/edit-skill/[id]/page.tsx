@@ -245,15 +245,36 @@ export default function EditSkillPage({ params }: PageProps) {
   // of. A 404 resolves to `data: null` (see useArtifactTextContent), not
   // an error, so a never-created file is editable and savable too.
   //
-  // A fetch succeeding is not enough on its own, though: if the stored
-  // file's frontmatter fence is present but fails to parse as YAML,
-  // parseSkillMd flags `fenceParseFailed` -- there is real content in that
-  // file the form cannot safely represent (frontmatter fields would seed
-  // blank), so a save from here would overwrite it with fabricated empty
-  // values. Block saving in that case too, distinctly from a load failure.
-  const fenceParseFailed =
+  // A fetch succeeding is not enough on its own, though: when the stored
+  // file's frontmatter fence fails to parse as YAML, the whole original
+  // file (fence included) becomes the seeded body text (see the seed
+  // effect above and skill-md.ts), so `compileSkillMarkdown()` would wrap
+  // it in a *second*, synthetic fence built from blank/default field
+  // values -- the saved bytes still contain the original body and its old
+  // frontmatter verbatim (nothing is deleted), but the *parsed* frontmatter
+  // a consumer would read degrades (a fresh `description: ''`, and
+  // `custom_owner_note`-style unknown keys stop being keys at all, now
+  // just inert text inside the body). Block saving until that's fixed.
+  //
+  // Deriving this *only* from the current markdownContent would make the
+  // block liftable but also fireable on a file that loaded perfectly
+  // fine: the user can type their own `---`-delimited example into the
+  // body (documenting frontmatter usage is an ordinary thing to write in
+  // a skill's instructions), and that alone would grey out Save with a
+  // banner that falsely claims the *stored* frontmatter is unparseable.
+  // Deriving it *only* from the originally fetched skillContent.data would
+  // make the block permanent (see NB2 above) -- the fetched value never
+  // changes, so a block based solely on it could never lift.
+  //
+  // Require both: the fence must have been broken at load (so a healthy
+  // file can never trigger this, no matter what the user types afterward)
+  // *and* still broken in the current body (so fixing it in place lifts
+  // the block).
+  const loadedFenceFailed =
     skillContent.data !== undefined &&
     parseSkillMd(skillContent.data ?? "").fenceParseFailed === true
+  const fenceParseFailed =
+    loadedFenceFailed && parseSkillMd(markdownContent).fenceParseFailed === true
   const contentReady = skillContent.data !== undefined && !fenceParseFailed
   const contentFailed = skillContent.isError && skillContent.data === undefined
   // Informational, not an error: no skill_md has ever been stored for this
@@ -361,9 +382,14 @@ export default function EditSkillPage({ params }: PageProps) {
         <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive">
           <IconAlertTriangle className="size-4 shrink-0" />
           <span>
-            The stored SKILL.md&apos;s frontmatter couldn&apos;t be parsed as valid YAML. Saving is
-            disabled here -- fix the file&apos;s frontmatter directly before editing it in this
-            form, or a save would overwrite it with blank values for every field below.
+            The stored SKILL.md&apos;s frontmatter couldn&apos;t be parsed as valid YAML -- it&apos;s
+            shown as-is at the top of the body below. Saving is disabled until it&apos;s fixed: the
+            fields above would save as blank (and any custom keys as plain text, not real
+            frontmatter) until the YAML in the body is corrected. You can fix the YAML directly in
+            the body text below, or for a cleaner result, delete that old fence from the body
+            entirely and re-enter its values in the fields above -- editing in place keeps the old
+            fence as inert text once fixed, while deleting it lets the form fields become the real
+            frontmatter again.
           </span>
         </div>
       )}
