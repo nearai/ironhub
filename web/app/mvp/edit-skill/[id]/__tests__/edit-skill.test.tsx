@@ -127,8 +127,7 @@ describe("edit-skill content load failure", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /save & publish/i })).not.toBeDisabled()
+      expect(screen.getByDisplayValue("Does the thing.")).toBeInTheDocument()
     })
-
-    expect(screen.getByDisplayValue("Does the thing.")).toBeInTheDocument()
   })
 })

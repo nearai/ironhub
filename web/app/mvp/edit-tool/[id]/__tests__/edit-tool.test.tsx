@@ -110,8 +110,7 @@ describe("edit-tool capabilities content loading", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
+      expect(screen.getByPlaceholderText('{ "permissions": [] }')).toHaveValue(storedCapabilities)
     })
-
-    expect(screen.getByPlaceholderText('{ "permissions": [] }')).toHaveValue(storedCapabilities)
   })
 })
