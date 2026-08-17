@@ -1,6 +1,8 @@
 import { requireActiveOrganization } from "@/lib/auth/org-context"
 import { assertSameOriginRequest, handleApiError } from "@/lib/http/api"
 import {
+  describeLimit,
+  MAX_CONTENT_BYTES_BY_KIND,
   parseContentKind,
   storeArtifactContent,
 } from "@/lib/private-artifacts/content"
@@ -11,21 +13,27 @@ type Params = {
   params: Promise<{ id: string; kind: string }>
 }
 
-const MAX_CONTENT_BYTES = 5 * 1024 * 1024
-
 export async function PUT(request: Request, { params }: Params) {
   try {
     const { organizationId } = await requireActiveOrganization()
     assertSameOriginRequest(request)
     const { id, kind } = await params
     const contentKind = parseContentKind(kind)
+    const maxBytes = MAX_CONTENT_BYTES_BY_KIND[contentKind]
 
     const bytes = Buffer.from(await request.arrayBuffer())
     if (bytes.length === 0) {
       throw new Response("Empty content body", { status: 400 })
     }
-    if (bytes.length > MAX_CONTENT_BYTES) {
-      throw new Response("Content exceeds the 5MB limit", { status: 413 })
+    // Fast path only: rejecting an oversized body before hashing/upload work
+    // is cheaper and produces a request-shaped 413. `storeArtifactContent`
+    // enforces the same D3 limit again unconditionally -- that's the
+    // authoritative guard every caller (including bundle ingest) inherits.
+    if (bytes.length > maxBytes) {
+      throw new Response(
+        `Content exceeds the ${describeLimit(maxBytes)} limit`,
+        { status: 413 }
+      )
     }
 
     const content = await storeArtifactContent(

@@ -82,6 +82,28 @@ test("storeArtifactContent uploads to S3 and persists storageKey + sha256", asyn
   assert.match(result.sha256, /^[0-9a-f]{64}$/)
 })
 
+test("storeArtifactContent rejects an oversized body with 413 before touching prisma or storage", async () => {
+  putObjectCalls.length = 0
+  findFirstCalls.length = 0
+  findFirstResult = { id: "artifact-1" }
+
+  const oversized = new Uint8Array(256 * 1024 + 1) // over manifest_toml's 256KB cap
+  await assert.rejects(
+    () => storeArtifactContent("org-1", "artifact-1", "manifest_toml", oversized),
+    (error) => {
+      assert.ok(error instanceof Response)
+      assert.equal(error.status, 413)
+      return true
+    }
+  )
+  // The size guard must fire before any DB lookup or S3 upload -- this is
+  // the authoritative enforcement point every caller (direct upload and
+  // bundle ingest alike) inherits, so it must not depend on side effects
+  // that happen later in the function.
+  assert.equal(putObjectCalls.length, 0)
+  assert.equal(findFirstCalls.length, 0)
+})
+
 test("storeArtifactContent 404s when the artifact is not found in the org", async () => {
   findFirstResult = null
   await assert.rejects(
