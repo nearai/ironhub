@@ -5,7 +5,16 @@ import { useQuery } from "@tanstack/react-query"
 import type { ContentKind } from "./artifacts"
 import { ApiError } from "./client"
 
-async function fetchTextContent(url: string): Promise<string> {
+/**
+ * `undefined` (react-query's own "no data yet") means "still loading, never
+ * obtained a value" -- distinct from `null`, the sentinel this module uses
+ * for "we asked, and there is confirmedly no content row yet". A genuinely
+ * stored empty file (`data === ""`) is a third, different state and must
+ * not be confused with either.
+ */
+type TextContentResult = string | null
+
+async function fetchTextContent(url: string): Promise<TextContentResult> {
   const response = await fetch(url)
 
   if (response.status === 404) {
@@ -13,11 +22,12 @@ async function fetchTextContent(url: string): Promise<string> {
     // recoverable state -- e.g. a content upload that failed partway
     // through creation -- and it is the *only* place that content can ever
     // be supplied, since there is no other upload affordance on the manage
-    // page. Treating it as a load failure would make the artifact
-    // permanently uneditable: save blocked because content "failed to
-    // load", but the content can never be created either. So: resolve to
-    // an empty document, the safe starting point, rather than throwing.
-    return ""
+    // page. Resolve to the `null` sentinel (not `""`, which would be
+    // indistinguishable from a genuinely stored empty file) so callers can
+    // show "nothing stored yet, saving will create it" and allow the save,
+    // rather than either silently defaulting *or* treating this as an
+    // unrecoverable failure.
+    return null
   }
 
   if (!response.ok) {
@@ -40,11 +50,19 @@ async function fetchTextContent(url: string): Promise<string> {
  * token needed) so an edit page can seed its editor from what is actually
  * stored, instead of starting blank and silently overwriting it on save.
  *
- * A 404 resolves successfully to `""` (see `fetchTextContent`) rather than
- * surfacing as `isError` -- callers should treat `data !== undefined` as
- * "safe to edit and save", regardless of whether that data is a real stored
- * file or the empty string for one that was never created. Only a genuine
- * failure (network error, 5xx, ...) should surface as `isError`.
+ * `data` is one of three states once settled:
+ * - `string` -- the stored file's bytes (may be `""` if it was genuinely
+ *   saved empty).
+ * - `null` -- no content row exists yet (404). Safe to edit and save; a
+ *   save will create the file.
+ * - still `undefined` -- never obtained a value (loading, or every attempt
+ *   failed). Callers should block saving here and only here: HTTP statuses
+ *   other than 404 keep surfacing as `isError` with no `data`, which is
+ *   the one state that should not be savable over.
+ *
+ * Callers should therefore gate "safe to save" on `data !== undefined`,
+ * not on `isSuccess`/`isError` directly -- those flip on a later failed
+ * background refetch even while `data` (correctly) stays populated.
  */
 export function useArtifactTextContent(
   id: string | undefined,

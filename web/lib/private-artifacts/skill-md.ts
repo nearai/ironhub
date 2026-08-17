@@ -1,12 +1,16 @@
 import yaml from "js-yaml"
 
-// Known limitation: this module round-trips frontmatter through js-yaml's
-// generic load/dump, not a comment-preserving document API. Values and key
-// order survive a save; YAML comments, number formatting quirks (e.g.
-// `1.0` -> `1`, `007` -> `7`), quoting/flow/block style, anchors, and merge
-// keys do not -- they get normalized or dropped by `dump`. Fixing that
-// would mean replacing js-yaml with a CST-preserving YAML library, which is
-// a bigger change than this module makes. Do not assume comments survive.
+// Known limitation (accepted for this change; D5 names js-yaml as the
+// parser, so this is in contract): this module round-trips frontmatter
+// through js-yaml's generic load/dump, not a comment-preserving document
+// API. Key order and values survive a save; YAML comments do not (dropped
+// entirely), and scalar formatting gets normalized on the way through --
+// observed: `1.10` -> `1.1`, `08` -> `8`, an unquoted date -> an ISO
+// timestamp, `yes` -> `'yes'` (quoted, not coerced to boolean). This does
+// dent "anything read survives a save" for those specific bytes, though
+// not for the value's meaning. If comment/formatting preservation ever
+// matters, the fix is swapping js-yaml for a CST-preserving parser (e.g.
+// the `yaml` package's Document API) -- deferred rather than done here.
 
 export type ParsedSkillMd = {
   // Full parsed YAML map, key order preserved (js-yaml/JS objects keep
@@ -15,6 +19,17 @@ export type ParsedSkillMd = {
   frontmatter: Record<string, unknown>
   // Everything after the closing `---` line, verbatim.
   body: string
+  // True when a `---...---` fence was found but its contents failed to
+  // parse as YAML (as opposed to no fence being present at all -- that
+  // case is `false`/absent, per D5's "no frontmatter -> {}, never an
+  // error"). `frontmatter` is `{}` and `body` is the *entire original
+  // text* in this case, same shape as "no fence", but callers MUST NOT
+  // treat the two the same: a save built from this result would write
+  // fabricated empty values (`value_prop: ''`, `use_cases: []`, ...) over
+  // a file that likely still has real content the parser just couldn't
+  // read. Treat this like a failed content fetch -- block saving and show
+  // the user the file needs to be fixed upstream, not edited here.
+  fenceParseFailed?: boolean
 }
 
 // Matches a leading `---\n...\n---` frontmatter fence at the very start of
@@ -38,25 +53,35 @@ export function parseSkillMd(text: string): ParsedSkillMd {
     return { frontmatter: {}, body: text }
   }
 
+  let parsed: unknown
   try {
-    const parsed = yaml.load(match[1])
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return {
-        frontmatter: parsed as Record<string, unknown>,
-        body: text.slice(match[0].length),
-      }
-    }
-    // The fence parsed as valid YAML but not as a mapping (e.g. a scalar, a
-    // list, or -- the common real case -- a `---`-delimited region that
-    // isn't frontmatter at all, like a thematic break followed by prose).
-    // Treat this exactly like the parse-failure branch below: there is no
-    // frontmatter to extract, so the *whole* original text is the body.
-    // Slicing off the matched fence here would silently delete real content
-    // (see skill-md.test.mjs) -- the one bug this module exists to prevent.
-    return { frontmatter: {}, body: text }
+    parsed = yaml.load(match[1])
   } catch {
-    return { frontmatter: {}, body: text }
+    // The fence is present but its YAML is malformed (e.g. an unquoted
+    // `: ` inside a value -- the single commonest real-world mistake).
+    // This is NOT the same as "no frontmatter": there is a real,
+    // unreadable file here. Flag it via `fenceParseFailed` so callers
+    // refuse to edit-and-save over it; see the type doc above.
+    return { frontmatter: {}, body: text, fenceParseFailed: true }
   }
+
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+    return {
+      frontmatter: parsed as Record<string, unknown>,
+      body: text.slice(match[0].length),
+    }
+  }
+
+  // The fence parsed as valid YAML but not as a mapping (e.g. a scalar, a
+  // list, or -- the common real case -- a `---`-delimited region that
+  // isn't frontmatter at all, like a thematic break followed by prose).
+  // Unlike the parse-failure case above, this is legitimately "no
+  // frontmatter here" (the YAML is fine, it just isn't a map), so it is
+  // not flagged as a failure: there is no frontmatter to extract, so the
+  // *whole* original text is the body. Slicing off the matched fence here
+  // would silently delete real content (see skill-md.test.mjs) -- the one
+  // bug this module exists to prevent.
+  return { frontmatter: {}, body: text }
 }
 
 /**

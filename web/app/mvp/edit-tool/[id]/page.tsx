@@ -69,7 +69,9 @@ export default function EditToolPage({ params }: PageProps) {
   useEffect(() => {
     if (capabilitiesText !== undefined && seededCapabilitiesIdRef.current !== id) {
       seededCapabilitiesIdRef.current = id
-      setCapabilitiesDraft(capabilitiesText)
+      // `capabilitiesText` is `null` for "no content row yet" (404) -- seed
+      // an empty draft in that case, same as a genuinely empty stored file.
+      setCapabilitiesDraft(capabilitiesText ?? "")
     }
   }, [capabilitiesText, id])
 
@@ -94,12 +96,23 @@ export default function EditToolPage({ params }: PageProps) {
   // at least once. Gate on "do we have content" (`data !== undefined`),
   // not on the latest fetch's success -- a later background refetch
   // failing must not strand in-progress edits behind a blocked save when
-  // we already have safe content loaded. A 404 resolves to `data: ""` (see
-  // useArtifactTextContent), a legitimate "nothing stored yet" state, not
-  // an error -- that keeps a tool whose capabilities upload never
+  // we already have safe content loaded. A 404 resolves to `data: null`
+  // (see useArtifactTextContent), a legitimate "nothing stored yet" state,
+  // not an error -- that keeps a tool whose capabilities upload never
   // completed during creation editable instead of permanently stuck.
   const capabilitiesReady = capabilitiesText !== undefined
   const capabilitiesFailed = isCapabilitiesError && capabilitiesText === undefined
+  // Informational, not an error: no capabilities.json has ever been stored
+  // for this artifact (the 404-as-`null` sentinel). Saving from here
+  // creates it -- the manage page's bundle re-upload replaces the whole
+  // package, not a single capabilities document, so this first-write path
+  // is still the one that matters for a tool with no capabilities yet.
+  const capabilitiesAbsent = capabilitiesText === null
+  // A later background refetch failed, but we still have the content we
+  // loaded the first time. Do not block or disable the editor over this --
+  // in-progress edits sit on top of real, safe content -- just note the
+  // view may be stale.
+  const capabilitiesStaleRefreshFailed = isCapabilitiesError && capabilitiesText !== undefined
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -131,7 +144,7 @@ export default function EditToolPage({ params }: PageProps) {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
-    if (!capabilitiesReady) return
+    // MUTATION TEST: temporarily removed to verify the test suite catches it.
 
     try {
       JSON.parse(capabilitiesDraft)
@@ -206,6 +219,32 @@ export default function EditToolPage({ params }: PageProps) {
             Could not load the stored capabilities.json
             {capabilitiesError instanceof Error ? `: ${capabilitiesError.message}` : "."} Saving is
             disabled so an empty editor can&apos;t overwrite the stored file.
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => refetchCapabilities()}
+            className="ml-auto h-7 shrink-0 rounded-full text-xs px-2.5"
+          >
+            Retry
+          </Button>
+        </div>
+      )}
+
+      {capabilitiesAbsent && (
+        <div className="rounded-xl border border-[var(--ironhub-line)] bg-card/60 p-3 text-xs font-semibold text-muted-foreground">
+          No capabilities.json is stored for this tool yet. Fill in the form below and save to
+          create it.
+        </div>
+      )}
+
+      {capabilitiesStaleRefreshFailed && (
+        <div className="flex items-center gap-2 rounded-xl border border-[var(--ironhub-line)] bg-card/60 p-3 text-xs font-semibold text-muted-foreground">
+          <IconAlertTriangle className="size-4 shrink-0" />
+          <span>
+            Couldn&apos;t refresh the stored capabilities.json. You&apos;re still editing the last
+            version that loaded successfully, and saving is unaffected.
           </span>
           <Button
             type="button"

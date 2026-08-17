@@ -65,18 +65,28 @@ describe("edit-tool capabilities content loading", () => {
     vi.unstubAllGlobals()
   })
 
-  it("disables saving and shows an error when the stored capabilities.json fails to load (500)", async () => {
-    vi.mocked(fetch).mockImplementation(async (input) => {
+  it("disables saving, shows an error, and blocks the actual PUT when the stored capabilities.json fails to load (500)", async () => {
+    const capabilitiesPutCalls: Array<{ url: string }> = []
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
       const url = String(input)
       if (url === "/api/private-artifacts/artifact-1") {
         return new Response(JSON.stringify({ artifact }), { status: 200 })
+      }
+      if (
+        url === "/api/private-artifacts/artifact-1/content/capabilities" &&
+        init?.method === "PUT"
+      ) {
+        capabilitiesPutCalls.push({ url })
+        return new Response(JSON.stringify({ content: { kind: "capabilities" } }), {
+          status: 201,
+        })
       }
       if (url === "/api/private-artifacts/artifact-1/content/capabilities") {
         return new Response(JSON.stringify({ error: "Internal error" }), {
           status: 500,
         })
       }
-      throw new Error(`Unexpected fetch: ${url}`)
+      throw new Error(`Unexpected fetch: ${url} ${init?.method ?? "GET"}`)
     })
 
     await renderPage()
@@ -87,9 +97,15 @@ describe("edit-tool capabilities content loading", () => {
 
     const saveButton = screen.getByRole("button", { name: /save changes/i })
     expect(saveButton).toBeDisabled()
+
+    // B3: the guard must live in the submit handler, not just the button's
+    // `disabled` prop -- firing a submit directly must not produce a PUT.
+    fireEvent.submit(saveButton.closest("form")!)
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(capabilitiesPutCalls.length).toBe(0)
   })
 
-  it("treats a 404 (no content row yet) as a safe empty state, not a load failure -- saving stays enabled", async () => {
+  it("treats a 404 (no content row yet) as a safe, savable empty state -- not a load failure", async () => {
     vi.mocked(fetch).mockImplementation(async (input) => {
       const url = String(input)
       if (url === "/api/private-artifacts/artifact-1") {
@@ -109,6 +125,7 @@ describe("edit-tool capabilities content loading", () => {
       expect(
         screen.queryByText(/could not load the stored capabilities\.json/i)
       ).not.toBeInTheDocument()
+      expect(screen.getByText(/no capabilities\.json is stored/i)).toBeInTheDocument()
       expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
     })
 

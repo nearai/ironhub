@@ -95,7 +95,9 @@ export default function EditSkillPage({ params }: PageProps) {
   useEffect(() => {
     if (skillContent.data !== undefined && seededContentIdRef.current !== id) {
       seededContentIdRef.current = id
-      const { frontmatter, body } = parseSkillMd(skillContent.data)
+      // `data` is `null` for "no content row yet" (404) -- treat that as an
+      // empty file to parse, same as a genuinely empty stored one.
+      const { frontmatter, body } = parseSkillMd(skillContent.data ?? "")
       setBaseFrontmatter(frontmatter)
       setDescription(typeof frontmatter.description === "string" ? frontmatter.description : "")
       setValueProp(typeof frontmatter.value_prop === "string" ? frontmatter.value_prop : "")
@@ -127,30 +129,64 @@ export default function EditSkillPage({ params }: PageProps) {
   }
 
   // Anything read must survive a save (design.md D5): only the fields this
-  // form exposes are overwritten, everything else in frontmatterRef passes
-  // through untouched.
+  // form exposes are overwritten, everything else in baseFrontmatter passes
+  // through untouched. Each exposed field is written only when it has a
+  // value or the key already existed in the stored file -- a file that
+  // never had `use_cases`/`value_tags`/`activation`/`value_prop` should not
+  // gain empty scaffolding (`use_cases: []`, `activation: {keywords: [],
+  // tags: []}`, ...) on every save; that's noise every consumer reading
+  // those keys would then see.
   const buildFrontmatter = () => {
     const existingActivation =
       baseFrontmatter.activation &&
       typeof baseFrontmatter.activation === "object" &&
       !Array.isArray(baseFrontmatter.activation)
         ? (baseFrontmatter.activation as Record<string, unknown>)
-        : {}
+        : undefined
 
-    return {
+    const next: Record<string, unknown> = {
       ...baseFrontmatter,
       name: artifact.name,
       version: artifact.version,
       description,
-      value_prop: valueProp,
-      use_cases: splitList(useCasesText, /\n/),
-      value_tags: splitList(valueTagsText, /,/),
-      activation: {
-        ...existingActivation,
-        keywords: splitList(activationKeywordsText, /,/),
-        tags: splitList(activationTagsText, /,/),
-      },
     }
+
+    if (valueProp || "value_prop" in baseFrontmatter) {
+      next.value_prop = valueProp
+    } else {
+      delete next.value_prop
+    }
+
+    const useCasesList = splitList(useCasesText, /\n/)
+    if (useCasesList.length > 0 || "use_cases" in baseFrontmatter) {
+      next.use_cases = useCasesList
+    } else {
+      delete next.use_cases
+    }
+
+    const valueTagsList = splitList(valueTagsText, /,/)
+    if (valueTagsList.length > 0 || "value_tags" in baseFrontmatter) {
+      next.value_tags = valueTagsList
+    } else {
+      delete next.value_tags
+    }
+
+    const keywordsList = splitList(activationKeywordsText, /,/)
+    const tagsList = splitList(activationTagsText, /,/)
+    const nextActivation: Record<string, unknown> = { ...existingActivation }
+    if (keywordsList.length > 0 || existingActivation?.keywords !== undefined) {
+      nextActivation.keywords = keywordsList
+    }
+    if (tagsList.length > 0 || existingActivation?.tags !== undefined) {
+      nextActivation.tags = tagsList
+    }
+    if (Object.keys(nextActivation).length > 0 || existingActivation !== undefined) {
+      next.activation = nextActivation
+    } else {
+      delete next.activation
+    }
+
+    return next
   }
 
   // "View Skill File" must render exactly the bytes a save would upload
@@ -176,10 +212,30 @@ export default function EditSkillPage({ params }: PageProps) {
   // away and back after the 15s staleTime, one request blipped), and
   // blocking save at that point would strand in-progress edits behind a
   // red banner for no reason: we already have safe content to save on top
-  // of. A 404 resolves to `data: ""` (see useArtifactTextContent), not an
-  // error, so a never-created file is editable and savable too.
-  const contentReady = skillContent.data !== undefined
+  // of. A 404 resolves to `data: null` (see useArtifactTextContent), not
+  // an error, so a never-created file is editable and savable too.
+  //
+  // A fetch succeeding is not enough on its own, though: if the stored
+  // file's frontmatter fence is present but fails to parse as YAML,
+  // parseSkillMd flags `fenceParseFailed` -- there is real content in that
+  // file the form cannot safely represent (frontmatter fields would seed
+  // blank), so a save from here would overwrite it with fabricated empty
+  // values. Block saving in that case too, distinctly from a load failure.
+  const fenceParseFailed =
+    skillContent.data !== undefined &&
+    parseSkillMd(skillContent.data ?? "").fenceParseFailed === true
+  const contentReady = skillContent.data !== undefined && !fenceParseFailed
   const contentFailed = skillContent.isError && skillContent.data === undefined
+  // Informational, not an error: no skill_md has ever been stored for this
+  // artifact (the 404-as-`null` sentinel). Saving from here creates it --
+  // this is the only place a skill's content can ever be supplied, so this
+  // must stay a savable state, not a dead end.
+  const contentAbsent = skillContent.data === null
+  // A later background refetch failed, but we still have the content we
+  // loaded the first time. Do not block or re-alarm the user over this --
+  // their in-progress edits sit on top of real, safe content -- just note
+  // that the view may be stale.
+  const contentStaleRefreshFailed = skillContent.isError && skillContent.data !== undefined
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -240,6 +296,42 @@ export default function EditSkillPage({ params }: PageProps) {
             Could not load the stored SKILL.md
             {skillContent.error instanceof Error ? `: ${skillContent.error.message}` : "."} Saving is
             disabled so an empty editor can&apos;t overwrite the stored file.
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => skillContent.refetch()}
+            className="ml-auto h-7 shrink-0 rounded-full text-xs px-2.5"
+          >
+            Retry
+          </Button>
+        </div>
+      )}
+
+      {!contentFailed && fenceParseFailed && (
+        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive">
+          <IconAlertTriangle className="size-4 shrink-0" />
+          <span>
+            The stored SKILL.md&apos;s frontmatter couldn&apos;t be parsed as valid YAML. Saving is
+            disabled here -- fix the file&apos;s frontmatter directly before editing it in this
+            form, or a save would overwrite it with blank values for every field below.
+          </span>
+        </div>
+      )}
+
+      {contentAbsent && (
+        <div className="rounded-xl border border-[var(--ironhub-line)] bg-card/60 p-3 text-xs font-semibold text-muted-foreground">
+          No SKILL.md is stored for this skill yet. Fill in the form below and save to create it.
+        </div>
+      )}
+
+      {contentStaleRefreshFailed && (
+        <div className="flex items-center gap-2 rounded-xl border border-[var(--ironhub-line)] bg-card/60 p-3 text-xs font-semibold text-muted-foreground">
+          <IconAlertTriangle className="size-4 shrink-0" />
+          <span>
+            Couldn&apos;t refresh the stored SKILL.md. You&apos;re still editing the last version that
+            loaded successfully, and saving is unaffected.
           </span>
           <Button
             type="button"

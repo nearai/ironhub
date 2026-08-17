@@ -74,6 +74,26 @@ async function renderPage() {
   return result!
 }
 
+/** Tracks every PUT to the skill_md content route across a test. */
+function trackPutCalls() {
+  const putCalls: Array<{ url: string; body: Blob }> = []
+  vi.mocked(fetch).mockImplementation(async (input, init) => {
+    const url = String(input)
+    if (url === "/api/private-artifacts/artifact-1" && (!init || init.method === undefined)) {
+      return new Response(JSON.stringify({ artifact }), { status: 200 })
+    }
+    if (url === "/api/private-artifacts/artifact-1" && init?.method === "PATCH") {
+      return new Response(JSON.stringify({ artifact }), { status: 200 })
+    }
+    if (url === "/api/private-artifacts/artifact-1/content/skill_md" && init?.method === "PUT") {
+      putCalls.push({ url, body: init.body as Blob })
+      return new Response(JSON.stringify({ content: { kind: "skill_md" } }), { status: 201 })
+    }
+    throw new Error(`Unexpected fetch in trackPutCalls: ${url} ${init?.method ?? "GET"}`)
+  })
+  return putCalls
+}
+
 describe("edit-skill content loading", () => {
   beforeEach(() => {
     pushMock.mockClear()
@@ -84,18 +104,15 @@ describe("edit-skill content loading", () => {
     vi.unstubAllGlobals()
   })
 
-  it("disables saving and shows an error when the stored SKILL.md fails to load (500)", async () => {
-    vi.mocked(fetch).mockImplementation(async (input) => {
+  it("disables saving, shows an error, and blocks the actual PUT when the stored SKILL.md fails to load (500)", async () => {
+    const putCalls = trackPutCalls()
+    const baseImpl = vi.mocked(fetch).getMockImplementation()!
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
       const url = String(input)
-      if (url === "/api/private-artifacts/artifact-1") {
-        return new Response(JSON.stringify({ artifact }), { status: 200 })
+      if (url === "/api/private-artifacts/artifact-1/content/skill_md" && init?.method !== "PUT") {
+        return new Response(JSON.stringify({ error: "Internal error" }), { status: 500 })
       }
-      if (url === "/api/private-artifacts/artifact-1/content/skill_md") {
-        return new Response(JSON.stringify({ error: "Internal error" }), {
-          status: 500,
-        })
-      }
-      throw new Error(`Unexpected fetch: ${url}`)
+      return baseImpl(input, init)
     })
 
     await renderPage()
@@ -106,9 +123,54 @@ describe("edit-skill content loading", () => {
 
     const saveButton = screen.getByRole("button", { name: /save & publish/i })
     expect(saveButton).toBeDisabled()
+
+    // B3: the guard must live in the submit handler, not just the button's
+    // `disabled` prop -- firing a submit directly must not produce a PUT.
+    fireEvent.submit(saveButton.closest("form")!)
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(putCalls.length).toBe(0)
   })
 
-  it("treats a 404 (no content row yet) as a safe empty state, not a load failure -- saving stays enabled", async () => {
+  it("flags a fenceParseFailed file as blocked, distinctly from a load failure, and blocks the actual PUT", async () => {
+    const malformed = [
+      "---",
+      "name: s",
+      "description: Handles auth: login and logout",
+      "use_cases:",
+      "  - Log a user in",
+      "---",
+      "",
+      "Body.",
+    ].join("\n")
+
+    const putCalls = trackPutCalls()
+    const baseImpl = vi.mocked(fetch).getMockImplementation()!
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/artifact-1/content/skill_md" && init?.method !== "PUT") {
+        return new Response(malformed, {
+          status: 200,
+          headers: { "Content-Type": "text/markdown; charset=utf-8" },
+        })
+      }
+      return baseImpl(input, init)
+    })
+
+    await renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/frontmatter couldn.t be parsed/i)).toBeInTheDocument()
+    })
+
+    const saveButton = screen.getByRole("button", { name: /save & publish/i })
+    expect(saveButton).toBeDisabled()
+
+    fireEvent.submit(saveButton.closest("form")!)
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(putCalls.length).toBe(0)
+  })
+
+  it("treats a 404 (no content row yet) as a safe, savable empty state -- not a load failure", async () => {
     vi.mocked(fetch).mockImplementation(async (input) => {
       const url = String(input)
       if (url === "/api/private-artifacts/artifact-1") {
@@ -126,6 +188,7 @@ describe("edit-skill content loading", () => {
 
     await waitFor(() => {
       expect(screen.queryByText(/could not load the stored skill\.md/i)).not.toBeInTheDocument()
+      expect(screen.getByText(/no skill\.md is stored/i)).toBeInTheDocument()
       expect(screen.getByRole("button", { name: /save & publish/i })).not.toBeDisabled()
     })
 
@@ -164,27 +227,17 @@ describe("edit-skill content loading", () => {
   // page.tsx's buildFrontmatter() -- i.e. reintroducing the original bug --
   // must fail this test.
   it("preserves an unknown frontmatter key in the uploaded bytes after editing a known field and saving", async () => {
-    const putCalls: Array<{ url: string; body: Blob }> = []
-
+    const putCalls = trackPutCalls()
+    const baseImpl = vi.mocked(fetch).getMockImplementation()!
     vi.mocked(fetch).mockImplementation(async (input, init) => {
       const url = String(input)
-      if (url === "/api/private-artifacts/artifact-1" && (!init || init.method === undefined)) {
-        return new Response(JSON.stringify({ artifact }), { status: 200 })
-      }
       if (url === "/api/private-artifacts/artifact-1/content/skill_md" && init?.method !== "PUT") {
         return new Response(storedFileWithUnknownKey, {
           status: 200,
           headers: { "Content-Type": "text/markdown; charset=utf-8" },
         })
       }
-      if (url === "/api/private-artifacts/artifact-1" && init?.method === "PATCH") {
-        return new Response(JSON.stringify({ artifact }), { status: 200 })
-      }
-      if (url === "/api/private-artifacts/artifact-1/content/skill_md" && init?.method === "PUT") {
-        putCalls.push({ url, body: init.body as Blob })
-        return new Response(JSON.stringify({ content: { kind: "skill_md" } }), { status: 201 })
-      }
-      throw new Error(`Unexpected fetch: ${url} ${init?.method ?? "GET"}`)
+      return baseImpl(input, init)
     })
 
     await renderPage()

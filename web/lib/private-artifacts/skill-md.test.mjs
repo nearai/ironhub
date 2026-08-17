@@ -32,12 +32,56 @@ test("returns empty frontmatter and the full text as body when there is no front
   assert.deepEqual(result, { frontmatter: {}, body: text })
 })
 
-test("never throws on malformed YAML in the frontmatter fence", () => {
+test("never throws on malformed YAML in the frontmatter fence, and flags it via fenceParseFailed", () => {
   const text = "---\n[unterminated: [flow\n---\n\nBody text."
 
   assert.doesNotThrow(() => parseSkillMd(text))
   const result = parseSkillMd(text)
   assert.deepEqual(result.frontmatter, {})
+  assert.equal(result.fenceParseFailed, true)
+})
+
+// B1 repro: the single commonest YAML frontmatter mistake -- an unquoted
+// `: ` inside a scalar value, which YAML reads as "start a nested mapping"
+// and then chokes on. Callers must be able to tell this apart from "no
+// frontmatter fence at all" (fenceParseFailed unset) so they can block
+// saving instead of silently overwriting the file with empty/default
+// values for every field the editor manages.
+test("flags fenceParseFailed for an unquoted colon inside a frontmatter value", () => {
+  const text = [
+    "---",
+    "name: s",
+    "description: Handles auth: login and logout",
+    "use_cases:",
+    "  - Log a user in",
+    "---",
+    "",
+    "Body.",
+  ].join("\n")
+
+  const result = parseSkillMd(text)
+
+  assert.equal(result.fenceParseFailed, true)
+  assert.deepEqual(result.frontmatter, {})
+  assert.equal(result.body, text)
+})
+
+test("flags fenceParseFailed for a leading % (invalid YAML directive marker)", () => {
+  const text = "---\n%TAG\nname: s\n---\n\nBody."
+
+  const result = parseSkillMd(text)
+
+  assert.equal(result.fenceParseFailed, true)
+})
+
+test("does not flag fenceParseFailed when there is no fence at all", () => {
+  const result = parseSkillMd("Just a plain body.")
+  assert.equal(result.fenceParseFailed, undefined)
+})
+
+test("does not flag fenceParseFailed when the fence parses but isn't a mapping", () => {
+  const result = parseSkillMd("---\n- item one\n---\n\nBody.")
+  assert.equal(result.fenceParseFailed, undefined)
 })
 
 // Regression: a fence that parses as valid YAML but not as a mapping (a
