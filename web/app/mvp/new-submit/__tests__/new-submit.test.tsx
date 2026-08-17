@@ -111,6 +111,36 @@ describe("new-submit tool tab (zip bundle flow)", () => {
     expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue("USDC Payments v2")
   })
 
+  it("prefills the artifact name replacing only what's illegal for that field, preserving a legal underscore", async () => {
+    // manifest.toml `id` (D6 rule 8) allows "." and "_"; the server's
+    // artifact-name charset (service.ts: /^[a-z0-9][a-z0-9_-]*$/) allows "_"
+    // but not ".". A general slugify() would collapse "_" to "-" too,
+    // silently diverging the artifact name from the id the extension
+    // declares — this pins that only the "." gets replaced.
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/bundle/inspect") {
+        return new Response(
+          JSON.stringify({
+            ...inspectManifest,
+            manifest: { ...inspectManifest.manifest, id: "acme.usdc_payments" },
+          }),
+          { status: 200 }
+        )
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    renderPage()
+    openToolTab()
+
+    selectFile(new File(["zip bytes"], "usdc-payments.zip", { type: "application/zip" }))
+
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText("e.g. usdc-payments")).toHaveValue("acme-usdc_payments")
+    )
+  })
+
   it("shows the server's wrapper-folder message verbatim and blocks submission", async () => {
     const wrapperMessage =
       'Zip must contain the extension files at its root, not inside a wrapper folder (found "usdc-payments/"). Re-zip the folder\'s contents, not the folder itself.'

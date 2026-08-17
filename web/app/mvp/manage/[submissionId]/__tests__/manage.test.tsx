@@ -144,13 +144,14 @@ describe("manage page — review checks and publish/unpublish", () => {
     expect(screen.getByRole("button", { name: /^publish$/i })).toBeDisabled()
   })
 
-  it("never shows a passing indicator for a check the server reports as failing, even if every icon branch were collapsed to pass", async () => {
-    // A regression test that would still pass under the specific bug this
-    // requirement exists to prevent: splicing a fabricated {status:"pass"}
-    // row client-side, or hardcoding every icon to the pass icon, both leave
-    // the *text* assertions above green. This test additionally requires the
-    // row's own status attribute to disagree with a hardcoded "pass" — it
-    // fails if the discriminator is removed or ignored.
+  it("renders a lone failing check's own visible status text, not a fabricated pass indicator", async () => {
+    // The `data-check-status` attribute alone can't catch a regression that
+    // hardcodes every row's icon/label to "pass" while still copying
+    // `check.status` verbatim into the attribute — the attribute and the
+    // visible label are set from independent pieces of the render. Asserting
+    // on rendered `textContent` (what a user or screen reader actually sees)
+    // is what breaks under that mutation; the attribute checks below are a
+    // secondary, cheaper cross-check once the text assertion already holds.
     vi.mocked(fetch).mockImplementation(async (input) => {
       const url = String(input)
       if (url === "/api/private-artifacts/artifact-1") {
@@ -183,10 +184,11 @@ describe("manage page — review checks and publish/unpublish", () => {
     await waitFor(() =>
       expect(document.querySelector('[data-check-id="wasm_present"]')).toBeInTheDocument()
     )
-    expect(document.querySelector('[data-check-id="wasm_present"]')).toHaveAttribute(
-      "data-check-status",
-      "fail"
-    )
+    const row = document.querySelector('[data-check-id="wasm_present"]') as HTMLElement
+
+    expect(row.textContent).toContain("Fail")
+    expect(row.textContent).not.toContain("Pass")
+    expect(row).toHaveAttribute("data-check-status", "fail")
     expect(document.querySelectorAll('[data-check-status="pass"]')).toHaveLength(0)
   })
 
@@ -294,6 +296,86 @@ describe("manage page — review checks and publish/unpublish", () => {
     await waitFor(() =>
       expect(screen.getByRole("button", { name: /^unpublish$/i })).toBeInTheDocument()
     )
+  })
+
+  it("re-uploads an extension bundle via the recovery control, sending an explicit application/zip content type", async () => {
+    // Simulates the exact recovery scenario design.md D6 names this page
+    // for: an artifact whose create-flow bundle upload never landed.
+    const toolWithNoContent = { ...BASE_ARTIFACT, content: [] }
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/artifact-1") {
+        return new Response(JSON.stringify({ artifact: toolWithNoContent }), { status: 200 })
+      }
+      if (url === "/api/private-artifacts/artifact-1/checks") {
+        return new Response(
+          JSON.stringify({
+            checks: [
+              {
+                id: "content_complete",
+                label: "Content complete",
+                status: "fail",
+                detail: "wasm, capabilities are missing.",
+              },
+            ],
+            publishable: false,
+          }),
+          { status: 200 }
+        )
+      }
+      if (url === "/api/private-artifacts/artifact-1/bundle" && init?.method === "PUT") {
+        return new Response(JSON.stringify({ content: [{ kind: "wasm", sha256: "a", sizeBytes: 1 }] }), {
+          status: 201,
+        })
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    await renderPage()
+
+    const input = await screen.findByLabelText(/re-upload extension bundle/i)
+    const file = new File(["zip bytes"], "firecrawl.zip", { type: "application/zip" })
+
+    await act(async () => {
+      fireEvent.change(input, { target: { files: [file] } })
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+
+    const bundleCall = vi
+      .mocked(fetch)
+      .mock.calls.find(([reqInput]) => String(reqInput) === "/api/private-artifacts/artifact-1/bundle")
+    expect(bundleCall).toBeDefined()
+    expect(bundleCall?.[1]).toMatchObject({
+      method: "PUT",
+      headers: { "Content-Type": "application/zip" },
+    })
+
+    await waitFor(() => expect(screen.getByText("Bundle uploaded")).toBeInTheDocument())
+  })
+
+  it("rejects a non-zip file on the re-upload control without making a request", async () => {
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/artifact-1") {
+        return new Response(JSON.stringify({ artifact: BASE_ARTIFACT }), { status: 200 })
+      }
+      if (url === "/api/private-artifacts/artifact-1/checks") {
+        return new Response(JSON.stringify({ checks: [], publishable: false }), { status: 200 })
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    await renderPage()
+
+    const input = await screen.findByLabelText(/re-upload extension bundle/i)
+    const callsBefore = vi.mocked(fetch).mock.calls.length
+
+    fireEvent.change(input, {
+      target: { files: [new File(["x"], "firecrawl.wasm", { type: "application/wasm" })] },
+    })
+
+    expect(screen.getByText("Only .zip archives are accepted.")).toBeInTheDocument()
+    expect(vi.mocked(fetch).mock.calls.length).toBe(callsBefore)
   })
 
   it("surfaces a 409 publish rejection as the server's reason, inline", async () => {
