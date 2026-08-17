@@ -3,6 +3,7 @@
 import React, { use, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useArtifactTextContent } from "@/features/partner/api/artifact-content"
 import { useArtifact, useUpdateArtifact, useUploadArtifactContent } from "@/features/partner/api/artifacts"
 import { ApiError } from "@/features/partner/api/client"
 import { useToast } from "@/features/partner/store/toast-provider"
@@ -16,6 +17,7 @@ import {
   IconLock,
   IconWorld,
   IconLoader2,
+  IconAlertTriangle,
 } from "@tabler/icons-react"
 
 interface PageProps {
@@ -27,6 +29,13 @@ export default function EditToolPage({ params }: PageProps) {
   const router = useRouter()
   const { notify } = useToast()
   const { data: artifact, isLoading, isError } = useArtifact(id)
+  const {
+    data: capabilitiesText,
+    isLoading: isCapabilitiesLoading,
+    isError: isCapabilitiesError,
+    error: capabilitiesError,
+    refetch: refetchCapabilities,
+  } = useArtifactTextContent(id, "capabilities")
   const updateArtifact = useUpdateArtifact(id)
   const uploadContent = useUploadArtifactContent(id)
 
@@ -35,24 +44,34 @@ export default function EditToolPage({ params }: PageProps) {
   const [description, setDescription] = useState("")
   const [visibility, setVisibility] = useState<"public" | "private">("private")
   const [wasmFile, setWasmFile] = useState<File | null>(null)
-  const [capabilitiesFile, setCapabilitiesFile] = useState<File | null>(null)
+  const [capabilitiesDraft, setCapabilitiesDraft] = useState("")
   const [dragOver, setDragOver] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   // Guard so a background refetch (e.g. window focus) never clobbers an
   // in-progress edit — only reseed the form when we land on a new artifact.
   const seededArtifactIdRef = useRef<string | null>(null)
+  // Same guard, scoped to the capabilities content fetch: only seed the
+  // editor once per artifact, the first time the stored file loads.
+  const seededCapabilitiesIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (artifact && seededArtifactIdRef.current !== artifact.id) {
       seededArtifactIdRef.current = artifact.id
-       
+
       setTitle(artifact.title)
-       
+
       setDescription(artifact.description || "")
-       
+
       setVisibility(artifact.visibility)
     }
   }, [artifact])
+
+  useEffect(() => {
+    if (capabilitiesText !== undefined && seededCapabilitiesIdRef.current !== id) {
+      seededCapabilitiesIdRef.current = id
+      setCapabilitiesDraft(capabilitiesText)
+    }
+  }, [capabilitiesText, id])
 
   if (isLoading) {
     return <div className="py-16 text-center text-sm text-muted-foreground">Loading tool...</div>
@@ -68,6 +87,12 @@ export default function EditToolPage({ params }: PageProps) {
       </div>
     )
   }
+
+  // A save that cannot preserve the stored capabilities document is worse
+  // than no save (same invariant as the skill editor, design.md D5): block
+  // saving while that read is in flight or failed, rather than silently
+  // falling back to a blank/default document.
+  const capabilitiesReady = !isCapabilitiesLoading && !isCapabilitiesError
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -96,28 +121,27 @@ export default function EditToolPage({ params }: PageProps) {
     if (file) acceptFile(file)
   }
 
-  const handleCapabilitiesFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (!file.name.endsWith(".json")) {
-      notify("Capabilities must be a .json file", "error")
-      return
-    }
-    setCapabilitiesFile(file)
-    notify(`Selected capabilities file: ${file.name}`, "info")
-  }
-
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
+    if (!capabilitiesReady) return
+
+    try {
+      JSON.parse(capabilitiesDraft)
+    } catch {
+      setFormError("Capabilities must be valid JSON.")
+      return
+    }
+
     try {
       await updateArtifact.mutateAsync({ title, description, visibility })
       if (wasmFile) {
         await uploadContent.mutateAsync({ kind: "wasm", file: wasmFile })
       }
-      if (capabilitiesFile) {
-        await uploadContent.mutateAsync({ kind: "capabilities", file: capabilitiesFile })
-      }
+      await uploadContent.mutateAsync({
+        kind: "capabilities",
+        file: new Blob([capabilitiesDraft], { type: "application/json" }),
+      })
       notify(`Changes saved for ${title}`)
       router.push(`/mvp/manage/${id}`)
     } catch (error) {
@@ -130,6 +154,7 @@ export default function EditToolPage({ params }: PageProps) {
   }
 
   const isSaving = updateArtifact.isPending || uploadContent.isPending
+  const saveDisabled = isSaving || !capabilitiesReady
 
   return (
     <div className="flex flex-col gap-6">
@@ -159,6 +184,32 @@ export default function EditToolPage({ params }: PageProps) {
       {formError && (
         <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive">
           {formError}
+        </div>
+      )}
+
+      {isCapabilitiesError && (
+        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive">
+          <IconAlertTriangle className="size-4 shrink-0" />
+          <span>
+            Could not load the stored capabilities.json
+            {capabilitiesError instanceof Error ? `: ${capabilitiesError.message}` : "."} Saving is
+            disabled so an empty editor can&apos;t overwrite the stored file.
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => refetchCapabilities()}
+            className="ml-auto h-7 shrink-0 rounded-full text-xs px-2.5"
+          >
+            Retry
+          </Button>
+        </div>
+      )}
+
+      {isCapabilitiesLoading && (
+        <div className="rounded-xl border border-[var(--ironhub-line)] bg-card/60 p-3 text-xs font-semibold text-muted-foreground">
+          Loading stored capabilities.json…
         </div>
       )}
 
@@ -248,31 +299,24 @@ export default function EditToolPage({ params }: PageProps) {
             )}
           </div>
 
-          {/* Capabilities re-upload */}
+          {/* Capabilities editor -- loaded from the stored capabilities.json
+              via the owner-facing content read (design.md D4/2.6), not a
+              blank/default document, so saving can't silently wipe it. */}
           <div className="flex flex-col gap-2 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
             <label className="text-xs font-bold text-muted-foreground uppercase">
-              Replace Capabilities (capabilities.json)
+              Capabilities (capabilities.json)
             </label>
-            <input
-              type="file"
-              accept=".json"
-              onChange={handleCapabilitiesFileChange}
-              className="block w-full text-xs text-muted-foreground file:mr-3 file:rounded-full file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-primary hover:file:bg-primary/20"
+            <textarea
+              required
+              disabled={!capabilitiesReady}
+              value={capabilitiesDraft}
+              onChange={(e) => setCapabilitiesDraft(e.target.value)}
+              placeholder='{ "permissions": [] }'
+              className="flex min-h-[100px] w-full rounded-2xl border border-[var(--ironhub-line)] bg-background/50 px-4 py-3 font-mono text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary disabled:opacity-60"
             />
             <span className="text-xs text-muted-foreground">
-              Leave empty to keep the current capabilities file.
+              Declares what the WASM package is permitted to access. Must be valid JSON.
             </span>
-            {capabilitiesFile && (
-              <div className="flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-foreground font-semibold mt-1">
-                <span className="flex items-center gap-1.5">
-                  <IconFileZip className="size-4 text-emerald-600" />
-                  {capabilitiesFile.name}
-                </span>
-                <span className="text-xs bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase font-bold">
-                  Ready
-                </span>
-              </div>
-            )}
           </div>
 
           {/* Visibility Selection blocks */}
@@ -325,7 +369,7 @@ export default function EditToolPage({ params }: PageProps) {
           <Button type="button" variant="outline" asChild className="rounded-full">
             <Link href={`/mvp/manage/${id}`}>Cancel</Link>
           </Button>
-          <Button type="submit" disabled={isSaving} className="rounded-full px-6 shadow-sm">
+          <Button type="submit" disabled={saveDisabled} className="rounded-full px-6 shadow-sm">
             {isSaving && <IconLoader2 className="size-4 animate-spin" />}
             Save Changes
           </Button>
