@@ -40,9 +40,42 @@ test("never throws on malformed YAML in the frontmatter fence", () => {
   assert.deepEqual(result.frontmatter, {})
 })
 
+// Regression: a fence that parses as valid YAML but not as a mapping (a
+// paragraph, a bare list, ...) must not lose the text it wrapped. The
+// non-mapping branch previously sliced off the matched fence region instead
+// of falling back to the full original text, silently deleting content on
+// a 200 response -- exactly the bug this module exists to prevent.
+test("does not drop a paragraph body when the leading fence parses as a plain scalar, not a mapping", () => {
+  const text = "---\n\nA design doc intro paragraph.\n\n---\n\nSection two."
+
+  const result = parseSkillMd(text)
+
+  assert.deepEqual(result, { frontmatter: {}, body: text })
+  assert.match(result.body, /A design doc intro paragraph\./)
+})
+
+test("does not drop a list body when the leading fence parses as a YAML sequence, not a mapping", () => {
+  const text = "---\n- item one\n- item two\n---\n\nRest of the file."
+
+  const result = parseSkillMd(text)
+
+  assert.deepEqual(result, { frontmatter: {}, body: text })
+  assert.match(result.body, /item one/)
+  assert.match(result.body, /item two/)
+})
+
 test("never throws on an empty string", () => {
   assert.doesNotThrow(() => parseSkillMd(""))
   assert.deepEqual(parseSkillMd(""), { frontmatter: {}, body: "" })
+})
+
+test("serializeSkillMd(parseSkillMd(x)) is the identity for a file with no frontmatter", () => {
+  const text = "Plain body, no frontmatter at all."
+
+  const { frontmatter, body } = parseSkillMd(text)
+  const roundTripped = serializeSkillMd(frontmatter, body)
+
+  assert.equal(roundTripped, text)
 })
 
 test("serializeSkillMd writes back every frontmatter key and the body", () => {
