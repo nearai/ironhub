@@ -3,6 +3,7 @@
 import React, { useState } from "react"
 import Link from "next/link"
 import { useArtifacts } from "@/features/partner/api/artifacts"
+import { CATEGORIES } from "@/lib/catalog/inference"
 import { Button } from "@/components/ui/button"
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Card } from "@/components/ui/card"
@@ -16,6 +17,7 @@ import {
   IconWorld,
   IconLock,
   IconAlertTriangle,
+  IconCategory,
 } from "@tabler/icons-react"
 
 export default function DashboardPage() {
@@ -24,22 +26,23 @@ export default function DashboardPage() {
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [visibilityFilter, setVisibilityFilter] = useState("all")
+  const [categoryFilter, setCategoryFilter] = useState("all")
 
   const items = submissions ?? []
 
   // Status rollup across all submissions (independent of active filters).
-  // Nothing currently transitions an artifact's status away from "draft" —
-  // review/publish workflows are still visual stubs — so a "Published"
-  // count would always read zero and mislead. Only surface counts that can
-  // actually vary today.
+  // "published" is now a reachable status via the publish route, so all
+  // counts reflect real, varying state.
   const counts = {
     all: items.length,
     draft: items.filter((s) => s.status === "draft").length,
+    published: items.filter((s) => s.status === "published").length,
   }
 
   const summaryChips: { key: string; label: string; value: number; tone: string }[] = [
     { key: "all", label: "Total Items", value: counts.all, tone: "border-[var(--ironhub-line)] text-foreground" },
     { key: "draft", label: "Draft", value: counts.draft, tone: "border-amber-500/25 text-amber-600 dark:text-amber-400" },
+    { key: "published", label: "Published", value: counts.published, tone: "border-emerald-500/25 text-emerald-600 dark:text-emerald-400" },
   ]
 
   // Filter submissions
@@ -49,8 +52,11 @@ export default function DashboardPage() {
       sub.name.toLowerCase().includes(search.toLowerCase())
     const matchesStatus = statusFilter === "all" || sub.status === statusFilter
     const matchesVisibility = visibilityFilter === "all" || sub.visibility === visibilityFilter
+    const matchesCategory =
+      categoryFilter === "all" ||
+      (categoryFilter === "uncategorised" ? !sub.category : sub.category === categoryFilter)
 
-    return matchesSearch && matchesStatus && matchesVisibility
+    return matchesSearch && matchesStatus && matchesVisibility && matchesCategory
   })
 
   // Helper for status badge style
@@ -155,6 +161,7 @@ export default function DashboardPage() {
             >
               <NativeSelectOption value="all">All Statuses</NativeSelectOption>
               <NativeSelectOption value="draft">Draft</NativeSelectOption>
+              <NativeSelectOption value="published">Published</NativeSelectOption>
             </NativeSelect>
           </div>
 
@@ -168,6 +175,23 @@ export default function DashboardPage() {
               <NativeSelectOption value="all">All Visibilities</NativeSelectOption>
               <NativeSelectOption value="public">Public</NativeSelectOption>
               <NativeSelectOption value="private">Private</NativeSelectOption>
+            </NativeSelect>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase">Category:</span>
+            <NativeSelect
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="rounded-full select-none"
+            >
+              <NativeSelectOption value="all">All Categories</NativeSelectOption>
+              <NativeSelectOption value="uncategorised">Uncategorised</NativeSelectOption>
+              {CATEGORIES.map((c) => (
+                <NativeSelectOption key={c} value={c}>
+                  {c}
+                </NativeSelectOption>
+              ))}
             </NativeSelect>
           </div>
         </div>
@@ -243,19 +267,28 @@ export default function DashboardPage() {
 
               {/* Card Footer Actions */}
               <div className="mt-6 flex items-center justify-between border-t border-[var(--ironhub-line)]/50 pt-3">
-                <Badge variant="outline" className="text-xs gap-1 px-2 py-0.5 rounded-full">
-                  {sub.visibility === "public" ? (
-                    <>
-                      <IconWorld className="size-3 text-muted-foreground" />
-                      Public
-                    </>
-                  ) : (
-                    <>
-                      <IconLock className="size-3 text-muted-foreground" />
-                      Private
-                    </>
-                  )}
-                </Badge>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Badge variant="outline" className="text-xs gap-1 px-2 py-0.5 rounded-full">
+                    {sub.visibility === "public" ? (
+                      <>
+                        <IconWorld className="size-3 text-muted-foreground" />
+                        Public
+                      </>
+                    ) : (
+                      <>
+                        <IconLock className="size-3 text-muted-foreground" />
+                        Private
+                      </>
+                    )}
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className={`text-xs gap-1 px-2 py-0.5 rounded-full ${sub.category ? "" : "text-muted-foreground/70 italic"}`}
+                  >
+                    <IconCategory className="size-3 text-muted-foreground" />
+                    {sub.category ?? "Uncategorised"}
+                  </Badge>
+                </div>
                 <Button asChild variant="ghost" size="sm" className="group/btn h-8 rounded-full text-xs font-semibold text-primary hover:text-primary-deep">
                   <Link href={`/mvp/manage/${sub.id}`}>
                     Manage
@@ -299,7 +332,7 @@ export default function DashboardPage() {
             {items.length === 0 ? "No items yet — add your first skill or tool." : "No items match your filters."}
           </p>
           {items.length > 0 && (
-            <Button variant="link" size="sm" onClick={() => { setSearch(""); setStatusFilter("all"); setVisibilityFilter("all"); }}>
+            <Button variant="link" size="sm" onClick={() => { setSearch(""); setStatusFilter("all"); setVisibilityFilter("all"); setCategoryFilter("all"); }}>
               Clear Search & Filters
             </Button>
           )}

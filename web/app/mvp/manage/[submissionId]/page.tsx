@@ -5,9 +5,13 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
   useArtifact,
+  useArtifactChecks,
   useDeleteArtifact,
   useMintInstallToken,
+  usePublishArtifact,
+  useUnpublishArtifact,
 } from "@/features/partner/api/artifacts"
+import { ApiError } from "@/features/partner/api/client"
 import { useToast } from "@/features/partner/store/toast-provider"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -22,6 +26,11 @@ import {
   IconCopy,
   IconInfoCircle,
   IconLoader2,
+  IconAlertTriangle,
+  IconX,
+  IconRocket,
+  IconCategory,
+  IconLink,
 } from "@tabler/icons-react"
 import {
   Dialog,
@@ -37,22 +46,20 @@ interface PageProps {
   params: Promise<{ submissionId: string }>
 }
 
-const REVIEW_STUBS = [
-  { name: "Safety & Policy Scan", status: "passed" as const, details: "All safety rules successfully verified." },
-  { name: "Configuration Check", status: "passed" as const, details: "Configuration file and settings verified." },
-  { name: "Component Quality Check", status: "passed" as const, details: "Deployment quality checks passed." },
-]
-
 export default function ManageSubmissionPage({ params }: PageProps) {
   const { submissionId } = use(params)
   const router = useRouter()
   const { notify } = useToast()
   const { data: artifact, isLoading, isError } = useArtifact(submissionId)
+  const checks = useArtifactChecks(submissionId)
   const deleteArtifact = useDeleteArtifact()
   const mintToken = useMintInstallToken(submissionId)
+  const publishArtifact = usePublishArtifact(submissionId)
+  const unpublishArtifact = useUnpublishArtifact(submissionId)
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [copiedInstall, setCopiedInstall] = useState(false)
+  const [publishError, setPublishError] = useState<string | null>(null)
 
   if (isLoading) {
     return <div className="py-16 text-center text-sm text-muted-foreground">Loading item...</div>
@@ -94,6 +101,34 @@ export default function ManageSubmissionPage({ params }: PageProps) {
       router.push("/mvp/dashboard")
     } catch (error) {
       notify(error instanceof Error ? error.message : "Failed to delete item", "error")
+    }
+  }
+
+  const handlePublish = async () => {
+    setPublishError(null)
+    try {
+      await publishArtifact.mutateAsync()
+      notify(`${artifact.title} published`)
+    } catch (error) {
+      // Surface the server's precondition reason (e.g. missing category,
+      // incomplete content) verbatim rather than a generic message.
+      setPublishError(
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Failed to publish item."
+      )
+    }
+  }
+
+  const handleUnpublish = async () => {
+    setPublishError(null)
+    try {
+      await unpublishArtifact.mutateAsync()
+      notify(`${artifact.title} moved back to draft`, "info")
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Failed to unpublish item.", "error")
     }
   }
 
@@ -232,6 +267,27 @@ export default function ManageSubmissionPage({ params }: PageProps) {
           </p>
         )}
 
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Badge
+            variant="outline"
+            className={`gap-1 px-2 py-0.5 rounded-full text-xs ${artifact.category ? "" : "text-muted-foreground/70 italic"}`}
+          >
+            <IconCategory className="size-3 text-muted-foreground" />
+            {artifact.category ?? "Uncategorised"}
+          </Badge>
+          {artifact.sourceUrl && (
+            <a
+              href={artifact.sourceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 rounded-full border border-[var(--ironhub-line)] px-2 py-0.5 text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
+              <IconLink className="size-3" />
+              Repository
+            </a>
+          )}
+        </div>
+
         {/* Content status */}
         <div className="mt-6 border-t border-[var(--ironhub-line)]/50 pt-6">
           <h2 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5">
@@ -273,31 +329,101 @@ export default function ManageSubmissionPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Review checks (visual stub, non-blocking, not backed by real data) */}
+        {/* Review checks — rendered verbatim from the server; no check is invented client-side. */}
         <div className="mt-6 border-t border-[var(--ironhub-line)]/50 pt-6">
           <h2 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5">
             <IconInfoCircle className="size-4" />
             Review Checks
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Preview only — these checks are not yet wired to a real safety engine and never block save/delete actions.
+            These checks reflect live server state and gate whether the item can be published.
           </p>
 
-          <div className="mt-4 flex flex-col gap-2">
-            {REVIEW_STUBS.map((check) => (
-              <div
-                key={check.name}
-                className="flex items-center gap-2 rounded-xl border border-[var(--ironhub-line)]/50 bg-background/30 p-3.5 text-xs"
+          {checks.isLoading && (
+            <p className="mt-4 text-xs text-muted-foreground">Running checks...</p>
+          )}
+
+          {checks.isError && (
+            <p className="mt-4 text-xs font-semibold text-destructive">
+              Failed to load review checks
+              {checks.error instanceof Error ? `: ${checks.error.message}` : "."}
+            </p>
+          )}
+
+          {checks.data && (
+            <div className="mt-4 flex flex-col gap-2">
+              {checks.data.checks.length === 0 && (
+                <p className="text-xs text-muted-foreground italic leading-normal">
+                  No checks reported.
+                </p>
+              )}
+              {checks.data.checks.map((check) => {
+                const style =
+                  check.status === "pass"
+                    ? { Icon: IconCheck, wrap: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" }
+                    : check.status === "warn"
+                      ? { Icon: IconAlertTriangle, wrap: "bg-amber-500/10 text-amber-600 dark:text-amber-400" }
+                      : { Icon: IconX, wrap: "bg-destructive/10 text-destructive" }
+                return (
+                  <div
+                    key={check.id}
+                    className="flex items-center gap-2 rounded-xl border border-[var(--ironhub-line)]/50 bg-background/30 p-3.5 text-xs"
+                  >
+                    <div className={`flex size-5 shrink-0 items-center justify-center rounded-full ${style.wrap}`}>
+                      <style.Icon className="size-3.5" />
+                    </div>
+                    <div>
+                      <span className="font-semibold text-foreground">{check.label}</span>
+                      <p className="text-muted-foreground/90">{check.detail}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {publishError && (
+            <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive">
+              {publishError}
+            </div>
+          )}
+
+          <div className="mt-4">
+            {artifact.status === "published" ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleUnpublish}
+                disabled={unpublishArtifact.isPending}
+                className="rounded-full"
               >
-                <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                  <IconCheck className="size-3.5" />
-                </div>
-                <div>
-                  <span className="font-semibold text-foreground">{check.name}</span>
-                  <p className="text-muted-foreground/90">{check.details}</p>
-                </div>
-              </div>
-            ))}
+                {unpublishArtifact.isPending ? (
+                  <IconLoader2 className="size-4 animate-spin" />
+                ) : (
+                  <IconRocket className="size-4" />
+                )}
+                Unpublish
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={handlePublish}
+                disabled={publishArtifact.isPending || checks.isLoading || !checks.data?.publishable}
+                title={
+                  checks.data && !checks.data.publishable
+                    ? "Resolve the failing checks above before publishing"
+                    : undefined
+                }
+                className="rounded-full"
+              >
+                {publishArtifact.isPending ? (
+                  <IconLoader2 className="size-4 animate-spin" />
+                ) : (
+                  <IconRocket className="size-4" />
+                )}
+                Publish
+              </Button>
+            )}
           </div>
         </div>
       </Card>

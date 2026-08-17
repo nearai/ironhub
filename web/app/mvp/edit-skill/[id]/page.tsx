@@ -6,9 +6,11 @@ import { useRouter } from "next/navigation"
 import { useArtifact, useUpdateArtifact, useUploadArtifactContent } from "@/features/partner/api/artifacts"
 import { ApiError } from "@/features/partner/api/client"
 import { useToast } from "@/features/partner/store/toast-provider"
+import { CATEGORIES } from "@/lib/catalog/inference"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import {
   IconArrowLeft,
   IconCopy,
@@ -18,6 +20,8 @@ import {
   IconEdit,
   IconCode,
   IconLoader2,
+  IconCategory,
+  IconLink,
 } from "@tabler/icons-react"
 
 interface PageProps {
@@ -37,7 +41,11 @@ export default function EditSkillPage({ params }: PageProps) {
   const [valueProp, setValueProp] = useState("")
   const [markdownContent, setMarkdownContent] = useState("")
   const [visibility, setVisibility] = useState<"public" | "private">("private")
+  const [category, setCategory] = useState("")
+  const [sourceUrl, setSourceUrl] = useState("")
   const [formError, setFormError] = useState<string | null>(null)
+  const [categoryError, setCategoryError] = useState<string | null>(null)
+  const [sourceUrlError, setSourceUrlError] = useState<string | null>(null)
 
   // UI state
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit")
@@ -51,10 +59,14 @@ export default function EditSkillPage({ params }: PageProps) {
       seededArtifactIdRef.current = artifact.id
        
       setTitle(artifact.title)
-       
+
       setValueProp(artifact.description || "")
-       
+
       setVisibility(artifact.visibility)
+
+      setCategory(artifact.category ?? "")
+
+      setSourceUrl(artifact.sourceUrl ?? "")
     }
   }, [artifact])
 
@@ -98,8 +110,16 @@ export default function EditSkillPage({ params }: PageProps) {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
+    setCategoryError(null)
+    setSourceUrlError(null)
     try {
-      await updateArtifact.mutateAsync({ title, description: valueProp, visibility })
+      await updateArtifact.mutateAsync({
+        title,
+        description: valueProp,
+        visibility,
+        category: category || null,
+        sourceUrl: sourceUrl.trim() || undefined,
+      })
       await uploadContent.mutateAsync({
         kind: "skill_md",
         file: new Blob([compileSkillMarkdown()], { type: "text/markdown" }),
@@ -107,7 +127,11 @@ export default function EditSkillPage({ params }: PageProps) {
       notify(`Changes saved for ${title}`)
       router.push(`/mvp/manage/${id}`)
     } catch (error) {
-      if (error instanceof ApiError) {
+      if (error instanceof ApiError && error.status === 400 && /^Invalid category:/.test(error.message)) {
+        setCategoryError(error.message)
+      } else if (error instanceof ApiError && /sourceUrl must be/.test(error.message)) {
+        setSourceUrlError(error.message)
+      } else if (error instanceof ApiError) {
         setFormError(error.status === 409 ? `Duplicate: ${error.message}` : error.message)
       } else {
         setFormError(error instanceof Error ? error.message : "Failed to save changes.")
@@ -214,6 +238,53 @@ export default function EditSkillPage({ params }: PageProps) {
                 />
               </div>
 
+              {/* Category & repository link */}
+              <div className="grid gap-4 sm:grid-cols-2 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
+                <div className="flex flex-col gap-1.5">
+                  <label className="flex items-center gap-1 text-xs font-bold text-muted-foreground uppercase">
+                    <IconCategory className="size-3.5" />
+                    Category
+                  </label>
+                  <NativeSelect
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    aria-invalid={Boolean(categoryError)}
+                    className="w-full rounded-full select-none"
+                  >
+                    <NativeSelectOption value="">Uncategorised</NativeSelectOption>
+                    {CATEGORIES.map((c) => (
+                      <NativeSelectOption key={c} value={c}>
+                        {c}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                  {categoryError && (
+                    <span className="text-xs font-semibold text-destructive">{categoryError}</span>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="flex items-center gap-1 text-xs font-bold text-muted-foreground uppercase">
+                    <IconLink className="size-3.5" />
+                    Repository Link
+                  </label>
+                  <Input
+                    type="url"
+                    placeholder="https://github.com/org/repo"
+                    value={sourceUrl}
+                    onChange={(e) => setSourceUrl(e.target.value)}
+                    aria-invalid={Boolean(sourceUrlError)}
+                    className="bg-background/50 text-sm rounded-full"
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    Optional. Accepts a GitHub, GitLab, or Bitbucket URL.
+                  </span>
+                  {sourceUrlError && (
+                    <span className="text-xs font-semibold text-destructive">{sourceUrlError}</span>
+                  )}
+                </div>
+              </div>
+
               {/* Visibility Selection blocks */}
               <div className="flex flex-col gap-2 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
                 <label className="text-xs font-bold text-muted-foreground uppercase">
@@ -250,9 +321,9 @@ export default function EditSkillPage({ params }: PageProps) {
                       <IconWorld className="size-4" />
                     </div>
                     <div>
-                      <span className="text-xs font-bold block">Public Hub</span>
+                      <span className="text-xs font-bold block">Request public listing</span>
                       <span className="text-xs leading-normal text-muted-foreground/80 block mt-0.5">
-                        Promote to Open Marketplace.
+                        Stays private to your org until an IronHub reviewer approves the listing.
                       </span>
                     </div>
                   </button>
