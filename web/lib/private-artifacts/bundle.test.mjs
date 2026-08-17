@@ -1,9 +1,15 @@
 import assert from "node:assert/strict"
+import { randomBytes } from "node:crypto"
 import test from "node:test"
 
 import { zipSync } from "fflate"
 
-import { inspectExtensionBundle, readBundleFile } from "./bundle.ts"
+import {
+  __setInflateInputChunkListenerForTests,
+  __setInflateOutputTotalListenerForTests,
+  inspectExtensionBundle,
+  readBundleFile,
+} from "./bundle.ts"
 import { MAX_CONTENT_BYTES_BY_KIND } from "./content.ts"
 import { buildRawZipArchive, crc32 as rawCrc32, encode } from "./zip-test-support.mjs"
 
@@ -101,12 +107,19 @@ test("readBundleFile reads back the resolved wasm module", () => {
   assert.deepEqual(Array.from(bytes), [0, 97, 115, 109, 1, 0, 0, 0])
 })
 
-test("readBundleFile throws a 400 Response for a path not in the zip", () => {
+test("readBundleFile throws a 400 Response for a path not in the zip", async () => {
   const zip = zipOf(baseFiles())
-  assert.throws(
-    () => readBundleFile(zip, "does/not/exist"),
-    (error) => error instanceof Response && error.status === 400
-  )
+  let threw = false
+  try {
+    readBundleFile(zip, "does/not/exist")
+  } catch (error) {
+    threw = true
+    assert.ok(error instanceof Response)
+    assert.equal(error.status, 400)
+    const text = await error.text()
+    assert.match(text, /^Zip entry not found: does\/not\/exist$/)
+  }
+  assert.ok(threw, "expected readBundleFile to throw")
 })
 
 test("__MACOSX/ and .DS_Store entries do not trip the wrapper or capabilities checks", () => {
@@ -477,10 +490,17 @@ test("a corrupted wasm module is caught during inspect itself (rule 3c), not def
   )
   // readBundleFile independently catches the same corruption -- the route
   // never trusts inspect and re-extracts from scratch.
-  assert.throws(
-    () => readBundleFile(zip, "wasm/test.wasm"),
-    (error) => error instanceof Response && error.status === 400
-  )
+  let threw = false
+  try {
+    readBundleFile(zip, "wasm/test.wasm")
+  } catch (error) {
+    threw = true
+    assert.ok(error instanceof Response)
+    assert.equal(error.status, 400)
+    const text = await error.text()
+    assert.match(text, /^Zip entry wasm\/test\.wasm does not match its declared size or checksum$/)
+  }
+  assert.ok(threw, "expected readBundleFile to throw")
 })
 
 // --- Zip64: full 64-bit declared sizes, only honoured with a locator ------
@@ -515,7 +535,7 @@ function assertNoLargeAllocation(before, after) {
   )
 }
 
-test("zip64 no-locator bomb: a lying small size in an ignored zip64 extra field is rejected, not honoured", () => {
+test("zip64 no-locator bomb: a lying small size in an ignored zip64 extra field is rejected, not honoured", async () => {
   // The wasm entry's fixed central-directory fields are the zip64 sentinel
   // (0xFFFFFFFF), and its zip64 extra field lies "100 bytes" -- but there is
   // no zip64 EOCD locator anywhere in the archive. fflate only ever
@@ -543,10 +563,17 @@ test("zip64 no-locator bomb: a lying small size in an ignored zip64 extra field 
   assert.ok(zip.length < 2000, `expected a tiny archive on the wire, got ${zip.length} bytes`)
 
   const before = process.memoryUsage()
-  assert.throws(
-    () => inspectExtensionBundle(zip),
-    (error) => error instanceof Response && error.status === 400
-  )
+  let threw = false
+  try {
+    inspectExtensionBundle(zip)
+  } catch (error) {
+    threw = true
+    assert.ok(error instanceof Response)
+    assert.equal(error.status, 400)
+    const text = await error.text()
+    assert.match(text, /^Zip archive is too large \(max 100MB uncompressed\)$/)
+  }
+  assert.ok(threw, "expected inspectExtensionBundle to throw")
   assertNoLargeAllocation(before, process.memoryUsage())
 })
 
@@ -571,7 +598,7 @@ test("zip64 no-locator bomb: rejection message is the total-uncompressed cap mes
   await assertRejection(zip, 400, /^Zip archive is too large \(max 100MB uncompressed\)$/)
 })
 
-test("zip64 no-locator, 'accepted' variant: declaring the entry's true (honest) size still gets rejected", () => {
+test("zip64 no-locator, 'accepted' variant: declaring the entry's true (honest) size still gets rejected", async () => {
   // Same no-locator shape, but the zip64 extra field declares its real,
   // honest size (not an arbitrary lie) -- proving the fix rejects because
   // there is no locator at all, regardless of what story the (ignored)
@@ -595,10 +622,17 @@ test("zip64 no-locator, 'accepted' variant: declaring the entry's true (honest) 
   })
 
   const before = process.memoryUsage()
-  assert.throws(
-    () => inspectExtensionBundle(zip),
-    (error) => error instanceof Response && error.status === 400
-  )
+  let threw = false
+  try {
+    inspectExtensionBundle(zip)
+  } catch (error) {
+    threw = true
+    assert.ok(error instanceof Response)
+    assert.equal(error.status, 400)
+    const text = await error.text()
+    assert.match(text, /^Zip archive is too large \(max 100MB uncompressed\)$/)
+  }
+  assert.ok(threw, "expected inspectExtensionBundle to throw")
   assertNoLargeAllocation(before, process.memoryUsage())
 })
 
@@ -778,5 +812,172 @@ test("rule 3c: a manifest.toml over content.ts's real D3 cap is rejected during 
     new RegExp(
       `^Content exceeds the ${MAX_CONTENT_BYTES_BY_KIND.manifest_toml / 1024}KB limit for manifest_toml$`
     )
+  )
+})
+
+// --- O(n^2) fix: input fed to the deflate decoder must be bounded by the --
+// entry's compressed size, not the whole archive remainder (blocker: a
+// legitimate multi-MB bundle in the natural tools/firecrawl layout --
+// manifest.toml, then wasm, then bulk prompts/schemas -- used to cost tens
+// of seconds of CPU per extracted entry, because every entry after the
+// first fed the *entire rest of the archive* to the decoder one 16KB chunk
+// at a time, and fflate's pending-input buffer is copied in full on every
+// push. A deterministic byte-count invariant is used here rather than
+// timing, so this cannot be flaky.
+
+// Deliberately not a simple repeating pattern (avoids one 16KB input chunk
+// decoding to an unrealistically huge output chunk and confusing the
+// byte-count assertions below with an extreme compression ratio).
+// A real CSPRNG, not a hand-rolled generator: a naive LCG (e.g.
+// `state = state * a + c`) has short-range bit correlations that DEFLATE's
+// LZ77 window exploits heavily -- an earlier version of this content
+// compressed 7.3MB down to ~45KB and, worse, decoded a single 16KB input
+// chunk into multiple MB of output in one synchronous call, which defeats
+// the point of these tests (they need per-chunk output roughly proportional
+// to per-chunk input to make the byte-count/peak-output assertions below
+// meaningful). crypto.randomBytes is incompressible in practice.
+function pseudoRandomBytes(length) {
+  return new Uint8Array(randomBytes(length))
+}
+
+test("O(n^2) fix: bytes fed to the deflate decoder are bounded by the entry's compressed size", () => {
+  const wasmContent = pseudoRandomBytes(50000)
+  // Several MB of bulk data placed *after* the target entry -- the natural
+  // tools/firecrawl layout (manifest.toml, wasm, then prompts/schemas), and
+  // exactly the shape that triggered the quadratic blowup: the bug only
+  // shows up when what remains after the target entry's data is much
+  // larger than the entry's own compressed data.
+  const bulk = pseudoRandomBytes(3 * 1024 * 1024)
+
+  const zip = buildRawZipArchive({
+    includeZip64Locator: false,
+    entries: [
+      { name: "manifest.toml", content: encode(manifestToml()), method: 0 },
+      {
+        name: "test-tool.capabilities.json",
+        content: encode(JSON.stringify({ version: "0.1.0" })),
+        method: 0,
+      },
+      { name: "wasm/test.wasm", content: wasmContent, method: 8 },
+      { name: "prompts/bulk.bin", content: bulk, method: 8 },
+    ],
+  })
+
+  let totalFed = 0
+  __setInflateInputChunkListenerForTests((byteLength) => {
+    totalFed += byteLength
+  })
+  let bytes
+  try {
+    bytes = readBundleFile(zip, "wasm/test.wasm")
+  } finally {
+    __setInflateInputChunkListenerForTests(null)
+  }
+
+  assert.deepEqual(Array.from(bytes), Array.from(wasmContent))
+  // Bounded by roughly the entry's own compressed data, plus at most a
+  // couple of 16KB input-chunking increments of slack -- not by the ~3MB of
+  // bulk data that follows it in the archive.
+  assert.ok(
+    totalFed < 200 * 1024,
+    `expected input fed (${totalFed} bytes) to be bounded by the entry's own compressed size, not the ~3MB archive remainder that follows it`
+  )
+})
+
+test("O(n^2) fix: inspecting a natural-layout multi-MB bundle stays fast (coarse timing guard, secondary to the byte-count assertion above)", () => {
+  const wasmContent = pseudoRandomBytes(1024 * 1024)
+  const bulk = pseudoRandomBytes(10 * 1024 * 1024)
+
+  const zip = buildRawZipArchive({
+    includeZip64Locator: false,
+    entries: [
+      { name: "manifest.toml", content: encode(manifestToml()), method: 0 },
+      {
+        name: "test-tool.capabilities.json",
+        content: encode(JSON.stringify({ version: "0.1.0" })),
+        method: 0,
+      },
+      { name: "wasm/test.wasm", content: wasmContent, method: 8 },
+      { name: "prompts/bulk.bin", content: bulk, method: 8 },
+    ],
+  })
+
+  const start = Date.now()
+  inspectExtensionBundle(zip)
+  const elapsed = Date.now() - start
+  // Generous threshold: the quadratic version took multiple *seconds* even
+  // on a ~9MB archive and tens of seconds on ~21MB. This only needs to
+  // catch a real regression, not assert a tight budget.
+  assert.ok(elapsed < 3000, `expected inspect to complete in well under 3s, took ${elapsed}ms`)
+})
+
+// --- Mutation guards: three D6 guards a prior review found had no test ----
+// that would fail if they were silently weakened or removed.
+
+test("mutation guard M3: a genuinely empty (zero-length) wasm module is rejected even though declared size/crc are self-consistent", async () => {
+  // declaredUncompressedSize defaults to content.length (0) and
+  // declaredCrc32 defaults to crc32(empty) (0) -- fully self-consistent
+  // with the real (also empty) content, so only an explicit zero-length
+  // check catches this, not the length/crc comparison.
+  const zip = buildRawZipArchive({
+    includeZip64Locator: false,
+    entries: [...rawBundleEntries(), { name: "wasm/test.wasm", content: new Uint8Array(0), method: 0 }],
+  })
+  await assertRejection(
+    zip,
+    400,
+    /^Zip entry wasm\/test\.wasm does not match its declared size or checksum$/
+  )
+})
+
+test("mutation guard M5: extraction budget is min(declared, cap), not declared alone -- peak accumulated output stays within the kind cap", async () => {
+  // An honest wasm entry whose declared AND real size both exceed the wasm
+  // per-kind cap. If the budget were `declared` alone (unclamped by
+  // maxBytes), extraction would accumulate output all the way up toward
+  // the full oversized content before any check fires. With the correct
+  // min(declared, cap) budget, accumulation must abort once it exceeds the
+  // cap, never growing much past cap + 1.
+  const oversized = pseudoRandomBytes(MAX_CONTENT_BYTES_BY_KIND.wasm + 2 * 1024 * 1024)
+
+  const zip = buildRawZipArchive({
+    includeZip64Locator: false,
+    entries: [
+      { name: "manifest.toml", content: encode(manifestToml()), method: 0 },
+      {
+        name: "test-tool.capabilities.json",
+        content: encode(JSON.stringify({ version: "0.1.0" })),
+        method: 0,
+      },
+      { name: "wasm/test.wasm", content: oversized, method: 8 },
+    ],
+  })
+
+  let peakOutput = 0
+  __setInflateOutputTotalListenerForTests((total) => {
+    if (total > peakOutput) peakOutput = total
+  })
+  let threw = false
+  try {
+    inspectExtensionBundle(zip)
+  } catch (error) {
+    threw = true
+    assert.ok(error instanceof Response)
+    assert.equal(error.status, 400)
+    const text = await error.text()
+    assert.match(text, /^Content exceeds the 5MB limit for wasm$/)
+  } finally {
+    __setInflateOutputTotalListenerForTests(null)
+  }
+  assert.ok(threw, "expected inspectExtensionBundle to throw")
+
+  // Slack accounts for 16KB input-chunk granularity against low-entropy
+  // pseudo-random content (a few chunks' worth of overshoot, at most), not
+  // for accumulating anywhere close to the full ~7.2MB of real content --
+  // if the mutation this guards against were reintroduced, peakOutput would
+  // grow to within a chunk of the full oversized.length (2MB above this
+  // tolerance), so this assertion would fail.
+  assert.ok(
+    peakOutput <= MAX_CONTENT_BYTES_BY_KIND.wasm + 64 * 1024,
+    `expected peak accumulated output (${peakOutput} bytes) to stay near the wasm cap (${MAX_CONTENT_BYTES_BY_KIND.wasm} bytes), not grow toward the full declared/real size (${oversized.length} bytes)`
   )
 })

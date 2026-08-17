@@ -355,6 +355,33 @@ function findLocalDataOffset(zip: Uint8Array, localHeaderOffset: number): number
 
 const INFLATE_INPUT_CHUNK_SIZE = 16 * 1024
 
+// fflate's `Inflate.push` appends each pushed chunk to an internal pending
+// buffer with a full copy (`Inflate.prototype.e`), and only drops bytes it
+// has actually consumed. Once the real DEFLATE stream's final block has been
+// fully decoded, nothing more is ever consumed -- so continuing to push
+// chunks after that point grows that pending buffer by one chunk on every
+// call while copying the *entire* accumulated buffer each time: O(chunks^2)
+// in however much input we keep feeding. Bounding total input (see
+// extractVerifiedEntry) fixes this for a legitimate entry whose declared
+// compressed size is honest and small; it does not fix it for an entry
+// whose declared compressed size is large (honestly or as a lie clamped by
+// the archive's own cap), where we would otherwise keep feeding chunks all
+// the way to that bound even though the real stream finished long ago. This
+// reads fflate's own internal completion state after every push to stop as
+// soon as that happens, regardless of how much of the input bound remains.
+// `f` (BFINAL, the last-block bit) and `l` (pending literal/length tree
+// state) together are exactly the condition `inflt` itself checks to
+// short-circuit (`st.f && !st.l`); once both hold, further pushes are
+// provably no-ops. This couples to a private, unexported part of fflate's
+// implementation -- if a future fflate version changes this shape, the
+// worst case is falling back to the bound alone (still correct, just not
+// early-exiting), never a correctness regression.
+type InflateInternalState = { f?: number; l?: unknown }
+function isInflateComplete(inflator: Inflate): boolean {
+  const state = (inflator as unknown as { s?: InflateInternalState }).s
+  return Boolean(state?.f) && !state?.l
+}
+
 /**
  * Inflates `compressed` through fflate's streaming `Inflate` decoder, fed in
  * small input chunks, checking the running *output* total after every chunk
@@ -372,12 +399,37 @@ const INFLATE_INPUT_CHUNK_SIZE = 16 * 1024
  * 258-byte max match length allow (in the tens of MB, not GB), and this
  * function stops feeding further chunks as soon as one check fails.
  *
- * Extra bytes fed after the real DEFLATE stream's internal final-block
- * marker are silently ignored by the decoder (verified empirically), so it
- * is safe to feed the whole remainder of the archive buffer as available
- * input without knowing where the real compressed data actually ends --
- * the declared compressed size is not trusted for this either.
+ * `compressed` is expected to already be bounded to (approximately) the
+ * entry's real compressed length by the caller -- see extractVerifiedEntry
+ * and the O(n^2) note on isInflateComplete above for why this function must
+ * not be handed an unbounded remainder "just in case" the real stream ends
+ * early.
  */
+// Test-only instrumentation: lets bundle.test.mjs verify the O(n^2) input-
+// feeding fix (total bytes fed to the deflate decoder must be bounded by
+// the entry's declared compressed size, not the whole archive remainder)
+// as a deterministic byte-count invariant rather than a wall-clock timing
+// guard. A no-op unless a test explicitly installs a listener; never called
+// with a listener installed outside tests.
+let onInflateInputChunk: ((byteLength: number) => void) | null = null
+export function __setInflateInputChunkListenerForTests(
+  listener: ((byteLength: number) => void) | null
+): void {
+  onInflateInputChunk = listener
+}
+
+// Test-only instrumentation: lets bundle.test.mjs verify the extraction
+// budget is actually min(declaredSize, maxBytes) and not declaredSize alone
+// -- reports the running accumulated-output total, so a test can assert its
+// peak never exceeds a given kind's cap even when the entry honestly
+// declares (and truly contains) more than that.
+let onInflateOutputTotal: ((total: number) => void) | null = null
+export function __setInflateOutputTotalListenerForTests(
+  listener: ((total: number) => void) | null
+): void {
+  onInflateOutputTotal = listener
+}
+
 function inflateBounded(
   compressed: Uint8Array,
   boundBytes: number
@@ -389,6 +441,7 @@ function inflateBounded(
   const inflator = new Inflate((chunk) => {
     if (overflowed || chunk.length === 0) return
     total += chunk.length
+    onInflateOutputTotal?.(total)
     if (total > boundBytes) {
       overflowed = true
       return
@@ -400,6 +453,7 @@ function inflateBounded(
     if (overflowed) break
     const end = Math.min(i + INFLATE_INPUT_CHUNK_SIZE, compressed.length)
     const isFinal = end >= compressed.length
+    onInflateInputChunk?.(end - i)
     try {
       inflator.push(compressed.subarray(i, end), isFinal)
     } catch {
@@ -408,6 +462,10 @@ function inflateBounded(
       overflowed = true
       break
     }
+    if (overflowed) break
+    // The real stream is fully decoded -- stop feeding further input chunks
+    // even though more of our (already-bounded) input remains.
+    if (isInflateComplete(inflator)) break
   }
 
   if (overflowed) {
@@ -473,7 +531,20 @@ function extractVerifiedEntry(
     // for allocation (see inflateBounded's docblock).
     const budget = Math.min(entry.uncompressedSize, maxBytes)
     const boundBytes = budget + 1
-    const input = zip.subarray(dataStart, zip.length)
+    // Bound *input* to the entry's declared compressed size too (clamped to
+    // what's actually left in the buffer) rather than feeding the entire
+    // remainder of the archive. This is safe as an input upper bound only:
+    // input is already capped by the archive's own 25MB compressed-size cap
+    // (rule 2) regardless, and under-feeding a lying/short compressedSize
+    // just produces incomplete output that fails the length/crc check below
+    // -- it fails closed, same as every other mismatch here. It is NOT safe
+    // to skip this and rely on inflateBounded's own early-stop alone: that
+    // stops once the real stream completes, but every chunk fed before that
+    // point still costs a full pending-buffer copy (see the O(n^2) note on
+    // isInflateComplete), so feeding "the rest of the archive" by default
+    // turns one legitimate large bundle into tens of seconds of CPU.
+    const inputEnd = Math.min(dataStart + entry.compressedSize, zip.length)
+    const input = zip.subarray(dataStart, Math.max(inputEnd, dataStart))
     const result = inflateBounded(input, boundBytes)
     if (result.overflowed) {
       throw badRequest(describeMismatch(entry))
