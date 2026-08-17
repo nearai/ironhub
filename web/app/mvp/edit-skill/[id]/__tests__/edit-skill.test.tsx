@@ -205,6 +205,78 @@ describe("edit-skill content loading", () => {
     await waitFor(() => {
       expect(putCalls.length).toBe(1)
     })
+
+    // NB2c: pin the repair-path outcome rather than leaving it unexamined.
+    // Editing the fence in place (instead of deleting it) produces a
+    // double-fenced file -- the old frontmatter is now inert text inside
+    // the body, not real frontmatter -- but nothing is lost and it's
+    // stable (reparses cleanly, doesn't degrade further on a later save).
+    // This is the accepted, documented outcome; the banner's "or delete
+    // the old fence" guidance is the way to avoid it.
+    const uploadedText = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result))
+      reader.onerror = () => reject(reader.error)
+      reader.readAsText(putCalls[0].body)
+    })
+    const expectedBytes = [
+      "---",
+      "name: my-skill",
+      "version: 1.0.0",
+      "description: Handles auth.",
+      "value_prop: Auth made easy.",
+      "---",
+      "---",
+      "name: s",
+      'description: "Handles auth: login and logout"',
+      "use_cases:",
+      "  - Log a user in",
+      "---",
+      "",
+      "Body.",
+    ].join("\n")
+    expect(uploadedText).toBe(expectedBytes)
+  })
+
+  // NB2b regression: a *healthy* file must never be locked out by text the
+  // user types afterward. Documenting a frontmatter example inside a
+  // skill's own instructions is ordinary content for this kind of editor.
+  it("does not block saving when the user types a --- fence into the body of an otherwise valid, loaded file", async () => {
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/artifact-1") {
+        return new Response(JSON.stringify({ artifact }), { status: 200 })
+      }
+      if (url === "/api/private-artifacts/artifact-1/content/skill_md") {
+        return new Response(storedFileWithUnknownKey, {
+          status: 200,
+          headers: { "Content-Type": "text/markdown; charset=utf-8" },
+        })
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    await renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /save & publish/i })).not.toBeDisabled()
+      expect(screen.getByDisplayValue("Does the thing.")).toBeInTheDocument()
+    })
+
+    const bodyField = screen.getByPlaceholderText(/describe how the agent should act/i)
+    // A user documenting a frontmatter example at the *top* of the body --
+    // parseSkillMd only looks for a fence at position 0, so this has to be
+    // the very first thing in the textarea to reproduce NB2b. The example
+    // (unquoted colon-in-value) would fail to parse in isolation, but the
+    // *stored* file loaded cleanly, so this must not block saving.
+    fireEvent.change(bodyField, {
+      target: {
+        value: "---\nUsage: run it like: this\n---\n\n## Persona\n\nBe helpful.",
+      },
+    })
+
+    expect(screen.queryByText(/frontmatter couldn.t be parsed/i)).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /save & publish/i })).not.toBeDisabled()
   })
 
   it("treats a 404 (no content row yet) as a safe, savable empty state -- not a load failure", async () => {

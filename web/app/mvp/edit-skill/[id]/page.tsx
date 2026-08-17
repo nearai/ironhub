@@ -237,14 +237,25 @@ export default function EditSkillPage({ params }: PageProps) {
   // `custom_owner_note`-style unknown keys stop being keys at all, now
   // just inert text inside the body). Block saving until that's fixed.
   //
-  // Deriving this from the *current* markdownContent (not the originally
-  // fetched skillContent.data) is what makes the block liftable: the user
-  // can fix the YAML directly in the body textarea (it's right there,
-  // editable), and the moment it re-parses cleanly this flips back to
-  // false. Deriving it from the fetched data instead would make this a
-  // permanent dead end -- the fetched value never changes, so a block
-  // based on it could never lift.
-  const fenceParseFailed = parseSkillMd(markdownContent).fenceParseFailed === true
+  // Deriving this *only* from the current markdownContent would make the
+  // block liftable but also fireable on a file that loaded perfectly
+  // fine: the user can type their own `---`-delimited example into the
+  // body (documenting frontmatter usage is an ordinary thing to write in
+  // a skill's instructions), and that alone would grey out Save with a
+  // banner that falsely claims the *stored* frontmatter is unparseable.
+  // Deriving it *only* from the originally fetched skillContent.data would
+  // make the block permanent (see NB2 above) -- the fetched value never
+  // changes, so a block based solely on it could never lift.
+  //
+  // Require both: the fence must have been broken at load (so a healthy
+  // file can never trigger this, no matter what the user types afterward)
+  // *and* still broken in the current body (so fixing it in place lifts
+  // the block).
+  const loadedFenceFailed =
+    skillContent.data !== undefined &&
+    parseSkillMd(skillContent.data ?? "").fenceParseFailed === true
+  const fenceParseFailed =
+    loadedFenceFailed && parseSkillMd(markdownContent).fenceParseFailed === true
   const contentReady = skillContent.data !== undefined && !fenceParseFailed
   const contentFailed = skillContent.isError && skillContent.data === undefined
   // Informational, not an error: no skill_md has ever been stored for this
@@ -345,8 +356,11 @@ export default function EditSkillPage({ params }: PageProps) {
             The stored SKILL.md&apos;s frontmatter couldn&apos;t be parsed as valid YAML -- it&apos;s
             shown as-is at the top of the body below. Saving is disabled until it&apos;s fixed: the
             fields above would save as blank (and any custom keys as plain text, not real
-            frontmatter) until the YAML in the body is corrected. Edit the fence directly in the
-            body text to fix it -- nothing will be deleted, saving just stays off until it parses.
+            frontmatter) until the YAML in the body is corrected. You can fix the YAML directly in
+            the body text below, or for a cleaner result, delete that old fence from the body
+            entirely and re-enter its values in the fields above -- editing in place keeps the old
+            fence as inert text once fixed, while deleting it lets the form fields become the real
+            frontmatter again.
           </span>
         </div>
       )}
