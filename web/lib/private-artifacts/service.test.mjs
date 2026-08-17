@@ -229,6 +229,35 @@ test("updatePrivateArtifact applies the same sourceUrl restriction", async () =>
   )
 })
 
+test("createPrivateArtifact rejects a sourceUrl with a non-default port", async () => {
+  await assert.rejects(
+    () =>
+      createPrivateArtifact(
+        "org-1",
+        "user-1",
+        baseCreateInput({
+          name: "repo-port",
+          sourceUrl: "https://github.com:8443/org/repo",
+        })
+      ),
+    (error) => error instanceof Response && error.status === 400
+  )
+})
+
+test("updatePrivateArtifact returns the artifact's content summary like publish/unpublish do", async () => {
+  const seeded = seedArtifact({
+    id: "patch-includes-content",
+    content: [{ kind: "wasm" }],
+  })
+  const artifact = await updatePrivateArtifact("org-1", seeded.id, {
+    title: "Renamed",
+  })
+  assert.deepEqual(
+    artifact.content.map((c) => c.kind),
+    ["wasm"]
+  )
+})
+
 // --- publish / unpublish lifecycle --------------------------------------
 
 test("publishPrivateArtifact is blocked by a missing category", async () => {

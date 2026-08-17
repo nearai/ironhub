@@ -1,6 +1,16 @@
 import assert from "node:assert/strict"
 import { mock, test } from "node:test"
 
+// Grab the real constant before mocking the module below, so the route's
+// "unknown/immutable field" rejection is checked against what service.ts
+// actually allows today. A hand-copied array literal here would silently
+// drift from the real list — e.g. someone adds "status" to
+// MUTABLE_ARTIFACT_FIELDS and this suite would keep passing against a
+// stale copy that never had "status" in it.
+const { MUTABLE_ARTIFACT_FIELDS: realMutableArtifactFields } = await import(
+  "@/lib/private-artifacts/service"
+)
+
 const updateCalls = []
 
 mock.module("@/lib/auth/org-context", {
@@ -29,12 +39,9 @@ mock.module("@/lib/http/api", {
   },
 })
 
-// Real allow-list from service.ts — the route's "unknown/immutable field"
-// rejection is only meaningful if it's checked against the real list, not a
-// hand-rolled stand-in that could drift from what service.ts actually allows.
 mock.module("@/lib/private-artifacts/service", {
   namedExports: {
-    MUTABLE_ARTIFACT_FIELDS: ["title", "description", "visibility", "sourceUrl", "category"],
+    MUTABLE_ARTIFACT_FIELDS: realMutableArtifactFields,
     deletePrivateArtifact: async () => ({ id: "artifact-1" }),
     getPrivateArtifact: async () => ({ id: "artifact-1", organizationId: "org-1" }),
     updatePrivateArtifact: async (organizationId, id, patch) => {

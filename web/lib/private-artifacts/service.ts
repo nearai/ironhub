@@ -144,9 +144,14 @@ export async function updatePrivateArtifact(
     data.visibility = assertEnum(input.visibility, VISIBILITIES, "visibility")
   }
 
+  // publishPrivateArtifact/unpublishPrivateArtifact both include content in
+  // their response; align PATCH so a client caching artifact responses by
+  // shape doesn't silently lose `content` depending on which endpoint it
+  // last hit.
   return prisma.privateArtifact.update({
     where: { id: artifact.id },
     data,
+    include: { content: { select: CONTENT_SUMMARY_SELECT } },
   })
 }
 
@@ -158,13 +163,31 @@ export async function deletePrivateArtifact(organizationId: string, id: string) 
 
 /**
  * Publishing requires the same content completeness the install-link token
- * already enforces, plus a category so the artifact can be browsed/filtered
- * once public. Both preconditions fail with 409 naming what's missing;
- * `status` never advances past `draft` until they hold.
+ * enforces via assertArtifactContentComplete, plus a category so the
+ * artifact can be browsed/filtered once public. Both preconditions fail
+ * with 409 naming what's missing; `status` never advances past `draft`
+ * until they hold. Completeness is computed from the content list
+ * getPrivateArtifact already loaded rather than re-querying it (that
+ * second query is what assertArtifactContentComplete does for callers,
+ * like the token route, that don't already have the artifact in hand).
  */
 export async function publishPrivateArtifact(organizationId: string, id: string) {
   const artifact = await getPrivateArtifact(organizationId, id)
-  await assertArtifactContentComplete(organizationId, id)
+
+  const required = requiredContentKindsFor(artifact.type)
+  if (!required) {
+    throw new Response(`Unsupported artifact type: ${artifact.type}`, {
+      status: 409,
+    })
+  }
+  const presentKinds = new Set(artifact.content.map((c) => c.kind))
+  const missing = required.filter((kind) => !presentKinds.has(kind))
+  if (missing.length > 0) {
+    throw new Response(
+      `Artifact is missing required content: ${missing.join(", ")}`,
+      { status: 409 }
+    )
+  }
   if (!artifact.category) {
     throw new Response("Artifact cannot be published: category is not set", {
       status: 409,
@@ -193,10 +216,17 @@ const REQUIRED_CONTENT_KINDS_BY_TYPE: Record<string, readonly string[]> = {
   skill: ["skill_md"],
 }
 
+function requiredContentKindsFor(type: string): readonly string[] | undefined {
+  return REQUIRED_CONTENT_KINDS_BY_TYPE[type]
+}
+
 /**
  * Verifies the artifact has every content kind required by its type before
  * an install-link token is minted, so a token is never handed out for a
- * manifest fetch that is guaranteed to fail.
+ * manifest fetch that is guaranteed to fail. Callers that already hold the
+ * artifact's content list (e.g. publishPrivateArtifact) should check
+ * requiredContentKindsFor() against it directly instead of calling this —
+ * it always re-fetches.
  */
 export async function assertArtifactContentComplete(
   organizationId: string,
@@ -210,7 +240,7 @@ export async function assertArtifactContentComplete(
     throw new Response("Artifact not found", { status: 404 })
   }
 
-  const required = REQUIRED_CONTENT_KINDS_BY_TYPE[artifact.type]
+  const required = requiredContentKindsFor(artifact.type)
   if (!required) {
     throw new Response(`Unsupported artifact type: ${artifact.type}`, {
       status: 409,
@@ -258,7 +288,7 @@ export async function getArtifactChecks(
   }
 
   const presentKinds = new Set(artifact.content.map((c) => c.kind))
-  const required = REQUIRED_CONTENT_KINDS_BY_TYPE[artifact.type] ?? []
+  const required = requiredContentKindsFor(artifact.type) ?? []
   const missing = required.filter((kind) => !presentKinds.has(kind))
 
   const checks: ArtifactCheck[] = [
@@ -408,25 +438,20 @@ async function checkCapabilitiesValidJson(
     }
   }
 
-  const content = await prisma.privateArtifactContent.findFirst({
-    where: { artifactId, kind: "capabilities", artifact: { organizationId } },
-    select: { storageKey: true },
-  })
-  if (!content) {
-    // Only reachable if the row was deleted between the two queries.
-    return {
-      id: "capabilities_valid_json",
-      label,
-      status: "warn",
-      detail: "No capabilities content is stored, so it could not be checked.",
-    }
-  }
-
-  // An unreachable object store is an infrastructure problem, not corrupt
-  // data — reporting it as `fail` would tell the owner their file is broken
-  // when it is fine, so the two failures stay distinguishable.
+  // A content row that vanished between the presence check above and here
+  // (race) and an unreachable object store are both infrastructure/timing
+  // problems, not corrupt data — reporting either as `fail` would tell the
+  // owner their file is broken when it is fine, so this stays a single
+  // "could not verify" path distinguishable from an actual parse failure.
   let bytes: Buffer
   try {
+    const content = await prisma.privateArtifactContent.findFirst({
+      where: { artifactId, kind: "capabilities", artifact: { organizationId } },
+      select: { storageKey: true },
+    })
+    if (!content) {
+      throw new Error("capabilities content row not found")
+    }
     bytes = await streamToBuffer(await getObjectStream(content.storageKey))
   } catch (error) {
     console.error(
@@ -549,10 +574,13 @@ function assertHttpUrl(value: string, field: string) {
 
   // Reject embedded credentials: `https://looks-legit.com@github.com/x` passes
   // the host check but renders with an attacker-chosen prefix wherever the URL
-  // is shown as link text.
+  // is shown as link text. Reject a non-default port too — `hostname` drops
+  // it, so `https://github.com:8443/o/r` would otherwise pass the host check
+  // while pointing somewhere github.com does not control.
   const host = parsed.hostname.replace(/^www\./, "")
   if (
     parsed.protocol !== "https:" ||
+    parsed.port !== "" ||
     parsed.username !== "" ||
     parsed.password !== "" ||
     !ALLOWED_SOURCE_URL_HOSTS.has(host)
