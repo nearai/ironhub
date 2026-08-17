@@ -39,7 +39,14 @@ export function FormSection({
             </span>
           )}
           <div>
-            <h2 className="text-base font-medium text-foreground">{title}</h2>
+            <h2 className="text-base font-medium text-foreground">
+              {/* The numbered badge is decorative; the number reaches assistive
+                  technology here, where it stays attached to the heading. */}
+              {typeof step === "number" && (
+                <span className="sr-only">{`Step ${step}: `}</span>
+              )}
+              {title}
+            </h2>
             {description && (
               <p className="mt-1 text-sm text-muted-foreground">{description}</p>
             )}
