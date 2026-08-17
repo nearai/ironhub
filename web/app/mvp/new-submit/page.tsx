@@ -1,12 +1,19 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { ApiError, uploadContent } from "@/features/partner/api/client"
-import { useCreateArtifact } from "@/features/partner/api/artifacts"
+import {
+  describeArtifactSaveError,
+  useCreateArtifact,
+  useInspectBundle,
+  useUploadArtifactBundle,
+} from "@/features/partner/api/artifacts"
 import { useToast } from "@/features/partner/store/toast-provider"
+import { VisibilitySelector } from "@/features/partner/components/visibility-selector"
+import { CategoryAndRepoFields } from "@/features/partner/components/category-repo-fields"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -14,8 +21,6 @@ import {
   IconArrowLeft,
   IconUpload,
   IconFileZip,
-  IconLock,
-  IconWorld,
   IconPlus,
   IconTrash,
   IconTool,
@@ -25,6 +30,7 @@ import {
   IconCopy,
   IconCheck,
   IconLoader2,
+  IconAlertTriangle,
 } from "@tabler/icons-react"
 
 function slugify(value: string) {
@@ -36,11 +42,30 @@ function slugify(value: string) {
   )
 }
 
+/**
+ * Prefills the artifact-name field from a manifest.toml `id`, replacing only
+ * what the server's artifact-name charset (`service.ts`:
+ * `/^[a-z0-9][a-z0-9_-]*$/`) actually forbids. Unlike `slugify()` above —
+ * which is fine for deriving a name from a free-typed human title — this
+ * must NOT collapse `_`, since underscores are legal in both the manifest-id
+ * charset (D6 rule 8) and the artifact-name charset. Only `.` and other
+ * truly illegal characters get replaced.
+ */
+function sanitizeArtifactName(id: string) {
+  const cleaned = id
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/^[-_]+|[-_]+$/g, "")
+  return cleaned || "item"
+}
+
 export default function NewSubmitPage() {
   const router = useRouter()
   const { notify } = useToast()
   const queryClient = useQueryClient()
   const createArtifact = useCreateArtifact()
+  const inspectBundle = useInspectBundle()
+  const uploadArtifactBundle = useUploadArtifactBundle()
 
   // High-level type selector: default to "skill" first!
   const [type, setType] = useState<"tool" | "skill">("skill")
@@ -49,11 +74,22 @@ export default function NewSubmitPage() {
   const [title, setTitle] = useState("")
   const [version, setVersion] = useState("1.0.0")
   const [visibility, setVisibility] = useState<"public" | "private">("private")
+  const [category, setCategory] = useState("")
+  const [sourceUrl, setSourceUrl] = useState("")
+  const [categoryError, setCategoryError] = useState<string | null>(null)
+  const [sourceUrlError, setSourceUrlError] = useState<string | null>(null)
 
   // Tool specific states
   const [description, setDescription] = useState("")
-  const [wasmFile, setWasmFile] = useState<File | null>(null)
-  const [capabilitiesText, setCapabilitiesText] = useState('{\n  "permissions": []\n}\n')
+  const [artifactName, setArtifactName] = useState("")
+  const [zipFile, setZipFile] = useState<File | null>(null)
+  const [inspectedManifest, setInspectedManifest] = useState<{
+    name: string
+    id: string
+    version: string
+    description: string
+  } | null>(null)
+  const [bundleError, setBundleError] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
 
   // Skill specific states
@@ -72,6 +108,19 @@ export default function NewSubmitPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [uploadStatus, setUploadStatus] = useState<Record<string, "pending" | "uploading" | "done" | "error">>({})
+
+  // Bumped on every zip selection so a slow-to-resolve inspect from a
+  // previously selected file can't overwrite state after a faster-resolving
+  // later selection — only the most recent request's result is applied.
+  const inspectRequestIdRef = useRef(0)
+
+  const resetToolBundleState = () => {
+    inspectRequestIdRef.current += 1
+    setZipFile(null)
+    setInspectedManifest(null)
+    setBundleError(null)
+    setArtifactName("")
+  }
 
   // Handlers for Skill Use Cases list
   const handleAddUseCase = () => {
@@ -152,7 +201,7 @@ export default function NewSubmitPage() {
     }
   }
 
-  // Drag and drop handlers for Tool WASM
+  // Drag and drop handlers for the extension bundle zip
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
     setDragOver(true)
@@ -162,61 +211,78 @@ export default function NewSubmitPage() {
     setDragOver(false)
   }
 
-  const acceptWasmFile = (file: File) => {
-    if (!file.name.endsWith(".wasm")) {
-      notify("Only .wasm files are accepted", "error")
+  const acceptZipFile = async (file: File) => {
+    const requestId = ++inspectRequestIdRef.current
+    setBundleError(null)
+    setInspectedManifest(null)
+
+    if (!file.name.toLowerCase().endsWith(".zip")) {
+      setBundleError("Only .zip archives are accepted.")
+      setZipFile(null)
       return
     }
-    setWasmFile(file)
-    if (!title) {
-      const cleanName = file.name.replace(".wasm", "")
-      setTitle(cleanName.charAt(0).toUpperCase() + cleanName.slice(1))
+
+    setZipFile(file)
+
+    try {
+      const result = await inspectBundle.mutateAsync(file)
+      // A newer selection was made while this inspect was in flight —
+      // discard this stale result so it can't overwrite the newer one.
+      if (inspectRequestIdRef.current !== requestId) return
+      setInspectedManifest(result.manifest)
+      setTitle(result.manifest.name)
+      // manifest.toml `id` (D6 rule 8) allows `.` alongside lowercase
+      // alphanumerics and `_`/`-` — the artifact-name charset allows `_`/`-`
+      // but not `.`. Only strip what's actually illegal for this field, so
+      // e.g. "acme.firecrawl_tool" becomes "acme-firecrawl_tool", not a
+      // fully slugified name that would also destroy the legal underscore.
+      // The manifest's own `id` is left untouched in the stored file.
+      setArtifactName(sanitizeArtifactName(result.manifest.id))
+      setVersion(result.manifest.version)
+      setDescription(result.manifest.description)
+      notify(`Inspected package: ${file.name}`, "info")
+    } catch (error) {
+      if (inspectRequestIdRef.current !== requestId) return
+      setBundleError(
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Failed to inspect archive."
+      )
+      setInspectedManifest(null)
     }
-    notify(`Selected package: ${file.name}`, "info")
   }
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setDragOver(false)
     const file = e.dataTransfer.files[0]
-    if (file) acceptWasmFile(file)
+    if (file) void acceptZipFile(file)
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) acceptWasmFile(file)
+    if (file) void acceptZipFile(file)
   }
 
-  const mapApiError = (error: unknown): string => {
-    if (error instanceof ApiError) {
-      if (error.status === 409) return `Duplicate: ${error.message}`
-      if (error.status === 413) return "File is too large (5MB limit)."
-      if (error.status === 400) return error.message
-      return error.message
-    }
-    return error instanceof Error ? error.message : "Something went wrong."
-  }
+  const bundleReadyForSubmit = Boolean(zipFile && inspectedManifest && !bundleError)
 
   // Form submit handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
+    setCategoryError(null)
+    setSourceUrlError(null)
 
-    if (type === "tool" && !wasmFile) {
-      setFormError("A .wasm file is required for tools.")
+    if (type === "tool" && !bundleReadyForSubmit) {
+      setFormError("Upload and inspect a valid extension .zip before submitting.")
       return
     }
-    if (type === "tool") {
-      try {
-        JSON.parse(capabilitiesText)
-      } catch {
-        setFormError("Capabilities must be valid JSON.")
-        return
-      }
-    }
 
-    const finalTitle = title || (type === "skill" ? "Untitled Skill" : wasmFile?.name.replace(".wasm", "") || "Uploaded Tool")
-    const name = slugify(finalTitle)
+    const finalTitle =
+      title || (type === "skill" ? "Untitled Skill" : inspectedManifest?.name || "Uploaded Tool")
+    const name = type === "tool" ? artifactName || slugify(finalTitle) : slugify(finalTitle)
 
     setIsSubmitting(true)
     setUploadStatus({})
@@ -231,52 +297,74 @@ export default function NewSubmitPage() {
         version: version || "1.0.0",
         visibility,
         description: type === "tool" ? description : valueProp,
+        category: category || null,
+        // Unlike edit forms (which must be able to send an explicit `null`
+        // to clear an existing value), create has nothing to clear — an
+        // absent key and a stored `null` are equivalent here.
+        sourceUrl: sourceUrl.trim() || undefined,
       })
       createdArtifactId = artifact.id
 
-      const put = async (kind: "wasm" | "capabilities" | "skill_md", file: Blob) => {
-        setUploadStatus((prev) => ({ ...prev, [kind]: "uploading" }))
+      if (type === "tool") {
+        // Unreachable in practice — the submit button is disabled unless
+        // bundleReadyForSubmit (which requires zipFile) is true — but this
+        // narrows the type properly instead of asserting it with a cast.
+        if (!zipFile) {
+          throw new Error("No archive selected.")
+        }
+        setUploadStatus((prev) => ({ ...prev, bundle: "uploading" }))
         try {
-          await uploadContent(`/api/private-artifacts/${artifact.id}/content/${kind}`, file)
-          setUploadStatus((prev) => ({ ...prev, [kind]: "done" }))
+          await uploadArtifactBundle.mutateAsync({ id: artifact.id, bytes: zipFile })
+          setUploadStatus((prev) => ({ ...prev, bundle: "done" }))
         } catch (uploadError) {
-          setUploadStatus((prev) => ({ ...prev, [kind]: "error" }))
+          setUploadStatus((prev) => ({ ...prev, bundle: "error" }))
+          throw uploadError
+        }
+      } else {
+        setUploadStatus((prev) => ({ ...prev, skill_md: "uploading" }))
+        try {
+          // The freshly-created artifact id isn't known until this point, so
+          // this uses the raw client helper rather than a bound mutation hook.
+          await uploadContent(
+            `/api/private-artifacts/${artifact.id}/content/skill_md`,
+            new Blob([compileSkillMarkdown()], { type: "text/markdown" })
+          )
+          setUploadStatus((prev) => ({ ...prev, skill_md: "done" }))
+        } catch (uploadError) {
+          setUploadStatus((prev) => ({ ...prev, skill_md: "error" }))
           throw uploadError
         }
       }
 
-      if (type === "tool") {
-        if (wasmFile) await put("wasm", wasmFile)
-        await put("capabilities", new Blob([capabilitiesText], { type: "application/json" }))
-      } else {
-        await put(
-          "skill_md",
-          new Blob([compileSkillMarkdown()], { type: "text/markdown" })
-        )
-      }
-
-      // Uploads went through the raw client helper (not the React Query
-      // mutation hooks), so the artifacts list cache is stale until we
-      // invalidate it explicitly.
+      // The skill_md path went through the raw client helper (not a React
+      // Query mutation hook), so the artifacts list cache is stale until we
+      // invalidate it explicitly. (The tool/bundle path already invalidated
+      // via useUploadArtifactBundle's onSuccess — this is a harmless no-op
+      // refetch for that case.)
       queryClient.invalidateQueries({ queryKey: ["private-artifacts"] })
 
       notify(`Created ${type}: ${finalTitle}`)
       router.push("/mvp/dashboard")
     } catch (error) {
       if (createdArtifactId) {
-        // The artifact row was created but at least one content upload
-        // failed partway through. Retrying "Add to Space" as-is would just
-        // 409 on the name+version we already claimed, so send the user to
-        // the manage page to finish the upload instead of leaving them
-        // stuck on a dead-end form.
+        // The artifact row was created but the content upload failed partway
+        // through. Retrying "Add to Space" as-is would just 409 on the
+        // name+version we already claimed, so send the user to the manage
+        // page to finish the upload instead of leaving them stuck on a
+        // dead-end form. Surface the server's actual reason rather than a
+        // generic sentence — a 400 from re-validation, a 413, or a 409 all
+        // deserve to be seen.
         notify(
-          `${finalTitle} was created but a file failed to upload. Finish the upload from the item's Manage page.`,
+          `${finalTitle} was created, but the upload failed: ${describeArtifactSaveError(error).message} Finish the upload from the item's Manage page.`,
           "error"
         )
         queryClient.invalidateQueries({ queryKey: ["private-artifacts"] })
         router.push(`/mvp/manage/${createdArtifactId}`)
       } else {
-        setFormError(mapApiError(error))
+        const described = describeArtifactSaveError(error)
+        if (described.field === "category") setCategoryError(described.message)
+        else if (described.field === "sourceUrl") setSourceUrlError(described.message)
+        else setFormError(described.message)
       }
     } finally {
       setIsSubmitting(false)
@@ -303,7 +391,7 @@ export default function NewSubmitPage() {
               Add new Item
             </h1>
             <p className="text-xs text-muted-foreground leading-relaxed max-w-xl">
-              Register a new custom AI prompt-based skill or packaged WASM tool for your organization catalog.
+              Register a new custom AI prompt-based skill or packaged extension for your organization catalog.
             </p>
           </div>
 
@@ -317,6 +405,9 @@ export default function NewSubmitPage() {
                 setVersion("1.0.0")
                 setActiveTab("edit")
                 setFormError(null)
+                setCategoryError(null)
+                setSourceUrlError(null)
+                resetToolBundleState()
               }}
               className={`flex items-center gap-1 px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${type === "skill"
                 ? "bg-background text-primary shadow-sm"
@@ -334,6 +425,9 @@ export default function NewSubmitPage() {
                 setVersion("1.0.0")
                 setActiveTab("edit")
                 setFormError(null)
+                setCategoryError(null)
+                setSourceUrlError(null)
+                resetToolBundleState()
               }}
               className={`flex items-center gap-1 px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${type === "tool"
                 ? "bg-background text-primary shadow-sm"
@@ -363,7 +457,7 @@ export default function NewSubmitPage() {
               1. Tool Metadata
             </h3>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-muted-foreground uppercase">
                   Tool Name
@@ -373,6 +467,19 @@ export default function NewSubmitPage() {
                   placeholder="e.g. USDC Payments"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
+                  className="bg-background/50 text-sm rounded-full"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-muted-foreground uppercase">
+                  Artifact Name (ID)
+                </label>
+                <Input
+                  required
+                  placeholder="e.g. usdc-payments"
+                  value={artifactName}
+                  onChange={(e) => setArtifactName(e.target.value)}
                   className="bg-background/50 text-sm rounded-full"
                 />
               </div>
@@ -404,10 +511,19 @@ export default function NewSubmitPage() {
               />
             </div>
 
-            {/* WASM Dropzone */}
+            <CategoryAndRepoFields
+              category={category}
+              onCategoryChange={setCategory}
+              categoryError={categoryError}
+              sourceUrl={sourceUrl}
+              onSourceUrlChange={setSourceUrl}
+              sourceUrlError={sourceUrlError}
+            />
+
+            {/* Extension bundle dropzone */}
             <div className="flex flex-col gap-2 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
               <label className="text-xs font-bold text-muted-foreground uppercase">
-                Tool Package (.wasm)
+                Extension Package (.zip)
               </label>
               <div
                 onDragOver={handleDragOver}
@@ -420,104 +536,76 @@ export default function NewSubmitPage() {
               >
                 <input
                   type="file"
-                  accept=".wasm"
+                  accept=".zip"
                   onChange={handleFileChange}
                   className="absolute inset-0 cursor-pointer opacity-0"
                 />
                 <IconUpload className="size-6 text-muted-foreground" />
                 <span className="text-xs font-semibold text-foreground mt-2 block">
-                  Drag your WASM file here, or click to browse
+                  Drag your extension .zip here, or click to browse
                 </span>
                 <span className="text-xs text-muted-foreground mt-1">
-                  Supports .wasm packages up to 5MB
+                  manifest.toml, the wasm module, and a *.capabilities.json file at the archive root.
                 </span>
               </div>
 
-              {wasmFile && (
-                <div className="flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-foreground font-semibold mt-1">
+              {inspectBundle.isPending && (
+                <div className="flex items-center gap-1.5 rounded-xl border border-[var(--ironhub-line)]/50 bg-background/30 p-3 text-xs text-muted-foreground font-semibold mt-1">
+                  <IconLoader2 className="size-3.5 animate-spin" />
+                  Inspecting archive...
+                </div>
+              )}
+
+              {bundleError && (
+                <div className="flex items-start gap-1.5 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive mt-1">
+                  <IconAlertTriangle className="size-3.5 shrink-0 mt-0.5" />
+                  <span>{bundleError}</span>
+                </div>
+              )}
+
+              {zipFile && bundleReadyForSubmit && (
+                <div
+                  className={`flex items-center justify-between rounded-xl border p-3 text-xs text-foreground font-semibold mt-1 ${uploadStatus.bundle === "error"
+                    ? "border-destructive/30 bg-destructive/5"
+                    : "border-emerald-500/20 bg-emerald-500/5"
+                    }`}
+                >
                   <span className="flex items-center gap-1.5">
-                    <IconFileZip className="size-4 text-emerald-600" />
-                    {wasmFile.name}
+                    <IconFileZip
+                      className={`size-4 ${uploadStatus.bundle === "error" ? "text-destructive" : "text-emerald-600"}`}
+                    />
+                    {zipFile.name}
                   </span>
-                  <span className="text-xs bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase font-bold">
-                    {uploadStatus.wasm === "uploading"
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full uppercase font-bold ${uploadStatus.bundle === "error"
+                      ? "bg-destructive/10 text-destructive border border-destructive/30"
+                      : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                      }`}
+                  >
+                    {uploadStatus.bundle === "uploading"
                       ? "Uploading..."
-                      : uploadStatus.wasm === "done"
+                      : uploadStatus.bundle === "done"
                         ? "Uploaded"
-                        : "Ready"}
+                        : uploadStatus.bundle === "error"
+                          ? "Upload failed"
+                          : "Inspected"}
                   </span>
                 </div>
               )}
             </div>
 
-            {/* Capabilities JSON */}
-            <div className="flex flex-col gap-2 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
-              <label className="text-xs font-bold text-muted-foreground uppercase">
-                Capabilities (capabilities.json)
-              </label>
-              <textarea
-                required
-                value={capabilitiesText}
-                onChange={(e) => setCapabilitiesText(e.target.value)}
-                placeholder='{ "permissions": [] }'
-                className="flex min-h-[100px] w-full rounded-2xl border border-[var(--ironhub-line)] bg-background/50 px-4 py-3 font-mono text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary"
-              />
-              <span className="text-xs text-muted-foreground">
-                Declares what the WASM package is permitted to access. Must be valid JSON.
-              </span>
-            </div>
-
-            {/* Visibility Selection blocks */}
-            <div className="flex flex-col gap-2 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
-              <label className="text-xs font-bold text-muted-foreground uppercase">
-                Visibility & Distribution
-              </label>
-              <div className="grid grid-cols-2 gap-3 mt-0.5 max-w-xl">
-                <button
-                  type="button"
-                  onClick={() => setVisibility("private")}
-                  className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left transition-all ${visibility === "private"
-                    ? "border-primary bg-primary/5 text-foreground shadow-sm"
-                    : "border-[var(--ironhub-line)]/50 bg-background/30 text-muted-foreground hover:bg-muted/10"
-                    }`}
-                >
-                  <div className={`flex size-8 shrink-0 items-center justify-center rounded-xl ${visibility === "private" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
-                    <IconLock className="size-4" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold block">Private Space</span>
-                    <span className="text-xs leading-normal text-muted-foreground/80 block mt-0.5">
-                      Internal to your Org Space only.
-                    </span>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setVisibility("public")}
-                  className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left transition-all ${visibility === "public"
-                    ? "border-primary bg-primary/5 text-foreground shadow-sm"
-                    : "border-[var(--ironhub-line)]/50 bg-background/30 text-muted-foreground hover:bg-muted/10"
-                    }`}
-                >
-                  <div className={`flex size-8 shrink-0 items-center justify-center rounded-xl ${visibility === "public" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
-                    <IconWorld className="size-4" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold block">Public Hub</span>
-                    <span className="text-xs leading-normal text-muted-foreground/80 block mt-0.5">
-                      Promote to Open Marketplace.
-                    </span>
-                  </div>
-                </button>
-              </div>
-            </div>
+            <VisibilitySelector visibility={visibility} onChange={setVisibility} />
 
             {/* Cleaned Actions Bar */}
             <div className="rounded-xl border border-[var(--ironhub-line)] bg-card/60 p-4 shadow-sm flex flex-row items-center justify-end gap-3">
               <Button type="button" variant="outline" asChild className="rounded-full">
                 <Link href="/mvp/dashboard">Cancel</Link>
               </Button>
-              <Button type="submit" disabled={isSubmitting} className="rounded-full px-6 shadow-sm">
+              <Button
+                type="submit"
+                disabled={isSubmitting || !bundleReadyForSubmit || inspectBundle.isPending}
+                className="rounded-full px-6 shadow-sm"
+              >
                 {isSubmitting && <IconLoader2 className="size-4 animate-spin" />}
                 Add to Space
               </Button>
@@ -607,6 +695,15 @@ export default function NewSubmitPage() {
                   />
                 </div>
 
+                <CategoryAndRepoFields
+                  category={category}
+                  onCategoryChange={setCategory}
+                  categoryError={categoryError}
+                  sourceUrl={sourceUrl}
+                  onSourceUrlChange={setSourceUrl}
+                  sourceUrlError={sourceUrlError}
+                />
+
                 {/* Use Cases list builder */}
                 <div className="flex flex-col gap-2.5 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
                   <div className="flex justify-between items-center">
@@ -692,50 +789,7 @@ export default function NewSubmitPage() {
                   </div>
                 </div>
 
-                {/* Visibility Selection blocks */}
-                <div className="flex flex-col gap-2 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">
-                    Visibility & Distribution
-                  </label>
-                  <div className="grid grid-cols-2 gap-3 mt-0.5 max-w-xl">
-                    <button
-                      type="button"
-                      onClick={() => setVisibility("private")}
-                      className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left transition-all ${visibility === "private"
-                        ? "border-primary bg-primary/5 text-foreground shadow-sm"
-                        : "border-[var(--ironhub-line)]/50 bg-background/30 text-muted-foreground hover:bg-muted/10"
-                        }`}
-                    >
-                      <div className={`flex size-8 shrink-0 items-center justify-center rounded-xl ${visibility === "private" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
-                        <IconLock className="size-4" />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold block">Private Space</span>
-                        <span className="text-xs leading-normal text-muted-foreground/80 block mt-0.5">
-                          Internal to your Org Space only.
-                        </span>
-                      </div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setVisibility("public")}
-                      className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left transition-all ${visibility === "public"
-                        ? "border-primary bg-primary/5 text-foreground shadow-sm"
-                        : "border-[var(--ironhub-line)]/50 bg-background/30 text-muted-foreground hover:bg-muted/10"
-                        }`}
-                    >
-                      <div className={`flex size-8 shrink-0 items-center justify-center rounded-xl ${visibility === "public" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
-                        <IconWorld className="size-4" />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold block">Public Hub</span>
-                        <span className="text-xs leading-normal text-muted-foreground/80 block mt-0.5">
-                          Promote to Open Marketplace.
-                        </span>
-                      </div>
-                    </button>
-                  </div>
-                </div>
+                <VisibilitySelector visibility={visibility} onChange={setVisibility} />
               </Card>
 
               <Card className="border border-[var(--ironhub-line)] bg-card/60 p-6 shadow-sm flex flex-col gap-3">

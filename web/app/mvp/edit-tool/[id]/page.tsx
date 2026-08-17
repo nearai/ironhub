@@ -3,10 +3,16 @@
 import React, { use, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import {
+  describeArtifactSaveError,
+  useArtifact,
+  useUpdateArtifact,
+  useUploadArtifactContent,
+} from "@/features/partner/api/artifacts"
 import { useArtifactTextContent } from "@/features/partner/api/artifact-content"
-import { useArtifact, useUpdateArtifact, useUploadArtifactContent } from "@/features/partner/api/artifacts"
-import { ApiError } from "@/features/partner/api/client"
 import { useToast } from "@/features/partner/store/toast-provider"
+import { VisibilitySelector } from "@/features/partner/components/visibility-selector"
+import { CategoryAndRepoFields } from "@/features/partner/components/category-repo-fields"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -14,8 +20,6 @@ import {
   IconArrowLeft,
   IconUpload,
   IconFileZip,
-  IconLock,
-  IconWorld,
   IconLoader2,
   IconAlertTriangle,
 } from "@tabler/icons-react"
@@ -43,10 +47,14 @@ export default function EditToolPage({ params }: PageProps) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [visibility, setVisibility] = useState<"public" | "private">("private")
+  const [category, setCategory] = useState("")
+  const [sourceUrl, setSourceUrl] = useState("")
   const [wasmFile, setWasmFile] = useState<File | null>(null)
   const [capabilitiesDraft, setCapabilitiesDraft] = useState("")
   const [dragOver, setDragOver] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [categoryError, setCategoryError] = useState<string | null>(null)
+  const [sourceUrlError, setSourceUrlError] = useState<string | null>(null)
   // Guard so a background refetch (e.g. window focus) never clobbers an
   // in-progress edit — only reseed the form when we land on a new artifact.
   const seededArtifactIdRef = useRef<string | null>(null)
@@ -74,6 +82,17 @@ export default function EditToolPage({ params }: PageProps) {
       setCapabilitiesDraft(capabilitiesText ?? "")
     }
   }, [capabilitiesText, id])
+
+  // Category/repo seed off the artifact record, not the stored capabilities
+  // document, so they get their own guard rather than waiting on that fetch.
+  const seededFieldsArtifactIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (artifact && seededFieldsArtifactIdRef.current !== artifact.id) {
+      seededFieldsArtifactIdRef.current = artifact.id
+      setCategory(artifact.category ?? "")
+      setSourceUrl(artifact.sourceUrl ?? "")
+    }
+  }, [artifact])
 
   if (isLoading) {
     return <div className="py-16 text-center text-sm text-muted-foreground">Loading tool...</div>
@@ -144,6 +163,8 @@ export default function EditToolPage({ params }: PageProps) {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
+    setCategoryError(null)
+    setSourceUrlError(null)
     if (!capabilitiesReady) return
 
     try {
@@ -154,7 +175,13 @@ export default function EditToolPage({ params }: PageProps) {
     }
 
     try {
-      await updateArtifact.mutateAsync({ title, description, visibility })
+      await updateArtifact.mutateAsync({
+        title,
+        description,
+        visibility,
+        category: category || null,
+        sourceUrl: sourceUrl.trim() || null,
+      })
       if (wasmFile) {
         await uploadContent.mutateAsync({ kind: "wasm", file: wasmFile })
       }
@@ -170,11 +197,10 @@ export default function EditToolPage({ params }: PageProps) {
       notify(`Changes saved for ${title}`)
       router.push(`/mvp/manage/${id}`)
     } catch (error) {
-      if (error instanceof ApiError) {
-        setFormError(error.status === 409 ? `Duplicate: ${error.message}` : error.message)
-      } else {
-        setFormError(error instanceof Error ? error.message : "Failed to save changes.")
-      }
+      const described = describeArtifactSaveError(error)
+      if (described.field === "category") setCategoryError(described.message)
+      else if (described.field === "sourceUrl") setSourceUrlError(described.message)
+      else setFormError(described.message)
     }
   }
 
@@ -308,6 +334,15 @@ export default function EditToolPage({ params }: PageProps) {
             />
           </div>
 
+          <CategoryAndRepoFields
+            category={category}
+            onCategoryChange={setCategory}
+            categoryError={categoryError}
+            sourceUrl={sourceUrl}
+            onSourceUrlChange={setSourceUrl}
+            sourceUrlError={sourceUrlError}
+          />
+
           {/* WASM Dropzone */}
           <div className="flex flex-col gap-2 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
             <label className="text-xs font-bold text-muted-foreground uppercase">
@@ -370,50 +405,7 @@ export default function EditToolPage({ params }: PageProps) {
             </span>
           </div>
 
-          {/* Visibility Selection blocks */}
-          <div className="flex flex-col gap-2 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
-            <label className="text-xs font-bold text-muted-foreground uppercase">
-              Visibility & Distribution
-            </label>
-            <div className="grid grid-cols-2 gap-3 mt-0.5 max-w-xl">
-              <button
-                type="button"
-                onClick={() => setVisibility("private")}
-                className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left transition-all ${visibility === "private"
-                    ? "border-primary bg-primary/5 text-foreground shadow-sm"
-                    : "border-[var(--ironhub-line)]/50 bg-background/30 text-muted-foreground hover:bg-muted/10"
-                  }`}
-              >
-                <div className={`flex size-8 shrink-0 items-center justify-center rounded-xl ${visibility === "private" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
-                  <IconLock className="size-4" />
-                </div>
-                <div>
-                  <span className="text-xs font-bold block">Private Space</span>
-                  <span className="text-xs leading-normal text-muted-foreground/80 block mt-0.5">
-                    Internal to your Org Space only.
-                  </span>
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setVisibility("public")}
-                className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left transition-all ${visibility === "public"
-                    ? "border-primary bg-primary/5 text-foreground shadow-sm"
-                    : "border-[var(--ironhub-line)]/50 bg-background/30 text-muted-foreground hover:bg-muted/10"
-                  }`}
-              >
-                <div className={`flex size-8 shrink-0 items-center justify-center rounded-xl ${visibility === "public" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
-                  <IconWorld className="size-4" />
-                </div>
-                <div>
-                  <span className="text-xs font-bold block">Public Hub</span>
-                  <span className="text-xs leading-normal text-muted-foreground/80 block mt-0.5">
-                    Promote to Open Marketplace.
-                  </span>
-                </div>
-              </button>
-            </div>
-          </div>
+          <VisibilitySelector visibility={visibility} onChange={setVisibility} />
         </Card>
 
         <div className="rounded-xl border border-[var(--ironhub-line)] bg-card/60 p-4 shadow-sm flex flex-row items-center justify-end gap-3">

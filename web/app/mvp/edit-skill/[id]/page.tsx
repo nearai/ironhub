@@ -3,10 +3,16 @@
 import React, { use, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useArtifact, useUpdateArtifact, useUploadArtifactContent } from "@/features/partner/api/artifacts"
+import {
+  describeArtifactSaveError,
+  useArtifact,
+  useUpdateArtifact,
+  useUploadArtifactContent,
+} from "@/features/partner/api/artifacts"
 import { useArtifactTextContent } from "@/features/partner/api/artifact-content"
-import { ApiError } from "@/features/partner/api/client"
 import { useToast } from "@/features/partner/store/toast-provider"
+import { VisibilitySelector } from "@/features/partner/components/visibility-selector"
+import { CategoryAndRepoFields } from "@/features/partner/components/category-repo-fields"
 import { parseSkillMd, serializeSkillMd } from "@/lib/private-artifacts/skill-md"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -15,8 +21,6 @@ import {
   IconArrowLeft,
   IconCopy,
   IconCheck,
-  IconLock,
-  IconWorld,
   IconEdit,
   IconCode,
   IconLoader2,
@@ -62,7 +66,11 @@ export default function EditSkillPage({ params }: PageProps) {
   const [activationTagsText, setActivationTagsText] = useState("")
   const [markdownContent, setMarkdownContent] = useState("")
   const [visibility, setVisibility] = useState<"public" | "private">("private")
+  const [category, setCategory] = useState("")
+  const [sourceUrl, setSourceUrl] = useState("")
   const [formError, setFormError] = useState<string | null>(null)
+  const [categoryError, setCategoryError] = useState<string | null>(null)
+  const [sourceUrlError, setSourceUrlError] = useState<string | null>(null)
 
   // Full frontmatter map as parsed from the stored file (design.md D5). The
   // form only exposes name/version/description/value_prop/use_cases/
@@ -123,6 +131,17 @@ export default function EditSkillPage({ params }: PageProps) {
       setOriginalSerialized(serializeSkillMd(frontmatter, body))
     }
   }, [skillContent.data, id])
+
+  // Category/repo seed off the artifact record, not the stored file, so they
+  // get their own guard rather than waiting on the content fetch above.
+  const seededFieldsArtifactIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (artifact && seededFieldsArtifactIdRef.current !== artifact.id) {
+      seededFieldsArtifactIdRef.current = artifact.id
+      setCategory(artifact.category ?? "")
+      setSourceUrl(artifact.sourceUrl ?? "")
+    }
+  }, [artifact])
 
   if (isLoading) {
     return <div className="py-16 text-center text-sm text-muted-foreground">Loading skill...</div>
@@ -251,9 +270,20 @@ export default function EditSkillPage({ params }: PageProps) {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
+    setCategoryError(null)
+    setSourceUrlError(null)
     if (!contentReady) return
     try {
-      await updateArtifact.mutateAsync({ title, description, visibility })
+      // `description` (not `valueProp`) is the artifact record's description:
+      // both are seeded from the stored file's frontmatter, and sending
+      // value_prop here would overwrite the record with the wrong field.
+      await updateArtifact.mutateAsync({
+        title,
+        description,
+        visibility,
+        category: category || null,
+        sourceUrl: sourceUrl.trim() || null,
+      })
       // Only re-upload when the compiled file actually differs from the
       // as-loaded baseline -- otherwise a metadata-only save (title,
       // visibility) would rewrite an unchanged skill_md, minting a
@@ -269,11 +299,10 @@ export default function EditSkillPage({ params }: PageProps) {
       notify(`Changes saved for ${title}`)
       router.push(`/mvp/manage/${id}`)
     } catch (error) {
-      if (error instanceof ApiError) {
-        setFormError(error.status === 409 ? `Duplicate: ${error.message}` : error.message)
-      } else {
-        setFormError(error instanceof Error ? error.message : "Failed to save changes.")
-      }
+      const described = describeArtifactSaveError(error)
+      if (described.field === "category") setCategoryError(described.message)
+      else if (described.field === "sourceUrl") setSourceUrlError(described.message)
+      else setFormError(described.message)
     }
   }
 
@@ -506,50 +535,16 @@ export default function EditSkillPage({ params }: PageProps) {
                 </div>
               </div>
 
-              {/* Visibility Selection blocks */}
-              <div className="flex flex-col gap-2 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
-                <label className="text-xs font-bold text-muted-foreground uppercase">
-                  Visibility & Distribution
-                </label>
-                <div className="grid grid-cols-2 gap-3 mt-0.5 max-w-xl">
-                  <button
-                    type="button"
-                    onClick={() => setVisibility("private")}
-                    className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left transition-all ${visibility === "private"
-                      ? "border-primary bg-primary/5 text-foreground shadow-sm"
-                      : "border-[var(--ironhub-line)]/50 bg-background/30 text-muted-foreground hover:bg-muted/10"
-                      }`}
-                  >
-                    <div className={`flex size-8 shrink-0 items-center justify-center rounded-xl ${visibility === "private" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
-                      <IconLock className="size-4" />
-                    </div>
-                    <div>
-                      <span className="text-xs font-bold block">Private Space</span>
-                      <span className="text-xs leading-normal text-muted-foreground/80 block mt-0.5">
-                        Internal to your Org Space only.
-                      </span>
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setVisibility("public")}
-                    className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left transition-all ${visibility === "public"
-                      ? "border-primary bg-primary/5 text-foreground shadow-sm"
-                      : "border-[var(--ironhub-line)]/50 bg-background/30 text-muted-foreground hover:bg-muted/10"
-                      }`}
-                  >
-                    <div className={`flex size-8 shrink-0 items-center justify-center rounded-xl ${visibility === "public" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
-                      <IconWorld className="size-4" />
-                    </div>
-                    <div>
-                      <span className="text-xs font-bold block">Public Hub</span>
-                      <span className="text-xs leading-normal text-muted-foreground/80 block mt-0.5">
-                        Promote to Open Marketplace.
-                      </span>
-                    </div>
-                  </button>
-                </div>
-              </div>
+              <CategoryAndRepoFields
+                category={category}
+                onCategoryChange={setCategory}
+                categoryError={categoryError}
+                sourceUrl={sourceUrl}
+                onSourceUrlChange={setSourceUrl}
+                sourceUrlError={sourceUrlError}
+              />
+
+              <VisibilitySelector visibility={visibility} onChange={setVisibility} />
             </Card>
 
             <Card className="border border-[var(--ironhub-line)] bg-card/60 p-6 shadow-sm flex flex-col gap-3">
