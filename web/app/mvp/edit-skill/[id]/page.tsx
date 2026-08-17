@@ -4,8 +4,10 @@ import React, { use, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useArtifact, useUpdateArtifact, useUploadArtifactContent } from "@/features/partner/api/artifacts"
+import { useArtifactTextContent } from "@/features/partner/api/artifact-content"
 import { ApiError } from "@/features/partner/api/client"
 import { useToast } from "@/features/partner/store/toast-provider"
+import { parseSkillMd, serializeSkillMd } from "@/lib/private-artifacts/skill-md"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -18,10 +20,24 @@ import {
   IconEdit,
   IconCode,
   IconLoader2,
+  IconAlertTriangle,
 } from "@tabler/icons-react"
 
 interface PageProps {
   params: Promise<{ id: string }>
+}
+
+// design.md D5: string[] frontmatter values are edited as newline- or
+// comma-separated text and split back into arrays on save.
+function splitList(text: string, separator: RegExp) {
+  return text
+    .split(separator)
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []
 }
 
 export default function EditSkillPage({ params }: PageProps) {
@@ -31,13 +47,30 @@ export default function EditSkillPage({ params }: PageProps) {
   const { data: artifact, isLoading, isError } = useArtifact(id)
   const updateArtifact = useUpdateArtifact(id)
   const uploadContent = useUploadArtifactContent(id)
+  // Owner-facing content read (design.md D4) -- the fix for this page's bug
+  // starts here: without this, the editor never sees the stored SKILL.md at
+  // all, so a save has nothing to preserve.
+  const skillContent = useArtifactTextContent(id, "skill_md")
 
   // Form states
   const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
   const [valueProp, setValueProp] = useState("")
+  const [useCasesText, setUseCasesText] = useState("")
+  const [valueTagsText, setValueTagsText] = useState("")
+  const [activationKeywordsText, setActivationKeywordsText] = useState("")
+  const [activationTagsText, setActivationTagsText] = useState("")
   const [markdownContent, setMarkdownContent] = useState("")
   const [visibility, setVisibility] = useState<"public" | "private">("private")
   const [formError, setFormError] = useState<string | null>(null)
+
+  // Full frontmatter map as parsed from the stored file (design.md D5). The
+  // form only exposes name/version/description/value_prop/use_cases/
+  // value_tags/activation.keywords/activation.tags -- every other key here
+  // is passed through untouched by serializeSkillMd on save. State (not a
+  // ref) because it's read during render to build the "View Skill File"
+  // preview.
+  const [baseFrontmatter, setBaseFrontmatter] = useState<Record<string, unknown>>({})
 
   // UI state
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit")
@@ -45,18 +78,38 @@ export default function EditSkillPage({ params }: PageProps) {
   // Guard so a background refetch (e.g. window focus) never clobbers an
   // in-progress edit — only reseed the form when we land on a new artifact.
   const seededArtifactIdRef = useRef<string | null>(null)
+  // Same guard, scoped to the content fetch: only seed the frontmatter/body
+  // fields once per artifact, the first time the stored file loads.
+  const seededContentIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (artifact && seededArtifactIdRef.current !== artifact.id) {
       seededArtifactIdRef.current = artifact.id
-       
+
       setTitle(artifact.title)
-       
-      setValueProp(artifact.description || "")
-       
+
       setVisibility(artifact.visibility)
     }
   }, [artifact])
+
+  useEffect(() => {
+    if (skillContent.data !== undefined && seededContentIdRef.current !== id) {
+      seededContentIdRef.current = id
+      const { frontmatter, body } = parseSkillMd(skillContent.data)
+      setBaseFrontmatter(frontmatter)
+      setDescription(typeof frontmatter.description === "string" ? frontmatter.description : "")
+      setValueProp(typeof frontmatter.value_prop === "string" ? frontmatter.value_prop : "")
+      setUseCasesText(asStringArray(frontmatter.use_cases).join("\n"))
+      setValueTagsText(asStringArray(frontmatter.value_tags).join(", "))
+      const activation =
+        frontmatter.activation && typeof frontmatter.activation === "object" && !Array.isArray(frontmatter.activation)
+          ? (frontmatter.activation as Record<string, unknown>)
+          : {}
+      setActivationKeywordsText(asStringArray(activation.keywords).join(", "))
+      setActivationTagsText(asStringArray(activation.tags).join(", "))
+      setMarkdownContent(body)
+    }
+  }, [skillContent.data, id])
 
   if (isLoading) {
     return <div className="py-16 text-center text-sm text-muted-foreground">Loading skill...</div>
@@ -73,16 +126,36 @@ export default function EditSkillPage({ params }: PageProps) {
     )
   }
 
-  const compileSkillMarkdown = () => {
-    let yaml = `---\n`
-    yaml += `name: ${artifact.name}\n`
-    yaml += `version: ${artifact.version}\n`
-    yaml += `description: ${valueProp}\n`
-    yaml += `value_prop: "${valueProp.replace(/"/g, '\\"')}"\n`
-    yaml += `---`
+  // Anything read must survive a save (design.md D5): only the fields this
+  // form exposes are overwritten, everything else in frontmatterRef passes
+  // through untouched.
+  const buildFrontmatter = () => {
+    const existingActivation =
+      baseFrontmatter.activation &&
+      typeof baseFrontmatter.activation === "object" &&
+      !Array.isArray(baseFrontmatter.activation)
+        ? (baseFrontmatter.activation as Record<string, unknown>)
+        : {}
 
-    return `${yaml}\n\n${markdownContent || ""}`
+    return {
+      ...baseFrontmatter,
+      name: artifact.name,
+      version: artifact.version,
+      description,
+      value_prop: valueProp,
+      use_cases: splitList(useCasesText, /\n/),
+      value_tags: splitList(valueTagsText, /,/),
+      activation: {
+        ...existingActivation,
+        keywords: splitList(activationKeywordsText, /,/),
+        tags: splitList(activationTagsText, /,/),
+      },
+    }
   }
+
+  // "View Skill File" must render exactly the bytes a save would upload
+  // (design.md D5) -- this is that single source of truth for both.
+  const compileSkillMarkdown = () => serializeSkillMd(buildFrontmatter(), markdownContent)
 
   const handleCopyCode = async () => {
     try {
@@ -95,11 +168,17 @@ export default function EditSkillPage({ params }: PageProps) {
     }
   }
 
+  // A save that can't preserve content is worse than no save: block while
+  // the stored file is still loading or failed to load.
+  const contentReady = skillContent.isSuccess
+  const contentFailed = skillContent.isError
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
+    if (!contentReady) return
     try {
-      await updateArtifact.mutateAsync({ title, description: valueProp, visibility })
+      await updateArtifact.mutateAsync({ title, description, visibility })
       await uploadContent.mutateAsync({
         kind: "skill_md",
         file: new Blob([compileSkillMarkdown()], { type: "text/markdown" }),
@@ -116,6 +195,7 @@ export default function EditSkillPage({ params }: PageProps) {
   }
 
   const isSaving = updateArtifact.isPending || uploadContent.isPending
+  const saveDisabled = isSaving || !contentReady
 
   return (
     <div className="flex flex-col gap-6">
@@ -142,6 +222,32 @@ export default function EditSkillPage({ params }: PageProps) {
       {formError && (
         <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive">
           {formError}
+        </div>
+      )}
+
+      {contentFailed && (
+        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive">
+          <IconAlertTriangle className="size-4 shrink-0" />
+          <span>
+            Could not load the stored SKILL.md
+            {skillContent.error instanceof Error ? `: ${skillContent.error.message}` : "."} Saving is
+            disabled so an empty editor can&apos;t overwrite the stored file.
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => skillContent.refetch()}
+            className="ml-auto h-7 shrink-0 rounded-full text-xs px-2.5"
+          >
+            Retry
+          </Button>
+        </div>
+      )}
+
+      {skillContent.isLoading && (
+        <div className="rounded-xl border border-[var(--ironhub-line)] bg-card/60 p-3 text-xs font-semibold text-muted-foreground">
+          Loading stored skill content…
         </div>
       )}
 
@@ -201,17 +307,84 @@ export default function EditSkillPage({ params }: PageProps) {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">
+                    Description
+                  </label>
+                  <Input
+                    required
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="What this skill does..."
+                    className="bg-background/50 text-sm rounded-full"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">
+                    Value Proposition
+                  </label>
+                  <Input
+                    required
+                    value={valueProp}
+                    onChange={(e) => setValueProp(e.target.value)}
+                    placeholder="Core value or pitch of this skill..."
+                    className="bg-background/50 text-sm rounded-full"
+                  />
+                </div>
+              </div>
+
+              {/* Use cases + tags -- frontmatter fields this editor exposes
+                  (design.md D5) beyond description/value_prop. */}
+              <div className="flex flex-col gap-1.5 border-t border-[var(--ironhub-line)]/50 pt-4 mt-1">
                 <label className="text-xs font-bold text-muted-foreground uppercase">
-                  Value Proposition / Summary Description
+                  Key Use Cases (one per line)
                 </label>
-                <Input
-                  required
-                  value={valueProp}
-                  onChange={(e) => setValueProp(e.target.value)}
-                  placeholder="Core value or pitch of this skill..."
-                  className="bg-background/50 text-sm rounded-full"
+                <textarea
+                  value={useCasesText}
+                  onChange={(e) => setUseCasesText(e.target.value)}
+                  placeholder={"Automate client onboarding reports\nSummarize weekly usage"}
+                  className="flex min-h-[80px] w-full rounded-2xl border border-[var(--ironhub-line)] bg-background/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary"
                 />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">
+                    Value Tags
+                  </label>
+                  <Input
+                    value={valueTagsText}
+                    onChange={(e) => setValueTagsText(e.target.value)}
+                    placeholder="Automation, Security"
+                    className="bg-background/50 text-xs font-mono rounded-full"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">
+                    Activation Keywords
+                  </label>
+                  <Input
+                    value={activationKeywordsText}
+                    onChange={(e) => setActivationKeywordsText(e.target.value)}
+                    placeholder="auth, login"
+                    className="bg-background/50 text-xs font-mono rounded-full"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">
+                    Activation Tags
+                  </label>
+                  <Input
+                    value={activationTagsText}
+                    onChange={(e) => setActivationTagsText(e.target.value)}
+                    placeholder="productivity"
+                    className="bg-background/50 text-xs font-mono rounded-full"
+                  />
+                </div>
               </div>
 
               {/* Visibility Selection blocks */}
@@ -264,10 +437,6 @@ export default function EditSkillPage({ params }: PageProps) {
               <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
                 2. Skill Guidelines (SKILL.MD)
               </h3>
-              <p className="text-xs text-muted-foreground">
-                Existing package content isn&apos;t re-downloaded into this editor — enter the full
-                instructions body below; saving replaces the stored SKILL.md.
-              </p>
               <textarea
                 placeholder="## Persona&#10;&#10;Describe how the agent should act..."
                 value={markdownContent}
@@ -310,7 +479,7 @@ export default function EditSkillPage({ params }: PageProps) {
             <Button type="button" variant="outline" asChild className="rounded-full">
               <Link href={`/mvp/manage/${id}`}>Cancel</Link>
             </Button>
-            <Button type="submit" disabled={isSaving} className="rounded-full px-6 shadow-sm">
+            <Button type="submit" disabled={saveDisabled} className="rounded-full px-6 shadow-sm">
               {isSaving && <IconLoader2 className="size-4 animate-spin" />}
               Save & Publish
             </Button>
