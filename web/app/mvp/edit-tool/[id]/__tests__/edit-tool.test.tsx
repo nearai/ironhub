@@ -100,6 +100,15 @@ describe("edit-tool capabilities content loading", () => {
 
     // B3: the guard must live in the submit handler, not just the button's
     // `disabled` prop -- firing a submit directly must not produce a PUT.
+    // The draft is seeded to valid JSON first (bypassing the textarea's
+    // `disabled` via fireEvent, which jsdom does not enforce) so this
+    // isolates the `capabilitiesReady` guard from the separate JSON.parse
+    // validity check -- an empty, never-seeded draft would fail that check
+    // regardless of the guard, which would make this assertion pass for
+    // the wrong reason.
+    fireEvent.change(screen.getByPlaceholderText('{ "permissions": [] }'), {
+      target: { value: "{}" },
+    })
     fireEvent.submit(saveButton.closest("form")!)
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(capabilitiesPutCalls.length).toBe(0)

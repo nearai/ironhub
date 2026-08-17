@@ -144,7 +144,7 @@ export default function EditToolPage({ params }: PageProps) {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
-    // MUTATION TEST: temporarily removed to verify the test suite catches it.
+    if (!capabilitiesReady) return
 
     try {
       JSON.parse(capabilitiesDraft)
