@@ -1,6 +1,6 @@
 import { act, Suspense } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 const pushMock = vi.fn()
@@ -65,7 +65,31 @@ describe("edit-tool capabilities content loading", () => {
     vi.unstubAllGlobals()
   })
 
-  it("disables saving and shows an error when the stored capabilities.json fails to load", async () => {
+  it("disables saving and shows an error when the stored capabilities.json fails to load (500)", async () => {
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/artifact-1") {
+        return new Response(JSON.stringify({ artifact }), { status: 200 })
+      }
+      if (url === "/api/private-artifacts/artifact-1/content/capabilities") {
+        return new Response(JSON.stringify({ error: "Internal error" }), {
+          status: 500,
+        })
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    await renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/could not load the stored capabilities\.json/i)).toBeInTheDocument()
+    })
+
+    const saveButton = screen.getByRole("button", { name: /save changes/i })
+    expect(saveButton).toBeDisabled()
+  })
+
+  it("treats a 404 (no content row yet) as a safe empty state, not a load failure -- saving stays enabled", async () => {
     vi.mocked(fetch).mockImplementation(async (input) => {
       const url = String(input)
       if (url === "/api/private-artifacts/artifact-1") {
@@ -82,11 +106,13 @@ describe("edit-tool capabilities content loading", () => {
     await renderPage()
 
     await waitFor(() => {
-      expect(screen.getByText(/could not load the stored capabilities\.json/i)).toBeInTheDocument()
+      expect(
+        screen.queryByText(/could not load the stored capabilities\.json/i)
+      ).not.toBeInTheDocument()
+      expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
     })
 
-    const saveButton = screen.getByRole("button", { name: /save changes/i })
-    expect(saveButton).toBeDisabled()
+    expect(screen.getByPlaceholderText('{ "permissions": [] }')).toHaveValue("")
   })
 
   it("seeds the capabilities editor and enables saving once the stored document loads", async () => {
@@ -112,5 +138,54 @@ describe("edit-tool capabilities content loading", () => {
       expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
       expect(screen.getByPlaceholderText('{ "permissions": [] }')).toHaveValue(storedCapabilities)
     })
+  })
+
+  it("does not re-upload capabilities on a metadata-only save when the draft is unchanged", async () => {
+    const storedCapabilities = JSON.stringify({ permissions: ["net"] }, null, 2)
+    const capabilitiesPutCalls: Array<{ url: string }> = []
+
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/artifact-1" && init?.method === "PATCH") {
+        return new Response(JSON.stringify({ artifact }), { status: 200 })
+      }
+      if (url === "/api/private-artifacts/artifact-1") {
+        return new Response(JSON.stringify({ artifact }), { status: 200 })
+      }
+      if (
+        url === "/api/private-artifacts/artifact-1/content/capabilities" &&
+        init?.method === "PUT"
+      ) {
+        capabilitiesPutCalls.push({ url })
+        return new Response(JSON.stringify({ content: { kind: "capabilities" } }), {
+          status: 201,
+        })
+      }
+      if (url === "/api/private-artifacts/artifact-1/content/capabilities") {
+        return new Response(storedCapabilities, {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      }
+      throw new Error(`Unexpected fetch: ${url} ${init?.method ?? "GET"}`)
+    })
+
+    await renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
+    })
+
+    // Change only the title -- leave the capabilities draft exactly as loaded.
+    fireEvent.change(screen.getByDisplayValue("My Tool"), {
+      target: { value: "My Renamed Tool" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: /save changes/i }))
+
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalled()
+    })
+
+    expect(capabilitiesPutCalls.length).toBe(0)
   })
 })
