@@ -4,6 +4,35 @@ import { use, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
+  IconAlertTriangle,
+  IconArrowRight,
+  IconCategory,
+  IconCheck,
+  IconCopy,
+  IconFileZip,
+  IconLink,
+  IconLoader2,
+  IconLock,
+  IconRocket,
+  IconRocketOff,
+  IconTrash,
+  IconWorld,
+  IconX,
+} from "@tabler/icons-react"
+
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  type ContentKind,
   useArtifact,
   useArtifactChecks,
   useDeleteArtifact,
@@ -11,70 +40,49 @@ import {
   usePublishArtifact,
   useUnpublishArtifact,
   useUploadArtifactBundle,
-  type ArtifactCheck,
-  type ContentKind,
 } from "@/features/partner/api/artifacts"
 import { ApiError } from "@/features/partner/api/client"
+import { AttributeBadge } from "@/features/partner/components/ui/attribute-badge"
+import { EmptyState } from "@/features/partner/components/ui/empty-state"
+import { FormSection } from "@/features/partner/components/ui/form-section"
+import { RelativeTime } from "@/features/partner/components/ui/relative-time"
+import { StatusBadge } from "@/features/partner/components/ui/status-badge"
+import { WorkspacePageHeader } from "@/features/partner/components/ui/workspace-page-header"
 import { useToast } from "@/features/partner/store/toast-provider"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Card } from "@/components/ui/card"
-import {
-  IconArrowLeft,
-  IconCheck,
-  IconTrash,
-  IconDownload,
-  IconWorld,
-  IconLock,
-  IconCopy,
-  IconInfoCircle,
-  IconLoader2,
-  IconAlertTriangle,
-  IconX,
-  IconRocket,
-  IconRocketOff,
-  IconCategory,
-  IconLink,
-  IconFileZip,
-  IconUpload,
-} from "@tabler/icons-react"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog"
+import { cn } from "@/lib/shared/utils"
 
 interface PageProps {
   params: Promise<{ submissionId: string }>
 }
 
-/** Status carries its own visible text + icon shape — never color alone. */
-const CHECK_STATUS_META: Record<
-  ArtifactCheck["status"],
-  { Icon: typeof IconCheck; iconWrap: string; badge: string; label: string }
-> = {
-  pass: {
-    Icon: IconCheck,
-    iconWrap: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-    badge: "border-emerald-500/25 text-emerald-600 dark:text-emerald-400",
-    label: "Pass",
+const CONTENT_KIND_INFO: Record<ContentKind, { name: string; blurb: string }> = {
+  wasm: {
+    name: "Program file",
+    blurb: "The compiled program that does the work.",
   },
-  warn: {
-    Icon: IconAlertTriangle,
-    iconWrap: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    badge: "border-amber-500/25 text-amber-600 dark:text-amber-400",
-    label: "Warn",
+  manifest_toml: {
+    name: "Setup details",
+    blurb: "Describes what the tool is and how to run it.",
   },
-  fail: {
-    Icon: IconX,
-    iconWrap: "bg-destructive/10 text-destructive",
-    badge: "border-destructive/30 text-destructive",
-    label: "Fail",
+  capabilities: {
+    name: "Permissions file",
+    blurb: "Lists what the tool is allowed to access.",
   },
+  bundle_zip: {
+    name: "Uploaded package",
+    blurb: "The original .zip you uploaded.",
+  },
+  skill_md: {
+    name: "Instructions file",
+    blurb: "The written instructions the assistant follows.",
+  },
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes === 1) return "1 byte"
+  if (bytes < 1024) return `${bytes} bytes`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 export default function ManageSubmissionPage({ params }: PageProps) {
@@ -92,19 +100,30 @@ export default function ManageSubmissionPage({ params }: PageProps) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [copiedInstall, setCopiedInstall] = useState(false)
   const [publishError, setPublishError] = useState<string | null>(null)
-  const [bundleReuploadError, setBundleReuploadError] = useState<string | null>(null)
+  const [bundleReuploadError, setBundleReuploadError] = useState<string | null>(
+    null
+  )
 
   if (isLoading) {
-    return <div className="py-16 text-center text-sm text-muted-foreground">Loading item...</div>
+    return (
+      <div className="py-16 text-center text-sm text-muted-foreground">
+        Loading item...
+      </div>
+    )
   }
 
   if (isError || !artifact) {
     return (
-      <div className="text-center py-16">
-        <h3 className="text-lg font-bold text-foreground">Item not found</h3>
-        <Button asChild variant="link" className="mt-2">
-          <Link href="/mvp/dashboard">Back to Dashboard</Link>
-        </Button>
+      <div className="py-16">
+        <EmptyState
+          title="We couldn't find that item"
+          description="The item you're looking for doesn't exist or you don't have access to it."
+          action={
+            <Button asChild className="h-10 rounded-lg">
+              <Link href="/mvp/dashboard">Back to your catalog</Link>
+            </Button>
+          }
+        />
       </div>
     )
   }
@@ -117,12 +136,17 @@ export default function ManageSubmissionPage({ params }: PageProps) {
   const expectedKinds: ContentKind[] =
     artifact.type === "tool" ? ["wasm", "manifest_toml"] : ["skill_md"]
   const uploadedKinds = new Set(artifact.content.map((c) => c.kind))
-  const isContentComplete = expectedKinds.every((kind) => uploadedKinds.has(kind))
+  const isContentComplete = expectedKinds.every((kind) =>
+    uploadedKinds.has(kind)
+  )
   // manifest_toml and bundle_zip are optional archival kinds a bundle upload
   // also writes (design.md D3/D6) — surface them too so the manage page
   // reflects everything actually stored, not just the required kinds.
-  const additionalKinds = Array.from(uploadedKinds).filter((kind) => !expectedKinds.includes(kind))
+  const additionalKinds = Array.from(uploadedKinds).filter(
+    (kind) => !expectedKinds.includes(kind)
+  )
   const displayKinds = [...expectedKinds, ...additionalKinds]
+  const isSingleCard = displayKinds.length === 1
 
   const handleCopyInstall = async () => {
     try {
@@ -132,7 +156,10 @@ export default function ManageSubmissionPage({ params }: PageProps) {
       setTimeout(() => setCopiedInstall(false), 2000)
       notify("Install link copied")
     } catch (error) {
-      notify(error instanceof Error ? error.message : "Failed to mint install link", "error")
+      notify(
+        error instanceof Error ? error.message : "Failed to copy install link",
+        "error"
+      )
     }
   }
 
@@ -143,7 +170,10 @@ export default function ManageSubmissionPage({ params }: PageProps) {
       notify(`${artifact.title} deleted`, "info")
       router.push("/mvp/dashboard")
     } catch (error) {
-      notify(error instanceof Error ? error.message : "Failed to delete item", "error")
+      notify(
+        error instanceof Error ? error.message : "Failed to delete item",
+        "error"
+      )
     }
   }
 
@@ -171,7 +201,10 @@ export default function ManageSubmissionPage({ params }: PageProps) {
       await unpublishArtifact.mutateAsync()
       notify(`${artifact.title} moved back to draft`, "info")
     } catch (error) {
-      notify(error instanceof Error ? error.message : "Failed to unpublish item.", "error")
+      notify(
+        error instanceof Error ? error.message : "Failed to unpublish item.",
+        "error"
+      )
     }
   }
 
@@ -199,371 +232,455 @@ export default function ManageSubmissionPage({ params }: PageProps) {
     }
   }
 
-  const getStatusBadge = (status: string) => (
-    <Badge
-      className={
-        status === "published"
-          ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider text-xs px-2 py-0.5 rounded-full"
-          : "border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider text-xs px-2 py-0.5 rounded-full"
-      }
-    >
-      {status}
-    </Badge>
-  )
-
   return (
     <div className="flex flex-col gap-6">
-      {/* Navigation and Actions */}
-      <div className="flex items-center justify-between">
-        <Button asChild variant="ghost" size="sm" className="rounded-full text-muted-foreground hover:text-foreground">
-          <Link href="/mvp/dashboard">
-            <IconArrowLeft className="size-4" />
-            Back to Dashboard
-          </Link>
-        </Button>
+      {/* 1. Header */}
+      <WorkspacePageHeader
+        backHref="/mvp/dashboard"
+        backLabel="Back to your catalog"
+        title={artifact.title}
+        description={artifact.description ?? undefined}
+        action={
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
+            <Button
+              asChild
+              className="h-10 min-w-0 flex-1 rounded-lg sm:flex-none"
+            >
+              <Link
+                href={
+                  artifact.type === "skill"
+                    ? `/mvp/edit-skill/${artifact.id}`
+                    : `/mvp/edit-tool/${artifact.id}`
+                }
+              >
+                {artifact.type === "skill" ? "Edit skill" : "Edit tool"}
+              </Link>
+            </Button>
 
-        <div className="flex items-center gap-2">
+            <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="size-10 shrink-0 rounded-lg border-destructive/30 text-destructive hover:bg-destructive/10"
+                  aria-label={`Delete ${artifact.title}`}
+                >
+                  <IconTrash className="size-4" aria-hidden="true" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-sm rounded-xl">
+                <DialogHeader>
+                  <DialogTitle>Delete {artifact.title}?</DialogTitle>
+                  <DialogDescription>
+                    This permanently removes the item from your private space.
+                    Members will lose access to run it.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="mt-2 flex flex-row gap-2">
+                  <DialogClose asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-10 flex-1 rounded-lg"
+                    >
+                      Cancel
+                    </Button>
+                  </DialogClose>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={deleteArtifact.isPending}
+                    className="h-10 flex-1 rounded-lg"
+                  >
+                    {deleteArtifact.isPending ? (
+                      <IconLoader2
+                        className="size-4 animate-spin"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <IconTrash className="size-4" aria-hidden="true" />
+                    )}
+                    <span>Delete item</span>
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        }
+      >
+        <div className="flex flex-wrap items-center gap-1.5">
+          <StatusBadge status={artifact.status} />
+          <AttributeBadge
+            icon={artifact.visibility === "private" ? IconLock : IconWorld}
+          >
+            {artifact.visibility === "private"
+              ? "Private"
+              : "Public — waiting for review"}
+          </AttributeBadge>
+          <AttributeBadge icon={IconCategory} muted={!artifact.category}>
+            {artifact.category || "Uncategorised"}
+          </AttributeBadge>
+          <AttributeBadge>Version {artifact.version}</AttributeBadge>
+          {artifact.sourceUrl && (
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="h-10 rounded-lg text-muted-foreground hover:text-foreground sm:h-8"
+            >
+              <a href={artifact.sourceUrl} target="_blank" rel="noreferrer">
+                <IconLink className="size-4" aria-hidden="true" />
+                <span>Repository</span>
+              </a>
+            </Button>
+          )}
+        </div>
+      </WorkspacePageHeader>
+
+      {/* 2. Publishing Section */}
+      <FormSection
+        title="Publishing"
+        description="These checks run on the server and decide whether this item can go live."
+      >
+        <div>
+          {artifact.status === "published" ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleUnpublish}
+              disabled={unpublishArtifact.isPending}
+              className="h-10 rounded-lg"
+            >
+              {unpublishArtifact.isPending ? (
+                <IconLoader2
+                  className="size-4 animate-spin"
+                  aria-hidden="true"
+                />
+              ) : (
+                <IconRocketOff className="size-4" aria-hidden="true" />
+              )}
+              <span>Unpublish</span>
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              onClick={handlePublish}
+              disabled={
+                publishArtifact.isPending ||
+                checks.isLoading ||
+                checks.isError ||
+                !checks.data?.publishable
+              }
+              aria-describedby={
+                checks.data && !checks.isError && !checks.data.publishable
+                  ? "publish-blocked-reason"
+                  : undefined
+              }
+              title={
+                checks.data && !checks.isError && !checks.data.publishable
+                  ? "Resolve the failing checks below before publishing."
+                  : undefined
+              }
+              className="h-10 rounded-lg"
+            >
+              {publishArtifact.isPending ? (
+                <IconLoader2
+                  className="size-4 animate-spin"
+                  aria-hidden="true"
+                />
+              ) : (
+                <IconRocket className="size-4" aria-hidden="true" />
+              )}
+              <span>Publish</span>
+            </Button>
+          )}
+        </div>
+
+        {artifact.status !== "published" &&
+          checks.data &&
+          !checks.isError &&
+          !checks.data.publishable && (
+            <p
+              id="publish-blocked-reason"
+              className="text-sm text-muted-foreground"
+            >
+              Resolve the failing checks below before publishing.
+            </p>
+          )}
+
+        {publishError && (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+            {publishError}
+          </div>
+        )}
+
+        {checks.isLoading && (
+          <p className="text-sm text-muted-foreground">Running checks...</p>
+        )}
+
+        {checks.isError && (
+          <p className="text-sm font-semibold text-destructive">
+            Failed to load review checks
+            {checks.error instanceof Error ? `: ${checks.error.message}` : "."}
+          </p>
+        )}
+
+        {/* Gate on !isError too — React Query keeps the last-good `data`
+            across a failed refetch, so without this a failed background
+            refetch would leave stale rows on screen alongside the error message. */}
+        {checks.data && !checks.isError && (
+          <div className="space-y-3">
+            {checks.data.checks.length === 0 && (
+              <p className="text-sm italic text-muted-foreground">
+                No checks reported.
+              </p>
+            )}
+            {checks.data.checks.map((check) => {
+              const isPass = check.status === "pass"
+              const isWarn = check.status === "warn"
+              const StatusIcon = isPass
+                ? IconCheck
+                : isWarn
+                  ? IconAlertTriangle
+                  : IconX
+              const iconWrapClass = isPass
+                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                : isWarn
+                  ? "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                  : "bg-destructive/10 text-destructive"
+              const badgeClass = isPass
+                ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                : isWarn
+                  ? "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                  : "border-destructive/30 bg-destructive/10 text-destructive"
+              const statusWord = isPass
+                ? "Passed"
+                : isWarn
+                  ? "Warning"
+                  : "Blocked"
+
+              return (
+                <div
+                  key={check.id}
+                  data-check-id={check.id}
+                  data-check-status={check.status}
+                  className="flex min-w-0 items-start gap-3 rounded-xl border border-[var(--ironhub-line)] bg-background/40 p-4"
+                >
+                  <div
+                    className={cn(
+                      "flex size-6 shrink-0 items-center justify-center rounded-full",
+                      iconWrapClass
+                    )}
+                    aria-hidden="true"
+                  >
+                    <StatusIcon className="size-4" />
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="min-w-0 break-words text-sm font-medium text-foreground [overflow-wrap:anywhere]">
+                        {check.label}
+                      </span>
+                      <AttributeBadge className={cn("shrink-0", badgeClass)}>
+                        {statusWord}
+                      </AttributeBadge>
+                    </div>
+                    {check.detail && (
+                      <p className="min-w-0 break-words text-sm text-muted-foreground [overflow-wrap:anywhere]">
+                        {check.detail}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </FormSection>
+
+      {/* 3. Files Section */}
+      <FormSection
+        title="Files"
+        description="What's stored for this item right now."
+      >
+        <div
+          className={cn(
+            "grid gap-3",
+            isSingleCard ? "grid-cols-1" : "sm:grid-cols-2"
+          )}
+        >
+          {displayKinds.map((kind) => {
+            const uploaded = uploadedKinds.has(kind)
+            const content = artifact.content.find((c) => c.kind === kind)
+            const info = CONTENT_KIND_INFO[kind] ?? {
+              name: kind,
+              blurb: "",
+            }
+
+            return (
+              <div
+                key={kind}
+                className="flex flex-col justify-between rounded-xl border border-[var(--ironhub-line)] bg-card p-4"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-foreground">
+                      {info.name}
+                    </span>
+                    {uploaded ? (
+                      <AttributeBadge>Stored</AttributeBadge>
+                    ) : (
+                      <AttributeBadge className="border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                        Not added yet
+                      </AttributeBadge>
+                    )}
+                  </div>
+                  {info.blurb && (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {info.blurb}
+                    </p>
+                  )}
+                </div>
+
+                {uploaded ? (
+                  content && (
+                    <div
+                      className="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground"
+                      title={content.sha256}
+                    >
+                      <span>{formatFileSize(content.sizeBytes)}</span>
+                      {content.sha256 && (
+                        <>
+                          <span>·</span>
+                          <span className="font-mono">
+                            sha256 {content.sha256.slice(0, 10)}...
+                          </span>
+                        </>
+                      )}
+                      {content.createdAt && (
+                        <>
+                          <span>·</span>
+                          <span>added</span>
+                          <RelativeTime value={content.createdAt} />
+                        </>
+                      )}
+                    </div>
+                  )
+                ) : (
+                  <div className="mt-3">
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="sm"
+                      className="h-10 rounded-lg text-primary sm:h-8"
+                    >
+                      <Link
+                        href={
+                          artifact.type === "skill"
+                            ? `/mvp/edit-skill/${artifact.id}`
+                            : `/mvp/edit-tool/${artifact.id}`
+                        }
+                      >
+                        <span>Add {info.name.toLowerCase()}</span>
+                        <IconArrowRight className="size-4" aria-hidden="true" />
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {artifact.type === "tool" && (
+          <div className="mt-4 flex flex-col gap-2">
+            <label
+              htmlFor="bundle-reupload-input"
+              className="text-sm font-medium text-foreground"
+            >
+              Replace the uploaded package (.zip)
+            </label>
+            <p className="text-sm text-muted-foreground">
+              Recovery path if a bundle upload failed partway through, or to
+              replace the stored package.
+            </p>
+            <input
+              id="bundle-reupload-input"
+              type="file"
+              accept=".zip"
+              disabled={uploadArtifactBundle.isPending}
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                e.target.value = ""
+                if (file) void handleBundleReupload(file)
+              }}
+              className="block h-11 w-full text-sm text-muted-foreground file:mr-3 file:h-10 sm:file:h-9 file:rounded-lg file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary hover:file:bg-primary/20"
+            />
+            {uploadArtifactBundle.isPending && (
+              <span className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+                <IconLoader2
+                  className="size-4 animate-spin"
+                  aria-hidden="true"
+                />
+                <span>Uploading...</span>
+              </span>
+            )}
+            {uploadArtifactBundle.isSuccess &&
+              !uploadArtifactBundle.isPending &&
+              !bundleReuploadError && (
+                <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                  <IconFileZip className="size-4" aria-hidden="true" />
+                  <span>Bundle uploaded</span>
+                </span>
+              )}
+            {bundleReuploadError && (
+              <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm font-medium text-destructive">
+                {bundleReuploadError}
+              </div>
+            )}
+          </div>
+        )}
+      </FormSection>
+
+      {/* 4. Install Link Section */}
+      <FormSection
+        title="Install link"
+        description="Share this link with a member so they can add this item to their agent."
+      >
+        <div className="flex flex-col items-start gap-2">
           <Button
             type="button"
             variant="outline"
             onClick={handleCopyInstall}
             disabled={mintToken.isPending || !isContentComplete}
-            title={
-              isContentComplete
-                ? undefined
-                : "Upload all required content files before minting an install link"
-            }
-            className="rounded-full shadow-sm hover:shadow-md"
+            className="h-10 rounded-lg"
           >
             {mintToken.isPending ? (
-              <IconLoader2 className="size-4 mr-1.5 animate-spin" />
-            ) : copiedInstall ? (
-              <IconCheck className="size-4 mr-1.5 text-emerald-500" />
-            ) : (
-              <IconCopy className="size-4 mr-1.5 text-muted-foreground" />
-            )}
-            {copiedInstall ? "Copied!" : "Copy Install Link"}
-          </Button>
-
-          {artifact.type === "skill" ? (
-            <Button asChild className="rounded-full shadow-sm hover:shadow-md">
-              <Link href={`/mvp/edit-skill/${artifact.id}`}>Update Skill</Link>
-            </Button>
-          ) : (
-            <Button asChild className="rounded-full shadow-sm hover:shadow-md">
-              <Link href={`/mvp/edit-tool/${artifact.id}`}>Update Tool</Link>
-            </Button>
-          )}
-
-          <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-            <DialogTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                aria-label="Delete submission"
-                className="rounded-full border-destructive/30 text-destructive hover:bg-destructive/10"
-              >
-                <IconTrash className="size-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-sm">
-              <DialogHeader>
-                <DialogTitle>Delete {artifact.title}?</DialogTitle>
-                <DialogDescription>
-                  This permanently removes the item from your organization&apos;s Private Space. Members will lose access to run it.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="mt-2 flex gap-3">
-                <DialogClose asChild>
-                  <Button type="button" variant="outline" className="flex-1 rounded-full">
-                    Cancel
-                  </Button>
-                </DialogClose>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleDelete}
-                  disabled={deleteArtifact.isPending}
-                  className="flex-1 rounded-full"
-                >
-                  <IconTrash className="size-4" />
-                  Delete Item
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-
-      {/* Main Details Card */}
-      <Card className="border border-[var(--ironhub-line)] bg-card/60 p-6 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <span className="text-xs font-bold tracking-widest text-primary uppercase">
-              Manage {artifact.type}
-            </span>
-            <h1 className="mt-1 text-2xl font-bold text-foreground flex items-center gap-2">
-              {artifact.title}
-              <span className="text-sm font-normal text-muted-foreground font-mono">
-                {artifact.version}
-              </span>
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="gap-1 px-2 py-0.5 rounded-full text-xs">
-              {artifact.visibility === "public" ? (
-                <>
-                  <IconWorld className="size-3 text-muted-foreground" />
-                  Public — pending review
-                </>
-              ) : (
-                <>
-                  <IconLock className="size-3 text-muted-foreground" />
-                  Private Space
-                </>
-              )}
-            </Badge>
-            {getStatusBadge(artifact.status)}
-          </div>
-        </div>
-
-        {artifact.description && (
-          <p className="text-xs text-muted-foreground mt-2 leading-relaxed max-w-xl">
-            {artifact.description}
-          </p>
-        )}
-
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Badge
-            variant="outline"
-            className={`gap-1 px-2 py-0.5 rounded-full text-xs ${artifact.category ? "" : "text-muted-foreground/70 italic"}`}
-          >
-            <IconCategory className="size-3 text-muted-foreground" />
-            {artifact.category ?? "Uncategorised"}
-          </Badge>
-          {artifact.sourceUrl && (
-            <a
-              href={artifact.sourceUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 rounded-full border border-[var(--ironhub-line)] px-2 py-0.5 text-xs text-muted-foreground hover:text-primary transition-colors"
-            >
-              <IconLink className="size-3" />
-              Repository
-            </a>
-          )}
-        </div>
-
-        {/* Content status */}
-        <div className="mt-6 border-t border-[var(--ironhub-line)]/50 pt-6">
-          <h2 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5">
-            <IconDownload className="size-4" />
-            Content Files
-          </h2>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {displayKinds.map((kind) => {
-              const uploaded = uploadedKinds.has(kind)
-              const content = artifact.content.find((c) => c.kind === kind)
-              return (
-                <div
-                  key={kind}
-                  className={`rounded-xl border p-3.5 text-xs ${uploaded
-                      ? "border-emerald-500/20 bg-emerald-500/5"
-                      : "border-amber-500/20 bg-amber-500/5"
-                    }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono font-bold text-foreground">{kind}</span>
-                    <span
-                      className={
-                        uploaded
-                          ? "text-emerald-600 dark:text-emerald-400 font-bold uppercase text-[10px]"
-                          : "text-amber-600 dark:text-amber-400 font-bold uppercase text-[10px]"
-                      }
-                    >
-                      {uploaded ? "Uploaded" : "Missing"}
-                    </span>
-                  </div>
-                  {content && (
-                    <p className="mt-1 text-muted-foreground">
-                      {(content.sizeBytes / 1024).toFixed(1)} KB · sha256 {content.sha256.slice(0, 10)}...
-                    </p>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-
-          {artifact.type === "tool" && (
-            <div className="mt-3 flex flex-col gap-1.5">
-              <label
-                htmlFor="bundle-reupload-input"
-                className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase"
-              >
-                <IconUpload className="size-3.5" />
-                Re-upload Extension Bundle (.zip)
-              </label>
-              <p className="text-xs text-muted-foreground">
-                Recovery path if a bundle upload failed partway through, or to replace the stored package.
-              </p>
-              <input
-                id="bundle-reupload-input"
-                type="file"
-                accept=".zip"
-                disabled={uploadArtifactBundle.isPending}
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  e.target.value = ""
-                  if (file) void handleBundleReupload(file)
-                }}
-                className="block w-full text-xs text-muted-foreground file:mr-3 file:rounded-full file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-primary hover:file:bg-primary/20"
+              <IconLoader2
+                className="size-4 animate-spin"
+                aria-hidden="true"
               />
-              {uploadArtifactBundle.isPending && (
-                <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                  <IconLoader2 className="size-3.5 animate-spin" />
-                  Uploading...
-                </span>
-              )}
-              {uploadArtifactBundle.isSuccess && !uploadArtifactBundle.isPending && !bundleReuploadError && (
-                <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                  <IconFileZip className="size-3.5" />
-                  Bundle uploaded
-                </span>
-              )}
-              {bundleReuploadError && (
-                <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive">
-                  {bundleReuploadError}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Review checks — rendered verbatim from the server; no check is invented client-side. */}
-        <div className="mt-6 border-t border-[var(--ironhub-line)]/50 pt-6">
-          <h2 className="text-xs font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5">
-            <IconInfoCircle className="size-4" />
-            Review Checks
-          </h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            These checks reflect live server state and gate whether the item can be published.
-          </p>
-
-          {checks.isLoading && (
-            <p className="mt-4 text-xs text-muted-foreground">Running checks...</p>
-          )}
-
-          {checks.isError && (
-            <p className="mt-4 text-xs font-semibold text-destructive">
-              Failed to load review checks
-              {checks.error instanceof Error ? `: ${checks.error.message}` : "."}
+            ) : copiedInstall ? (
+              <IconCheck
+                className="size-4 text-emerald-600 dark:text-emerald-400"
+                aria-hidden="true"
+              />
+            ) : (
+              <IconCopy
+                className="size-4 text-muted-foreground"
+                aria-hidden="true"
+              />
+            )}
+            <span>{copiedInstall ? "Copied" : "Copy install link"}</span>
+          </Button>
+          {!isContentComplete && (
+            <p className="text-sm text-muted-foreground">
+              Add the required files before you can copy an install link.
             </p>
           )}
-
-          {/* Gate on !isError too — React Query keeps the last-good `data`
-              across a failed refetch, so without this a failed background
-              refetch would leave stale (possibly all-passing) rows on
-              screen alongside the error message above. */}
-          {checks.data && !checks.isError && (
-            <div className="mt-4 flex flex-col gap-2">
-              {checks.data.checks.length === 0 && (
-                <p className="text-xs text-muted-foreground italic leading-normal">
-                  No checks reported.
-                </p>
-              )}
-              {checks.data.checks.map((check) => {
-                const meta = CHECK_STATUS_META[check.status]
-                return (
-                  <div
-                    key={check.id}
-                    data-check-id={check.id}
-                    data-check-status={check.status}
-                    className="flex items-center gap-2 rounded-xl border border-[var(--ironhub-line)]/50 bg-background/30 p-3.5 text-xs"
-                  >
-                    <div
-                      className={`flex size-5 shrink-0 items-center justify-center rounded-full ${meta.iconWrap}`}
-                      aria-hidden="true"
-                    >
-                      <meta.Icon className="size-3.5" />
-                    </div>
-                    <div>
-                      <span className="font-semibold text-foreground">{check.label}</span>
-                      <span
-                        className={`ml-2 rounded-full border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${meta.badge}`}
-                      >
-                        {meta.label}
-                      </span>
-                      <p className="text-muted-foreground/90">{check.detail}</p>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          {publishError && (
-            <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs font-semibold text-destructive">
-              {publishError}
-            </div>
-          )}
-
-          <div className="mt-4 flex flex-col items-start gap-1.5">
-            {artifact.status === "published" ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleUnpublish}
-                disabled={unpublishArtifact.isPending}
-                className="rounded-full"
-              >
-                {unpublishArtifact.isPending ? (
-                  <IconLoader2 className="size-4 animate-spin" />
-                ) : (
-                  <IconRocketOff className="size-4" />
-                )}
-                Unpublish
-              </Button>
-            ) : (
-              <>
-                <Button
-                  type="button"
-                  onClick={handlePublish}
-                  disabled={
-                    publishArtifact.isPending ||
-                    checks.isLoading ||
-                    checks.isError ||
-                    !checks.data?.publishable
-                  }
-                  aria-describedby={
-                    checks.data && !checks.isError && !checks.data.publishable
-                      ? "publish-blocked-reason"
-                      : undefined
-                  }
-                  title={
-                    checks.data && !checks.isError && !checks.data.publishable
-                      ? "Resolve the failing checks above before publishing"
-                      : undefined
-                  }
-                  className="rounded-full"
-                >
-                  {publishArtifact.isPending ? (
-                    <IconLoader2 className="size-4 animate-spin" />
-                  ) : (
-                    <IconRocket className="size-4" />
-                  )}
-                  Publish
-                </Button>
-                {checks.data && !checks.isError && !checks.data.publishable && (
-                  <p id="publish-blocked-reason" className="text-xs text-muted-foreground">
-                    Resolve the failing checks above before publishing.
-                  </p>
-                )}
-              </>
-            )}
-          </div>
         </div>
-      </Card>
+      </FormSection>
     </div>
   )
 }
