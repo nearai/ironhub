@@ -15,12 +15,12 @@ const statusConfig: Record<
   draft: {
     label: "Draft",
     className:
-      "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+      "border-amber-500/25 bg-amber-500/10 text-amber-800 dark:text-amber-400",
   },
   published: {
     label: "Published",
     className:
-      "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+      "border-emerald-500/25 bg-emerald-500/10 text-emerald-800 dark:text-emerald-400",
   },
 }
 

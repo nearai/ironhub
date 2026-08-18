@@ -26,7 +26,9 @@ import {
   EmptyState,
   AttributeBadge,
   RelativeTime,
+  workspaceLinkTone,
 } from "@/features/partner/components/ui"
+import { cn } from "@/lib/shared/utils"
 import {
   IconAlertTriangle,
   IconUsers,
@@ -126,7 +128,12 @@ export default function TeamPage() {
         const initials = label.slice(0, 2).toUpperCase()
         return (
           <div className="flex items-center gap-3 min-w-0 py-1">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary uppercase">
+            <div
+              className={cn(
+                "flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold uppercase",
+                workspaceLinkTone
+              )}
+            >
               {initials}
             </div>
             <div className="min-w-0">
@@ -282,7 +289,7 @@ export default function TeamPage() {
   ]
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <WorkspacePageHeader
         title="Members"
         description="Invite people to this workspace and choose what they can do."
@@ -456,6 +463,7 @@ export default function TeamPage() {
                 variant="bare"
                 icon={IconClock}
                 title="No pending invitations"
+                description="Anyone you invite will be listed here until they accept."
               />
             )
           }

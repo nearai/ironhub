@@ -16,6 +16,7 @@ import {
   IconRocket,
   IconRocketOff,
   IconTrash,
+  IconUpload,
   IconWorld,
   IconX,
 } from "@tabler/icons-react"
@@ -47,6 +48,7 @@ import { EmptyState } from "@/features/partner/components/ui/empty-state"
 import { FormSection } from "@/features/partner/components/ui/form-section"
 import { RelativeTime } from "@/features/partner/components/ui/relative-time"
 import { StatusBadge } from "@/features/partner/components/ui/status-badge"
+import { workspaceLinkTone } from "@/features/partner/components/ui/tone"
 import { WorkspacePageHeader } from "@/features/partner/components/ui/workspace-page-header"
 import { useToast } from "@/features/partner/store/toast-provider"
 import { cn } from "@/lib/shared/utils"
@@ -103,6 +105,19 @@ export default function ManageSubmissionPage({ params }: PageProps) {
   const [bundleReuploadError, setBundleReuploadError] = useState<string | null>(
     null
   )
+  const [dragOver, setDragOver] = useState(false)
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(true)
+  }
+  const handleDragLeave = () => setDragOver(false)
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+    const file = e.dataTransfer.files[0]
+    if (file) void handleBundleReupload(file)
+  }
 
   if (isLoading) {
     return (
@@ -446,15 +461,15 @@ export default function ManageSubmissionPage({ params }: PageProps) {
                   ? IconAlertTriangle
                   : IconX
               const iconWrapClass = isPass
-                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                ? "bg-emerald-500/10 text-emerald-800 dark:text-emerald-400"
                 : isWarn
-                  ? "bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                  : "bg-destructive/10 text-destructive"
+                  ? "bg-amber-500/10 text-amber-800 dark:text-amber-400"
+                  : "bg-destructive/10 text-red-700 dark:text-destructive"
               const badgeClass = isPass
-                ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-800 dark:text-emerald-400"
                 : isWarn
-                  ? "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                  : "border-destructive/30 bg-destructive/10 text-destructive"
+                  ? "border-amber-500/25 bg-amber-500/10 text-amber-800 dark:text-amber-400"
+                  : "border-destructive/30 bg-destructive/10 text-red-700 dark:text-destructive"
               const statusWord = isPass
                 ? "Passed"
                 : isWarn
@@ -531,7 +546,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
                     {uploaded ? (
                       <AttributeBadge>Stored</AttributeBadge>
                     ) : (
-                      <AttributeBadge className="border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                      <AttributeBadge className="border-amber-500/25 bg-amber-500/10 text-amber-800 dark:text-amber-400">
                         Not added yet
                       </AttributeBadge>
                     )}
@@ -573,7 +588,11 @@ export default function ManageSubmissionPage({ params }: PageProps) {
                       asChild
                       variant="ghost"
                       size="sm"
-                      className="h-10 rounded-lg text-primary sm:h-8"
+                      className={cn(
+                        "h-10 rounded-lg sm:h-8",
+                        workspaceLinkTone,
+                        "hover:text-near-cobalt dark:hover:text-primary"
+                      )}
                     >
                       <Link
                         href={
@@ -601,22 +620,38 @@ export default function ManageSubmissionPage({ params }: PageProps) {
             >
               Replace the uploaded package (.zip)
             </label>
-            <p className="text-sm text-muted-foreground">
-              Recovery path if a bundle upload failed partway through, or to
-              replace the stored package.
-            </p>
-            <input
-              id="bundle-reupload-input"
-              type="file"
-              accept=".zip"
-              disabled={uploadArtifactBundle.isPending}
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                e.target.value = ""
-                if (file) void handleBundleReupload(file)
-              }}
-              className="block h-11 w-full text-sm text-muted-foreground file:mr-3 file:h-10 sm:file:h-9 file:rounded-lg file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary hover:file:bg-primary/20"
-            />
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={cn(
+                "relative flex min-h-[120px] flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-colors",
+                dragOver
+                  ? "border-primary bg-primary/5"
+                  : "border-[var(--ironhub-line)] bg-background/50 hover:border-primary/50"
+              )}
+            >
+              <input
+                id="bundle-reupload-input"
+                type="file"
+                accept=".zip"
+                disabled={uploadArtifactBundle.isPending}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  e.target.value = ""
+                  if (file) void handleBundleReupload(file)
+                }}
+                className="absolute inset-0 cursor-pointer opacity-0"
+              />
+              <IconUpload className="size-6 text-muted-foreground" aria-hidden="true" />
+              <span className="mt-2 block text-sm font-medium text-foreground">
+                Drop a replacement package (.zip) here, or choose one
+              </span>
+              <span className="mt-1 text-sm text-muted-foreground">
+                Recovery path if a bundle upload failed partway through, or to
+                replace the stored package.
+              </span>
+            </div>
             {uploadArtifactBundle.isPending && (
               <span className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
                 <IconLoader2
@@ -629,7 +664,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
             {uploadArtifactBundle.isSuccess &&
               !uploadArtifactBundle.isPending &&
               !bundleReuploadError && (
-                <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-800 dark:text-emerald-400">
                   <IconFileZip className="size-4" aria-hidden="true" />
                   <span>Bundle uploaded</span>
                 </span>

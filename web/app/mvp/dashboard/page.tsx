@@ -32,7 +32,9 @@ import { StatCard, StatRow } from "@/features/partner/components/ui/stat-card"
 import { StatusBadge } from "@/features/partner/components/ui/status-badge"
 import { ViewToggle } from "@/features/partner/components/ui/view-toggle"
 import { WorkspacePageHeader } from "@/features/partner/components/ui/workspace-page-header"
+import { workspaceLinkTone } from "@/features/partner/components/ui/tone"
 import { CATEGORIES } from "@/lib/catalog/inference"
+import { cn } from "@/lib/shared/utils"
 
 function useIsBelowMd(): boolean {
   const subscribe = React.useCallback((callback: () => void) => {
@@ -158,7 +160,7 @@ export default function DashboardPage() {
           href={`/mvp/manage/${row.id}`}
           className="group block min-w-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
-          <div className="truncate text-sm font-medium text-foreground group-hover:text-primary">
+          <div className="truncate text-sm font-medium text-foreground group-hover:text-near-cobalt dark:group-hover:text-primary">
             {row.title}
           </div>
           <div className="truncate font-mono text-xs text-muted-foreground">
@@ -230,7 +232,11 @@ export default function DashboardPage() {
           asChild
           variant="ghost"
           size="sm"
-          className="h-10 rounded-lg text-primary sm:h-8"
+          className={cn(
+            "h-10 rounded-lg sm:h-8",
+            workspaceLinkTone,
+            "hover:text-near-cobalt dark:hover:text-primary"
+          )}
         >
           <Link href={`/mvp/manage/${row.id}`}>Manage</Link>
         </Button>

@@ -53,7 +53,7 @@ export function PartnerLayoutShell({ children }: PartnerLayoutShellProps) {
             </div>
           </aside>
 
-          <main className="min-w-0 flex-1 py-6 lg:py-8 lg:pl-8">
+          <main className="min-w-0 flex-1 pt-6 pb-24 lg:pt-8 lg:pl-8">
             <div className="mb-4 flex items-center justify-between gap-3 lg:hidden">
               <div className="flex items-center gap-3">
                 <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>

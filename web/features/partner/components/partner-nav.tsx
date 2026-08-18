@@ -9,6 +9,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
+import { workspaceLinkTone } from "@/features/partner/components/ui"
 import { cn } from "@/lib/shared/utils"
 
 const menuItems = [
@@ -42,7 +43,11 @@ export function PartnerNav({ onNavigate }: PartnerNavProps) {
             className={cn(
               "h-10 w-full justify-start rounded-lg px-3 text-sm font-medium transition-colors",
               isActive
-                ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
+                ? cn(
+                    "bg-primary/10 hover:bg-primary/15",
+                    workspaceLinkTone,
+                    "hover:text-near-cobalt dark:hover:text-primary"
+                  )
                 : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
             )}
           >

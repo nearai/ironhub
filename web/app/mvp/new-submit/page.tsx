@@ -16,6 +16,7 @@ import { VisibilitySelector } from "@/features/partner/components/visibility-sel
 import { CategoryAndRepoFields } from "@/features/partner/components/category-repo-fields"
 import {
   FormSection,
+  ViewToggle,
   WorkspacePageHeader,
 } from "@/features/partner/components/ui"
 import { Button } from "@/components/ui/button"
@@ -410,7 +411,7 @@ export default function NewSubmitPage() {
           title="What you are adding"
           description="Choose whether you are creating a skill or a packaged tool."
         >
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             <button
               type="button"
               aria-pressed={type === "skill"}
@@ -425,30 +426,30 @@ export default function NewSubmitPage() {
                 resetToolBundleState()
               }}
               className={cn(
-                "flex min-h-[40px] flex-col gap-2 rounded-xl border p-4 text-left transition-colors",
+                "flex items-start gap-3 rounded-xl border p-4 text-left transition-colors",
                 type === "skill"
-                  ? "border-primary bg-primary/5 text-foreground"
-                  : "border-[var(--ironhub-line)] bg-card text-muted-foreground hover:bg-muted/50"
+                  ? "border-primary bg-primary/5"
+                  : "border-[var(--ironhub-line)] bg-background/30 hover:bg-muted/30"
               )}
             >
-              <div className="flex items-center gap-2">
-                <div
-                  className={cn(
-                    "flex size-8 shrink-0 items-center justify-center rounded-lg",
-                    type === "skill"
-                      ? "bg-primary/20 text-primary"
-                      : "bg-muted text-muted-foreground"
-                  )}
-                >
-                  <IconSparkles className="size-4" aria-hidden="true" />
-                </div>
-                <span className="text-sm font-semibold text-foreground">
+              <span
+                className={cn(
+                  "flex size-9 shrink-0 items-center justify-center rounded-lg",
+                  type === "skill"
+                    ? "bg-primary/15 text-primary"
+                    : "bg-muted text-muted-foreground"
+                )}
+              >
+                <IconSparkles className="size-4" aria-hidden="true" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-foreground">
                   Skill
                 </span>
-              </div>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                Instructions you write that tell an assistant how to do something. Nothing to upload.
-              </p>
+                <span className="mt-1 block text-sm leading-snug text-muted-foreground">
+                  Instructions you write that tell an assistant how to do something. Nothing to upload.
+                </span>
+              </span>
             </button>
 
             <button
@@ -465,30 +466,30 @@ export default function NewSubmitPage() {
                 resetToolBundleState()
               }}
               className={cn(
-                "flex min-h-[40px] flex-col gap-2 rounded-xl border p-4 text-left transition-colors",
+                "flex items-start gap-3 rounded-xl border p-4 text-left transition-colors",
                 type === "tool"
-                  ? "border-primary bg-primary/5 text-foreground"
-                  : "border-[var(--ironhub-line)] bg-card text-muted-foreground hover:bg-muted/50"
+                  ? "border-primary bg-primary/5"
+                  : "border-[var(--ironhub-line)] bg-background/30 hover:bg-muted/30"
               )}
             >
-              <div className="flex items-center gap-2">
-                <div
-                  className={cn(
-                    "flex size-8 shrink-0 items-center justify-center rounded-lg",
-                    type === "tool"
-                      ? "bg-primary/20 text-primary"
-                      : "bg-muted text-muted-foreground"
-                  )}
-                >
-                  <IconTool className="size-4" aria-hidden="true" />
-                </div>
-                <span className="text-sm font-semibold text-foreground">
+              <span
+                className={cn(
+                  "flex size-9 shrink-0 items-center justify-center rounded-lg",
+                  type === "tool"
+                    ? "bg-primary/15 text-primary"
+                    : "bg-muted text-muted-foreground"
+                )}
+              >
+                <IconTool className="size-4" aria-hidden="true" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-foreground">
                   Tool
                 </span>
-              </div>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                A packaged program you upload as a .zip file.
-              </p>
+                <span className="mt-1 block text-sm leading-snug text-muted-foreground">
+                  A packaged program you upload as a .zip file.
+                </span>
+              </span>
             </button>
           </div>
         </FormSection>
@@ -567,7 +568,7 @@ export default function NewSubmitPage() {
               />
 
               {/* Key Use Cases */}
-              <div className="flex flex-col gap-2.5 border-t border-[var(--ironhub-line)]/50 pt-4">
+              <div className="flex flex-col gap-2.5 border-t border-[var(--ironhub-line)] pt-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <span className="text-sm font-medium text-foreground">
@@ -585,7 +586,7 @@ export default function NewSubmitPage() {
                     className="h-10 min-h-[40px] gap-1 rounded-lg px-3 text-sm"
                   >
                     <IconPlus className="size-3.5" aria-hidden="true" />
-                    <span>Add Use Case</span>
+                    <span>Add use case</span>
                   </Button>
                 </div>
 
@@ -613,15 +614,15 @@ export default function NewSubmitPage() {
                     </div>
                   ))}
                   {useCases.length === 0 && (
-                    <p className="text-xs leading-normal text-muted-foreground">
-                      Add an example of what someone would use this for.
+                    <p className="text-sm leading-normal text-muted-foreground">
+                      No examples yet.
                     </p>
                   )}
                 </div>
               </div>
 
               {/* Tag Grid */}
-              <div className="grid gap-4 border-t border-[var(--ironhub-line)]/50 pt-4 sm:grid-cols-3">
+              <div className="grid gap-4 border-t border-[var(--ironhub-line)] pt-4 sm:grid-cols-3">
                 <div className="flex flex-col gap-1.5">
                   <label htmlFor="skill-topics" className="text-sm font-medium text-foreground">
                     Topics
@@ -632,7 +633,7 @@ export default function NewSubmitPage() {
                     value={valueTagsText}
                     onChange={(e) => setValueTagsText(e.target.value)}
                     placeholder="Automation, Security"
-                    className="h-10 min-h-[40px] rounded-lg bg-background/50 font-mono text-sm"
+                    className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
                   />
                   <p id="skill-topics-help" className="text-xs text-muted-foreground">
                     What this skill is about. Used for browsing and search.
@@ -649,7 +650,7 @@ export default function NewSubmitPage() {
                     value={activationKeywordsText}
                     onChange={(e) => setActivationKeywordsText(e.target.value)}
                     placeholder="auth, login"
-                    className="h-10 min-h-[40px] rounded-lg bg-background/50 font-mono text-sm"
+                    className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
                   />
                   <p id="skill-trigger-words-help" className="text-xs text-muted-foreground">
                     Words in a request that should bring this skill in.
@@ -666,7 +667,7 @@ export default function NewSubmitPage() {
                     value={activationTagsText}
                     onChange={(e) => setActivationTagsText(e.target.value)}
                     placeholder="productivity"
-                    className="h-10 min-h-[40px] rounded-lg bg-background/50 font-mono text-sm"
+                    className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
                   />
                   <p id="skill-trigger-topics-help" className="text-xs text-muted-foreground">
                     Broader subjects that should bring this skill in.
@@ -681,40 +682,15 @@ export default function NewSubmitPage() {
               title="Instructions"
               description="What the assistant should do when this skill runs."
               action={
-                <div
-                  role="group"
-                  aria-label="Instructions view"
-                  className="inline-flex rounded-lg border border-[var(--ironhub-line)] bg-muted/20 p-1"
-                >
-                  <button
-                    type="button"
-                    aria-pressed={activeTab === "edit"}
-                    onClick={() => setActiveTab("edit")}
-                    className={cn(
-                      "inline-flex min-h-[40px] min-w-[40px] items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                      activeTab === "edit"
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <IconEdit className="size-3.5" aria-hidden="true" />
-                    <span>Write</span>
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={activeTab === "preview"}
-                    onClick={() => setActiveTab("preview")}
-                    className={cn(
-                      "inline-flex min-h-[40px] min-w-[40px] items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                      activeTab === "preview"
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <IconCode className="size-3.5" aria-hidden="true" />
-                    <span>Preview</span>
-                  </button>
-                </div>
+                <ViewToggle
+                  value={activeTab}
+                  onChange={setActiveTab}
+                  options={[
+                    { value: "edit", label: "Write", icon: IconEdit },
+                    { value: "preview", label: "Preview file", icon: IconCode },
+                  ]}
+                  label="Instructions view"
+                />
               }
             >
               {activeTab === "edit" ? (
@@ -754,13 +730,13 @@ Describe how the agent should act...`}
                       ) : (
                         <>
                           <IconCopy className="size-3.5" aria-hidden="true" />
-                          <span>Copy Code</span>
+                          <span>Copy code</span>
                         </>
                       )}
                     </Button>
                   </div>
 
-                  <div className="max-h-[600px] w-full min-w-0 overflow-auto rounded-lg border border-[var(--ironhub-line)] bg-muted p-5 font-mono text-xs leading-relaxed text-foreground shadow-inner select-text selection:bg-primary/30 whitespace-pre">
+                  <div className="max-h-[600px] w-full min-w-0 overflow-auto rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 font-mono text-sm leading-relaxed text-foreground select-text selection:bg-primary/30 whitespace-pre">
                     {compileSkillMarkdown()}
                   </div>
                 </div>
@@ -863,7 +839,7 @@ Describe how the agent should act...`}
                         "inline-flex h-6 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium",
                         uploadStatus.bundle === "error"
                           ? "border-destructive/30 bg-destructive/10 text-destructive"
-                          : "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                          : "border-emerald-500/25 bg-emerald-500/10 text-emerald-800 dark:text-emerald-400"
                       )}
                     >
                       <span className="size-1.5 rounded-full bg-current" aria-hidden="true" />
@@ -986,8 +962,9 @@ Describe how the agent should act...`}
         {/* Sticky submit bar: one surface (bg-card) and the single raised overlay
             step (shadow-lg, same as Dialog/Sheet) in both themes — the resting
             --ironhub-shadow used by FormSection is too weak for a bar that floats
-            over those cards. */}
-        <div className="sticky bottom-4 z-20 rounded-xl border border-[var(--ironhub-line)] bg-card p-4 shadow-lg">
+            over those cards.
+            pr-16 on small screens reserves the corner so buttons do not sit under the floating scroll-to-top button. */}
+        <div className="sticky bottom-4 z-20 rounded-xl border border-[var(--ironhub-line)] bg-card p-4 pr-16 lg:pr-4 shadow-lg">
           <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
             {submitHint && (
               <p className="text-sm text-muted-foreground">
@@ -1009,10 +986,10 @@ Describe how the agent should act...`}
                   isSubmitting ||
                   (type === "tool" && (!bundleReadyForSubmit || inspectBundle.isPending))
                 }
-                className="h-10 min-h-[40px] rounded-lg px-6 shadow-sm"
+                className="h-10 min-h-[40px] rounded-lg px-6"
               >
                 {isSubmitting && <IconLoader2 className="size-4 animate-spin" />}
-                <span>Add to Space</span>
+                <span>Add to space</span>
               </Button>
             </div>
           </div>

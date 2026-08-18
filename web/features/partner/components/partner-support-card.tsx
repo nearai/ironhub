@@ -1,3 +1,6 @@
+import { workspaceLinkTone } from "@/features/partner/components/ui"
+import { cn } from "@/lib/shared/utils"
+
 export function PartnerSupportCard() {
   return (
     <div className="rounded-xl border border-[var(--ironhub-line)] bg-muted/20 p-4 text-xs text-muted-foreground">
@@ -6,7 +9,7 @@ export function PartnerSupportCard() {
         Reach out to IronHub support at{" "}
         <a
           href="mailto:support@ironhub.com"
-          className="font-medium text-primary hover:underline"
+          className={cn("font-medium hover:underline", workspaceLinkTone)}
         >
           support@ironhub.com
         </a>

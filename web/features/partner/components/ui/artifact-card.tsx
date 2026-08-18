@@ -20,6 +20,7 @@ import type {
 import { AttributeBadge } from "./attribute-badge"
 import { RelativeTime } from "./relative-time"
 import { StatusBadge } from "./status-badge"
+import { workspaceLinkTone } from "./tone"
 
 export interface ArtifactCardProps {
   type: ArtifactType
@@ -135,7 +136,11 @@ export function ArtifactCard({
               asChild
               variant="ghost"
               size="sm"
-              className="h-10 rounded-lg text-primary hover:bg-primary/5 hover:text-primary sm:h-8"
+              className={cn(
+                "h-10 rounded-lg hover:bg-primary/5 sm:h-8",
+                workspaceLinkTone,
+                "hover:text-near-cobalt dark:hover:text-primary"
+              )}
             >
               <Link href={href}>
                 <span>{actionLabel}</span>

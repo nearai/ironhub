@@ -507,7 +507,7 @@ export default function EditSkillPage({ params }: PageProps) {
         >
           <div className="flex flex-col gap-1.5">
             <label htmlFor="skill-use-cases" className="text-sm font-medium text-foreground">
-              What it is for
+              What it&apos;s for
             </label>
             <textarea
               id="skill-use-cases"

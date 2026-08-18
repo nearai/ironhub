@@ -21,6 +21,7 @@ import {
   useSetActiveOrganization,
 } from "@/features/partner/api/orgs"
 import { useToast } from "@/features/partner/store/toast-provider"
+import { workspaceLinkTone } from "@/features/partner/components/ui"
 
 export interface OrgSwitcherProps {
   className?: string
@@ -189,7 +190,10 @@ export function OrgSwitcher({ className }: OrgSwitcherProps = {}) {
               <button
                 type="button"
                 onClick={() => setCreating(true)}
-                className="flex h-10 w-full items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-primary hover:bg-primary/5"
+                className={cn(
+                  "flex h-10 w-full items-center gap-1.5 rounded-lg px-2 text-sm font-semibold hover:bg-primary/5",
+                  workspaceLinkTone
+                )}
               >
                 <IconPlus className="size-3.5" aria-hidden="true" />
                 Create organization
