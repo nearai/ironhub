@@ -30,5 +30,19 @@ export async function resolve(specifier, context, nextResolve) {
     }
   }
 
-  return nextResolve(specifier, context)
+  try {
+    return await nextResolve(specifier, context)
+  } catch (error) {
+    if (!specifier.startsWith("node:") && !specifier.startsWith("/")) {
+      try {
+        return await nextResolve(specifier, {
+          ...context,
+          parentURL: pathToFileURL(`${projectRoot}/package.json`).href,
+        })
+      } catch {
+        // rethrow original
+      }
+    }
+    throw error
+  }
 }
