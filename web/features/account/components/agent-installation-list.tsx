@@ -1,6 +1,6 @@
 "use client"
 
-import { IconRefresh, IconShieldCheck, IconTrash } from "@tabler/icons-react"
+import { IconShieldCheck, IconTrash } from "@tabler/icons-react"
 
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
@@ -80,10 +80,6 @@ export function AgentInstallationList({
                 <IconTrash />
               </Button>
             </div>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <IconRefresh className="size-3.5" />
-            Signed install links expire in 5 minutes.
           </div>
         </div>
       ))}

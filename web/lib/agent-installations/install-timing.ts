@@ -48,3 +48,15 @@ export const INSTALL_CLICK_THROUGH_WINDOW_SECONDS = 300
  * second number on screen would only obscure the one deadline they can miss.
  */
 export const ARTIFACT_TOKEN_TTL_SECONDS = 900
+
+/**
+ * The click-through window in words, for the two places that state it to a
+ * user. Lives beside the constant so the sentence cannot drift from the number
+ * it describes -- both call sites previously hardcoded "5 minutes".
+ */
+export function describeInstallWindow(
+  seconds: number = INSTALL_CLICK_THROUGH_WINDOW_SECONDS
+): string {
+  const minutes = Math.round(seconds / 60)
+  return minutes === 1 ? "1 minute" : `${minutes} minutes`
+}

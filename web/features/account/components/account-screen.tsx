@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation"
 
+import { isAgentInstallEnabled } from "@/lib/shared/feature-flags"
 import { cn } from "@/lib/shared/utils"
 
 import { useAccountActions } from "../hooks/use-account-actions"
@@ -48,7 +49,13 @@ export function AccountScreen() {
           >
             <AgentInstallationsPanel isActive={Boolean(session)} />
           </ProfilePanel>
-          <InstallIntentPreview slug={pendingInstallSlug ?? "clickup"} />
+          {/* Documentation for the install flow, so it hides with it. Its
+              contents are entirely synthetic -- a fabricated HMAC payload and
+              a redirect URL pointing at someone else's agent -- which reads as
+              a working feature the user got wrong when the flow is off. */}
+          {isAgentInstallEnabled ? (
+            <InstallIntentPreview slug={pendingInstallSlug ?? "clickup"} />
+          ) : null}
         </div>
       ) : (
         <SignInPanel

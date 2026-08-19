@@ -5,6 +5,8 @@ import { IconInfoCircle, IconShieldCheck } from "@tabler/icons-react"
 import { AgentInstallationForm } from "@/features/account/components/agent-installation-form"
 import { AgentInstallationList } from "@/features/account/components/agent-installation-list"
 import { useAgentInstallations } from "@/features/account/hooks/use-agent-installations"
+import { describeInstallWindow } from "@/lib/agent-installations/install-timing"
+import { isAgentInstallEnabled } from "@/lib/shared/feature-flags"
 
 type AgentInstallationsPanelProps = {
   isActive: boolean
@@ -82,10 +84,20 @@ export function AgentInstallationsPanel({
           </>
         )}
 
-        <div className="flex items-center gap-3 rounded-xl border border-[var(--ironhub-line)] bg-background/45 px-4 py-3 text-sm text-muted-foreground">
-          <IconInfoCircle className="size-4 shrink-0 text-primary" />
-          <span>Signed install links expire in 5 minutes.</span>
-        </div>
+        {/* A deadline for something the user cannot start is worse than no
+            note at all: it implies a working flow and sends anyone who hits
+            trouble hunting a timeout that never happened. Returns with the
+            button. It also used to be repeated on every connection row, which
+            is the wrong place -- the window is a property of the install flow,
+            not of a connection. */}
+        {isAgentInstallEnabled ? (
+          <div className="flex items-center gap-3 rounded-xl border border-[var(--ironhub-line)] bg-background/45 px-4 py-3 text-sm text-muted-foreground">
+            <IconInfoCircle className="size-4 shrink-0 text-primary" />
+            <span>
+              Signed install links expire in {describeInstallWindow()}.
+            </span>
+          </div>
+        ) : null}
       </div>
     </div>
   )

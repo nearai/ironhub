@@ -7,6 +7,7 @@ import {
   INSTALL_WINDOW_SECONDS,
   useInstallIntent,
 } from "@/features/account/hooks/use-install-intent"
+import { describeInstallWindow } from "@/lib/agent-installations/install-timing"
 import { isAgentInstallEnabled } from "@/lib/shared/feature-flags"
 
 type SecureInstallButtonProps = {
@@ -58,7 +59,7 @@ function SecureInstallButtonContent({ slug }: SecureInstallButtonProps) {
       <div className="grid gap-2">
         <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
           This install link expired. Your agent only accepts an install for{" "}
-          {describeWindow(INSTALL_WINDOW_SECONDS)} after it is issued.
+          {describeInstallWindow(INSTALL_WINDOW_SECONDS)} after it is issued.
         </p>
         <Button onClick={startInstall} disabled={isPending}>
           {isPending ? "Signing..." : "Issue a new install link"}
@@ -103,8 +104,8 @@ function SecureInstallButtonContent({ slug }: SecureInstallButtonProps) {
       </Button>
       <p className="text-xs text-muted-foreground">
         Opens your agent in a new tab. You have{" "}
-        {describeWindow(INSTALL_WINDOW_SECONDS)} to approve the install before
-        the link expires.
+        {describeInstallWindow(INSTALL_WINDOW_SECONDS)} to approve the install
+        before the link expires.
       </p>
       {error ? (
         <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -119,9 +120,4 @@ function SecureInstallButtonContent({ slug }: SecureInstallButtonProps) {
 function formatRemaining(seconds: number): string {
   const minutes = Math.floor(seconds / 60)
   return `${minutes}:${String(seconds % 60).padStart(2, "0")}`
-}
-
-function describeWindow(seconds: number): string {
-  const minutes = Math.round(seconds / 60)
-  return minutes === 1 ? "1 minute" : `${minutes} minutes`
 }
