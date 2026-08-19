@@ -10,6 +10,23 @@ type AgentInstallationsPanelProps = {
   isActive: boolean
 }
 
+/**
+ * "Agent registration failed." is the one error this screen can't make more
+ * specific server-side -- the hub only knows the HMAC challenge didn't come
+ * back valid, not why. Spell out the causes here (client-facing copy only;
+ * the server's message and status code are untouched) so a failed Verify
+ * points somewhere useful instead of just failing again.
+ */
+function describeInstallationError(message: string) {
+  if (message !== "Agent registration failed.") return message
+
+  return (
+    "Agent registration failed. This usually means: the shared key doesn't " +
+    "match what the agent is running with, the agent hasn't been restarted " +
+    "since the key was set, or the Agent URL can't be reached from the hub."
+  )
+}
+
 export function AgentInstallationsPanel({
   isActive,
 }: AgentInstallationsPanelProps) {
@@ -44,7 +61,7 @@ export function AgentInstallationsPanel({
       <div className="grid gap-4">
         {error ? (
           <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
+            {describeInstallationError(error)}
           </p>
         ) : null}
         {isLoading ? (

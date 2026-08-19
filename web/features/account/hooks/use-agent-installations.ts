@@ -41,7 +41,7 @@ export function useAgentInstallations(enabled: boolean) {
   }, [load])
 
   const create = async (input: AgentInstallationInput) => {
-    await mutate("create", "/api/agent-installations", {
+    return mutate("create", "/api/agent-installations", {
       method: "POST",
       body: JSON.stringify(input),
     })
@@ -70,7 +70,7 @@ export function useAgentInstallations(enabled: boolean) {
     action: AgentInstallationAction,
     url: string,
     init: RequestInit
-  ) {
+  ): Promise<boolean> {
     setPendingAction(action)
     setError(null)
     try {
@@ -80,8 +80,10 @@ export function useAgentInstallations(enabled: boolean) {
       })
       await readResponse(res)
       await load()
+      return true
     } catch (mutateError) {
       setError(getMessage(mutateError))
+      return false
     } finally {
       setPendingAction(null)
     }
