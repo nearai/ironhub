@@ -23,7 +23,10 @@ export async function POST(request: Request) {
     const { user } = await requireAuthSession()
     assertJsonMutationRequest(request)
     const body = parseJsonObject(await request.json())
-    const organization = await createOrganization(user.id, readString(body, "name"))
+    const organization = await createOrganization(
+      user.id,
+      readString(body, "name")
+    )
 
     return Response.json({ organization }, { status: 201 })
   } catch (error) {

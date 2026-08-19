@@ -11,6 +11,7 @@ import {
   renameOrganization,
   setActiveOrganization,
 } from "./service.ts"
+import { MAX_ORGANIZATIONS_PER_USER } from "./limits.ts"
 
 /**
  * Minimal in-memory fake matching the subset of the Prisma Client API used
@@ -68,6 +69,10 @@ function createFakeDb() {
     async findFirst({ where }) {
       const list = await this.findMany({ where })
       return list[0] ?? null
+    },
+    async count({ where }) {
+      const list = await this.findMany({ where })
+      return list.length
     },
     async create({ data }) {
       members.set(data.id, { ...data })
@@ -148,6 +153,41 @@ test("createOrganization creates the org and makes the creator its owner", async
   const members = await db.member.findMany({ where: { organizationId: org.id } })
   assert.equal(members.length, 1)
   assert.equal(members[0].role, "owner")
+})
+
+test(`createOrganization refuses past ${MAX_ORGANIZATIONS_PER_USER} owned organizations`, async () => {
+  const db = createFakeDb()
+  for (let i = 0; i < MAX_ORGANIZATIONS_PER_USER; i += 1) {
+    await createOrganization("u1", `Org ${i}`, db)
+  }
+
+  const error = await createOrganization("u1", "One too many", db).catch((e) => e)
+  assert.ok(error instanceof Response)
+  assert.equal(error.status, 403)
+
+  const owned = await db.member.findMany({ where: { userId: "u1" } })
+  assert.equal(owned.length, MAX_ORGANIZATIONS_PER_USER)
+})
+
+test("memberships the user did not create do not consume their org quota", async () => {
+  const db = createFakeDb()
+  const host = await createOrganization("host", "Host org", db)
+  // Joined as a plain member, e.g. by accepting an invitation.
+  await db.member.create({
+    data: {
+      id: "m-joined",
+      organizationId: host.id,
+      userId: "u1",
+      role: "member",
+      createdAt: new Date(),
+    },
+  })
+  for (let i = 0; i < MAX_ORGANIZATIONS_PER_USER - 1; i += 1) {
+    await createOrganization("u1", `Org ${i}`, db)
+  }
+
+  const org = await createOrganization("u1", "Still allowed", db)
+  assert.equal(org.name, "Still allowed")
 })
 
 test("listMyOrganizations returns role alongside org info", async () => {

@@ -4,6 +4,7 @@ import { nextCookies } from "better-auth/next-js"
 import { organization } from "better-auth/plugins"
 import { siwn } from "better-near-auth"
 import { prisma } from "../db"
+import { hasReachedOrganizationLimit } from "../orgs/limits"
 import { getInitialOrganization } from "./organization"
 
 const trustedOrigins = Array.from(
@@ -48,9 +49,8 @@ export const auth = betterAuth({
         before: async (session) => ({
           data: {
             ...session,
-            activeOrganizationId: (
-              await getInitialOrganization(session.userId)
-            ).id,
+            activeOrganizationId: (await getInitialOrganization(session.userId))
+              .id,
           },
         }),
       },
@@ -62,6 +62,15 @@ export const auth = betterAuth({
       requireFullAccessKey: false,
     }),
     organization({
+      // Caps how many organizations one account can create. Counts owner
+      // memberships only, so being invited into other workspaces never eats
+      // into the quota. Returning `true` means "limit reached".
+      organizationLimit: async (user) =>
+        hasReachedOrganizationLimit(
+          await prisma.member.count({
+            where: { userId: user.id, role: "owner" },
+          })
+        ),
       // In-app invitations only: no email is ever sent, invitations surface in
       // the workspace notification bell. 7-day expiry per the org-invitations spec.
       invitationExpiresIn: 60 * 60 * 24 * 7,

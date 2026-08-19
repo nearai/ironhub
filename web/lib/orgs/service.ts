@@ -2,6 +2,10 @@ import { randomUUID } from "node:crypto"
 
 import { prisma } from "../db/index.ts"
 import {
+  ORGANIZATION_LIMIT_MESSAGE,
+  hasReachedOrganizationLimit,
+} from "./limits.ts"
+import {
   canChangeRole,
   canRemoveMember,
   isLastOwner,
@@ -26,7 +30,10 @@ function slugify(name: string) {
     .replace(/^-+|-+$/g, "")
 }
 
-export async function listMyOrganizations(userId: string, client: PrismaLike = prisma) {
+export async function listMyOrganizations(
+  userId: string,
+  client: PrismaLike = prisma
+) {
   const members = await client.member.findMany({
     where: { userId },
     include: { organization: true },
@@ -47,6 +54,17 @@ export async function createOrganization(
   client: PrismaLike = prisma
 ) {
   const trimmed = assertOrgName(name)
+
+  // Owner memberships only: organizations the caller was invited into do not
+  // consume their own quota. Mirrored in the BetterAuth `organizationLimit`
+  // option (lib/auth/server.ts), which guards the client SDK's create path.
+  const ownedCount = await client.member.count({
+    where: { userId, role: "owner" },
+  })
+  if (hasReachedOrganizationLimit(ownedCount)) {
+    throw new Response(ORGANIZATION_LIMIT_MESSAGE, { status: 403 })
+  }
+
   // Truncate to keep the slug reasonably short, then disambiguate with a
   // short random suffix instead of Date.now() (which can collide when two
   // orgs are created in the same millisecond and grows unboundedly with

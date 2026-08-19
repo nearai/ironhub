@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto"
 
 import { prisma } from "../db/index.ts"
+import {
+  deriveNearEmail,
+  looksLikeNearAccountId,
+  normalizeNearAccountId,
+} from "./near-identity.ts"
 import { canManageInvitations } from "./roles.ts"
 
 type PrismaLike = typeof prisma
@@ -41,6 +46,81 @@ async function requireMembership(
   return member
 }
 
+/**
+ * Resolves what an inviter typed — an email address or a NEAR account id —
+ * to the email an invitation is addressed to.
+ *
+ * A wallet user's email is minted by better-near-auth on first sign-in, so
+ * the account is looked up first and its stored address reused. Only when the
+ * account has never signed in does this fall back to deriving the address,
+ * which is possible for top-level `<name>.near` accounts alone.
+ */
+export async function resolveInviteeEmail(
+  identifier: string,
+  client: PrismaLike = prisma
+) {
+  const trimmed = identifier.trim()
+  if (!trimmed) {
+    throw new Response("Enter an email address or a NEAR account", {
+      status: 400,
+    })
+  }
+
+  if (trimmed.includes("@")) {
+    return assertEmail(trimmed)
+  }
+
+  if (!looksLikeNearAccountId(trimmed)) {
+    throw new Response(
+      "Enter an email address or a NEAR account, for example alice.near",
+      { status: 400 }
+    )
+  }
+
+  const accountId = normalizeNearAccountId(trimmed)
+  const nearAccount = await client.nearAccount.findFirst({
+    where: { accountId },
+    include: { user: { select: { email: true } } },
+  })
+  if (nearAccount) {
+    return normalizeEmail(nearAccount.user.email)
+  }
+
+  const derived = deriveNearEmail(accountId)
+  if (derived) {
+    return derived
+  }
+
+  throw new Response(
+    "This NEAR account has not signed in to IronHub yet. Ask them to sign in once, then invite them.",
+    { status: 404 }
+  )
+}
+
+/**
+ * Invite by email address or NEAR account id.
+ *
+ * The permission check runs before the identifier is resolved so a
+ * non-member can never use this endpoint to probe which NEAR accounts have
+ * an account here.
+ */
+export async function createInvitationForIdentifier(
+  organizationId: string,
+  actorUserId: string,
+  identifier: string,
+  role: string,
+  client: PrismaLike = prisma
+) {
+  const actor = await requireMembership(organizationId, actorUserId, client)
+  if (!canManageInvitations(actor.role)) {
+    throw new Response("You are not allowed to invite members", { status: 403 })
+  }
+
+  const email = await resolveInviteeEmail(identifier, client)
+
+  return createInvitation(organizationId, actorUserId, email, role, client)
+}
+
 export async function createInvitation(
   organizationId: string,
   actorUserId: string,
@@ -70,7 +150,9 @@ export async function createInvitation(
     (m) => normalizeEmail(m.user.email) === lowerEmail
   )
   if (isExistingMember) {
-    throw new Response("This email already belongs to a member", { status: 409 })
+    throw new Response("This email already belongs to a member", {
+      status: 409,
+    })
   }
 
   const now = new Date()
@@ -79,10 +161,9 @@ export async function createInvitation(
   })
   const hasPending = pending.some((inv) => inv.expiresAt > now)
   if (hasPending) {
-    throw new Response(
-      "A pending invitation already exists for this email",
-      { status: 409 }
-    )
+    throw new Response("A pending invitation already exists for this email", {
+      status: 409,
+    })
   }
 
   return client.invitation.create({
@@ -198,9 +279,9 @@ export async function acceptInvitation(
     })
   }
 
-  const role: InvitableRole = (
-    INVITABLE_ROLES as readonly string[]
-  ).includes(invitation.role ?? "")
+  const role: InvitableRole = (INVITABLE_ROLES as readonly string[]).includes(
+    invitation.role ?? ""
+  )
     ? (invitation.role as InvitableRole)
     : "member"
 
@@ -236,7 +317,11 @@ export async function acceptInvitation(
     return tx.invitation.findUniqueOrThrow({ where: { id: invitationId } })
   })
 
-  return { invitation: updated, organizationId: invitation.organizationId, role }
+  return {
+    invitation: updated,
+    organizationId: invitation.organizationId,
+    role,
+  }
 }
 
 export async function rejectInvitation(

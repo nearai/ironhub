@@ -7,7 +7,11 @@ export type RateLimitStore = {
    * Records one hit for `key` and returns the current count within the
    * active fixed window, plus the epoch ms when that window resets.
    */
-  hit(key: string, windowMs: number, now: number): { count: number; resetAt: number }
+  hit(
+    key: string,
+    windowMs: number,
+    now: number
+  ): { count: number; resetAt: number }
 }
 
 type WindowEntry = { count: number; resetAt: number }

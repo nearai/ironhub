@@ -5,6 +5,7 @@ import {
   acceptInvitation,
   cancelInvitation,
   createInvitation,
+  createInvitationForIdentifier,
   listOrgInvitations,
   listPendingInvitationsForEmail,
   rejectInvitation,
@@ -15,7 +16,7 @@ import {
  * by lib/orgs/invitations.ts, including the compare-and-set `updateMany`
  * pattern and `member.upsert` used to make double-accept idempotent.
  */
-function createFakeDb({ users = {}, membersSeed = [] } = {}) {
+function createFakeDb({ users = {}, membersSeed = [], nearAccounts = [] } = {}) {
   const members = new Map(membersSeed.map((m) => [m.id, m]))
   const invitations = new Map()
   const sessions = new Map()
@@ -136,9 +137,19 @@ function createFakeDb({ users = {}, membersSeed = [] } = {}) {
     },
   }
 
+  const nearAccountOps = {
+    async findFirst({ where, include }) {
+      const account =
+        nearAccounts.find((a) => a.accountId === where.accountId) ?? null
+      if (!account) return null
+      return include?.user ? { ...account, user: userFor(account.userId) } : account
+    },
+  }
+
   const db = {
     member: memberOps,
     invitation: invitationOps,
+    nearAccount: nearAccountOps,
     session: sessionOps,
     async $transaction(fn) {
       return fn(db)
@@ -361,4 +372,88 @@ test("listOrgInvitations requires owner/admin and derives an 'expired' display s
   assert.equal(expired.displayStatus, "expired")
   const active = list.find((i) => i.id !== "i-expired")
   assert.equal(active.displayStatus, "pending")
+})
+
+test("invite by NEAR account reuses the address of an account that has signed in", async () => {
+  // Sub-accounts get a random temp-… address on sign-in, so the stored one is
+  // the only way to reach them — deriving would address nobody.
+  const db = createFakeDb({
+    membersSeed: seedOwner("org1"),
+    users: { u2: { id: "u2", name: "Dev", email: "temp-9f2c1a@example.com" } },
+    nearAccounts: [{ accountId: "dev.alice.near", network: "mainnet", userId: "u2" }],
+  })
+
+  const invitation = await createInvitationForIdentifier(
+    "org1",
+    "owner1",
+    "  Dev.Alice.NEAR ",
+    "member",
+    db
+  )
+
+  assert.equal(invitation.email, "temp-9f2c1a@example.com")
+})
+
+test("invite by a top-level .near account that has never signed in derives its address", async () => {
+  const db = createFakeDb({ membersSeed: seedOwner("org1") })
+
+  const invitation = await createInvitationForIdentifier(
+    "org1",
+    "owner1",
+    "alice.near",
+    "member",
+    db
+  )
+
+  assert.equal(invitation.email, "alice@near.email")
+  assert.equal(invitation.status, "pending")
+})
+
+test("invite by an underivable NEAR account that has never signed in is refused", async () => {
+  const db = createFakeDb({ membersSeed: seedOwner("org1") })
+
+  await assert.rejects(
+    () =>
+      createInvitationForIdentifier("org1", "owner1", "dev.alice.near", "member", db),
+    (err) => err instanceof Response && err.status === 404
+  )
+})
+
+test("invite by identifier still accepts a plain email address", async () => {
+  const db = createFakeDb({ membersSeed: seedOwner("org1") })
+
+  const invitation = await createInvitationForIdentifier(
+    "org1",
+    "owner1",
+    "  Dev@Example.com ",
+    "member",
+    db
+  )
+
+  assert.equal(invitation.email, "dev@example.com")
+})
+
+test("invite by identifier rejects a non-member before resolving the account", async () => {
+  // Resolution must never run for someone without permission, or the endpoint
+  // becomes a probe for which NEAR accounts have signed in here.
+  const db = createFakeDb({
+    membersSeed: [
+      { id: "m1", organizationId: "org1", userId: "member1", role: "member", createdAt: new Date() },
+    ],
+    nearAccounts: [{ accountId: "alice.near", network: "mainnet", userId: "u2" }],
+  })
+
+  await assert.rejects(
+    () => createInvitationForIdentifier("org1", "member1", "alice.near", "member", db),
+    (err) => err instanceof Response && err.status === 403
+  )
+})
+
+test("invite by identifier rejects something that is neither an email nor an account id", async () => {
+  const db = createFakeDb({ membersSeed: seedOwner("org1") })
+
+  await assert.rejects(
+    () => createInvitationForIdentifier("org1", "owner1", "alice", "member", db),
+    (err) => err instanceof Response && err.status === 400
+  )
 })

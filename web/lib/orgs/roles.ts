@@ -23,7 +23,10 @@ export function canManageArtifacts(role: string): boolean {
  * owner can remove anyone; admin can remove members/admins but not owners;
  * member cannot remove anyone.
  */
-export function canRemoveMember(actorRole: string, targetRole: string): boolean {
+export function canRemoveMember(
+  actorRole: string,
+  targetRole: string
+): boolean {
   if (actorRole === "owner") return true
   if (actorRole === "admin") return targetRole !== "owner"
   return false
