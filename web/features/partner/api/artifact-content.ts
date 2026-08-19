@@ -31,7 +31,8 @@ async function fetchTextContent(url: string): Promise<TextContentResult> {
   }
 
   if (!response.ok) {
-    let message = response.statusText || `Request failed with status ${response.status}`
+    let message =
+      response.statusText || `Request failed with status ${response.status}`
     try {
       const body = await response.clone().json()
       if (body && typeof body.error === "string") message = body.error
@@ -70,7 +71,8 @@ export function useArtifactTextContent(
 ) {
   return useQuery({
     queryKey: ["private-artifact-content", id, kind],
-    queryFn: () => fetchTextContent(`/api/private-artifacts/${id}/content/${kind}`),
+    queryFn: () =>
+      fetchTextContent(`/api/private-artifacts/${id}/content/${kind}`),
     enabled: Boolean(id),
     retry: false,
   })

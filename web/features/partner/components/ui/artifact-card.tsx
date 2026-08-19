@@ -78,7 +78,7 @@ export function ArtifactCard({
           <TypeIcon className="size-5" />
         </div>
         <h3
-          className="min-w-0 flex-1 line-clamp-2 font-medium text-foreground break-words"
+          className="line-clamp-2 min-w-0 flex-1 font-medium break-words text-foreground"
           title={title}
         >
           {title}
@@ -96,7 +96,7 @@ export function ArtifactCard({
         {description && description.trim().length > 0 ? (
           description
         ) : (
-          <span className="italic text-muted-foreground">
+          <span className="text-muted-foreground italic">
             No description yet
           </span>
         )}

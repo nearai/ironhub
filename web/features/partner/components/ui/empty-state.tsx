@@ -39,7 +39,9 @@ export function EmptyState({
           <Icon aria-hidden="true" />
         </div>
       )}
-      <h3 className={cn("text-base font-medium text-foreground", Icon && "mt-4")}>
+      <h3
+        className={cn("text-base font-medium text-foreground", Icon && "mt-4")}
+      >
         {title}
       </h3>
       {description && (

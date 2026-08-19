@@ -7,13 +7,11 @@ vi.mock("@/lib/auth/client", () => ({
   authClient: {
     organization: {
       listInvitations: vi.fn(),
-      inviteMember: vi.fn(),
       cancelInvitation: vi.fn(),
     },
   },
 }))
 
-import { authClient } from "@/lib/auth/client"
 import {
   useAcceptInvitation,
   useCreateInvitation,
@@ -75,7 +73,9 @@ describe("invitations API hooks", () => {
   it("accepts an invitation via the custom route with setActive", async () => {
     // Same emailVerified constraint as above applies to acceptInvitation.
     vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify({ invitation: { id: "inv1" } }), { status: 200 })
+      new Response(JSON.stringify({ invitation: { id: "inv1" } }), {
+        status: 200,
+      })
     )
 
     const { result } = renderHook(() => useAcceptInvitation(), { wrapper })
@@ -91,20 +91,54 @@ describe("invitations API hooks", () => {
     )
   })
 
-  it("creates an invitation by email + role via authClient.organization", async () => {
-    vi.mocked(authClient.organization.inviteMember).mockResolvedValueOnce({
-      data: { id: "inv2", email: "new@example.com", role: "member" },
-      error: null,
-    } as never)
+  it("creates an invitation from an email address via the custom route", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ invitation: { id: "inv2" } }), {
+        status: 201,
+      })
+    )
 
-    const { result } = renderHook(() => useCreateInvitation("org1"), { wrapper })
+    const { result } = renderHook(() => useCreateInvitation("org1"), {
+      wrapper,
+    })
 
-    await result.current.mutateAsync({ email: "new@example.com", role: "member" })
-
-    expect(authClient.organization.inviteMember).toHaveBeenCalledWith({
-      organizationId: "org1",
-      email: "new@example.com",
+    await result.current.mutateAsync({
+      identifier: "new@example.com",
       role: "member",
     })
+
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/orgs/org1/invitations",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ identifier: "new@example.com", role: "member" }),
+      })
+    )
+  })
+
+  it("passes a NEAR account id through untouched — the server resolves it", async () => {
+    // BetterAuth only understands emails; a wallet user never knows theirs,
+    // so the account id has to survive the client hop verbatim.
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ invitation: { id: "inv3" } }), {
+        status: 201,
+      })
+    )
+
+    const { result } = renderHook(() => useCreateInvitation("org1"), {
+      wrapper,
+    })
+
+    await result.current.mutateAsync({
+      identifier: "alice.near",
+      role: "admin",
+    })
+
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/orgs/org1/invitations",
+      expect.objectContaining({
+        body: JSON.stringify({ identifier: "alice.near", role: "admin" }),
+      })
+    )
   })
 })

@@ -68,7 +68,9 @@ describe("AttributeBadge", () => {
         Uncategorised
       </AttributeBadge>
     )
-    const badge = screen.getByText("Uncategorised").closest("[data-slot='badge']")
+    const badge = screen
+      .getByText("Uncategorised")
+      .closest("[data-slot='badge']")
     expect(screen.getByText("Uncategorised")).toBeInTheDocument()
     expect(badge).toHaveAttribute("title", "No category")
   })
@@ -149,7 +151,9 @@ describe("ArtifactCard", () => {
     expect(screen.getByText("Networking")).toBeInTheDocument()
     expect(screen.getByText("Public")).toBeInTheDocument()
     expect(screen.getByText("Tool · v2.0.0")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Custom Action" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Custom Action" })
+    ).toBeInTheDocument()
   })
 
   it("formats file count > 1 correctly", () => {
@@ -203,7 +207,12 @@ describe("DataTable", () => {
 
   const testColumns: DataTableColumn<TestRow>[] = [
     { key: "name", header: "Name", cell: (row) => row.name },
-    { key: "status", header: "Status", cell: (row) => row.status, align: "right" },
+    {
+      key: "status",
+      header: "Status",
+      cell: (row) => row.status,
+      align: "right",
+    },
   ]
 
   const testRows: TestRow[] = [
@@ -226,8 +235,12 @@ describe("DataTable", () => {
 
     const columnHeaders = screen.getAllByRole("columnheader")
     expect(columnHeaders).toHaveLength(testColumns.length)
-    expect(screen.getByRole("columnheader", { name: "Name" })).toBeInTheDocument()
-    expect(screen.getByRole("columnheader", { name: "Status" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("columnheader", { name: "Name" })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("columnheader", { name: "Status" })
+    ).toBeInTheDocument()
 
     expect(screen.getByText("Alpha")).toBeInTheDocument()
     expect(screen.getByText("Active")).toBeInTheDocument()
@@ -254,11 +267,7 @@ describe("DataTable", () => {
 
   it("renders column headers when rows is empty and no empty prop is passed", () => {
     const { container } = render(
-      <DataTable
-        columns={testColumns}
-        rows={[]}
-        rowKey={(row) => row.id}
-      />
+      <DataTable columns={testColumns} rows={[]} rowKey={(row) => row.id} />
     )
 
     expect(screen.getAllByRole("columnheader")).toHaveLength(testColumns.length)
@@ -321,7 +330,12 @@ describe("DataTable", () => {
   it("applies default truncation max-width to unwrapped columns and omits it for wrapped columns", () => {
     const columnsWithWrap: DataTableColumn<TestRow>[] = [
       { key: "name", header: "Name", cell: (row) => row.name },
-      { key: "status", header: "Status", cell: (row) => row.status, wrap: true },
+      {
+        key: "status",
+        header: "Status",
+        cell: (row) => row.status,
+        wrap: true,
+      },
     ]
 
     const { container } = render(
@@ -400,7 +414,9 @@ describe("RelativeTime", () => {
     expect(timeElement.tagName.toLowerCase()).toBe("time")
     expect(timeElement).toHaveAttribute("dateTime", isoString)
     expect(timeElement).toHaveAttribute("title")
-    expect(timeElement.getAttribute("title")).toBe(new Date(isoString).toLocaleString())
+    expect(timeElement.getAttribute("title")).toBe(
+      new Date(isoString).toLocaleString()
+    )
   })
 
   it("renders an em dash for invalid dates without throwing", () => {
@@ -530,11 +546,7 @@ describe("StatCard & StatRow", () => {
   it("exposes aria-pressed='false' when onSelect is provided without selected", () => {
     const handleSelect = vi.fn()
     render(
-      <StatCard
-        label="Selectable Metric"
-        value={100}
-        onSelect={handleSelect}
-      />
+      <StatCard label="Selectable Metric" value={100} onSelect={handleSelect} />
     )
     const button = screen.getByRole("button")
     expect(button).toHaveAttribute("aria-pressed", "false")
@@ -618,4 +630,3 @@ describe("FormSection", () => {
     expect(screen.getByPlaceholderText("Name")).toBeInTheDocument()
   })
 })
-

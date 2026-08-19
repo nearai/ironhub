@@ -111,7 +111,8 @@ export interface ArtifactChecksResult {
 
 const artifactsKey = ["private-artifacts"] as const
 const artifactKey = (id: string) => ["private-artifacts", id] as const
-const artifactChecksKey = (id: string) => ["private-artifacts", id, "checks"] as const
+const artifactChecksKey = (id: string) =>
+  ["private-artifacts", id, "checks"] as const
 
 export function useArtifacts() {
   return useQuery({
@@ -120,7 +121,10 @@ export function useArtifacts() {
       fetchJson<{ artifacts: PrivateArtifact[] }>("/api/private-artifacts"),
     // Defensive: tolerate a missing/empty content array from the API.
     select: (data) =>
-      data.artifacts.map((artifact) => ({ ...artifact, content: artifact.content ?? [] })),
+      data.artifacts.map((artifact) => ({
+        ...artifact,
+        content: artifact.content ?? [],
+      })),
   })
 }
 
@@ -130,7 +134,10 @@ export function useArtifact(id: string | undefined) {
     queryFn: () =>
       fetchJson<{ artifact: PrivateArtifact }>(`/api/private-artifacts/${id}`),
     // Defensive: tolerate a missing/empty content array from the API.
-    select: (data) => ({ ...data.artifact, content: data.artifact.content ?? [] }),
+    select: (data) => ({
+      ...data.artifact,
+      content: data.artifact.content ?? [],
+    }),
     enabled: Boolean(id),
   })
 }
@@ -256,7 +263,9 @@ export function useUploadArtifactBundle() {
 /** Review checks for the manage page (design.md D8) — never invent checks client-side. */
 export function useArtifactChecks(id: string | undefined) {
   return useQuery({
-    queryKey: id ? artifactChecksKey(id) : ["private-artifacts", "unknown", "checks"],
+    queryKey: id
+      ? artifactChecksKey(id)
+      : ["private-artifacts", "unknown", "checks"],
     queryFn: () =>
       fetchJson<ArtifactChecksResult>(`/api/private-artifacts/${id}/checks`),
     // Defensive: tolerate a missing checks array from the API.
@@ -269,9 +278,12 @@ export function usePublishArtifact(id: string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: () =>
-      fetchJson<{ artifact: PrivateArtifact }>(`/api/private-artifacts/${id}/publish`, {
-        method: "POST",
-      }),
+      fetchJson<{ artifact: PrivateArtifact }>(
+        `/api/private-artifacts/${id}/publish`,
+        {
+          method: "POST",
+        }
+      ),
     // Awaited so callers that show a success toast after `mutateAsync`
     // resolves see it land only once the cached artifact/checks have
     // actually refetched — otherwise the toast can appear before the
@@ -289,9 +301,12 @@ export function useUnpublishArtifact(id: string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: () =>
-      fetchJson<{ artifact: PrivateArtifact }>(`/api/private-artifacts/${id}/unpublish`, {
-        method: "POST",
-      }),
+      fetchJson<{ artifact: PrivateArtifact }>(
+        `/api/private-artifacts/${id}/unpublish`,
+        {
+          method: "POST",
+        }
+      ),
     onSuccess: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: artifactsKey }),
@@ -323,7 +338,8 @@ export function describeArtifactSaveError(error: unknown): {
     }
     return {
       field: null,
-      message: error.status === 409 ? `Duplicate: ${error.message}` : error.message,
+      message:
+        error.status === 409 ? `Duplicate: ${error.message}` : error.message,
     }
   }
   return {

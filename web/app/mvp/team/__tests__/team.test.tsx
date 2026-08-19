@@ -1,6 +1,12 @@
 import { act } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("@/lib/auth/client", () => ({
@@ -9,7 +15,6 @@ vi.mock("@/lib/auth/client", () => ({
     organization: {
       listMembers: vi.fn(),
       listInvitations: vi.fn(),
-      inviteMember: vi.fn(),
       cancelInvitation: vi.fn(),
       updateMemberRole: vi.fn(),
       removeMember: vi.fn(),
@@ -80,7 +85,11 @@ describe("TeamPage", () => {
     vi.clearAllMocks()
     vi.mocked(authClient.useSession).mockReturnValue({
       data: {
-        user: { id: "u-owner", name: "Alice Owner", email: "alice@example.com" },
+        user: {
+          id: "u-owner",
+          name: "Alice Owner",
+          email: "alice@example.com",
+        },
         session: { activeOrganizationId: "org-1" },
       },
     } as never)
@@ -100,10 +109,15 @@ describe("TeamPage", () => {
 
   describe("(a) invite dialog lifecycle", () => {
     it("opens on 'Invite member', closes on 'Cancel', and closes after a successful invitation submit", async () => {
-      vi.mocked(authClient.organization.inviteMember).mockResolvedValue({
-        data: { id: "inv-2", email: "new@example.com", role: "member" },
-        error: null,
-      } as never)
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            invitation: { id: "inv-2", email: "new@example.com" },
+          }),
+          { status: 201 }
+        )
+      )
+      vi.stubGlobal("fetch", fetchMock)
 
       await renderPage()
 
@@ -119,8 +133,8 @@ describe("TeamPage", () => {
       fireEvent.click(inviteBtn)
 
       expect(screen.getByText("Invite someone")).toBeInTheDocument()
-      const emailInput = screen.getByLabelText(/email address/i)
-      expect(emailInput).toBeInTheDocument()
+      const identifierInput = screen.getByLabelText(/email or near account/i)
+      expect(identifierInput).toBeInTheDocument()
 
       // Clicking "Cancel" closes it
       const cancelBtn = screen.getByRole("button", { name: /^cancel$/i })
@@ -136,18 +150,27 @@ describe("TeamPage", () => {
         expect(screen.getByText("Invite someone")).toBeInTheDocument()
       })
 
-      const emailInputReopened = screen.getByLabelText(/email address/i)
-      fireEvent.change(emailInputReopened, { target: { value: "new@example.com" } })
+      const identifierInputReopened = screen.getByLabelText(
+        /email or near account/i
+      )
+      fireEvent.change(identifierInputReopened, {
+        target: { value: "new@example.com" },
+      })
 
       const submitBtn = screen.getByRole("button", { name: /send invitation/i })
       fireEvent.click(submitBtn)
 
       await waitFor(() => {
-        expect(authClient.organization.inviteMember).toHaveBeenCalledWith({
-          organizationId: "org-1",
-          email: "new@example.com",
-          role: "member",
-        })
+        expect(fetchMock).toHaveBeenCalledWith(
+          "/api/orgs/org-1/invitations",
+          expect.objectContaining({
+            method: "POST",
+            body: JSON.stringify({
+              identifier: "new@example.com",
+              role: "member",
+            }),
+          })
+        )
       })
 
       // Dialog content is gone after the mutation resolves
@@ -177,7 +200,9 @@ describe("TeamPage", () => {
       const charlieRow = screen.getByText("Charlie Member").closest("tr")!
 
       // Owner's own row renders a plain read-only role badge, not a select
-      expect(screen.queryByLabelText("Role for Alice Owner")).not.toBeInTheDocument()
+      expect(
+        screen.queryByLabelText("Role for Alice Owner")
+      ).not.toBeInTheDocument()
       expect(within(aliceRow).getByText("Owner")).toBeInTheDocument()
       expect(within(aliceRow).queryByRole("combobox")).not.toBeInTheDocument()
 
@@ -186,7 +211,9 @@ describe("TeamPage", () => {
       expect(bobSelect).toBeInTheDocument()
       expect(bobSelect).toHaveValue("admin")
 
-      const charlieSelect = within(charlieRow).getByLabelText("Role for Charlie Member")
+      const charlieSelect = within(charlieRow).getByLabelText(
+        "Role for Charlie Member"
+      )
       expect(charlieSelect).toBeInTheDocument()
       expect(charlieSelect).toHaveValue("member")
 
@@ -218,19 +245,29 @@ describe("TeamPage", () => {
       })
 
       // Member row has remove button
-      expect(screen.getByRole("button", { name: "Remove Charlie Member" })).toBeInTheDocument()
+      expect(
+        screen.getByRole("button", { name: "Remove Charlie Member" })
+      ).toBeInTheDocument()
 
       // Owner row does NOT have remove button (only owner may remove owner)
-      expect(screen.queryByRole("button", { name: "Remove Alice Owner" })).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole("button", { name: "Remove Alice Owner" })
+      ).not.toBeInTheDocument()
 
       // Self row (Bob Admin) does NOT have remove button
-      expect(screen.queryByRole("button", { name: "Remove Bob Admin" })).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole("button", { name: "Remove Bob Admin" })
+      ).not.toBeInTheDocument()
     })
 
     it("signed in as OWNER: other rows show remove button, own row does NOT", async () => {
       vi.mocked(authClient.useSession).mockReturnValue({
         data: {
-          user: { id: "u-owner", name: "Alice Owner", email: "alice@example.com" },
+          user: {
+            id: "u-owner",
+            name: "Alice Owner",
+            email: "alice@example.com",
+          },
           session: { activeOrganizationId: "org-1" },
         },
       } as never)
@@ -242,13 +279,19 @@ describe("TeamPage", () => {
       })
 
       // Can remove admin
-      expect(screen.getByRole("button", { name: "Remove Bob Admin" })).toBeInTheDocument()
+      expect(
+        screen.getByRole("button", { name: "Remove Bob Admin" })
+      ).toBeInTheDocument()
 
       // Can remove member
-      expect(screen.getByRole("button", { name: "Remove Charlie Member" })).toBeInTheDocument()
+      expect(
+        screen.getByRole("button", { name: "Remove Charlie Member" })
+      ).toBeInTheDocument()
 
       // Cannot remove self
-      expect(screen.queryByRole("button", { name: "Remove Alice Owner" })).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole("button", { name: "Remove Alice Owner" })
+      ).not.toBeInTheDocument()
     })
   })
 })

@@ -20,7 +20,10 @@ const orgInvitationsKey = (organizationId: string) =>
   ["organizations", organizationId, "invitations"] as const
 const pendingInvitationsKey = ["invitations", "pending"] as const
 
-function unwrap<T>(result: { data: T | null; error: { message?: string } | null }): T {
+function unwrap<T>(result: {
+  data: T | null
+  error: { message?: string } | null
+}): T {
   if (result.error) {
     throw new Error(result.error.message || "Invitation request failed.")
   }
@@ -46,19 +49,29 @@ export function useOrgInvitations(organizationId: string | undefined) {
   })
 }
 
+/**
+ * Invite by email address or NEAR account id.
+ *
+ * Uses the custom `/api/orgs/[organizationId]/invitations` route rather than
+ * `authClient.organization.inviteMember`: BetterAuth only accepts an email,
+ * and a wallet user never knows theirs — it is derived from their account id
+ * on first sign-in. The route resolves either identifier server-side.
+ */
 export function useCreateInvitation(organizationId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ email, role }: { email: string; role: OrgRole }) => {
-      const result = await authClient.organization.inviteMember({
-        organizationId,
-        email,
-        role,
-      })
-      return unwrap(result)
-    },
+    mutationFn: ({ identifier, role }: { identifier: string; role: OrgRole }) =>
+      fetchJson<{ invitation: OrgInvitation }>(
+        `/api/orgs/${organizationId}/invitations`,
+        {
+          method: "POST",
+          body: JSON.stringify({ identifier, role }),
+        }
+      ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: orgInvitationsKey(organizationId) })
+      queryClient.invalidateQueries({
+        queryKey: orgInvitationsKey(organizationId),
+      })
     },
   })
 }
@@ -67,11 +80,15 @@ export function useCancelInvitation(organizationId: string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (invitationId: string) => {
-      const result = await authClient.organization.cancelInvitation({ invitationId })
+      const result = await authClient.organization.cancelInvitation({
+        invitationId,
+      })
       return unwrap(result)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: orgInvitationsKey(organizationId) })
+      queryClient.invalidateQueries({
+        queryKey: orgInvitationsKey(organizationId),
+      })
     },
   })
 }

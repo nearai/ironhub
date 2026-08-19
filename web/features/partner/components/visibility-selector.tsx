@@ -62,7 +62,9 @@ export function VisibilitySelector({
             <span
               className={cn(
                 "flex size-9 shrink-0 items-center justify-center rounded-lg",
-                selected ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                selected
+                  ? "bg-primary/15 text-primary"
+                  : "bg-muted text-muted-foreground"
               )}
             >
               <Icon className="size-4" />

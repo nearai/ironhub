@@ -31,7 +31,8 @@ export function PartnerNav({ onNavigate }: PartnerNavProps) {
         const isActive =
           pathname === item.href ||
           (item.href === "/mvp/dashboard" &&
-            (pathname.startsWith("/mvp/manage") || pathname.startsWith("/mvp/edit-skill")))
+            (pathname.startsWith("/mvp/manage") ||
+              pathname.startsWith("/mvp/edit-skill")))
         const Icon = item.icon
 
         return (

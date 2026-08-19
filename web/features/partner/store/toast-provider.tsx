@@ -39,7 +39,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 function ToastViewport({ toasts }: { toasts: Toast[] }) {
   if (toasts.length === 0) return null
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-[100] flex flex-col gap-2">
+    <div className="pointer-events-none fixed right-4 bottom-4 z-[100] flex flex-col gap-2">
       {toasts.map((t) => {
         const tone =
           t.tone === "error"

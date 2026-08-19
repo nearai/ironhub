@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { authClient } from "@/lib/auth/client"
+import { MAX_ORGANIZATIONS_PER_USER } from "@/lib/orgs/limits"
 import { cn } from "@/lib/shared/utils"
 import {
   useCreateOrganization,
@@ -42,11 +43,23 @@ export function OrgSwitcher({ className }: OrgSwitcherProps = {}) {
   const [newOrgName, setNewOrgName] = useState("")
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const activeOrg = organizations?.find((org) => org.id === activeOrganizationId)
+  const activeOrg = organizations?.find(
+    (org) => org.id === activeOrganizationId
+  )
+  // Organizations the member owns, i.e. the ones they created. Workspaces
+  // they were invited into do not count against the creation limit, which is
+  // enforced server-side in lib/orgs/limits.ts.
+  const ownedCount = (organizations ?? []).filter(
+    (org) => org.role === "owner"
+  ).length
+  const canCreateOrganization = ownedCount < MAX_ORGANIZATIONS_PER_USER
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setOpen(false)
       }
     }
@@ -65,12 +78,17 @@ export function OrgSwitcher({ className }: OrgSwitcherProps = {}) {
       setOpen(false)
       router.refresh()
     } catch (error) {
-      notify(error instanceof Error ? error.message : "Failed to switch organization", "error")
+      notify(
+        error instanceof Error
+          ? error.message
+          : "Failed to switch organization",
+        "error"
+      )
     }
   }
 
   const handleCreate = async () => {
-    if (!newOrgName.trim()) return
+    if (!newOrgName.trim() || !canCreateOrganization) return
     try {
       const org = await createOrg.mutateAsync(newOrgName.trim())
       await setActive.mutateAsync(org.id)
@@ -80,7 +98,12 @@ export function OrgSwitcher({ className }: OrgSwitcherProps = {}) {
       setOpen(false)
       router.refresh()
     } catch (error) {
-      notify(error instanceof Error ? error.message : "Failed to create organization", "error")
+      notify(
+        error instanceof Error
+          ? error.message
+          : "Failed to create organization",
+        "error"
+      )
     }
   }
 
@@ -95,11 +118,16 @@ export function OrgSwitcher({ className }: OrgSwitcherProps = {}) {
         // subsequent private-artifacts request 403s until the cookie
         // happens to expire. Repoint to the next available org, or prompt
         // to create one if none remain.
-        const remaining = (organizations ?? []).filter((org) => org.id !== organizationId)
+        const remaining = (organizations ?? []).filter(
+          (org) => org.id !== organizationId
+        )
         if (remaining.length > 0) {
           await setActive.mutateAsync(remaining[0].id)
         } else {
-          notify("You left your last organization — create a new one to continue.", "info")
+          notify(
+            "You left your last organization — create a new one to continue.",
+            "info"
+          )
           setCreating(true)
           setOpen(true)
         }
@@ -108,7 +136,10 @@ export function OrgSwitcher({ className }: OrgSwitcherProps = {}) {
       notify("Left organization", "info")
       router.refresh()
     } catch (error) {
-      notify(error instanceof Error ? error.message : "Failed to leave organization", "error")
+      notify(
+        error instanceof Error ? error.message : "Failed to leave organization",
+        "error"
+      )
     }
   }
 
@@ -121,16 +152,23 @@ export function OrgSwitcher({ className }: OrgSwitcherProps = {}) {
         onClick={() => setOpen((v) => !v)}
         className="flex h-10 w-full items-center gap-2 rounded-lg border border-[var(--ironhub-line)] bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted/40"
       >
-        <IconBuilding className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <IconBuilding
+          className="size-4 shrink-0 text-muted-foreground"
+          aria-hidden="true"
+        />
         <span className="min-w-0 flex-1 truncate text-left">
-          {activeOrg?.name || (isLoading ? "Loading..." : "Select organization")}
+          {activeOrg?.name ||
+            (isLoading ? "Loading..." : "Select organization")}
         </span>
-        <IconChevronDown className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <IconChevronDown
+          className="size-4 shrink-0 text-muted-foreground"
+          aria-hidden="true"
+        />
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-72 rounded-xl border border-[var(--ironhub-line)] bg-popover p-2 shadow-lg">
-          <p className="px-2 pb-1 pt-1 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        <div className="absolute top-full left-0 z-50 mt-2 w-72 rounded-xl border border-[var(--ironhub-line)] bg-popover p-2 shadow-lg">
+          <p className="px-2 pt-1 pb-1 text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase">
             My organizations
           </p>
           <div className="flex max-h-56 flex-col gap-1 overflow-y-auto">
@@ -145,7 +183,10 @@ export function OrgSwitcher({ className }: OrgSwitcherProps = {}) {
                   className="flex min-w-0 flex-1 items-center gap-2 text-left font-semibold text-foreground"
                 >
                   {org.id === activeOrganizationId ? (
-                    <IconCheck className="size-3.5 shrink-0 text-primary" aria-hidden="true" />
+                    <IconCheck
+                      className="size-3.5 shrink-0 text-primary"
+                      aria-hidden="true"
+                    />
                   ) : (
                     <span className="size-3.5 shrink-0" aria-hidden="true" />
                   )}
@@ -162,12 +203,19 @@ export function OrgSwitcher({ className }: OrgSwitcherProps = {}) {
               </div>
             ))}
             {organizations?.length === 0 && (
-              <p className="px-2 py-2 text-xs text-muted-foreground">No organizations yet.</p>
+              <p className="px-2 py-2 text-xs text-muted-foreground">
+                No organizations yet.
+              </p>
             )}
           </div>
 
           <div className="mt-2 border-t border-[var(--ironhub-line)]/50 pt-2">
-            {creating ? (
+            {!canCreateOrganization ? (
+              <p className="px-2 py-2 text-xs text-muted-foreground">
+                You have reached the maximum of {MAX_ORGANIZATIONS_PER_USER}{" "}
+                organizations.
+              </p>
+            ) : creating ? (
               <div className="flex items-center gap-1.5 px-1">
                 <Input
                   autoFocus

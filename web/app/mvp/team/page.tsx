@@ -28,6 +28,7 @@ import {
   RelativeTime,
   workspaceLinkTone,
 } from "@/features/partner/components/ui"
+import { formatAccountIdentity } from "@/lib/orgs/near-identity"
 import { cn } from "@/lib/shared/utils"
 import {
   IconAlertTriangle,
@@ -54,7 +55,11 @@ export default function TeamPage() {
   const organizationId = session?.session.activeOrganizationId ?? undefined
   const currentUserId = session?.user.id
 
-  const { data: members, isLoading: membersLoading, isError: membersError } = useOrgMembers(organizationId)
+  const {
+    data: members,
+    isLoading: membersLoading,
+    isError: membersError,
+  } = useOrgMembers(organizationId)
   const {
     data: invitations,
     isLoading: invitationsLoading,
@@ -73,20 +78,24 @@ export default function TeamPage() {
 
   // Invite dialog & form state
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
-  const [inviteEmail, setInviteEmail] = useState("")
+  const [inviteIdentifier, setInviteIdentifier] = useState("")
   const [inviteRole, setInviteRole] = useState<OrgRole>("member")
 
   const handleInviteSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!inviteEmail || !organizationId) return
+    const identifier = inviteIdentifier.trim()
+    if (!identifier || !organizationId) return
     try {
-      await createInvitation.mutateAsync({ email: inviteEmail, role: inviteRole })
-      setInviteEmail("")
+      await createInvitation.mutateAsync({ identifier, role: inviteRole })
+      setInviteIdentifier("")
       setInviteRole("member")
       setInviteDialogOpen(false)
-      notify(`Sent invitation to ${inviteEmail}`)
+      notify(`Invited ${identifier}`)
     } catch (error) {
-      notify(error instanceof Error ? error.message : "Failed to send invitation", "error")
+      notify(
+        error instanceof Error ? error.message : "Failed to send invitation",
+        "error"
+      )
     }
   }
 
@@ -95,7 +104,10 @@ export default function TeamPage() {
       await removeMember.mutateAsync(memberId)
       notify(`Removed member ${label}`, "info")
     } catch (error) {
-      notify(error instanceof Error ? error.message : "Failed to remove member", "error")
+      notify(
+        error instanceof Error ? error.message : "Failed to remove member",
+        "error"
+      )
     }
   }
 
@@ -104,7 +116,10 @@ export default function TeamPage() {
       await updateRole.mutateAsync({ memberId, role })
       notify("Role updated")
     } catch (error) {
-      notify(error instanceof Error ? error.message : "Failed to update role", "error")
+      notify(
+        error instanceof Error ? error.message : "Failed to update role",
+        "error"
+      )
     }
   }
 
@@ -113,7 +128,10 @@ export default function TeamPage() {
       await cancelInvitation.mutateAsync(invitationId)
       notify("Invitation canceled", "info")
     } catch (error) {
-      notify(error instanceof Error ? error.message : "Failed to cancel invitation", "error")
+      notify(
+        error instanceof Error ? error.message : "Failed to cancel invitation",
+        "error"
+      )
     }
   }
 
@@ -124,10 +142,15 @@ export default function TeamPage() {
       wrap: true,
       cell: (member) => {
         const label = member.user?.name || member.user?.email || member.userId
-        const email = member.user?.email
+        // A wallet user's name and derived address render as the same string
+        // (both "alice.near"), so only show the second line when it adds
+        // something.
+        const identity = member.user?.email
+          ? formatAccountIdentity(member.user.email)
+          : undefined
         const initials = label.slice(0, 2).toUpperCase()
         return (
-          <div className="flex items-center gap-3 min-w-0 py-1">
+          <div className="flex min-w-0 items-center gap-3 py-1">
             <div
               className={cn(
                 "flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold uppercase",
@@ -137,9 +160,13 @@ export default function TeamPage() {
               {initials}
             </div>
             <div className="min-w-0">
-              <p className="truncate font-medium text-sm text-foreground">{label}</p>
-              {email && (
-                <p className="truncate text-sm text-muted-foreground">{email}</p>
+              <p className="truncate text-sm font-medium text-foreground">
+                {label}
+              </p>
+              {identity && identity !== label && (
+                <p className="truncate text-sm text-muted-foreground">
+                  {identity}
+                </p>
               )}
             </div>
           </div>
@@ -153,13 +180,16 @@ export default function TeamPage() {
         const label = member.user?.name || member.user?.email || member.userId
         const isSelf = member.userId === currentUserId
         const canEditThisRow = canChangeRoles && !isSelf
-        const roleDisplay = member.role.charAt(0).toUpperCase() + member.role.slice(1)
+        const roleDisplay =
+          member.role.charAt(0).toUpperCase() + member.role.slice(1)
         if (canEditThisRow) {
           return (
             <NativeSelect
               aria-label={`Role for ${label}`}
               value={member.role}
-              onChange={(e) => handleRoleChange(member.id, e.target.value as OrgRole)}
+              onChange={(e) =>
+                handleRoleChange(member.id, e.target.value as OrgRole)
+              }
               className="w-32"
               selectClassName="h-10 rounded-lg text-sm"
             >
@@ -176,7 +206,10 @@ export default function TeamPage() {
       key: "joined",
       header: "Joined",
       cell: (member) => (
-        <RelativeTime value={member.createdAt} className="text-sm text-muted-foreground" />
+        <RelativeTime
+          value={member.createdAt}
+          className="text-sm text-muted-foreground"
+        />
       ),
     },
     {
@@ -188,7 +221,8 @@ export default function TeamPage() {
         const label = member.user?.name || member.user?.email || member.userId
         const isSelf = member.userId === currentUserId
         const isOwnerRow = member.role === "owner"
-        const canRemoveThisRow = canManageMembers && !isSelf && (!isOwnerRow || canChangeRoles)
+        const canRemoveThisRow =
+          canManageMembers && !isSelf && (!isOwnerRow || canChangeRoles)
         if (!canRemoveThisRow) return null
         return (
           <Dialog>
@@ -197,7 +231,7 @@ export default function TeamPage() {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="size-10 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 inline-flex items-center justify-center"
+                className="inline-flex size-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                 aria-label={`Remove ${label}`}
               >
                 <IconTrash className="size-4" />
@@ -210,9 +244,13 @@ export default function TeamPage() {
                   They will immediately lose access to this workspace.
                 </DialogDescription>
               </DialogHeader>
-              <div className="mt-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+              <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <DialogClose asChild>
-                  <Button type="button" variant="outline" className="h-11 rounded-lg sm:h-10">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-11 rounded-lg sm:h-10"
+                  >
                     Cancel
                   </Button>
                 </DialogClose>
@@ -223,7 +261,7 @@ export default function TeamPage() {
                     onClick={() => handleRemoveMember(member.id, label)}
                     className="h-11 rounded-lg sm:h-10"
                   >
-                    <IconTrash className="size-4 mr-1.5" />
+                    <IconTrash className="mr-1.5 size-4" />
                     Remove
                   </Button>
                 </DialogClose>
@@ -235,15 +273,18 @@ export default function TeamPage() {
     },
   ]
 
-  const pendingInvitations = invitations?.filter((invite) => invite.status === "pending") ?? []
+  const pendingInvitations =
+    invitations?.filter((invite) => invite.status === "pending") ?? []
 
   const invitationColumns: DataTableColumn<OrgInvitation>[] = [
     {
-      key: "email",
-      header: "Email",
+      key: "invited",
+      header: "Invited",
       wrap: true,
       cell: (invite) => (
-        <span className="font-medium text-sm text-foreground">{invite.email}</span>
+        <span className="text-sm font-medium text-foreground">
+          {formatAccountIdentity(invite.email)}
+        </span>
       ),
     },
     {
@@ -262,7 +303,10 @@ export default function TeamPage() {
       key: "expires",
       header: "Expires",
       cell: (invite) => (
-        <RelativeTime value={invite.expiresAt} className="text-sm text-muted-foreground" />
+        <RelativeTime
+          value={invite.expiresAt}
+          className="text-sm text-muted-foreground"
+        />
       ),
     },
     {
@@ -278,8 +322,8 @@ export default function TeamPage() {
             variant="ghost"
             size="icon"
             onClick={() => handleCancelInvitation(invite.id)}
-            className="size-10 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 inline-flex items-center justify-center"
-            aria-label={`Cancel invitation for ${invite.email}`}
+            className="inline-flex size-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            aria-label={`Cancel invitation for ${formatAccountIdentity(invite.email)}`}
           >
             <IconX className="size-4" />
           </Button>
@@ -298,7 +342,7 @@ export default function TeamPage() {
             <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="h-11 rounded-lg px-4 sm:h-10">
-                  <IconUserPlus className="size-4 mr-2" />
+                  <IconUserPlus className="mr-2 size-4" />
                   Invite member
                 </Button>
               </DialogTrigger>
@@ -306,31 +350,41 @@ export default function TeamPage() {
                 <DialogHeader>
                   <DialogTitle>Invite someone</DialogTitle>
                   <DialogDescription>
-                    They will get an email with a link to join this workspace.
+                    No email is sent. The invitation waits in their
+                    notifications until they accept it.
                   </DialogDescription>
                 </DialogHeader>
 
                 <form onSubmit={handleInviteSubmit} className="mt-4 space-y-4">
                   <div className="flex flex-col gap-1.5">
-                    <label htmlFor="invite-email" className="text-sm font-medium text-foreground">
-                      Email address
+                    <label
+                      htmlFor="invite-identifier"
+                      className="text-sm font-medium text-foreground"
+                    >
+                      Email or NEAR account
                     </label>
                     <Input
-                      id="invite-email"
+                      id="invite-identifier"
                       required
-                      type="email"
-                      placeholder="name@example.com"
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
+                      type="text"
+                      autoComplete="off"
+                      spellCheck={false}
+                      placeholder="name@example.com or alice.near"
+                      value={inviteIdentifier}
+                      onChange={(e) => setInviteIdentifier(e.target.value)}
                       className="h-11 rounded-lg sm:h-10"
                     />
                     <p className="text-sm text-muted-foreground">
-                      Where the invitation is sent.
+                      Use whichever they sign in with. A NEAR account that has
+                      never signed in here can only be invited once it has.
                     </p>
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label htmlFor="invite-role" className="text-sm font-medium text-foreground">
+                    <label
+                      htmlFor="invite-role"
+                      className="text-sm font-medium text-foreground"
+                    >
                       What they can do
                     </label>
                     <NativeSelect
@@ -349,7 +403,7 @@ export default function TeamPage() {
                     </NativeSelect>
                   </div>
 
-                  <div className="pt-2 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                  <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
                     <Button
                       type="button"
                       variant="outline"
@@ -364,7 +418,7 @@ export default function TeamPage() {
                       className="h-11 rounded-lg sm:h-10"
                     >
                       {createInvitation.isPending && (
-                        <IconLoader2 className="size-4 animate-spin mr-1.5" />
+                        <IconLoader2 className="mr-1.5 size-4 animate-spin" />
                       )}
                       Send invitation
                     </Button>
@@ -382,14 +436,18 @@ export default function TeamPage() {
             People with access ({members?.length ?? 0})
           </h2>
           <p className="text-sm text-muted-foreground">
-            Everyone who can open this workspace, and what they are allowed to do.
+            Everyone who can open this workspace, and what they are allowed to
+            do.
           </p>
         </div>
 
         {membersError && (members?.length ?? 0) > 0 && (
           <div className="mb-3 flex items-start gap-2.5 rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 text-sm text-muted-foreground">
-            <IconInfoCircle className="size-5 shrink-0 mt-0.5" />
-            <span>Could not refresh the members list. You are seeing the last version that loaded.</span>
+            <IconInfoCircle className="mt-0.5 size-5 shrink-0" />
+            <span>
+              Could not refresh the members list. You are seeing the last
+              version that loaded.
+            </span>
           </div>
         )}
 
@@ -402,7 +460,10 @@ export default function TeamPage() {
           empty={
             membersLoading ? (
               <div className="flex items-center justify-center gap-2 px-6 py-10 text-sm text-muted-foreground">
-                <IconLoader2 className="size-4 animate-spin" aria-hidden="true" />
+                <IconLoader2
+                  className="size-4 animate-spin"
+                  aria-hidden="true"
+                />
                 <span>Loading members...</span>
               </div>
             ) : membersError ? (
@@ -426,7 +487,9 @@ export default function TeamPage() {
 
       <div>
         <div className="mb-3">
-          <h2 className="text-base font-medium text-foreground">Pending invitations</h2>
+          <h2 className="text-base font-medium text-foreground">
+            Pending invitations
+          </h2>
           <p className="text-sm text-muted-foreground">
             Invitations you send appear here until they are accepted.
           </p>
@@ -434,8 +497,11 @@ export default function TeamPage() {
 
         {invitationsError && pendingInvitations.length > 0 && (
           <div className="mb-3 flex items-start gap-2.5 rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 text-sm text-muted-foreground">
-            <IconInfoCircle className="size-5 shrink-0 mt-0.5" />
-            <span>Could not refresh the invitations list. You are seeing the last version that loaded.</span>
+            <IconInfoCircle className="mt-0.5 size-5 shrink-0" />
+            <span>
+              Could not refresh the invitations list. You are seeing the last
+              version that loaded.
+            </span>
           </div>
         )}
 
@@ -448,7 +514,10 @@ export default function TeamPage() {
           empty={
             invitationsLoading ? (
               <div className="flex items-center justify-center gap-2 px-6 py-10 text-sm text-muted-foreground">
-                <IconLoader2 className="size-4 animate-spin" aria-hidden="true" />
+                <IconLoader2
+                  className="size-4 animate-spin"
+                  aria-hidden="true"
+                />
                 <span>Loading invitations...</span>
               </div>
             ) : invitationsError ? (

@@ -43,7 +43,7 @@ export function ViewToggle<T extends string>({
             aria-pressed={isSelected}
             onClick={() => onChange(option.value)}
             className={cn(
-              "inline-flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-9",
+              "inline-flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:h-9",
               isSelected
                 ? "bg-card text-foreground shadow-[var(--ironhub-shadow)]"
                 : "text-muted-foreground hover:text-foreground"

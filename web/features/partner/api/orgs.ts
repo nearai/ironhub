@@ -23,9 +23,13 @@ export interface OrgMember {
 }
 
 const organizationsKey = ["organizations"] as const
-const membersKey = (organizationId: string) => ["organizations", organizationId, "members"] as const
+const membersKey = (organizationId: string) =>
+  ["organizations", organizationId, "members"] as const
 
-function unwrap<T>(result: { data: T | null; error: { message?: string } | null }): T {
+function unwrap<T>(result: {
+  data: T | null
+  error: { message?: string } | null
+}): T {
   if (result.error) {
     throw new Error(result.error.message || "Organization request failed.")
   }
@@ -118,7 +122,9 @@ export function useRenameOrganization(organizationId: string) {
 
 export function useOrgMembers(organizationId: string | undefined) {
   return useQuery({
-    queryKey: organizationId ? membersKey(organizationId) : ["organizations", "unknown", "members"],
+    queryKey: organizationId
+      ? membersKey(organizationId)
+      : ["organizations", "unknown", "members"],
     queryFn: async () => {
       const result = await authClient.organization.listMembers({
         query: { organizationId },
@@ -133,7 +139,13 @@ export function useOrgMembers(organizationId: string | undefined) {
 export function useUpdateMemberRole(organizationId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ memberId, role }: { memberId: string; role: OrgRole }) => {
+    mutationFn: async ({
+      memberId,
+      role,
+    }: {
+      memberId: string
+      role: OrgRole
+    }) => {
       const result = await authClient.organization.updateMemberRole({
         organizationId,
         memberId,

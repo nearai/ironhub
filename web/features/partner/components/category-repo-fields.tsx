@@ -36,7 +36,10 @@ export function CategoryAndRepoFields({
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <div className="flex flex-col gap-1.5">
-        <label htmlFor={categoryId} className="text-sm font-medium text-foreground">
+        <label
+          htmlFor={categoryId}
+          className="text-sm font-medium text-foreground"
+        >
           Category
         </label>
         <NativeSelect
@@ -58,12 +61,17 @@ export function CategoryAndRepoFields({
           Helps your team find this later. You can change it any time.
         </span>
         {categoryError && (
-          <span className="text-sm font-medium text-destructive">{categoryError}</span>
+          <span className="text-sm font-medium text-destructive">
+            {categoryError}
+          </span>
         )}
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor={sourceUrlId} className="text-sm font-medium text-foreground">
+        <label
+          htmlFor={sourceUrlId}
+          className="text-sm font-medium text-foreground"
+        >
           Source code link
         </label>
         <Input
@@ -79,7 +87,9 @@ export function CategoryAndRepoFields({
           Optional. Accepts a GitHub, GitLab, or Bitbucket URL.
         </span>
         {sourceUrlError && (
-          <span className="text-sm font-medium text-destructive">{sourceUrlError}</span>
+          <span className="text-sm font-medium text-destructive">
+            {sourceUrlError}
+          </span>
         )}
       </div>
     </div>

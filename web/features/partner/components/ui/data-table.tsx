@@ -56,10 +56,7 @@ export function DataTable<T>({
     >
       <div
         style={maxHeight ? { maxHeight } : undefined}
-        className={cn(
-          "overflow-x-auto",
-          maxHeight && "overflow-y-auto"
-        )}
+        className={cn("overflow-x-auto", maxHeight && "overflow-y-auto")}
       >
         <table
           style={rows.length > 0 ? { minWidth } : undefined}
@@ -74,7 +71,7 @@ export function DataTable<T>({
                     key={column.key}
                     scope="col"
                     className={cn(
-                      "bg-card px-3 py-3 text-xs font-medium text-muted-foreground border-b border-[var(--ironhub-line)]",
+                      "border-b border-[var(--ironhub-line)] bg-card px-3 py-3 text-xs font-medium text-muted-foreground",
                       isSticky && "sticky top-0 z-10",
                       column.align === "right" ? "text-right" : "text-left",
                       column.headerClassName

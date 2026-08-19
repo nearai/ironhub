@@ -32,7 +32,7 @@ export function FormSection({
         <div className="flex items-start gap-3">
           {typeof step === "number" && (
             <span
-              className="flex size-6 shrink-0 items-center justify-center rounded-full border border-[var(--ironhub-line)] bg-muted text-xs font-semibold tabular-nums text-muted-foreground"
+              className="flex size-6 shrink-0 items-center justify-center rounded-full border border-[var(--ironhub-line)] bg-muted text-xs font-semibold text-muted-foreground tabular-nums"
               aria-hidden="true"
             >
               {step}
@@ -48,7 +48,9 @@ export function FormSection({
               {title}
             </h2>
             {description && (
-              <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {description}
+              </p>
             )}
           </div>
         </div>

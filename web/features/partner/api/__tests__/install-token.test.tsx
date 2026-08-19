@@ -28,13 +28,16 @@ describe("useMintInstallToken", () => {
       new Response(
         JSON.stringify({
           token: "tok_abc",
-          manifestUrl: "https://example.com/api/private-artifacts/manifest/tok_abc",
+          manifestUrl:
+            "https://example.com/api/private-artifacts/manifest/tok_abc",
         }),
         { status: 200 }
       )
     )
 
-    const { result } = renderHook(() => useMintInstallToken("artifact1"), { wrapper })
+    const { result } = renderHook(() => useMintInstallToken("artifact1"), {
+      wrapper,
+    })
 
     const { manifestUrl } = await result.current.mutateAsync()
 
@@ -42,6 +45,8 @@ describe("useMintInstallToken", () => {
       "/api/private-artifacts/artifact1/token",
       expect.objectContaining({ method: "POST" })
     )
-    expect(manifestUrl).toBe("https://example.com/api/private-artifacts/manifest/tok_abc")
+    expect(manifestUrl).toBe(
+      "https://example.com/api/private-artifacts/manifest/tok_abc"
+    )
   })
 })

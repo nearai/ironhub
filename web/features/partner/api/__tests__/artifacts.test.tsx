@@ -69,7 +69,9 @@ describe("artifacts API hooks", () => {
   it("creates an artifact via POST and surfaces a 409 duplicate error", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       new Response(
-        JSON.stringify({ error: "An artifact with this name and version already exists." }),
+        JSON.stringify({
+          error: "An artifact with this name and version already exists.",
+        }),
         { status: 409 }
       )
     )
@@ -94,10 +96,17 @@ describe("artifacts API hooks", () => {
         version: "1.0.0",
         description: "Pays things.",
       },
-      files: { wasm: "wasm/x.wasm", capabilities: "x.capabilities.json", schemas: [], prompts: [] },
+      files: {
+        wasm: "wasm/x.wasm",
+        capabilities: "x.capabilities.json",
+        schemas: [],
+        prompts: [],
+      },
       totalUncompressedBytes: 1234,
     }
-    vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(inspected), { status: 200 }))
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify(inspected), { status: 200 })
+    )
 
     const { result } = renderHook(() => useInspectBundle(), { wrapper })
     const zipBytes = new Blob([new Uint8Array([0x50, 0x4b, 0x03, 0x04])])
@@ -125,10 +134,17 @@ describe("artifacts API hooks", () => {
         version: "1.0.0",
         description: "Pays things.",
       },
-      files: { wasm: "wasm/x.wasm", capabilities: null, schemas: [], prompts: [] },
+      files: {
+        wasm: "wasm/x.wasm",
+        capabilities: null,
+        schemas: [],
+        prompts: [],
+      },
       totalUncompressedBytes: 1234,
     }
-    vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(inspected), { status: 200 }))
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify(inspected), { status: 200 })
+    )
 
     const { result } = renderHook(() => useInspectBundle(), { wrapper })
     const zipBytes = new Blob([new Uint8Array([0x50, 0x4b, 0x03, 0x04])])
@@ -143,7 +159,9 @@ describe("artifacts API hooks", () => {
       new Response(JSON.stringify({ publishable: false }), { status: 200 })
     )
 
-    const { result } = renderHook(() => useArtifactChecks("artifact-1"), { wrapper })
+    const { result } = renderHook(() => useArtifactChecks("artifact-1"), {
+      wrapper,
+    })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.data).toEqual({ publishable: false, checks: [] })
@@ -151,12 +169,17 @@ describe("artifacts API hooks", () => {
 
   it("surfaces a 409 publish rejection with the server's precondition reason", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify({ error: "category must be set before publishing" }), {
-        status: 409,
-      })
+      new Response(
+        JSON.stringify({ error: "category must be set before publishing" }),
+        {
+          status: 409,
+        }
+      )
     )
 
-    const { result } = renderHook(() => usePublishArtifact("artifact-1"), { wrapper })
+    const { result } = renderHook(() => usePublishArtifact("artifact-1"), {
+      wrapper,
+    })
 
     await expect(result.current.mutateAsync()).rejects.toMatchObject({
       status: 409,
@@ -174,9 +197,14 @@ describe("artifacts API hooks", () => {
     // exists yet, and the manage page call it with a stable one, from the
     // same unconditional top-level hook call.
     vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify({ content: [{ kind: "wasm", sha256: "a", sizeBytes: 1 }] }), {
-        status: 201,
-      })
+      new Response(
+        JSON.stringify({
+          content: [{ kind: "wasm", sha256: "a", sizeBytes: 1 }],
+        }),
+        {
+          status: 201,
+        }
+      )
     )
 
     const { result } = renderHook(() => useUploadArtifactBundle(), { wrapper })
@@ -197,7 +225,9 @@ describe("artifacts API hooks", () => {
     // just written, not re-fetched) — the type must allow that.
     vi.mocked(fetch).mockResolvedValueOnce(
       new Response(
-        JSON.stringify({ content: [{ kind: "wasm", sha256: "a".repeat(64), sizeBytes: 10 }] }),
+        JSON.stringify({
+          content: [{ kind: "wasm", sha256: "a".repeat(64), sizeBytes: 10 }],
+        }),
         { status: 201 }
       )
     )
@@ -208,7 +238,9 @@ describe("artifacts API hooks", () => {
       bytes: new Blob([new Uint8Array([0x50, 0x4b, 0x03, 0x04])]),
     })
 
-    expect(data.content).toEqual([{ kind: "wasm", sha256: "a".repeat(64), sizeBytes: 10 }])
+    expect(data.content).toEqual([
+      { kind: "wasm", sha256: "a".repeat(64), sizeBytes: 10 },
+    ])
   })
 })
 
@@ -217,7 +249,10 @@ describe("describeArtifactSaveError", () => {
     const described = describeArtifactSaveError(
       new ApiError(400, "Invalid category: Not A Real Category")
     )
-    expect(described).toEqual({ field: "category", message: "Invalid category: Not A Real Category" })
+    expect(described).toEqual({
+      field: "category",
+      message: "Invalid category: Not A Real Category",
+    })
   })
 
   it("routes a sourceUrl validation error to the sourceUrl field", () => {
@@ -232,11 +267,15 @@ describe("describeArtifactSaveError", () => {
 
   it("prefixes a 409 as a duplicate and routes it to no field", () => {
     const described = describeArtifactSaveError(
-      new ApiError(409, "An artifact with this name and version already exists.")
+      new ApiError(
+        409,
+        "An artifact with this name and version already exists."
+      )
     )
     expect(described).toEqual({
       field: null,
-      message: "Duplicate: An artifact with this name and version already exists.",
+      message:
+        "Duplicate: An artifact with this name and version already exists.",
     })
   })
 

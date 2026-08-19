@@ -15,11 +15,7 @@ const columnStyles: Record<NonNullable<StatRowProps["columns"]>, string> = {
   4: "grid-cols-2 sm:grid-cols-4",
 }
 
-export function StatRow({
-  children,
-  columns = 4,
-  className,
-}: StatRowProps) {
+export function StatRow({ children, columns = 4, className }: StatRowProps) {
   return (
     <div className={cn("grid gap-3", columnStyles[columns], className)}>
       {children}
@@ -58,14 +54,24 @@ export function StatCard({
   const content = (
     <div className="flex items-start justify-between gap-2">
       <div className="min-w-0 flex-1">
-        <div className={cn("text-2xl font-semibold tabular-nums", toneStyles[tone])}>
+        <div
+          className={cn(
+            "text-2xl font-semibold tabular-nums",
+            toneStyles[tone]
+          )}
+        >
           {value}
         </div>
         <div className="mt-0.5 text-xs text-muted-foreground">{label}</div>
-        {hint && <div className="mt-1 text-xs text-muted-foreground">{hint}</div>}
+        {hint && (
+          <div className="mt-1 text-xs text-muted-foreground">{hint}</div>
+        )}
       </div>
       {Icon && (
-        <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <Icon
+          className="size-4 shrink-0 text-muted-foreground"
+          aria-hidden="true"
+        />
       )}
     </div>
   )
@@ -74,7 +80,7 @@ export function StatCard({
     "rounded-xl border border-[var(--ironhub-line)] bg-card p-4 shadow-[var(--ironhub-shadow)]",
     onSelect &&
       cn(
-        "w-full text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "w-full text-left transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
         selected && "border-primary/40 bg-primary/5 hover:bg-primary/10"
       ),
     className

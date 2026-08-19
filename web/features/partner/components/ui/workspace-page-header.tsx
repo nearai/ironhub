@@ -33,7 +33,7 @@ export function WorkspacePageHeader({
             asChild
             variant="ghost"
             size="sm"
-            className="-ml-2 mb-2 h-10 gap-1.5 rounded-lg px-2 text-sm text-muted-foreground hover:text-foreground sm:h-8"
+            className="mb-2 -ml-2 h-10 gap-1.5 rounded-lg px-2 text-sm text-muted-foreground hover:text-foreground sm:h-8"
           >
             <Link href={backHref}>
               <IconArrowLeft className="size-4" aria-hidden="true" />
@@ -45,7 +45,7 @@ export function WorkspacePageHeader({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           {eyebrow && (
-            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <p className="mb-1 text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase">
               {eyebrow}
             </p>
           )}

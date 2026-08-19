@@ -10,8 +10,22 @@ export class ApiError extends Error {
 
 async function parseErrorMessage(response: Response): Promise<string> {
   try {
-    const body = await response.clone().json()
-    if (body && typeof body.error === "string") return body.error
+    const body = await response.clone().text()
+    if (body) {
+      try {
+        const parsed = JSON.parse(body)
+        if (parsed && typeof parsed.error === "string") return parsed.error
+      } catch {
+        // not JSON — fall through to the plain-text branch below
+      }
+
+      // Server helpers throw plain-text Responses (`throw new Response("A
+      // pending invitation already exists", { status: 409 })`). Surfacing the
+      // sentence they wrote beats showing the bare status text ("Conflict").
+      // Guarded so an HTML error page or a long dump never reaches the user.
+      const text = body.trim()
+      if (text && text.length <= 300 && !text.startsWith("<")) return text
+    }
   } catch {
     // fall through to status text
   }
