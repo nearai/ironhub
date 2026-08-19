@@ -64,8 +64,7 @@ export function SignInPanel({
     return <DetectingSpinner />
   }
 
-  const showOptions =
-    detectedNearAccount === null || showAllOptions
+  const showOptions = detectedNearAccount === null || showAllOptions
 
   return (
     <section className="mx-auto w-full max-w-[28rem] rounded-2xl border border-[var(--ironhub-line)] bg-card/88 p-5 shadow-[0_28px_90px_rgb(43_130_212_/_0.18)] backdrop-blur-xl sm:p-6">
@@ -119,7 +118,7 @@ export function SignInPanel({
             size="lg"
             disabled={isPending}
             onClick={onNear}
-            className="h-14 justify-center rounded-xl bg-primary/90 text-primary-foreground text-base font-medium shadow-[0_12px_34px_rgb(43_130_212_/_0.18)] hover:bg-primary"
+            className="h-14 justify-center rounded-xl bg-primary/90 text-base font-medium text-primary-foreground shadow-[0_12px_34px_rgb(43_130_212_/_0.18)] hover:bg-primary"
           >
             <IconWallet className="mr-2.5 size-5" />
             Continue as {detectedNearAccount?.accountId}

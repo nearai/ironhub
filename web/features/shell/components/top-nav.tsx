@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { WorkspaceHeaderActions } from "@/features/partner/components/workspace-header-actions"
 import { isAccountRouteDisabled } from "@/lib/shared/feature-flags"
 import { links } from "@/lib/shared/links"
 import {
@@ -32,29 +33,49 @@ export function TopNav() {
           <nav className="hidden items-center gap-7 lg:flex">
             {isMvp ? (
               <>
-                <Button asChild variant="ghost" size="sm" className="rounded-full">
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-full"
+                >
                   <a href="#docs" onClick={(e) => e.preventDefault()}>
                     <IconBook className="size-4" />
                     Developer Docs
                   </a>
                 </Button>
-                <Button asChild variant="ghost" size="sm" className="rounded-full">
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-full"
+                >
                   <a href="#guidelines" onClick={(e) => e.preventDefault()}>
                     <IconClipboardCheck className="size-4" />
                     Publishing Guidelines
                   </a>
                 </Button>
-                <Button asChild variant="ghost" size="sm" className="rounded-full">
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-full"
+                >
                   <a href="#support" onClick={(e) => e.preventDefault()}>
                     <IconLifebuoy className="size-4" />
                     Support
                   </a>
                 </Button>
-                <div className="h-4 w-px bg-[var(--ironhub-line)] mx-2" />
-                <Button asChild variant="outline" size="sm" className="rounded-full text-muted-foreground hover:text-foreground">
+                <div className="mx-2 h-4 w-px bg-[var(--ironhub-line)]" />
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full text-muted-foreground hover:text-foreground"
+                >
                   <Link href="/marketplace">
                     <IconArrowLeft className="size-4" />
-                     Back to Marketplace
+                    Back to Marketplace
                   </Link>
                 </Button>
               </>
@@ -89,7 +110,11 @@ export function TopNav() {
                   size="sm"
                   className="hidden gap-1.5 rounded-full sm:inline-flex"
                 >
-                  <a href={links.suggestFeature} target="_blank" rel="noreferrer">
+                  <a
+                    href={links.suggestFeature}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     <IconBulb className="size-4" />
                     <span>Suggest Feature</span>
                   </a>
@@ -113,6 +138,7 @@ export function TopNav() {
               </>
             )}
 
+            {isMvp && <WorkspaceHeaderActions />}
             <ThemeToggle />
             {!isMvp && !isAccountRouteDisabled && <AccountNavButton />}
             <MobileNav />

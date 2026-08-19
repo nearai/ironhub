@@ -32,8 +32,8 @@ async function streamToBuffer(stream: unknown): Promise<Buffer> {
     stream &&
     typeof stream === "object" &&
     "transformToByteArray" in stream &&
-    typeof (stream as { transformToByteArray: unknown }).transformToByteArray ===
-      "function"
+    typeof (stream as { transformToByteArray: unknown })
+      .transformToByteArray === "function"
   ) {
     const bytes = await (
       stream as { transformToByteArray: () => Promise<Uint8Array> }
@@ -45,7 +45,9 @@ async function streamToBuffer(stream: unknown): Promise<Buffer> {
 
 async function main() {
   const key = `smoke-test/${Date.now()}.txt`
-  const payload = Buffer.from(`storage smoke test at ${new Date().toISOString()}`)
+  const payload = Buffer.from(
+    `storage smoke test at ${new Date().toISOString()}`
+  )
 
   console.log(`[1/4] putObject ${key}`)
   await putObject(key, payload, "text/plain")

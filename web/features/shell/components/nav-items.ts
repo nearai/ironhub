@@ -14,5 +14,5 @@ export const navItems = [
 ] as const
 
 export const visibleNavItems = navItems.filter(
-  ([, href]) => href !== "/agents" || !isAgentsRouteDisabled,
+  ([, href]) => href !== "/agents" || !isAgentsRouteDisabled
 )

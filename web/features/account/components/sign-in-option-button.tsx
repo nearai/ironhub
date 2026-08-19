@@ -28,7 +28,7 @@ export function SignInOptionButton({
       variant="outline"
       disabled={disabled}
       onClick={onClick}
-      className="h-14 justify-between rounded-xl border-[var(--ironhub-line)] bg-background/80 pl-2 pr-4 text-base shadow-[0_10px_30px_rgb(43_130_212_/_0.08)] backdrop-blur-md hover:border-primary/45 hover:bg-card hover:shadow-[0_16px_38px_rgb(43_130_212_/_0.14)]"
+      className="h-14 justify-between rounded-xl border-[var(--ironhub-line)] bg-background/80 pr-4 pl-2 text-base shadow-[0_10px_30px_rgb(43_130_212_/_0.08)] backdrop-blur-md hover:border-primary/45 hover:bg-card hover:shadow-[0_16px_38px_rgb(43_130_212_/_0.14)]"
     >
       <span className="flex min-w-0 items-center gap-3">
         <span className="grid size-9 shrink-0 place-items-center rounded-lg border border-[var(--ironhub-line)] bg-primary/8 text-foreground">

@@ -61,7 +61,7 @@ export function MobileNav() {
               <SheetClose asChild>
                 <Button asChild variant="ghost" className="justify-start">
                   <Link href="/mvp/dashboard">
-                    <IconLayoutDashboard className="size-4 mr-2" />
+                    <IconLayoutDashboard className="mr-2 size-4" />
                     Dashboard
                   </Link>
                 </Button>
@@ -69,7 +69,7 @@ export function MobileNav() {
               <SheetClose asChild>
                 <Button asChild variant="ghost" className="justify-start">
                   <Link href="/mvp/team">
-                    <IconUsers className="size-4 mr-2" />
+                    <IconUsers className="mr-2 size-4" />
                     Team Members
                   </Link>
                 </Button>
@@ -77,16 +77,20 @@ export function MobileNav() {
               <SheetClose asChild>
                 <Button asChild variant="ghost" className="justify-start">
                   <Link href="/mvp/settings">
-                    <IconSettings className="size-4 mr-2" />
+                    <IconSettings className="mr-2 size-4" />
                     Settings
                   </Link>
                 </Button>
               </SheetClose>
-              <div className="h-px bg-[var(--ironhub-line)] my-2" />
+              <div className="my-2 h-px bg-[var(--ironhub-line)]" />
               <SheetClose asChild>
-                <Button asChild variant="outline" className="justify-start text-muted-foreground">
+                <Button
+                  asChild
+                  variant="outline"
+                  className="justify-start text-muted-foreground"
+                >
                   <Link href="/marketplace">
-                    <IconArrowLeft className="size-4 mr-2" />
+                    <IconArrowLeft className="mr-2 size-4" />
                     Back to Marketplace
                   </Link>
                 </Button>

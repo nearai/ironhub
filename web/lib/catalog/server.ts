@@ -13,10 +13,7 @@ import { isIliadEnabled } from "@/lib/shared/feature-flags"
 
 export async function getCatalog() {
   const root = await findRepoRoot()
-  const [tools, skills] = await Promise.all([
-    readTools(root),
-    readSkills(root),
-  ])
+  const [tools, skills] = await Promise.all([readTools(root), readSkills(root)])
   const items = [...tools, ...skills].sort((a, b) =>
     a.name.localeCompare(b.name)
   )
