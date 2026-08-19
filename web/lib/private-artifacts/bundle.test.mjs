@@ -7,7 +7,9 @@ import { zipSync } from "fflate"
 import {
   __setInflateInputChunkListenerForTests,
   __setInflateOutputTotalListenerForTests,
+  declaredAssetPaths,
   inspectExtensionBundle,
+  readBundleAsset,
   readBundleFile,
 } from "./bundle.ts"
 import { MAX_CONTENT_BYTES_BY_KIND } from "./content.ts"
@@ -19,6 +21,31 @@ import { buildRawZipArchive, crc32 as rawCrc32, encode } from "./zip-test-suppor
 // required for those bits to mean anything to a reader.
 const SYMLINK_ATTRS = 0o120777 << 16
 
+// One manifest v3 `[[tools]]` entry per capability, matching what a real
+// bundle declares: a required input schema, and optionally an output schema
+// and a prompt document. These refs -- not the `schemas/` and `prompts/` path
+// prefixes -- are what ingest publishes and what the agent matches against.
+const DEFAULT_TOOLS = [
+  {
+    id: "test-tool.scrape",
+    input_schema_ref: "schemas/test/scrape.input.v1.json",
+    prompt_doc_ref: "prompts/test/scrape.md",
+  },
+]
+
+function toolTables(tools) {
+  return tools.flatMap((tool) => [
+    "",
+    "[[tools]]",
+    `id = ${JSON.stringify(tool.id)}`,
+    `description = "A capability."`,
+    `default_permission = "ask"`,
+    ...["input_schema_ref", "output_schema_ref", "prompt_doc_ref"].flatMap((key) =>
+      tool[key] === undefined ? [] : [`${key} = ${JSON.stringify(tool[key])}`]
+    ),
+  ])
+}
+
 function manifestToml(fields = {}) {
   const merged = {
     id: "test-tool",
@@ -27,6 +54,7 @@ function manifestToml(fields = {}) {
     description: "A test tool for bundle validation tests.",
     trust: "third_party",
     runtimeModule: "wasm/test.wasm",
+    tools: DEFAULT_TOOLS,
     ...fields,
   }
 
@@ -40,6 +68,7 @@ function manifestToml(fields = {}) {
   if (merged.runtimeModule !== undefined) {
     lines.push(`module = ${JSON.stringify(merged.runtimeModule)}`)
   }
+  lines.push(...toolTables(merged.tools))
   return lines.join("\n") + "\n"
 }
 
@@ -95,8 +124,8 @@ test("accepts a well-formed bundle and returns the parsed manifest + layout", ()
   })
   assert.equal(inspected.wasmPath, "wasm/test.wasm")
   assert.equal(inspected.capabilitiesPath, "test-tool.capabilities.json")
-  assert.deepEqual(inspected.schemaFiles, ["schemas/test/scrape.input.v1.json"])
-  assert.deepEqual(inspected.promptFiles, ["prompts/test/scrape.md"])
+  assert.deepEqual(inspected.declaredSchemas, ["schemas/test/scrape.input.v1.json"])
+  assert.deepEqual(inspected.declaredPrompts, ["prompts/test/scrape.md"])
   assert.ok(inspected.entryNames.includes("manifest.toml"))
   assert.ok(inspected.totalUncompressedBytes > 0)
 })
@@ -894,7 +923,11 @@ test("O(n^2) fix: inspecting a natural-layout multi-MB bundle stays fast (coarse
   const zip = buildRawZipArchive({
     includeZip64Locator: false,
     entries: [
-      { name: "manifest.toml", content: encode(manifestToml()), method: 0 },
+      // Declares no assets: this test is about how much of the archive the
+      // inflate path is willing to chew through, and `prompts/bulk.bin` is
+      // deliberately an *undeclared* 10MB entry, which rule 11 must never
+      // reach for.
+      { name: "manifest.toml", content: encode(manifestToml({ tools: [] })), method: 0 },
       {
         name: "test-tool.capabilities.json",
         content: encode(JSON.stringify({ version: "0.1.0" })),
@@ -967,7 +1000,12 @@ test("mutation guard M5: extraction budget is min(declared, cap), not declared a
     assert.ok(error instanceof Response)
     assert.equal(error.status, 400)
     const text = await error.text()
-    assert.match(text, /^Content exceeds the 5MB limit for wasm$/)
+    assert.match(
+      text,
+      new RegExp(
+        `^Content exceeds the ${MAX_CONTENT_BYTES_BY_KIND.wasm / (1024 * 1024)}MB limit for wasm$`
+      )
+    )
   } finally {
     __setInflateOutputTotalListenerForTests(null)
   }
@@ -983,4 +1021,395 @@ test("mutation guard M5: extraction budget is min(declared, cap), not declared a
     peakOutput <= MAX_CONTENT_BYTES_BY_KIND.wasm + 64 * 1024,
     `expected peak accumulated output (${peakOutput} bytes) to stay near the wasm cap (${MAX_CONTENT_BYTES_BY_KIND.wasm} bytes), not grow toward the full declared/real size (${oversized.length} bytes)`
   )
+})
+
+// --- Rule 11: manifest-declared schema and prompt assets --------------------
+//
+// The rule the agent enforces is set *equality* between what the extension
+// manifest references and what the catalog publishes, per asset class. Ingest
+// therefore drives off the manifest, not off a path prefix -- these tests are
+// mostly about proving that distinction holds in both directions.
+
+test("collects declared assets from a v3 [[tools]] manifest, deduplicated and sorted", () => {
+  const zip = zipOf({
+    ...baseFiles({
+      manifestFields: {
+        tools: [
+          {
+            id: "test-tool.scrape",
+            input_schema_ref: "schemas/test/scrape.input.v1.json",
+            output_schema_ref: "schemas/test/scrape.output.v1.json",
+            prompt_doc_ref: "prompts/test/scrape.md",
+          },
+          {
+            id: "test-tool.crawl",
+            // Deliberately reuses the first tool's input schema: the agent
+            // publishes a map keyed by path, so two references to one path
+            // are one asset, not two.
+            input_schema_ref: "schemas/test/scrape.input.v1.json",
+            prompt_doc_ref: "prompts/test/crawl.md",
+          },
+        ],
+      },
+    }),
+    "schemas/test/scrape.output.v1.json": encode("{}"),
+    "prompts/test/crawl.md": encode("# crawl"),
+  })
+
+  const inspected = inspectExtensionBundle(zip)
+
+  assert.deepEqual(inspected.declaredSchemas, [
+    "schemas/test/scrape.input.v1.json",
+    "schemas/test/scrape.output.v1.json",
+  ])
+  assert.deepEqual(inspected.declaredPrompts, [
+    "prompts/test/crawl.md",
+    "prompts/test/scrape.md",
+  ])
+})
+
+test("collects declared assets from a v2 [[capability_provider.tools.capabilities]] manifest", () => {
+  const zip = zipOf({
+    "manifest.toml": encode(
+      [
+        `schema_version = "reborn.extension_manifest.v2"`,
+        `id = "test-tool"`,
+        `name = "Test Tool"`,
+        `version = "0.1.0"`,
+        `description = "A v2 test tool."`,
+        `trust = "third_party"`,
+        "",
+        "[runtime]",
+        `kind = "wasm"`,
+        `module = "wasm/test.wasm"`,
+        "",
+        "[capability_provider.tools]",
+        "",
+        "[[capability_provider.tools.capabilities]]",
+        `id = "example.read"`,
+        `default_permission = "allow"`,
+        `input_schema_ref = "schemas/example/read.input.v1.json"`,
+        `output_schema_ref = "schemas/example/read.output.v1.json"`,
+        `prompt_doc_ref = "prompts/example/read.md"`,
+        "",
+      ].join("\n")
+    ),
+    "wasm/test.wasm": new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0]),
+    "schemas/example/read.input.v1.json": encode("{}"),
+    "schemas/example/read.output.v1.json": encode("{}"),
+    "prompts/example/read.md": encode("# read"),
+  })
+
+  const inspected = inspectExtensionBundle(zip)
+
+  assert.deepEqual(inspected.declaredSchemas, [
+    "schemas/example/read.input.v1.json",
+    "schemas/example/read.output.v1.json",
+  ])
+  assert.deepEqual(inspected.declaredPrompts, ["prompts/example/read.md"])
+})
+
+test("a file under schemas/ that the manifest does not reference is not a declared asset", () => {
+  // The old prefix-driven collection would have picked this up and published
+  // it, which the agent rejects as an unreferenced published asset -- the
+  // mirror image of the missing-asset failure and just as fatal.
+  const zip = zipOf({
+    ...baseFiles(),
+    "schemas/test/orphan.v1.json": encode("{}"),
+    "prompts/test/orphan.md": encode("# orphan"),
+  })
+
+  const inspected = inspectExtensionBundle(zip)
+
+  assert.deepEqual(inspected.declaredSchemas, ["schemas/test/scrape.input.v1.json"])
+  assert.deepEqual(inspected.declaredPrompts, ["prompts/test/scrape.md"])
+})
+
+test("a declared asset outside the schemas/ and prompts/ prefixes is still found", () => {
+  const zip = zipOf({
+    ...baseFiles({
+      manifestFields: {
+        tools: [{ id: "test-tool.scrape", input_schema_ref: "contracts/scrape.json" }],
+      },
+    }),
+    "contracts/scrape.json": encode("{}"),
+  })
+
+  const inspected = inspectExtensionBundle(zip)
+
+  assert.deepEqual(inspected.declaredSchemas, ["contracts/scrape.json"])
+  assert.deepEqual(inspected.declaredPrompts, [])
+})
+
+test("a manifest declaring no capabilities declares no assets", () => {
+  const zip = zipOf(baseFiles({ manifestFields: { tools: [] } }))
+  const inspected = inspectExtensionBundle(zip)
+  assert.deepEqual(inspected.declaredSchemas, [])
+  assert.deepEqual(inspected.declaredPrompts, [])
+})
+
+test("rejects a bundle whose declared schema is absent from the archive, naming the path", async () => {
+  const files = baseFiles()
+  delete files["schemas/test/scrape.input.v1.json"]
+  await assertRejection(
+    zipOf(files),
+    400,
+    /^manifest\.toml declares schema asset "schemas\/test\/scrape\.input\.v1\.json", which is not in the zip$/
+  )
+})
+
+test("rejects a bundle whose declared prompt is absent from the archive, naming the path", async () => {
+  const files = baseFiles()
+  delete files["prompts/test/scrape.md"]
+  await assertRejection(
+    zipOf(files),
+    400,
+    /^manifest\.toml declares prompt asset "prompts\/test\/scrape\.md", which is not in the zip$/
+  )
+})
+
+const declaredPathRejections = [
+  { path: "../secret.json", label: "traversal" },
+  { path: "/etc/passwd", label: "absolute" },
+  { path: "schemas//input.json", label: "empty segment" },
+  { path: "schemas/./input.json", label: "dot segment" },
+  { path: "schemas/input file.json", label: "space" },
+  { path: "standard:messaging/send.input.v1", label: "host-synthesized standard ref" },
+]
+
+for (const { path, label } of declaredPathRejections) {
+  test(`rejects a declared asset path with a ${label} before looking for it in the archive`, async () => {
+    const zip = zipOf(
+      baseFiles({
+        manifestFields: { tools: [{ id: "test-tool.scrape", input_schema_ref: path }] },
+      })
+    )
+    await assertRejection(zip, 400, /^manifest\.toml declares an invalid schema asset path: /)
+  })
+}
+
+test("rejects a bundle declaring more than 32 schema assets, naming the limit", async () => {
+  const tools = []
+  const files = baseFiles()
+  for (let i = 0; i < 33; i++) {
+    const path = `schemas/test/op-${i}.input.v1.json`
+    tools.push({ id: `test-tool.op-${i}`, input_schema_ref: path })
+    files[path] = encode("{}")
+  }
+  files["manifest.toml"] = encode(manifestToml({ tools }))
+
+  await assertRejection(
+    zipOf(files),
+    400,
+    /^manifest\.toml declares 33 schema assets; the agent accepts at most 32$/
+  )
+})
+
+test("accepts a bundle declaring exactly 32 schema assets", () => {
+  const tools = []
+  const files = baseFiles()
+  for (let i = 0; i < 32; i++) {
+    const path = `schemas/test/op-${i}.input.v1.json`
+    tools.push({ id: `test-tool.op-${i}`, input_schema_ref: path })
+    files[path] = encode("{}")
+  }
+  files["manifest.toml"] = encode(manifestToml({ tools }))
+
+  assert.equal(inspectExtensionBundle(zipOf(files)).declaredSchemas.length, 32)
+})
+
+test("rejects a bundle declaring more than 64 prompt assets, naming the limit", async () => {
+  const tools = []
+  const files = baseFiles()
+  for (let i = 0; i < 65; i++) {
+    const schemaPath = `schemas/test/op-${i}.input.v1.json`
+    const promptPath = `prompts/test/op-${i}.md`
+    // One shared schema keeps the schema count inside its own cap, so the
+    // prompt cap is unambiguously what fires.
+    tools.push({
+      id: `test-tool.op-${i}`,
+      input_schema_ref: "schemas/test/scrape.input.v1.json",
+      prompt_doc_ref: promptPath,
+    })
+    files[promptPath] = encode("# op")
+    void schemaPath
+  }
+  files["manifest.toml"] = encode(manifestToml({ tools }))
+
+  await assertRejection(
+    zipOf(files),
+    400,
+    /^manifest\.toml declares 65 prompt assets; the agent accepts at most 64$/
+  )
+})
+
+test("rejects a declared asset larger than 1MB with a 413 naming the path and the limit", async () => {
+  const files = baseFiles()
+  files["schemas/test/scrape.input.v1.json"] = encode(
+    `{"pad":"${"x".repeat(1024 * 1024)}"}`
+  )
+  await assertRejection(
+    zipOf(files),
+    413,
+    /^Asset schemas\/test\/scrape\.input\.v1\.json exceeds the 1MB limit for a single asset$/
+  )
+})
+
+test("accepts a declared asset at exactly the 1MB limit", () => {
+  const files = baseFiles()
+  const body = new Uint8Array(1024 * 1024)
+  body.fill(0x20)
+  files["schemas/test/scrape.input.v1.json"] = body
+  assert.deepEqual(inspectExtensionBundle(zipOf(files)).declaredSchemas, [
+    "schemas/test/scrape.input.v1.json",
+  ])
+})
+
+test("a declared asset that lies small and inflates past the cap is rejected, not truncated", async () => {
+  // The declared-size pre-filter above produces the friendly 413; this is the
+  // case it cannot see, where the central directory understates the entry.
+  // Extraction's own bound is what catches it, and it must fail closed rather
+  // than store a truncated schema whose digest the agent would then reject.
+  const real = pseudoRandomBytes(2 * 1024 * 1024)
+  const zip = buildRawZipArchive({
+    includeZip64Locator: false,
+    entries: [
+      { name: "manifest.toml", content: encode(manifestToml()), method: 0 },
+      {
+        name: "test-tool.capabilities.json",
+        content: encode(JSON.stringify({ version: "0.1.0" })),
+        method: 0,
+      },
+      { name: "wasm/test.wasm", content: new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0]), method: 0 },
+      { name: "prompts/test/scrape.md", content: encode("# scrape"), method: 0 },
+      {
+        name: "schemas/test/scrape.input.v1.json",
+        content: real,
+        method: 8,
+        declaredUncompressedSize: 16,
+        declaredCrc32: rawCrc32(real.subarray(0, 16)),
+      },
+    ],
+  })
+
+  await assertRejection(
+    zip,
+    400,
+    /^Zip entry schemas\/test\/scrape\.input\.v1\.json does not match its declared size or checksum$/
+  )
+})
+
+test("readBundleAsset returns the exact declared asset bytes", () => {
+  const files = baseFiles()
+  files["schemas/test/scrape.input.v1.json"] = encode('{"type":"object"}')
+  const bytes = readBundleAsset(zipOf(files), "schemas/test/scrape.input.v1.json")
+  assert.equal(new TextDecoder().decode(bytes), '{"type":"object"}')
+})
+
+test("readBundleAsset bounds an asset at the agent's 1MB ceiling, not the 25MB per-entry one", async () => {
+  // readBundleFile would happily return this; the agent would then reject the
+  // install. The two readers exist precisely so that cannot happen.
+  const files = baseFiles()
+  files["schemas/test/scrape.input.v1.json"] = new Uint8Array(2 * 1024 * 1024)
+  const zip = zipOf(files)
+
+  let threw = false
+  try {
+    readBundleAsset(zip, "schemas/test/scrape.input.v1.json")
+  } catch (error) {
+    threw = true
+    assert.ok(error instanceof Response)
+    assert.equal(error.status, 400)
+    assert.match(
+      await error.text(),
+      /^Asset schemas\/test\/scrape\.input\.v1\.json exceeds the 1MB limit for a single asset$/
+    )
+  }
+  assert.ok(threw, "expected readBundleAsset to throw")
+  assert.equal(readBundleFile(zip, "schemas/test/scrape.input.v1.json").length, 2 * 1024 * 1024)
+})
+
+// --- declaredAssetPaths: the same collection, read back from a stored
+// manifest document rather than from an archive -------------------------------
+
+test("declaredAssetPaths reads the same set inspect collects, from the document alone", () => {
+  const manifestToml = [
+    `schema_version = "3"`,
+    ``,
+    `[[tools]]`,
+    `id = "test-tool.scrape"`,
+    `input_schema_ref = "schemas/test/scrape.input.v1.json"`,
+    `output_schema_ref = "schemas/test/scrape.output.v1.json"`,
+    `prompt_doc_ref = "prompts/test/scrape.md"`,
+  ].join("\n")
+
+  assert.deepEqual(declaredAssetPaths(manifestToml), {
+    schemas: [
+      "schemas/test/scrape.input.v1.json",
+      "schemas/test/scrape.output.v1.json",
+    ],
+    prompts: ["prompts/test/scrape.md"],
+  })
+})
+
+test("declaredAssetPaths reads a v2 capability table too", () => {
+  const manifestToml = [
+    `schema_version = "reborn.extension_manifest.v2"`,
+    ``,
+    `[[capability_provider.tools.capabilities]]`,
+    `id = "test-tool.scrape"`,
+    `input_schema_ref = "contracts/scrape.json"`,
+  ].join("\n")
+
+  assert.deepEqual(declaredAssetPaths(manifestToml), {
+    schemas: ["contracts/scrape.json"],
+    prompts: [],
+  })
+})
+
+test("declaredAssetPaths declares nothing for a manifest with no capability tables", () => {
+  assert.deepEqual(declaredAssetPaths(`schema_version = "3"\n`), {
+    schemas: [],
+    prompts: [],
+  })
+})
+
+test("declaredAssetPaths rejects a document that is not TOML", () => {
+  assert.throws(
+    () => declaredAssetPaths("this is not toml ]["),
+    (error) => error instanceof Response && error.status === 400
+  )
+})
+
+test("an explicitly empty asset ref is rejected rather than read as an omission", () => {
+  // `input_schema_ref = ""` would otherwise collect nothing, store nothing and
+  // publish nothing, then fail agent-side where ExtensionAssetPath rejects an
+  // empty path (C19). Caught at ingest and at publish alike, since both read
+  // through the same collector.
+  for (const field of [
+    "input_schema_ref",
+    "output_schema_ref",
+    "prompt_doc_ref",
+  ]) {
+    assert.throws(
+      () =>
+        declaredAssetPaths(
+          [`[[tools]]`, `id = "t.scrape"`, `${field} = ""`].join("\n")
+        ),
+      (error) => error instanceof Response && error.status === 400,
+      `${field} = "" should be rejected`
+    )
+  }
+})
+
+test("a bundle whose manifest declares an empty schema ref is rejected at ingest", async () => {
+  const zip = zipOf(
+    baseFiles({
+      manifestFields: {
+        tools: [{ id: "test-tool.scrape", input_schema_ref: "" }],
+      },
+    })
+  )
+
+  await assertRejection(zip, 400, /empty input_schema_ref/)
 })

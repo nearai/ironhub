@@ -104,10 +104,7 @@ function assertOptionalString(value: unknown, field: string): string {
   return value
 }
 
-function assertNullableString(
-  value: unknown,
-  field: string
-): string | null {
+function assertNullableString(value: unknown, field: string): string | null {
   if (value === null) return null
   if (typeof value !== "string") {
     throw new Response(`${field} must be a string or null`, { status: 400 })

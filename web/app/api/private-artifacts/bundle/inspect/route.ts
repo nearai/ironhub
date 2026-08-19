@@ -15,8 +15,13 @@ export async function POST(request: Request) {
       files: {
         wasm: inspected.wasmPath,
         capabilities: inspected.capabilitiesPath,
-        schemas: inspected.schemaFiles,
-        prompts: inspected.promptFiles,
+        // The paths the manifest declares, which is what upload will store
+        // and what the agent will match against -- not every file that
+        // happens to live under `schemas/` or `prompts/`. An author whose
+        // archive carries an unreferenced file sees it absent here, which is
+        // the honest preview of what publishing does with it.
+        schemas: inspected.declaredSchemas,
+        prompts: inspected.declaredPrompts,
       },
       totalUncompressedBytes: inspected.totalUncompressedBytes,
     })

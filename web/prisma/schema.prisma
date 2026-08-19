@@ -218,6 +218,7 @@ model PrivateArtifact {
   createdById    String?                  @map("created_by_id")
   createdBy      User?                    @relation(fields: [createdById], references: [id], onDelete: SetNull)
   content        PrivateArtifactContent[]
+  assets         PrivateArtifactAsset[]
   type           String
   name           String
   title          String
@@ -234,6 +235,29 @@ model PrivateArtifact {
   @@index([organizationId])
   @@index([organizationId, visibility])
   @@map("private_artifact")
+}
+
+/// Path-addressed schema and prompt assets for one tool artifact.
+///
+/// A sibling of PrivateArtifactContent rather than a widening of it: content
+/// is one row per kind, while assets are many rows per kind, addressed by the
+/// path the extension manifest spells. `kind` is `schema` or `prompt`, which
+/// are the two asset classes the agent bounds and matches independently
+/// (ironhub/model.rs IronHubToolEntry.schemas / .prompts).
+model PrivateArtifactAsset {
+  id         String          @id
+  artifactId String          @map("artifact_id")
+  artifact   PrivateArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+  kind       String
+  path       String
+  storageKey String          @map("storage_key")
+  sha256     String
+  sizeBytes  Int             @map("size_bytes")
+  createdAt  DateTime        @default(now()) @map("created_at")
+
+  @@unique([artifactId, kind, path])
+  @@index([artifactId])
+  @@map("private_artifact_asset")
 }
 
 model PrivateArtifactContent {

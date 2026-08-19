@@ -1,5 +1,10 @@
 import { createHash, randomUUID } from "node:crypto"
 
+import {
+  MAX_METADATA_BYTES,
+  MAX_WASM_BYTES,
+} from "@/lib/catalog/ironclaw-contract"
+
 import { prisma } from "../db"
 import { deleteObject, putObject } from "../storage"
 
@@ -21,14 +26,30 @@ export const CONTENT_MEDIA_TYPES: Record<ContentKind, string> = {
   bundle_zip: "application/zip",
 }
 
-// Per-kind ceilings (design.md D3): manifest_toml and bundle_zip get their
-// own limits rather than sharing the flat 5MB cap used by the original three
-// kinds. bundle_zip's 25MB matches the compressed-size cap bundle.ts already
-// enforces before storage is ever reached.
+// Per-kind ceilings. Each is the *smaller* of what the agent will accept for
+// that kind and any tighter bound the hub imposes deliberately, so a payload
+// that uploads here always installs there and one that cannot install is
+// rejected at upload with a message naming the limit.
+//
+// The three kinds the agent bounds read their number from ironclaw-contract.ts
+// rather than restating it. That is the whole point of the change these lines
+// came from: `skill_md` used to sit at 5MB against the agent's 1MB, so a 2MB
+// SKILL.md uploaded cleanly, signed cleanly, and failed at install with
+// `artifact exceeds 1048576 byte cap` (design.md D7). `wasm` had the mirror
+// problem in the safe direction -- 5MB against the agent's 16MB, rejecting
+// modules the agent would have accepted for no stated reason.
+//
+// The two hub-only numbers stay hub-only:
+//   * `manifest_toml` at 256KB is deliberately tighter than the agent's 1MB.
+//     A manifest.toml is a declaration document, not a payload; 256KB is
+//     already far past any real one, and the tighter bound costs nothing.
+//   * `bundle_zip` never reaches an agent at all -- it is the upload envelope
+//     ingest reads and discards. 25MB matches the compressed-size cap
+//     bundle.ts enforces before storage is reached.
 export const MAX_CONTENT_BYTES_BY_KIND: Record<ContentKind, number> = {
-  skill_md: 5 * 1024 * 1024,
-  wasm: 5 * 1024 * 1024,
-  capabilities: 5 * 1024 * 1024,
+  skill_md: MAX_METADATA_BYTES,
+  wasm: MAX_WASM_BYTES,
+  capabilities: MAX_METADATA_BYTES,
   manifest_toml: 256 * 1024,
   bundle_zip: 25 * 1024 * 1024,
 }

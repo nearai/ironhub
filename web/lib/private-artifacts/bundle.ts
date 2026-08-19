@@ -5,7 +5,10 @@
 // Every validation rule below runs in the exact order specified by D6 --
 // first failure wins -- and throws `new Response(message, { status: 400 })`
 // with the exact message text. The UI lane surfaces these messages verbatim,
-// so wording must not drift from the contract.
+// so wording must not drift from the contract. Rule 11 (declared assets) is
+// the one exception to the status code: an asset over the agent's per-asset
+// byte ceiling is a 413, because the archive is well-formed and it is the
+// payload that is too large.
 //
 // The root threat this file defends against (per two rounds of adversarial
 // review): attacker-controlled zip metadata used as a resource bound,
@@ -18,6 +21,21 @@
 // counted incrementally and aborted on overflow -- see extractVerifiedEntry.
 import { parse as parseToml } from "smol-toml"
 import { Inflate, strFromU8 } from "fflate"
+
+// The only import this module takes beyond its two parsers, and it is safe:
+// ironclaw-contract.ts is pure constants and predicates with no Prisma, HTTP,
+// or storage reachable from it, so the "no dependencies" property above holds.
+// Importing rather than re-declaring matters more here than it does for the
+// three per-kind caps below, because these values are the *agent's*, not
+// ours -- a second copy would drift against the agent, not merely against
+// another hub table.
+import {
+  MAX_METADATA_BYTES,
+  MAX_TOOL_PROMPT_ARTIFACTS,
+  MAX_TOOL_SCHEMA_ARTIFACTS,
+  MAX_WASM_BYTES,
+  isExtensionAssetPath,
+} from "@/lib/catalog/ironclaw-contract"
 
 export type BundleManifest = {
   schemaVersion?: string
@@ -35,8 +53,20 @@ export type InspectedBundle = {
   wasmPath: string
   capabilitiesPath: string | null
   entryNames: string[]
-  schemaFiles: string[]
-  promptFiles: string[]
+  /**
+   * The asset paths the extension manifest *declares*, deduplicated and
+   * sorted -- not the files that happen to sit under `schemas/` or `prompts/`.
+   *
+   * The distinction is the whole point. The agent compares the set of paths
+   * the manifest references against the set the catalog publishes and rejects
+   * the install unless they are equal, in both directions
+   * (`ironhub/package.rs`, `ironhub_tool_package`). A file under `schemas/`
+   * that nothing references must therefore not be published, and a declared
+   * asset stored anywhere else must be. Only the manifest can answer that, so
+   * only the manifest is asked.
+   */
+  declaredSchemas: string[]
+  declaredPrompts: string[]
   totalUncompressedBytes: number
 }
 
@@ -53,17 +83,19 @@ const MAX_ENTRY_UNCOMPRESSED_BYTES = 25 * 1024 * 1024
 // that would fail at PUT .../bundle fails identically at POST
 // .../bundle/inspect instead of inspecting clean and failing later.
 //
-// Duplicated here rather than imported from content.ts: bundle.ts must stay
-// free of Prisma/HTTP dependencies (content.ts transitively imports ../db,
-// which constructs a real Prisma client at module load), and
-// inspectExtensionBundle's signature is fixed by design.md D6 to take only
-// `zip: Uint8Array`, with no injectable config parameter. Both tables are
-// independently derived from the same design.md D3 spec values;
-// bundle.test.mjs asserts this table equals content.ts's real export so a
-// future change to one can't silently drift from the other.
+// Not imported from content.ts: bundle.ts must stay free of Prisma/HTTP
+// dependencies (content.ts transitively imports ../db, which constructs a real
+// Prisma client at module load), and inspectExtensionBundle's signature is
+// fixed by design.md D6 to take only `zip: Uint8Array`, with no injectable
+// config parameter. bundle.test.mjs asserts this table equals content.ts's
+// real export so the two can't silently drift.
+//
+// The two agent-bounded kinds take their number from ironclaw-contract.ts, the
+// same source content.ts reads, so the only value restated below is the one
+// the hub owns outright (manifest_toml's deliberately tighter 256KB).
 const MAX_KIND_BYTES_DURING_INSPECT = {
-  wasm: 5 * 1024 * 1024,
-  capabilities: 5 * 1024 * 1024,
+  wasm: MAX_WASM_BYTES,
+  capabilities: MAX_METADATA_BYTES,
   manifest_toml: 256 * 1024,
 } as const
 
@@ -80,6 +112,13 @@ const GPFLAG_UTF8_NAME = 0x0800
 
 function badRequest(message: string): Response {
   return new Response(message, { status: 400 })
+}
+
+// Rule 11 only. An archive whose shape is fine but whose asset is over the
+// agent's byte ceiling is a payload problem, not a validation problem, and the
+// author's fix is to shrink the file rather than to re-author the manifest.
+function payloadTooLarge(message: string): Response {
+  return new Response(message, { status: 413 })
 }
 
 function describeKindLimit(maxBytes: number): string {
@@ -145,8 +184,15 @@ function readUint64LE(buf: Uint8Array, offset: number): number {
 }
 
 function findEndOfCentralDirectory(zip: Uint8Array): number {
-  const minOffset = Math.max(0, zip.length - EOCD_FIXED_SIZE - MAX_EOCD_COMMENT_LENGTH)
-  for (let offset = zip.length - EOCD_FIXED_SIZE; offset >= minOffset; offset--) {
+  const minOffset = Math.max(
+    0,
+    zip.length - EOCD_FIXED_SIZE - MAX_EOCD_COMMENT_LENGTH
+  )
+  for (
+    let offset = zip.length - EOCD_FIXED_SIZE;
+    offset >= minOffset;
+    offset--
+  ) {
     if (readUint32LE(zip, offset) === EOCD_SIGNATURE) return offset
   }
   throw badRequest("Upload must be a .zip archive")
@@ -171,7 +217,8 @@ function findEndOfCentralDirectory(zip: Uint8Array): number {
 function detectZip64Eocd(zip: Uint8Array, eocdOffset: number): number | null {
   const locatorOffset = eocdOffset - 20
   if (locatorOffset < 0 || locatorOffset + 20 > zip.length) return null
-  if (readUint32LE(zip, locatorOffset) !== ZIP64_EOCD_LOCATOR_SIGNATURE) return null
+  if (readUint32LE(zip, locatorOffset) !== ZIP64_EOCD_LOCATOR_SIGNATURE)
+    return null
   const zip64EocdOffset = readUint32LE(zip, locatorOffset + 8)
   if (zip64EocdOffset + 56 > zip.length) return null
   if (readUint32LE(zip, zip64EocdOffset) !== ZIP64_EOCD_SIGNATURE) return null
@@ -336,7 +383,10 @@ function crc32(bytes: Uint8Array): number {
 /** Locates the start of an entry's compressed data by reading its *local*
  * file header (which can have a different extra-field length than the
  * central directory record for the same entry). */
-function findLocalDataOffset(zip: Uint8Array, localHeaderOffset: number): number {
+function findLocalDataOffset(
+  zip: Uint8Array,
+  localHeaderOffset: number
+): number {
   if (
     localHeaderOffset < 0 ||
     localHeaderOffset + 30 > zip.length ||
@@ -572,6 +622,153 @@ export function readBundleFile(zip: Uint8Array, path: string): Uint8Array {
   )
 }
 
+/**
+ * Reads a manifest-declared schema or prompt asset, bounded to the agent's
+ * per-asset ceiling rather than the archive's much looser per-entry one.
+ *
+ * Separate from `readBundleFile` on purpose: an asset read with the 25MB
+ * per-entry bound would extract cleanly here and be rejected by the agent at
+ * install, which is the exact failure mode this change exists to remove. Rule
+ * 11 already applied the same bound during inspect, so a bundle that reached
+ * this call has been proven to fit.
+ */
+export function readBundleAsset(zip: Uint8Array, path: string): Uint8Array {
+  return extractVerifiedEntry(
+    zip,
+    path,
+    MAX_METADATA_BYTES,
+    describeAssetMismatch(path)
+  )
+}
+
+// --- Manifest-declared assets ----------------------------------------------
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {}
+}
+
+function asRecordArray(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value) ? value.map(asRecord) : []
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === "string" && value !== "" ? value : undefined
+}
+
+/**
+ * The capability tables a manifest declares, across both manifest schemas.
+ *
+ * v3 puts them in a top-level `[[tools]]` array; v2 puts them under
+ * `[[capability_provider.tools.capabilities]]`. Both shapes are read and
+ * unioned rather than selected by `schema_version`, because the agent's own
+ * parsers use `deny_unknown_fields` and neither raw manifest struct names the
+ * other's key -- a document carrying both is already unparseable there, so
+ * reading both here can only ever find the one that is real. Union also fails
+ * closed: the worst case is demanding an asset the agent would not have asked
+ * for, which surfaces as a rejection at upload rather than a broken install.
+ */
+function manifestCapabilityTables(
+  raw: Record<string, unknown>
+): Record<string, unknown>[] {
+  const provider = asRecord(raw.capability_provider)
+  const providerTools = asRecord(provider.tools)
+  return [
+    ...asRecordArray(raw.tools),
+    ...asRecordArray(providerTools.capabilities),
+  ]
+}
+
+/**
+ * Collects the asset paths the extension manifest declares.
+ *
+ * `input_schema_ref` is not optional on the agent side
+ * (`ironclaw_extension_registry/src/v2.rs`, `CapabilityDeclV2`), so every
+ * capability contributes at least one schema. `output_schema_ref` and
+ * `prompt_doc_ref` are optional. A v3 tool bound to a `standard_op` omits its
+ * schema refs entirely -- the agent synthesizes a `standard:messaging/...`
+ * ref for it -- so nothing is collected for such a tool here. See the note on
+ * rule 11 for what that means.
+ */
+function collectDeclaredAssets(raw: Record<string, unknown>): {
+  schemas: string[]
+  prompts: string[]
+} {
+  const schemas = new Set<string>()
+  const prompts = new Set<string>()
+
+  for (const capability of manifestCapabilityTables(raw)) {
+    for (const [field, into] of [
+      ["input_schema_ref", schemas],
+      ["output_schema_ref", schemas],
+      ["prompt_doc_ref", prompts],
+    ] as const) {
+      // An explicitly empty ref is a declaration of an unusable path, not an
+      // omission, and the two are worth telling apart. `readString` maps both
+      // to `undefined`, so `input_schema_ref = ""` would collect nothing,
+      // store nothing, publish nothing -- and then fail agent-side, where
+      // `ExtensionAssetPath::new("")` rejects an empty path outright (C19).
+      // Rejecting it here fails the upload instead, naming the field.
+      if (capability[field] === "") {
+        throw badRequest(`manifest.toml declares an empty ${field}`)
+      }
+      const path = readString(capability[field])
+      if (path !== undefined) into.add(path)
+    }
+  }
+
+  return { schemas: [...schemas], prompts: [...prompts] }
+}
+
+/**
+ * The declared asset set, recovered from a stored `manifest.toml` rather than
+ * from an archive.
+ *
+ * Publish reads this back instead of trusting what ingest stored, because
+ * ingest is not the only writer: `PUT .../content/manifest_toml` replaces the
+ * manifest document directly, with no archive and no asset pass, so a stored
+ * asset set can fall out of step with the manifest that is published beside
+ * it. C9 is checked against the manifest, so the manifest is what is asked.
+ *
+ * Deliberately *only* parses -- no path grammar, no counts, no presence. Those
+ * are ingest's rejections, phrased for an author holding an archive; a
+ * publish-side caller compares this set against what it can serve and reports
+ * in those terms instead.
+ *
+ * Throws the same 400 as inspect for a document that is not TOML at all.
+ */
+export function declaredAssetPaths(manifestToml: string): {
+  schemas: string[]
+  prompts: string[]
+} {
+  let raw: Record<string, unknown>
+  try {
+    raw = parseToml(manifestToml) as Record<string, unknown>
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    throw badRequest(`manifest.toml is not valid TOML: ${message}`)
+  }
+
+  const declared = collectDeclaredAssets(raw)
+  declared.schemas.sort()
+  declared.prompts.sort()
+  return declared
+}
+
+/** Mirrors describeKindMismatch for an asset, whose cap is the agent's
+ * per-metadata-artifact ceiling rather than one of the D3 per-kind caps. */
+function describeAssetMismatch(path: string) {
+  return (entry: ZipCentralEntry): string =>
+    entry.uncompressedSize > MAX_METADATA_BYTES
+      ? assetTooLargeMessage(path)
+      : `Zip entry ${path} does not match its declared size or checksum`
+}
+
+function assetTooLargeMessage(path: string): string {
+  return `Asset ${path} exceeds the ${describeKindLimit(MAX_METADATA_BYTES)} limit for a single asset`
+}
+
 // --- Layout helpers --------------------------------------------------------
 
 function isIgnoredMetadataEntry(name: string): boolean {
@@ -649,7 +846,9 @@ export function inspectExtensionBundle(zip: Uint8Array): InspectedBundle {
   // not the actual memory-safety guarantee -- see extractVerifiedEntry for
   // that.
   if (zip.length > MAX_COMPRESSED_BYTES) {
-    throw badRequest(`Zip archive is too large (max ${formatBytes(MAX_COMPRESSED_BYTES)} compressed)`)
+    throw badRequest(
+      `Zip archive is too large (max ${formatBytes(MAX_COMPRESSED_BYTES)} compressed)`
+    )
   }
 
   const entries = listZipEntries(zip)
@@ -690,7 +889,9 @@ export function inspectExtensionBundle(zip: Uint8Array): InspectedBundle {
   // reports the unsafe path, not the compression method.
   for (const entry of entries) {
     if (!SUPPORTED_COMPRESSION_METHODS.has(entry.compressionMethod)) {
-      throw badRequest(`Zip entry uses an unsupported compression method: ${entry.name}`)
+      throw badRequest(
+        `Zip entry uses an unsupported compression method: ${entry.name}`
+      )
     }
     if ((entry.generalPurposeFlag & GPFLAG_ENCRYPTED) !== 0) {
       throw badRequest(`Zip entries must not be encrypted: ${entry.name}`)
@@ -714,7 +915,9 @@ export function inspectExtensionBundle(zip: Uint8Array): InspectedBundle {
   }
 
   // 5. manifest.toml at root.
-  const manifestEntry = visibleEntries.find((entry) => entry.name === "manifest.toml")
+  const manifestEntry = visibleEntries.find(
+    (entry) => entry.name === "manifest.toml"
+  )
   if (!manifestEntry) {
     throw badRequest("Zip is missing manifest.toml at its root")
   }
@@ -726,7 +929,9 @@ export function inspectExtensionBundle(zip: Uint8Array): InspectedBundle {
     MAX_KIND_BYTES_DURING_INSPECT.manifest_toml,
     describeKindMismatch("manifest.toml", "manifest_toml")
   )
-  const manifestText = new TextDecoder("utf-8", { fatal: false }).decode(manifestBytes)
+  const manifestText = new TextDecoder("utf-8", { fatal: false }).decode(
+    manifestBytes
+  )
   let raw: Record<string, unknown>
   try {
     raw = parseToml(manifestText) as Record<string, unknown>
@@ -750,7 +955,9 @@ export function inspectExtensionBundle(zip: Uint8Array): InspectedBundle {
 
   // 8. id shape.
   if (!MANIFEST_ID_PATTERN.test(id)) {
-    throw badRequest("manifest.toml id must be lowercase alphanumeric with . _ -")
+    throw badRequest(
+      "manifest.toml id must be lowercase alphanumeric with . _ -"
+    )
   }
 
   // 9. Runtime module must be present and resolve to a *visible* entry --
@@ -763,7 +970,9 @@ export function inspectExtensionBundle(zip: Uint8Array): InspectedBundle {
       : undefined
   const runtimeModuleValue = runtimeTable?.module
   if (typeof runtimeModuleValue !== "string" || runtimeModuleValue === "") {
-    throw badRequest("manifest.toml is missing required field: [runtime].module")
+    throw badRequest(
+      "manifest.toml is missing required field: [runtime].module"
+    )
   }
   const runtimeModule = runtimeModuleValue
   const visibleFileNames = new Set(visibleNames)
@@ -787,7 +996,8 @@ export function inspectExtensionBundle(zip: Uint8Array): InspectedBundle {
   // describes the extension). When present it must still parse as JSON.
   // Rule 3c: apply its D3 cap here too.
   const capabilitiesCandidates = visibleEntries.filter(
-    (entry) => !entry.name.includes("/") && entry.name.endsWith(".capabilities.json")
+    (entry) =>
+      !entry.name.includes("/") && entry.name.endsWith(".capabilities.json")
   )
   if (capabilitiesCandidates.length > 1) {
     throw badRequest(
@@ -803,7 +1013,9 @@ export function inspectExtensionBundle(zip: Uint8Array): InspectedBundle {
       MAX_KIND_BYTES_DURING_INSPECT.capabilities,
       describeKindMismatch(capabilitiesEntry.name, "capabilities")
     )
-    const capabilitiesText = new TextDecoder("utf-8", { fatal: false }).decode(capabilitiesBytes)
+    const capabilitiesText = new TextDecoder("utf-8", { fatal: false }).decode(
+      capabilitiesBytes
+    )
     try {
       JSON.parse(capabilitiesText)
     } catch {
@@ -812,30 +1024,115 @@ export function inspectExtensionBundle(zip: Uint8Array): InspectedBundle {
     capabilitiesPath = capabilitiesEntry.name
   }
 
+  // 11. Manifest-declared schema and prompt assets. Everything above this
+  // point validates the archive; this validates the archive *against its own
+  // manifest*, which is what the agent will do again at install time.
+  //
+  // The order is deliberate. Path grammar first, because an unpublishable
+  // path is a manifest bug the author fixes without touching the archive.
+  // Counts next, because a tool 20 schemas over the cap should say so once
+  // rather than complain about the first missing file. Presence and size
+  // last, per asset, since those are the checks that need the archive.
+  //
+  // Not collected, deliberately: a v3 tool bound to a `standard_op` declares no
+  // schema ref of its own -- v3 rejects one -- and the agent synthesizes
+  // `standard:messaging/<op>.input.v1` instead. Four agent call sites exempt
+  // that prefix from asset resolution; `ironhub_tool_package` and
+  // `manifest_declared_asset_paths` do not, so both demand a published artifact
+  // at that literal path.
+  //
+  // The path would in fact pass the agent's own `ExtensionAssetPath` (it
+  // carries a `:` but no `://`), so a hub could silence the check by publishing
+  // a fabricated document there -- which the agent would download, store, and
+  // then ignore in favour of its compiled-in canonical schema. That is the
+  // `legacy/capabilities.json` anti-pattern a second time, so we decline: such
+  // a tool declares nothing here and fails at install, upstream issue filed.
+  // See C18/D9 in the change's design notes.
+  const declared = collectDeclaredAssets(raw)
+  const declaredByKind = [
+    {
+      kind: "schema" as const,
+      paths: declared.schemas,
+      limit: MAX_TOOL_SCHEMA_ARTIFACTS,
+    },
+    {
+      kind: "prompt" as const,
+      paths: declared.prompts,
+      limit: MAX_TOOL_PROMPT_ARTIFACTS,
+    },
+  ]
+
+  for (const { kind, paths, limit } of declaredByKind) {
+    for (const path of paths) {
+      if (!isExtensionAssetPath(path)) {
+        throw badRequest(
+          `manifest.toml declares an invalid ${kind} asset path: ${path}`
+        )
+      }
+    }
+    if (paths.length > limit) {
+      throw badRequest(
+        `manifest.toml declares ${paths.length} ${kind} assets; the agent accepts at most ${limit}`
+      )
+    }
+  }
+
+  for (const { kind, paths } of declaredByKind) {
+    // Sorted so a bundle with several problems reports the same one on every
+    // upload, independent of the order capabilities appear in the manifest.
+    // Plain string comparison is exact here: the grammar above has already
+    // restricted every path to ASCII.
+    paths.sort()
+    for (const path of paths) {
+      if (!visibleFileNames.has(path)) {
+        throw badRequest(
+          `manifest.toml declares ${kind} asset "${path}", which is not in the zip`
+        )
+      }
+      // Declared size is attacker-controlled, so this is only a cheap
+      // pre-filter that produces the *right message* for the honest case.
+      // The real bound is extractVerifiedEntry's, below: an entry that lies
+      // small and inflates past the cap overflows the extraction budget and
+      // is rejected as a size/checksum mismatch.
+      const entry = visibleEntries.findLast(
+        (candidate) => candidate.name === path
+      )
+      if (entry && entry.uncompressedSize > MAX_METADATA_BYTES) {
+        throw payloadTooLarge(assetTooLargeMessage(path))
+      }
+      extractVerifiedEntry(
+        zip,
+        path,
+        MAX_METADATA_BYTES,
+        describeAssetMismatch(path)
+      )
+    }
+  }
+
   const runtimeKindValue = runtimeTable?.kind
   const trustValue = raw.trust
   const schemaVersionValue = raw.schema_version
 
   return {
     manifest: {
-      schemaVersion: typeof schemaVersionValue === "string" ? schemaVersionValue : undefined,
+      schemaVersion:
+        typeof schemaVersionValue === "string" ? schemaVersionValue : undefined,
       id,
       name,
       version,
       description,
       trust: typeof trustValue === "string" ? trustValue : undefined,
-      runtimeKind: typeof runtimeKindValue === "string" ? runtimeKindValue : undefined,
+      runtimeKind:
+        typeof runtimeKindValue === "string" ? runtimeKindValue : undefined,
       runtimeModule,
     },
     wasmPath: runtimeModule,
     capabilitiesPath,
-    entryNames: entries.filter((entry) => !entry.isDirectory).map((entry) => entry.name),
-    schemaFiles: visibleEntries
-      .filter((entry) => entry.name.startsWith("schemas/"))
+    entryNames: entries
+      .filter((entry) => !entry.isDirectory)
       .map((entry) => entry.name),
-    promptFiles: visibleEntries
-      .filter((entry) => entry.name.startsWith("prompts/"))
-      .map((entry) => entry.name),
+    declaredSchemas: declared.schemas,
+    declaredPrompts: declared.prompts,
     totalUncompressedBytes,
   }
 }

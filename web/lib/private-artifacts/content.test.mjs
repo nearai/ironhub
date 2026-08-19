@@ -48,8 +48,17 @@ mock.module("../storage", {
   },
 })
 
-const { artifactContentStorageKey, deleteArtifactContent, storeArtifactContent, parseContentKind } =
-  await import("./content.ts")
+const {
+  MAX_CONTENT_BYTES_BY_KIND,
+  artifactContentStorageKey,
+  deleteArtifactContent,
+  storeArtifactContent,
+  parseContentKind,
+} = await import("./content.ts")
+
+const { MAX_METADATA_BYTES, MAX_WASM_BYTES } = await import(
+  "@/lib/catalog/ironclaw-contract"
+)
 
 test("parseContentKind accepts known kinds and rejects unknown ones", () => {
   assert.equal(parseContentKind("wasm"), "wasm")
@@ -133,4 +142,75 @@ test("deleteArtifactContent 404s when no content row exists", async () => {
     () => deleteArtifactContent("org-1", "artifact-1", "wasm"),
     (error) => error instanceof Response && error.status === 404
   )
+})
+
+// --- Task 10.1 / 10.5: caps that match what the agent will accept ------------
+
+test("task 10.1: every agent-bounded kind reads its ceiling from the contract module", () => {
+  // Restating a number the agent owns is how `skill_md` came to accept 5MB
+  // against the agent's 1MB, so an upload could succeed and the install then
+  // fail with `artifact exceeds 1048576 byte cap` (design.md D7).
+  assert.equal(MAX_CONTENT_BYTES_BY_KIND.skill_md, MAX_METADATA_BYTES)
+  assert.equal(MAX_CONTENT_BYTES_BY_KIND.capabilities, MAX_METADATA_BYTES)
+  assert.equal(MAX_CONTENT_BYTES_BY_KIND.wasm, MAX_WASM_BYTES)
+  // Deliberately tighter than the agent's 1MB, and therefore ours to state.
+  assert.equal(MAX_CONTENT_BYTES_BY_KIND.manifest_toml, 256 * 1024)
+})
+
+test("task 10.5: a 2MB skill document is rejected with 413 naming the 1MB limit", async () => {
+  putObjectCalls.length = 0
+  findFirstResult = { id: "artifact-1" }
+
+  let thrown = null
+  try {
+    await storeArtifactContent(
+      "org-1",
+      "artifact-1",
+      "skill_md",
+      new Uint8Array(2 * 1024 * 1024)
+    )
+  } catch (error) {
+    thrown = error
+  }
+
+  assert.ok(thrown instanceof Response)
+  assert.equal(thrown.status, 413)
+  assert.match(await thrown.text(), /1MB limit for skill_md/)
+  // Rejected before the object is written, not after.
+  assert.equal(putObjectCalls.length, 0)
+})
+
+test("task 10.5: a 12MB wasm module is accepted", async () => {
+  putObjectCalls.length = 0
+  upsertCalls.length = 0
+  findFirstResult = { id: "artifact-1" }
+
+  const result = await storeArtifactContent(
+    "org-1",
+    "artifact-1",
+    "wasm",
+    new Uint8Array(12 * 1024 * 1024)
+  )
+
+  // 12MB failed the old 5MB cap for no reason the agent shares: it accepts up
+  // to 16MB.
+  assert.equal(result.sizeBytes, 12 * 1024 * 1024)
+  assert.equal(putObjectCalls.length, 1)
+})
+
+test("a wasm module past the agent's own ceiling is still rejected", async () => {
+  putObjectCalls.length = 0
+  findFirstResult = { id: "artifact-1" }
+
+  await assert.rejects(
+    () =>
+      storeArtifactContent(
+        "org-1",
+        "artifact-1",
+        "wasm",
+        new Uint8Array(MAX_WASM_BYTES + 1)
+      ),
+    (error) => error instanceof Response && error.status === 413
+  )
+  assert.equal(putObjectCalls.length, 0)
 })

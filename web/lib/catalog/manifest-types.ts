@@ -1,9 +1,4 @@
-export type Provenance =
-  | "official"
-  | "trusted"
-  | "verified"
-  | "private"
-  | "new"
+export type Provenance = "official" | "trusted" | "verified" | "private" | "new"
 
 export type HubArtifact = {
   url: string

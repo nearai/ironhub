@@ -20,7 +20,8 @@ export function createInstallPayload(input: {
   ]
 
   return fields.reduce(
-    (payload, field) => `${payload}:${Buffer.byteLength(field, "utf8")}:${field}`,
+    (payload, field) =>
+      `${payload}:${Buffer.byteLength(field, "utf8")}:${field}`,
     "install"
   )
 }

@@ -4,6 +4,13 @@ import net from "node:net"
 
 import ipaddr from "ipaddr.js"
 
+import {
+  LOCAL_ORIGINS_SETTING,
+  announceLocalOrigins,
+  isLocalHost,
+  localOriginsAllowed,
+} from "@/lib/shared/local-origins"
+
 const SHARED_KEY_PREFIX = "ihub_sk_"
 const SHARED_KEY_MIN_LENGTH = 32
 const SHARED_KEY_MIN_DISTINCT = 12
@@ -17,8 +24,22 @@ export async function validateAgentUrl(value: string) {
     throw new Error("Agent URL must be a valid URL.")
   }
 
-  if (url.protocol !== "https:") {
-    throw new Error("Agent URL must use https.")
+  // An agent on this machine is the one case where http and a loopback address
+  // are legitimate, and it is gated twice over -- see lib/shared/local-origins.
+  // The address is still resolved once and pinned by the caller, so relaxing
+  // the range check does not open a rebinding path.
+  const local = localOriginsAllowed() && isLocalHost(url.hostname)
+  if (local) {
+    announceLocalOrigins()
+  }
+
+  if (url.protocol !== "https:" && !(local && url.protocol === "http:")) {
+    throw new Error(
+      "Agent URL must use https." +
+        (localOriginsAllowed()
+          ? ""
+          : ` For a local agent set ${LOCAL_ORIGINS_SETTING}=true (development builds only).`)
+    )
   }
 
   await resolvePublicAddresses(url.hostname)
@@ -79,9 +100,19 @@ export async function resolvePublicAddresses(
     throw new Error("Agent URL host could not be resolved.")
   }
 
+  // Resolution still happens, and the caller still dials only these addresses.
+  // The flag waives the range check for a host that names this machine; every
+  // other host is held to it exactly as before, including under the flag.
+  const skipRangeCheck = localOriginsAllowed() && isLocalHost(hostname)
+
   for (const { address } of addresses) {
-    if (!isPublicUnicast(address)) {
-      throw new Error("Agent URL must resolve to a public address.")
+    if (!skipRangeCheck && !isPublicUnicast(address)) {
+      throw new Error(
+        "Agent URL must resolve to a public address." +
+          (localOriginsAllowed()
+            ? ""
+            : ` For a local agent set ${LOCAL_ORIGINS_SETTING}=true (development builds only).`)
+      )
     }
   }
 

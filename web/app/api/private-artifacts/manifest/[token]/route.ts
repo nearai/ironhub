@@ -1,3 +1,7 @@
+import {
+  CatalogOriginError,
+  requireCatalogOriginBaseUrl,
+} from "@/lib/catalog/catalog-origin"
 import { signDocument } from "@/lib/catalog/manifest-signing.server"
 import { handleApiError } from "@/lib/http/api"
 import {
@@ -29,10 +33,12 @@ export async function GET(request: Request, { params }: Params) {
     }
 
     const claims = verifyArtifactToken(token)
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL
-    if (!baseUrl) {
-      throw new Response("Application URL is not configured", { status: 500 })
-    }
+    // Validated, not merely present. Every URL in the document below is built
+    // on this value and re-checked by the agent against its configured catalog
+    // origin (C1/C2); a value that cannot pass those rules produces a manifest
+    // that signs cleanly and is refused, with an error naming the agent's
+    // configuration rather than this setting.
+    const baseUrl = requireCatalogOriginBaseUrl()
 
     const manifest = await buildPrivateArtifactManifest({
       organizationId: claims.organizationId,
@@ -46,6 +52,13 @@ export async function GET(request: Request, { params }: Params) {
       headers: { "Cache-Control": "no-store" },
     })
   } catch (error) {
-    return handleApiError(error)
+    return handleApiError(asServerFault(error))
   }
+}
+
+/** A misconfigured catalog origin is a deployment fault, not a bad request. */
+function asServerFault(error: unknown): unknown {
+  return error instanceof CatalogOriginError
+    ? new Response(error.message, { status: 500 })
+    : error
 }

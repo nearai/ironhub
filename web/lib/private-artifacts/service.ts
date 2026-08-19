@@ -4,6 +4,7 @@ import { CATEGORIES } from "../catalog/inference"
 import { prisma } from "../db"
 import { Prisma } from "../prisma/client"
 import { getObjectStream } from "../storage"
+import { verifyPrivateArtifact } from "./verification"
 
 const ARTIFACT_TYPES = ["skill", "tool"] as const
 const VISIBILITIES = ["private", "public"] as const
@@ -127,7 +128,8 @@ export async function updatePrivateArtifact(
     data.title = input.title
   }
   if (input.description !== undefined) {
-    if (input.description) assertMaxLength(input.description, "description", 4000)
+    if (input.description)
+      assertMaxLength(input.description, "description", 4000)
     data.description = input.description
   }
   if (input.sourceUrl !== undefined) {
@@ -155,7 +157,10 @@ export async function updatePrivateArtifact(
   })
 }
 
-export async function deletePrivateArtifact(organizationId: string, id: string) {
+export async function deletePrivateArtifact(
+  organizationId: string,
+  id: string
+) {
   const artifact = await getPrivateArtifact(organizationId, id)
   await prisma.privateArtifact.delete({ where: { id: artifact.id } })
   return artifact
@@ -171,7 +176,10 @@ export async function deletePrivateArtifact(organizationId: string, id: string) 
  * second query is what assertArtifactContentComplete does for callers,
  * like the token route, that don't already have the artifact in hand).
  */
-export async function publishPrivateArtifact(organizationId: string, id: string) {
+export async function publishPrivateArtifact(
+  organizationId: string,
+  id: string
+) {
   const artifact = await getPrivateArtifact(organizationId, id)
 
   const required = requiredContentKindsFor(artifact.type)
@@ -201,7 +209,10 @@ export async function publishPrivateArtifact(organizationId: string, id: string)
   })
 }
 
-export async function unpublishPrivateArtifact(organizationId: string, id: string) {
+export async function unpublishPrivateArtifact(
+  organizationId: string,
+  id: string
+) {
   const artifact = await getPrivateArtifact(organizationId, id)
 
   return prisma.privateArtifact.update({
@@ -363,6 +374,10 @@ export async function getArtifactChecks(
   }
 
   checks.push(
+    await checkAgentContract(organizationId, id, missing.length === 0)
+  )
+
+  checks.push(
     artifact.category
       ? {
           id: "category_set",
@@ -414,6 +429,67 @@ export async function getArtifactChecks(
   return {
     checks,
     publishable: checks.every((check) => check.status !== "fail"),
+  }
+}
+
+/**
+ * Publish-time verification, as one row.
+ *
+ * One row rather than one per failure because the ids would collide -- an
+ * artifact can have several oversized assets -- and because from the owner's
+ * side this is a single question ("would an agent accept this?") with a list
+ * of reasons attached, not several independent facts.
+ *
+ * Skipped as a `warn` when required content is already missing: the
+ * verification pass would then fail for exactly the reason content_complete
+ * has already reported, and two rows restating one fact is what the comment
+ * above this block exists to prevent.
+ */
+async function checkAgentContract(
+  organizationId: string,
+  artifactId: string,
+  contentComplete: boolean
+): Promise<ArtifactCheck> {
+  const label = "Installable by an agent"
+
+  if (!contentComplete) {
+    return {
+      id: "agent_contract",
+      label,
+      status: "warn",
+      detail:
+        "Not checked yet: required content is missing, so there is no entry to verify.",
+    }
+  }
+
+  let result: Awaited<ReturnType<typeof verifyPrivateArtifact>>
+  try {
+    result = await verifyPrivateArtifact({ organizationId, artifactId })
+  } catch (error) {
+    // Storage unreachable, an unparseable stored document, anything that is
+    // not a verdict about the artifact. Reporting it as `fail` would tell the
+    // owner their artifact is broken when the infrastructure is -- the same
+    // distinction checkCapabilitiesValidJson draws below.
+    console.error(
+      `Failed to verify publishable entry for artifact ${artifactId}:`,
+      error
+    )
+    return {
+      id: "agent_contract",
+      label,
+      status: "warn",
+      detail:
+        "The publishable entry could not be built, so it was not checked.",
+    }
+  }
+
+  return {
+    id: "agent_contract",
+    label,
+    status: result.ok ? "pass" : "fail",
+    detail: result.ok
+      ? "The entry this artifact publishes satisfies the agent's asset, size, and manifest limits."
+      : result.failures.map((failure) => failure.message).join(" "),
   }
 }
 
@@ -496,8 +572,8 @@ async function streamToBuffer(stream: unknown): Promise<Buffer> {
     stream &&
     typeof stream === "object" &&
     "transformToByteArray" in stream &&
-    typeof (stream as { transformToByteArray: unknown }).transformToByteArray ===
-      "function"
+    typeof (stream as { transformToByteArray: unknown })
+      .transformToByteArray === "function"
   ) {
     const bytes = await (
       stream as { transformToByteArray: () => Promise<Uint8Array> }
@@ -543,7 +619,9 @@ function assertValidArtifactVersion(version: string) {
 
 function assertMaxLength(value: string, field: string, max: number) {
   if (value.length > max) {
-    throw new Response(`${field} must be at most ${max} characters`, { status: 400 })
+    throw new Response(`${field} must be at most ${max} characters`, {
+      status: 400,
+    })
   }
 }
 

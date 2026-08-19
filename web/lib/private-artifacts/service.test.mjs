@@ -43,6 +43,12 @@ function makeFakeDb() {
       // Only the lookup checkCapabilitiesValidJson needs (a storageKey for
       // the artifact's "capabilities" content row), keyed off the same
       // in-memory artifacts the privateArtifact fake above manages.
+      // Publish-time verification (checkAgentContract) builds the entry the
+      // artifact would publish, which reads the artifact's stored assets. None
+      // of these fixtures declare any, so an empty set is the honest answer.
+      privateArtifactAsset: {
+        findMany: async () => [],
+      },
       privateArtifactContent: {
         findFirst: async ({ where }) => {
           const record = artifacts.get(where.artifactId)
@@ -65,14 +71,33 @@ let objectBytes = new TextEncoder().encode("{}")
 // Set to an Error to simulate the object store being unreachable, which must
 // stay distinguishable from bytes that simply do not parse.
 let storageError = null
+// What the stored manifest.toml reads back as. Publish-time verification
+// re-derives the declared asset set from it (never from anything carried over
+// from ingest), so it has to be a parseable document; declaring no assets
+// keeps these fixtures about the checks rather than about asset publishing.
+let manifestTomlBytes = new TextEncoder().encode('schema_version = "3"\n')
 mock.module("../storage", {
   namedExports: {
     getObjectStream: async () => {
       if (storageError) throw storageError
       return objectBytes
     },
+    getObjectBytes: async () => manifestTomlBytes,
+    putObject: async () => {
+      throw new Error("service.ts must not write to storage")
+    },
+    deleteObject: async () => {
+      throw new Error("service.ts must not delete from storage")
+    },
+    getPresignedDownloadUrl: async () => {
+      throw new Error("service.ts must not presign an object-store URL")
+    },
   },
 })
+
+// Valid per lib/catalog/catalog-origin.ts, so publish-time verification checks
+// the artifact rather than reporting the deployment.
+process.env.NEXT_PUBLIC_APP_URL = "https://hub.example"
 
 const {
   createPrivateArtifact,
@@ -362,6 +387,7 @@ test("getArtifactChecks reports every check pass/warn and publishable for a comp
     "content_complete",
     "capabilities_valid_json",
     "wasm_present",
+    "agent_contract",
     "category_set",
     "repo_link_set",
     "signing_key_configured",
@@ -554,5 +580,60 @@ test("createPrivateArtifact rejects a sourceUrl with embedded credentials", asyn
         })
       ),
     (error) => error instanceof Response && error.status === 400
+  )
+})
+
+// --- Task 7.2: an entry an agent cannot install blocks the install action ----
+
+test("task 7.2: getArtifactChecks fails agent_contract when a declared asset is not stored", async () => {
+  process.env.IRONHUB_MANIFEST_SIGNING_KEY = "dummy-key"
+  objectBytes = new TextEncoder().encode("{}")
+  // A manifest.toml that declares a schema, against an artifact with no stored
+  // assets -- the state every bundle uploaded before assets were persisted is
+  // in, and the state a bare `PUT .../content/manifest_toml` creates.
+  manifestTomlBytes = new TextEncoder().encode(
+    `schema_version = "3"\n\n[[tools]]\nname = "scrape"\ninput_schema_ref = "schemas/scrape.input.v1.json"\n`
+  )
+
+  try {
+    const seeded = seedArtifact({
+      id: "checks-unpublishable-entry",
+      type: "tool",
+      category: "Dev Tools",
+      content: [{ kind: "wasm" }, { kind: "manifest_toml" }],
+    })
+
+    const { checks, publishable } = await getArtifactChecks("org-1", seeded.id)
+    const contractCheck = checks.find((check) => check.id === "agent_contract")
+
+    assert.equal(contractCheck.status, "fail")
+    // The reason has to name the path: "this cannot install" without saying
+    // what to fix is the failure mode this check exists to replace.
+    assert.match(contractCheck.detail, /schemas\/scrape\.input\.v1\.json/)
+    assert.equal(publishable, false)
+  } finally {
+    manifestTomlBytes = new TextEncoder().encode('schema_version = "3"\n')
+  }
+})
+
+test("task 7.2: agent_contract is not a second voice on missing content", async () => {
+  const seeded = seedArtifact({
+    id: "checks-incomplete-tool",
+    type: "tool",
+    category: "Dev Tools",
+    content: [{ kind: "wasm" }],
+  })
+
+  const { checks } = await getArtifactChecks("org-1", seeded.id)
+
+  // content_complete already names the missing kind. A second row failing for
+  // the same reason reads as two problems.
+  assert.equal(
+    checks.find((check) => check.id === "content_complete").status,
+    "fail"
+  )
+  assert.equal(
+    checks.find((check) => check.id === "agent_contract").status,
+    "warn"
   )
 })

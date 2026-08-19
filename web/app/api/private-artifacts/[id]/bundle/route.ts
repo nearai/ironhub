@@ -1,6 +1,14 @@
 import { requireActiveOrganization } from "@/lib/auth/org-context"
 import { assertSameOriginRequest, handleApiError } from "@/lib/http/api"
-import { inspectExtensionBundle, readBundleFile } from "@/lib/private-artifacts/bundle"
+import {
+  type ArtifactAssetInput,
+  replaceArtifactAssets,
+} from "@/lib/private-artifacts/assets"
+import {
+  inspectExtensionBundle,
+  readBundleAsset,
+  readBundleFile,
+} from "@/lib/private-artifacts/bundle"
 import {
   type ContentKind,
   deleteArtifactContent,
@@ -42,7 +50,10 @@ async function storeBundleContent(
 // upload when the current re-upload's archive carries no *.capabilities.json.
 // A no-op, not an error, when there was never a row to begin with -- the
 // common case for a tool's first bundle upload.
-async function clearStaleCapabilities(organizationId: string, artifactId: string) {
+async function clearStaleCapabilities(
+  organizationId: string,
+  artifactId: string
+) {
   try {
     await deleteArtifactContent(organizationId, artifactId, "capabilities")
   } catch (error) {
@@ -123,7 +134,29 @@ export async function PUT(request: Request, { params }: Params) {
       )
     )
 
-    return Response.json({ content: stored }, { status: 201 })
+    // Every asset the extension manifest declares, keyed by the path it
+    // spells. `replaceArtifactAssets` -- not a loop of stores -- because a
+    // re-upload that renamed or dropped a schema must leave no trace of the
+    // previous set: the agent rejects a published asset the manifest does not
+    // reference exactly as hard as it rejects a missing one.
+    const assets: ArtifactAssetInput[] = [
+      ...inspected.declaredSchemas.map((path) => ({
+        kind: "schema" as const,
+        path,
+        bytes: readBundleAsset(zip, path),
+      })),
+      ...inspected.declaredPrompts.map((path) => ({
+        kind: "prompt" as const,
+        path,
+        bytes: readBundleAsset(zip, path),
+      })),
+    ]
+    const storedAssets = await replaceArtifactAssets(organizationId, id, assets)
+
+    return Response.json(
+      { content: stored, assets: storedAssets },
+      { status: 201 }
+    )
   } catch (error) {
     return handleApiError(error)
   }

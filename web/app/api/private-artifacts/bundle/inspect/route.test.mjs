@@ -46,6 +46,15 @@ function validBundleFiles() {
         `kind = "wasm"`,
         `module = "wasm/test.wasm"`,
         "",
+        // The manifest must declare the assets it ships: inspect reports what
+        // the manifest references, not what happens to sit under `schemas/`.
+        "[[tools]]",
+        `id = "test-tool.scrape"`,
+        `description = "Scrape a page."`,
+        `default_permission = "ask"`,
+        `input_schema_ref = "schemas/test/scrape.input.v1.json"`,
+        `prompt_doc_ref = "prompts/test/scrape.md"`,
+        "",
       ].join("\n")
     ),
     "wasm/test.wasm": new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0]),

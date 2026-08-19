@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
-    "test:catalog": "node --experimental-strip-types --test \"lib/catalog/*.test.mjs\"",
+    "test:catalog": "node --experimental-strip-types --import ./scripts/register-alias-loader.mjs --test \"lib/catalog/*.test.mjs\"",
     "test:discovery": "node --experimental-strip-types --test \"lib/discovery/*.test.mjs\"",
     "test:http": "node --experimental-strip-types --test \"lib/http/*.test.mjs\"",
     "test:private-artifacts": "node --experimental-strip-types --experimental-test-module-mocks --import ./scripts/register-alias-loader.mjs --test \"lib/private-artifacts/*.test.mjs\"",

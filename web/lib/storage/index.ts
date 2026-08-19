@@ -45,6 +45,30 @@ export async function getObjectStream(key: string) {
   return result.Body
 }
 
+/**
+ * The whole object as bytes, for callers that must parse it rather than relay
+ * it. Only ever used on objects already bounded by a per-kind upload cap --
+ * `manifest.toml` at 256KB today -- because nothing here bounds the read.
+ *
+ * `transformToByteArray` is the SDK's own one-shot collector on a Node
+ * `SdkStream`; the async-iteration fallback covers the non-Node body types
+ * its union admits, which our S3-compatible setup does not produce.
+ */
+export async function getObjectBytes(key: string): Promise<Uint8Array> {
+  const body = await getObjectStream(key)
+  const collect = (body as { transformToByteArray?: () => Promise<Uint8Array> })
+    .transformToByteArray
+  if (typeof collect === "function") {
+    return collect.call(body)
+  }
+
+  const chunks: Uint8Array[] = []
+  for await (const chunk of body as AsyncIterable<Uint8Array>) {
+    chunks.push(chunk)
+  }
+  return new Uint8Array(Buffer.concat(chunks))
+}
+
 export async function deleteObject(key: string): Promise<void> {
   const client = getStorageClient()
   await client.send(

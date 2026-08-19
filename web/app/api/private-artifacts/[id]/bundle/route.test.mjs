@@ -9,6 +9,7 @@ let getArtifactThrows = null
 let overLimitKind = null
 const storeCalls = []
 const deleteCalls = []
+const replaceAssetCalls = []
 // Simulates whether a `capabilities` row already exists in storage, so
 // deleteArtifactContent's real "404 when nothing to delete" behavior can be
 // exercised without a real Prisma/S3 backend.
@@ -72,6 +73,24 @@ mock.module("@/lib/private-artifacts/content", {
   },
 })
 
+// The asset table is mocked the same way and for the same reason: the route's
+// job is to hand `replaceArtifactAssets` exactly the declared set with the
+// right bytes, while the limit enforcement it performs is covered against the
+// real implementation in lib/private-artifacts/assets.test.mjs.
+mock.module("@/lib/private-artifacts/assets", {
+  namedExports: {
+    replaceArtifactAssets: async (organizationId, id, assets) => {
+      replaceAssetCalls.push({ organizationId, id, assets })
+      return assets.map((asset) => ({
+        kind: asset.kind,
+        path: asset.path,
+        sha256: `sha-${asset.path}`,
+        sizeBytes: asset.bytes.length,
+      }))
+    },
+  },
+})
+
 // inspectExtensionBundle / readBundleFile are the real implementation on
 // purpose: the route re-validates from scratch and must never trust an
 // earlier inspect call, so the test exercises real validation logic against
@@ -95,10 +114,19 @@ function validBundleFiles() {
         `kind = "wasm"`,
         `module = "wasm/test.wasm"`,
         "",
+        "[[tools]]",
+        `id = "test-tool.scrape"`,
+        `description = "Scrape a page."`,
+        `default_permission = "ask"`,
+        `input_schema_ref = "schemas/test/scrape.input.v1.json"`,
+        `prompt_doc_ref = "prompts/test/scrape.md"`,
+        "",
       ].join("\n")
     ),
     "wasm/test.wasm": new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0]),
     "test-tool.capabilities.json": encode(JSON.stringify({ version: "0.1.0" })),
+    "schemas/test/scrape.input.v1.json": encode('{"type":"object"}'),
+    "prompts/test/scrape.md": encode("# scrape"),
   }
 }
 
@@ -120,6 +148,7 @@ test("stores wasm, capabilities, manifest_toml, and bundle_zip in order for a to
   overLimitKind = null
   storeCalls.length = 0
   deleteCalls.length = 0
+  replaceAssetCalls.length = 0
   existingCapabilitiesRow = false
   const files = validBundleFiles()
   const zip = zipSync(files, { level: 0 })
@@ -163,6 +192,7 @@ test("stores wasm, manifest_toml, and bundle_zip (no capabilities row) for a fir
   overLimitKind = null
   storeCalls.length = 0
   deleteCalls.length = 0
+  replaceAssetCalls.length = 0
   existingCapabilitiesRow = false
   const files = validBundleFiles()
   delete files["test-tool.capabilities.json"]
@@ -196,6 +226,7 @@ test("a re-upload that drops *.capabilities.json clears the stale capabilities r
   overLimitKind = null
   storeCalls.length = 0
   deleteCalls.length = 0
+  replaceAssetCalls.length = 0
   existingCapabilitiesRow = true // simulates a capabilities row from an earlier upload
   const files = validBundleFiles()
   delete files["test-tool.capabilities.json"]
@@ -276,4 +307,126 @@ test("rejects a cross-origin request via the same-origin guard", async () => {
   const response = await PUT(makeRequest(zip), makeParams())
 
   assert.equal(response.status, 400)
+})
+
+test("stores exactly the manifest-declared assets, with their real bytes", async () => {
+  sameOriginThrows = null
+  getArtifactThrows = null
+  getArtifactResult = { id: "artifact-1", type: "tool" }
+  overLimitKind = null
+  storeCalls.length = 0
+  deleteCalls.length = 0
+  replaceAssetCalls.length = 0
+  existingCapabilitiesRow = false
+  const files = validBundleFiles()
+  // An unreferenced file under `schemas/` must not be published: the agent
+  // rejects a published asset the manifest does not reference just as hard as
+  // it rejects a missing one.
+  files["schemas/test/orphan.v1.json"] = encode("{}")
+  const zip = zipSync(files, { level: 0 })
+
+  const response = await PUT(makeRequest(zip), makeParams())
+  const json = await response.json()
+
+  assert.equal(response.status, 201)
+  assert.equal(replaceAssetCalls.length, 1)
+  assert.equal(replaceAssetCalls[0].organizationId, "org-1")
+  assert.equal(replaceAssetCalls[0].id, "artifact-1")
+  assert.deepEqual(
+    replaceAssetCalls[0].assets.map((asset) => [asset.kind, asset.path]),
+    [
+      ["schema", "schemas/test/scrape.input.v1.json"],
+      ["prompt", "prompts/test/scrape.md"],
+    ]
+  )
+  // The bytes must be the declared file's, not merely a same-sized entry --
+  // the digest the agent verifies is taken over exactly these.
+  assert.deepEqual(
+    Array.from(replaceAssetCalls[0].assets[0].bytes),
+    Array.from(files["schemas/test/scrape.input.v1.json"])
+  )
+  assert.deepEqual(
+    Array.from(replaceAssetCalls[0].assets[1].bytes),
+    Array.from(files["prompts/test/scrape.md"])
+  )
+  assert.deepEqual(
+    json.assets.map((asset) => asset.path),
+    ["schemas/test/scrape.input.v1.json", "prompts/test/scrape.md"]
+  )
+})
+
+test("a bundle declaring no assets still calls the replace path, so a previous set is cleared", async () => {
+  // Replacement, not accumulation: a re-upload whose manifest dropped every
+  // capability must leave nothing behind.
+  sameOriginThrows = null
+  getArtifactThrows = null
+  getArtifactResult = { id: "artifact-1", type: "tool" }
+  overLimitKind = null
+  replaceAssetCalls.length = 0
+  existingCapabilitiesRow = false
+  const files = validBundleFiles()
+  files["manifest.toml"] = encode(
+    [
+      `schema_version = "reborn.extension_manifest.v3"`,
+      `id = "test-tool"`,
+      `name = "Test Tool"`,
+      `version = "0.1.0"`,
+      `description = "A test tool."`,
+      `trust = "third_party"`,
+      "",
+      "[runtime]",
+      `kind = "wasm"`,
+      `module = "wasm/test.wasm"`,
+      "",
+    ].join("\n")
+  )
+  const zip = zipSync(files, { level: 0 })
+
+  const response = await PUT(makeRequest(zip), makeParams())
+
+  assert.equal(response.status, 201)
+  assert.equal(replaceAssetCalls.length, 1)
+  assert.deepEqual(replaceAssetCalls[0].assets, [])
+})
+
+test("rejects a bundle whose manifest declares an asset the archive does not contain, storing nothing", async () => {
+  sameOriginThrows = null
+  getArtifactThrows = null
+  getArtifactResult = { id: "artifact-1", type: "tool" }
+  overLimitKind = null
+  storeCalls.length = 0
+  replaceAssetCalls.length = 0
+  const files = validBundleFiles()
+  delete files["schemas/test/scrape.input.v1.json"]
+  const zip = zipSync(files, { level: 0 })
+
+  const response = await PUT(makeRequest(zip), makeParams())
+  const text = await response.text()
+
+  assert.equal(response.status, 400)
+  assert.match(text, /schemas\/test\/scrape\.input\.v1\.json.*not in the zip/)
+  // Validation runs before any write, so a rejected upload leaves the
+  // artifact exactly as it was.
+  assert.equal(storeCalls.length, 0)
+  assert.equal(replaceAssetCalls.length, 0)
+})
+
+test("rejects an oversized declared asset with 413, storing nothing", async () => {
+  sameOriginThrows = null
+  getArtifactThrows = null
+  getArtifactResult = { id: "artifact-1", type: "tool" }
+  overLimitKind = null
+  storeCalls.length = 0
+  replaceAssetCalls.length = 0
+  const files = validBundleFiles()
+  files["schemas/test/scrape.input.v1.json"] = new Uint8Array(1024 * 1024 + 1)
+  const zip = zipSync(files, { level: 0 })
+
+  const response = await PUT(makeRequest(zip), makeParams())
+  const text = await response.text()
+
+  assert.equal(response.status, 413)
+  assert.match(text, /^Asset schemas\/test\/scrape\.input\.v1\.json exceeds the 1MB limit/)
+  assert.equal(storeCalls.length, 0)
+  assert.equal(replaceAssetCalls.length, 0)
 })

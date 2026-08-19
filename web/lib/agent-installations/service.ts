@@ -1,13 +1,17 @@
+import http from "node:http"
 import https from "node:https"
 
 import {
-  artifactDigest,
   createKeyFingerprint,
   decryptSharedKey,
   encryptSharedKey,
   hashNonce,
   signInstallPayload,
 } from "@/lib/agent-installations/crypto"
+import {
+  ARTIFACT_TOKEN_TTL_SECONDS,
+  INSTALL_CLICK_THROUGH_WINDOW_SECONDS,
+} from "@/lib/agent-installations/install-timing"
 import {
   createInstallPayload,
   createNonce,
@@ -24,10 +28,17 @@ import {
   validateLabel,
   validateSharedKey,
 } from "@/lib/agent-installations/validation"
+import { requireCatalogOriginBaseUrl } from "@/lib/catalog/catalog-origin"
+import {
+  skillEntryArtifactDigest,
+  toolEntryArtifactDigest,
+} from "@/lib/catalog/ironclaw-contract"
 import { getMarketplaceCatalogItem } from "@/lib/catalog/server"
 import { buildUnifiedManifest } from "@/lib/catalog/manifest.server"
 import { prisma } from "@/lib/db"
+import { buildPrivateArtifactEntry } from "@/lib/private-artifacts/manifest"
 import { mintArtifactToken } from "@/lib/private-artifacts/token"
+import { assertPublishedEntryInstallable } from "@/lib/private-artifacts/verification"
 
 type AgentInstallationRow = {
   id: string
@@ -213,7 +224,10 @@ export async function createInstallIntent(input: {
   const sharedKey = decryptSharedKey(installation)
   const nonce = createNonce()
   const ts = Math.floor(Date.now() / 1000)
-  const expiresAt = new Date((ts + 300) * 1000)
+  // The click-through deadline, and the only one the user can miss. `ts` is
+  // covered by the HMAC below, so this expiry describes the same instant the
+  // agent computes its own staleness against -- see install-timing.ts.
+  const expiresAt = new Date((ts + INSTALL_CLICK_THROUGH_WINDOW_SECONDS) * 1000)
   const payload = createInstallPayload({
     slug: target.slug,
     version: target.version,
@@ -260,10 +274,10 @@ export async function createInstallIntent(input: {
 }
 
 // Exported for testability only -- not part of the route-facing API surface
-// (createInstallIntent is). resolvePrivateInstall's capabilities-optional
-// fix below has no other unit-test seam short of mocking the entire
-// createInstallIntent pipeline (agent-installation ownership, shared-key
-// decryption, signing), none of which this bug touches.
+// (createInstallIntent is). The digest rules below have no other unit-test
+// seam short of mocking the entire createInstallIntent pipeline (agent-
+// installation ownership, shared-key decryption, signing), none of which the
+// digest touches.
 export async function resolveInstallArtifact(input: {
   slug: string
   userId: string
@@ -274,18 +288,16 @@ export async function resolveInstallArtifact(input: {
     const manifest = await buildUnifiedManifest()
     const manifestTool = manifest.tools.find((t) => t.name === item.slug)
     const manifestSkill = manifest.skills.find((s) => s.name === item.slug)
-    // capabilities is optional on HubToolEntry now (design.md D3: manifest.toml
-    // is the authoritative metadata carrier). All published catalog tools still
-    // ship both today, so this only changes behavior for a future tool entry
-    // that genuinely has none -- it folds into the digest instead of throwing.
+    // Digested from the manifest entry itself, so the inputs are exactly the
+    // artifacts the entry publishes -- schemas and prompts included, which the
+    // previous formula ignored entirely (design.md D4 / C13). `capabilities`
+    // is typed optional on HubToolEntry but is required in practice: an entry
+    // without it fails the agent's parse of the whole manifest (C7), so
+    // toolEntryArtifactDigest throws rather than digesting around it.
     const digest = manifestTool
-      ? artifactDigest(
-          manifestTool.capabilities
-            ? [manifestTool.wasm.sha256, manifestTool.capabilities.sha256]
-            : [manifestTool.wasm.sha256]
-        )
+      ? toolEntryArtifactDigest(manifestTool)
       : manifestSkill
-        ? artifactDigest([manifestSkill.skill_md.sha256])
+        ? skillEntryArtifactDigest(manifestSkill)
         : null
     if (!digest) {
       throw new Error("Marketplace Entry is not in the installable manifest.")
@@ -319,46 +331,56 @@ async function resolvePrivateInstall(
       organization: { members: { some: { userId } } },
     },
     orderBy: { updatedAt: "desc" },
-    include: { content: { select: { kind: true, sha256: true } } },
+    select: { id: true, name: true, version: true },
   })
   if (!artifact) {
     return null
   }
 
-  const sha = new Map(artifact.content.map((c) => [c.kind, c.sha256]))
-  let digest: string
-  if (artifact.type === "tool") {
-    // capabilities is optional (design.md D3: manifest.toml is now the
-    // authoritative metadata carrier) -- wasm is the only kind still
-    // unconditionally required. Mirrors resolveInstallArtifact's public-
-    // catalog branch above: a capabilities-less tool that passed
-    // content_complete (wasm + manifest_toml) must resolve an install here
-    // too, or a contract-valid, publishable artifact becomes uninstallable.
-    const wasm = sha.get("wasm")
-    if (!wasm) {
-      throw new Error("Private tool is missing installable content.")
-    }
-    const capabilities = sha.get("capabilities")
-    digest = artifactDigest(capabilities ? [wasm, capabilities] : [wasm])
-  } else if (artifact.type === "skill") {
-    const skillMd = sha.get("skill_md")
-    if (!skillMd) {
-      throw new Error("Private skill is missing installable content.")
-    }
-    digest = artifactDigest([skillMd])
-  } else {
-    throw new Error(`Unsupported private artifact type: ${artifact.type}`)
-  }
+  // Validated, not merely present: this URL and every artifact URL derived
+  // from it are re-checked by the agent against its configured catalog origin
+  // (C1/C2), and a value that fails there produces an error naming the agent's
+  // configuration instead of ours. Fail here, where the setting is named.
+  const baseUrl = requireCatalogOriginBaseUrl()
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL
-  if (!baseUrl) {
-    throw new Error("Application URL is not configured.")
-  }
+  // The token is minted before the digest, not after, and that order is
+  // forced twice over. The manifest URL embeds the token and is covered by
+  // the install-delivery HMAC, so it cannot be issued later; and the entry
+  // whose artifacts are digested carries that same token in every URL, so it
+  // cannot be built earlier.
   const token = mintArtifactToken({
     organizationId,
     artifactId: artifact.id,
-    ttlSeconds: 300,
+    ttlSeconds: ARTIFACT_TOKEN_TTL_SECONDS,
   })
+
+  // The digest is taken over the entry this artifact will actually publish,
+  // reusing the manifest builder rather than re-deriving an asset set beside
+  // it. The agent recomputes it from the entry it parses out of the manifest
+  // (C13), so any second derivation here would be a second chance to disagree
+  // -- and disagreeing is precisely design.md's D4. The cost is one extra
+  // lookup by id after the lookup by name above; the guarantee is that no
+  // asset can reach the digest without being published, or vice versa.
+  const entry = await buildPrivateArtifactEntry({
+    organizationId,
+    artifactId: artifact.id,
+    token,
+    baseUrl,
+  })
+
+  // Verified against the entry that was just built, not against a second read
+  // of the artifact: the caps and byte ceilings the agent enforces apply to
+  // what it is handed, and this is what it will be handed. Failing here costs
+  // the user a message naming the limit; not failing here costs them an agent
+  // -side error naming a constant they have never heard of, after the install
+  // has already been signed and delivered.
+  assertPublishedEntryInstallable(entry)
+
+  const digest =
+    entry.type === "tool"
+      ? toolEntryArtifactDigest(entry.tool)
+      : skillEntryArtifactDigest(entry.skill)
+
   const url = `${baseUrl}/api/private-artifacts/manifest/${encodeURIComponent(token)}`
 
   return {
@@ -446,12 +468,19 @@ async function postAgentRegistration(
   const target = new URL("/api/ironhub/register", agentUrl)
   const vetted = await resolvePublicAddresses(target.hostname)
 
+  // `validateAgentUrl` is the gate on the scheme; by the time a stored agent
+  // URL reaches here it is https, or it is http to a local agent under
+  // `IRONHUB_ALLOW_LOCAL_ORIGINS`. Dispatch on what the URL actually says
+  // rather than assuming, so the two cannot drift apart.
+  const insecure = target.protocol === "http:"
+  const transport = insecure ? http : https
+
   return new Promise<boolean>((resolve, reject) => {
-    const request = https.request(
+    const request = transport.request(
       {
         hostname: target.hostname,
         servername: target.hostname,
-        port: target.port || 443,
+        port: target.port || (insecure ? 80 : 443),
         path: `${target.pathname}${target.search}`,
         method: "POST",
         headers: {

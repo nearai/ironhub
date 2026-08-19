@@ -57,7 +57,10 @@ export function verifyArtifactToken(
   const payload = `${parts[0]}.${parts[1]}`
   const expected = Buffer.from(sign(payload, loadSecret()))
   const provided = Buffer.from(parts[2])
-  if (expected.length !== provided.length || !timingSafeEqual(expected, provided)) {
+  if (
+    expected.length !== provided.length ||
+    !timingSafeEqual(expected, provided)
+  ) {
     reject()
   }
 

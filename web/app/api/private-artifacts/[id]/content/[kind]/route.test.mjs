@@ -90,13 +90,37 @@ test("rejects an empty body with 400", async () => {
   assert.equal(response.status, 400)
 })
 
-test("rejects a body over the 5MB limit with 413", async () => {
+test("rejects a wasm body over the agent's 16MB limit with 413", async () => {
   sameOriginThrows = null
-  const oversized = new Uint8Array(5 * 1024 * 1024 + 1)
+  const oversized = new Uint8Array(16 * 1024 * 1024 + 1)
   const request = new Request("http://localhost/x", { method: "PUT", body: oversized })
 
   const response = await PUT(request, makeParams())
   assert.equal(response.status, 413)
+  assert.match(await response.text(), /16MB/)
+})
+
+test("accepts a 12MB wasm body, which the old 5MB cap rejected for no reason the agent shares", async () => {
+  sameOriginThrows = null
+  storeCalls.length = 0
+  const body = new Uint8Array(12 * 1024 * 1024)
+  const request = new Request("http://localhost/x", { method: "PUT", body })
+
+  const response = await PUT(request, makeParams())
+  assert.equal(response.status, 201)
+  assert.equal(storeCalls.length, 1)
+})
+
+test("rejects a skill_md body over the agent's 1MB limit with 413", async () => {
+  sameOriginThrows = null
+  // 5MB used to upload cleanly here and then fail at install with the agent's
+  // own `artifact exceeds 1048576 byte cap` (design.md D7).
+  const oversized = new Uint8Array(1024 * 1024 + 1)
+  const request = new Request("http://localhost/x", { method: "PUT", body: oversized })
+
+  const response = await PUT(request, makeParams("skill_md"))
+  assert.equal(response.status, 413)
+  assert.match(await response.text(), /1MB/)
 })
 
 test("rejects a manifest_toml body over its 256KB limit with 413", async () => {
