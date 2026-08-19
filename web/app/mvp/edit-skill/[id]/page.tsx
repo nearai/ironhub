@@ -13,7 +13,10 @@ import { useArtifactTextContent } from "@/features/partner/api/artifact-content"
 import { useToast } from "@/features/partner/store/toast-provider"
 import { VisibilitySelector } from "@/features/partner/components/visibility-selector"
 import { CategoryAndRepoFields } from "@/features/partner/components/category-repo-fields"
-import { parseSkillMd, serializeSkillMd } from "@/lib/private-artifacts/skill-md"
+import {
+  parseSkillMd,
+  serializeSkillMd,
+} from "@/lib/private-artifacts/skill-md"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -46,7 +49,9 @@ function splitList(text: string, separator: RegExp) {
 }
 
 function asStringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : []
 }
 
 export default function EditSkillPage({ params }: PageProps) {
@@ -83,7 +88,9 @@ export default function EditSkillPage({ params }: PageProps) {
   // is passed through untouched by serializeSkillMd on save. State (not a
   // ref) because it's read during render to build the "View Skill File"
   // preview.
-  const [baseFrontmatter, setBaseFrontmatter] = useState<Record<string, unknown>>({})
+  const [baseFrontmatter, setBaseFrontmatter] = useState<
+    Record<string, unknown>
+  >({})
   // What `compileSkillMarkdown()` would produce from the as-loaded state,
   // with zero form edits -- computed once at seed time, not the raw fetched
   // text. js-yaml's dump normalizes formatting on the way through (see
@@ -93,7 +100,9 @@ export default function EditSkillPage({ params }: PageProps) {
   // this baseline instead only re-uploads when the *content* actually
   // changed, matching the edit-tool capabilities editor's skip-when-
   // unchanged behaviour.
-  const [originalSerialized, setOriginalSerialized] = useState<string | null>(null)
+  const [originalSerialized, setOriginalSerialized] = useState<string | null>(
+    null
+  )
 
   // UI state
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit")
@@ -122,12 +131,20 @@ export default function EditSkillPage({ params }: PageProps) {
       // empty file to parse, same as a genuinely empty stored one.
       const { frontmatter, body } = parseSkillMd(skillContent.data ?? "")
       setBaseFrontmatter(frontmatter)
-      setDescription(typeof frontmatter.description === "string" ? frontmatter.description : "")
-      setValueProp(typeof frontmatter.value_prop === "string" ? frontmatter.value_prop : "")
+      setDescription(
+        typeof frontmatter.description === "string"
+          ? frontmatter.description
+          : ""
+      )
+      setValueProp(
+        typeof frontmatter.value_prop === "string" ? frontmatter.value_prop : ""
+      )
       setUseCasesText(asStringArray(frontmatter.use_cases).join("\n"))
       setValueTagsText(asStringArray(frontmatter.value_tags).join(", "))
       const activation =
-        frontmatter.activation && typeof frontmatter.activation === "object" && !Array.isArray(frontmatter.activation)
+        frontmatter.activation &&
+        typeof frontmatter.activation === "object" &&
+        !Array.isArray(frontmatter.activation)
           ? (frontmatter.activation as Record<string, unknown>)
           : {}
       setActivationKeywordsText(asStringArray(activation.keywords).join(", "))
@@ -227,7 +244,10 @@ export default function EditSkillPage({ params }: PageProps) {
     if (tagsList.length > 0 || existingActivation?.tags !== undefined) {
       nextActivation.tags = tagsList
     }
-    if (Object.keys(nextActivation).length > 0 || existingActivation !== undefined) {
+    if (
+      Object.keys(nextActivation).length > 0 ||
+      existingActivation !== undefined
+    ) {
       next.activation = nextActivation
     } else {
       delete next.activation
@@ -238,7 +258,8 @@ export default function EditSkillPage({ params }: PageProps) {
 
   // "View Skill File" must render exactly the bytes a save would upload
   // (design.md D5) -- this is that single source of truth for both.
-  const compileSkillMarkdown = () => serializeSkillMd(buildFrontmatter(), markdownContent)
+  const compileSkillMarkdown = () =>
+    serializeSkillMd(buildFrontmatter(), markdownContent)
 
   const handleCopyCode = async () => {
     try {
@@ -303,7 +324,8 @@ export default function EditSkillPage({ params }: PageProps) {
   // loaded the first time. Do not block or re-alarm the user over this --
   // their in-progress edits sit on top of real, safe content -- just note
   // that the view may be stale.
-  const contentStaleRefreshFailed = skillContent.isError && skillContent.data !== undefined
+  const contentStaleRefreshFailed =
+    skillContent.isError && skillContent.data !== undefined
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -339,7 +361,8 @@ export default function EditSkillPage({ params }: PageProps) {
     } catch (error) {
       const described = describeArtifactSaveError(error)
       if (described.field === "category") setCategoryError(described.message)
-      else if (described.field === "sourceUrl") setSourceUrlError(described.message)
+      else if (described.field === "sourceUrl")
+        setSourceUrlError(described.message)
       else setFormError(described.message)
     }
   }
@@ -357,27 +380,30 @@ export default function EditSkillPage({ params }: PageProps) {
       />
 
       {formError && (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive flex items-start gap-2.5">
-          <IconAlertTriangle className="size-5 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          <IconAlertTriangle className="mt-0.5 size-5 shrink-0" />
           <span>{formError}</span>
         </div>
       )}
 
       {contentFailed && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+        <div className="flex flex-col justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive sm:flex-row sm:items-center">
           <div className="flex items-start gap-2.5">
-            <IconAlertTriangle className="size-5 shrink-0 mt-0.5" />
+            <IconAlertTriangle className="mt-0.5 size-5 shrink-0" />
             <span>
               This skill&apos;s stored instructions could not be loaded
-              {skillContent.error instanceof Error ? `: ${skillContent.error.message}. ` : ". "}
-              Saving is turned off so an empty editor cannot overwrite what is stored.
+              {skillContent.error instanceof Error
+                ? `: ${skillContent.error.message}. `
+                : ". "}
+              Saving is turned off so an empty editor cannot overwrite what is
+              stored.
             </span>
           </div>
           <Button
             type="button"
             variant="outline"
             onClick={() => skillContent.refetch()}
-            className="h-10 rounded-lg text-sm px-3 shrink-0 self-start sm:self-center"
+            className="h-10 shrink-0 self-start rounded-lg px-3 text-sm sm:self-center"
           >
             Retry
           </Button>
@@ -386,35 +412,41 @@ export default function EditSkillPage({ params }: PageProps) {
 
       {!contentFailed && fenceParseFailed && (
         <div className="flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-          <IconAlertTriangle className="size-5 shrink-0 mt-0.5" />
+          <IconAlertTriangle className="mt-0.5 size-5 shrink-0" />
           <span>
-            The settings block at the top of the stored file is not valid YAML, so it is shown as-is at the start of the instructions below. Saving is turned off until it is fixed: the fields above would save as blank. Fix the YAML in the text below, or delete that block entirely and re-enter its values in the fields above.
+            The settings block at the top of the stored file is not valid YAML,
+            so it is shown as-is at the start of the instructions below. Saving
+            is turned off until it is fixed: the fields above would save as
+            blank. Fix the YAML in the text below, or delete that block entirely
+            and re-enter its values in the fields above.
           </span>
         </div>
       )}
 
       {contentAbsent && (
         <div className="flex items-start gap-2.5 rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 text-sm text-muted-foreground">
-          <IconInfoCircle className="size-5 shrink-0 mt-0.5" />
+          <IconInfoCircle className="mt-0.5 size-5 shrink-0" />
           <span>
-            This skill has no instructions yet. Fill in the sections below and save to create them.
+            This skill has no instructions yet. Fill in the sections below and
+            save to create them.
           </span>
         </div>
       )}
 
       {contentStaleRefreshFailed && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 text-sm text-muted-foreground">
+        <div className="flex flex-col justify-between gap-3 rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 text-sm text-muted-foreground sm:flex-row sm:items-center">
           <div className="flex items-start gap-2.5">
-            <IconInfoCircle className="size-5 shrink-0 mt-0.5" />
+            <IconInfoCircle className="mt-0.5 size-5 shrink-0" />
             <span>
-              Could not refresh the stored instructions. You are still editing the last version that loaded, and saving still works.
+              Could not refresh the stored instructions. You are still editing
+              the last version that loaded, and saving still works.
             </span>
           </div>
           <Button
             type="button"
             variant="outline"
             onClick={() => skillContent.refetch()}
-            className="h-10 rounded-lg text-sm px-3 shrink-0 self-start sm:self-center"
+            className="h-10 shrink-0 self-start rounded-lg px-3 text-sm sm:self-center"
           >
             Retry
           </Button>
@@ -423,7 +455,7 @@ export default function EditSkillPage({ params }: PageProps) {
 
       {skillContent.isLoading && (
         <div className="flex items-start gap-2.5 rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 text-sm text-muted-foreground">
-          <IconLoader2 className="size-5 shrink-0 mt-0.5 animate-spin" />
+          <IconLoader2 className="mt-0.5 size-5 shrink-0 animate-spin" />
           <span>Loading this skill&apos;s stored instructions...</span>
         </div>
       )}
@@ -436,7 +468,10 @@ export default function EditSkillPage({ params }: PageProps) {
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="skill-name" className="text-sm font-medium text-foreground">
+              <label
+                htmlFor="skill-name"
+                className="text-sm font-medium text-foreground"
+              >
                 Name
               </label>
               <Input
@@ -449,7 +484,10 @@ export default function EditSkillPage({ params }: PageProps) {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="skill-version" className="text-sm font-medium text-foreground">
+              <label
+                htmlFor="skill-version"
+                className="text-sm font-medium text-foreground"
+              >
                 Version
               </label>
               <Input
@@ -457,7 +495,7 @@ export default function EditSkillPage({ params }: PageProps) {
                 disabled
                 aria-readonly="true"
                 value={artifact.version}
-                className="h-11 rounded-lg sm:h-10 border-[var(--ironhub-line)] bg-muted text-muted-foreground disabled:opacity-100"
+                className="h-11 rounded-lg border-[var(--ironhub-line)] bg-muted text-muted-foreground disabled:opacity-100 sm:h-10"
               />
               <p className="text-sm text-muted-foreground">
                 Set when you publish an update. It cannot be changed here.
@@ -466,7 +504,10 @@ export default function EditSkillPage({ params }: PageProps) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="skill-description" className="text-sm font-medium text-foreground">
+            <label
+              htmlFor="skill-description"
+              className="text-sm font-medium text-foreground"
+            >
               Short description
             </label>
             <Input
@@ -478,12 +519,16 @@ export default function EditSkillPage({ params }: PageProps) {
               className="h-11 rounded-lg sm:h-10"
             />
             <p className="text-sm text-muted-foreground">
-              One line explaining what this does. This is what people see in the catalog.
+              One line explaining what this does. This is what people see in the
+              catalog.
             </p>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="skill-value-prop" className="text-sm font-medium text-foreground">
+            <label
+              htmlFor="skill-value-prop"
+              className="text-sm font-medium text-foreground"
+            >
               Why someone would use it
             </label>
             <Input
@@ -506,15 +551,20 @@ export default function EditSkillPage({ params }: PageProps) {
           description="Helps the right skill turn up at the right moment."
         >
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="skill-use-cases" className="text-sm font-medium text-foreground">
+            <label
+              htmlFor="skill-use-cases"
+              className="text-sm font-medium text-foreground"
+            >
               What it&apos;s for
             </label>
             <textarea
               id="skill-use-cases"
               value={useCasesText}
               onChange={(e) => setUseCasesText(e.target.value)}
-              placeholder={"Automate client onboarding reports\nSummarize weekly usage"}
-              className="min-h-[80px] w-full rounded-lg border border-[var(--ironhub-line)] bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              placeholder={
+                "Automate client onboarding reports\nSummarize weekly usage"
+              }
+              className="min-h-[80px] w-full rounded-lg border border-[var(--ironhub-line)] bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             />
             <p className="text-sm text-muted-foreground">
               One example per line of something a person would use this for.
@@ -523,7 +573,10 @@ export default function EditSkillPage({ params }: PageProps) {
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="skill-topics" className="text-sm font-medium text-foreground">
+              <label
+                htmlFor="skill-topics"
+                className="text-sm font-medium text-foreground"
+              >
                 Topics
               </label>
               <Input
@@ -534,12 +587,16 @@ export default function EditSkillPage({ params }: PageProps) {
                 className="h-11 rounded-lg sm:h-10"
               />
               <p className="text-sm text-muted-foreground">
-                What this skill is about. Used for browsing and search. Separate with commas.
+                What this skill is about. Used for browsing and search. Separate
+                with commas.
               </p>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="skill-trigger-words" className="text-sm font-medium text-foreground">
+              <label
+                htmlFor="skill-trigger-words"
+                className="text-sm font-medium text-foreground"
+              >
                 Trigger words
               </label>
               <Input
@@ -550,12 +607,16 @@ export default function EditSkillPage({ params }: PageProps) {
                 className="h-11 rounded-lg sm:h-10"
               />
               <p className="text-sm text-muted-foreground">
-                Words in a request that should bring this skill in. Separate with commas.
+                Words in a request that should bring this skill in. Separate
+                with commas.
               </p>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="skill-trigger-topics" className="text-sm font-medium text-foreground">
+              <label
+                htmlFor="skill-trigger-topics"
+                className="text-sm font-medium text-foreground"
+              >
                 Trigger topics
               </label>
               <Input
@@ -566,7 +627,8 @@ export default function EditSkillPage({ params }: PageProps) {
                 className="h-11 rounded-lg sm:h-10"
               />
               <p className="text-sm text-muted-foreground">
-                Broader subjects that should bring this skill in. Separate with commas.
+                Broader subjects that should bring this skill in. Separate with
+                commas.
               </p>
             </div>
           </div>
@@ -604,17 +666,17 @@ export default function EditSkillPage({ params }: PageProps) {
               placeholder={"## Persona\n\nDescribe how the agent should act..."}
               value={markdownContent}
               onChange={(e) => setMarkdownContent(e.target.value)}
-              className="min-h-[360px] w-full rounded-lg border border-[var(--ironhub-line)] bg-background px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="min-h-[360px] w-full rounded-lg border border-[var(--ironhub-line)] bg-background px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             />
           </div>
 
           <div className={activeTab === "preview" ? "block" : "hidden"}>
-            <div className="flex justify-end mb-3">
+            <div className="mb-3 flex justify-end">
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleCopyCode}
-                className="h-10 rounded-lg text-sm px-3.5 flex items-center gap-1.5 sm:h-9"
+                className="flex h-10 items-center gap-1.5 rounded-lg px-3.5 text-sm sm:h-9"
               >
                 {copiedPreview ? (
                   <>
@@ -630,7 +692,7 @@ export default function EditSkillPage({ params }: PageProps) {
               </Button>
             </div>
 
-            <div className="w-full overflow-auto max-h-[36rem] rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 font-mono text-sm text-foreground whitespace-pre leading-relaxed select-text selection:bg-primary/30">
+            <div className="max-h-[36rem] w-full overflow-auto rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 font-mono text-sm leading-relaxed whitespace-pre text-foreground select-text selection:bg-primary/30">
               {compileSkillMarkdown()}
             </div>
           </div>
@@ -641,25 +703,30 @@ export default function EditSkillPage({ params }: PageProps) {
           title="Who can see it"
           description="Private stays inside this workspace."
         >
-          <VisibilitySelector visibility={visibility} onChange={setVisibility} />
+          <VisibilitySelector
+            visibility={visibility}
+            onChange={setVisibility}
+          />
         </FormSection>
 
-        <div className="border-t border-[var(--ironhub-line)] pt-6 flex flex-col gap-4">
-          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">
+        <div className="flex flex-col gap-4 border-t border-[var(--ironhub-line)] pt-6">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
             <Button
               type="button"
               variant="outline"
               asChild
-              className="h-11 rounded-lg px-6 sm:h-10 w-full sm:w-auto"
+              className="h-11 w-full rounded-lg px-6 sm:h-10 sm:w-auto"
             >
               <Link href={`/mvp/manage/${id}`}>Cancel</Link>
             </Button>
             <Button
               type="submit"
               disabled={saveDisabled}
-              className="h-11 rounded-lg px-6 sm:h-10 w-full sm:w-auto"
+              className="h-11 w-full rounded-lg px-6 sm:h-10 sm:w-auto"
             >
-              {isSaving && <IconLoader2 className="size-4 animate-spin mr-1.5" />}
+              {isSaving && (
+                <IconLoader2 className="mr-1.5 size-4 animate-spin" />
+              )}
               Save changes
             </Button>
           </div>

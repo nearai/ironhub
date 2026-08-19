@@ -79,17 +79,30 @@ function trackPutCalls() {
   const putCalls: Array<{ url: string; body: Blob }> = []
   vi.mocked(fetch).mockImplementation(async (input, init) => {
     const url = String(input)
-    if (url === "/api/private-artifacts/artifact-1" && (!init || init.method === undefined)) {
+    if (
+      url === "/api/private-artifacts/artifact-1" &&
+      (!init || init.method === undefined)
+    ) {
       return new Response(JSON.stringify({ artifact }), { status: 200 })
     }
-    if (url === "/api/private-artifacts/artifact-1" && init?.method === "PATCH") {
+    if (
+      url === "/api/private-artifacts/artifact-1" &&
+      init?.method === "PATCH"
+    ) {
       return new Response(JSON.stringify({ artifact }), { status: 200 })
     }
-    if (url === "/api/private-artifacts/artifact-1/content/skill_md" && init?.method === "PUT") {
+    if (
+      url === "/api/private-artifacts/artifact-1/content/skill_md" &&
+      init?.method === "PUT"
+    ) {
       putCalls.push({ url, body: init.body as Blob })
-      return new Response(JSON.stringify({ content: { kind: "skill_md" } }), { status: 201 })
+      return new Response(JSON.stringify({ content: { kind: "skill_md" } }), {
+        status: 201,
+      })
     }
-    throw new Error(`Unexpected fetch in trackPutCalls: ${url} ${init?.method ?? "GET"}`)
+    throw new Error(
+      `Unexpected fetch in trackPutCalls: ${url} ${init?.method ?? "GET"}`
+    )
   })
   return putCalls
 }
@@ -109,8 +122,13 @@ describe("edit-skill content loading", () => {
     const baseImpl = vi.mocked(fetch).getMockImplementation()!
     vi.mocked(fetch).mockImplementation(async (input, init) => {
       const url = String(input)
-      if (url === "/api/private-artifacts/artifact-1/content/skill_md" && init?.method !== "PUT") {
-        return new Response(JSON.stringify({ error: "Internal error" }), { status: 500 })
+      if (
+        url === "/api/private-artifacts/artifact-1/content/skill_md" &&
+        init?.method !== "PUT"
+      ) {
+        return new Response(JSON.stringify({ error: "Internal error" }), {
+          status: 500,
+        })
       }
       return baseImpl(input, init)
     })
@@ -118,7 +136,9 @@ describe("edit-skill content loading", () => {
     await renderPage()
 
     await waitFor(() => {
-      expect(screen.getByText(/stored instructions could not be loaded/i)).toBeInTheDocument()
+      expect(
+        screen.getByText(/stored instructions could not be loaded/i)
+      ).toBeInTheDocument()
     })
 
     const saveButton = screen.getByRole("button", { name: /save changes/i })
@@ -147,7 +167,10 @@ describe("edit-skill content loading", () => {
     const baseImpl = vi.mocked(fetch).getMockImplementation()!
     vi.mocked(fetch).mockImplementation(async (input, init) => {
       const url = String(input)
-      if (url === "/api/private-artifacts/artifact-1/content/skill_md" && init?.method !== "PUT") {
+      if (
+        url === "/api/private-artifacts/artifact-1/content/skill_md" &&
+        init?.method !== "PUT"
+      ) {
         return new Response(malformed, {
           status: 200,
           headers: { "Content-Type": "text/markdown; charset=utf-8" },
@@ -167,7 +190,9 @@ describe("edit-skill content loading", () => {
 
     // Nothing was silently dropped: the whole original file, fence
     // included, is sitting in the body textarea, editable.
-    const bodyField = screen.getByPlaceholderText(/describe how the agent should act/i)
+    const bodyField = screen.getByPlaceholderText(
+      /describe how the agent should act/i
+    )
     expect(bodyField).toHaveValue(malformed)
 
     fireEvent.submit(saveButton.closest("form")!)
@@ -196,9 +221,12 @@ describe("edit-skill content loading", () => {
     fireEvent.change(screen.getByPlaceholderText("What this skill does..."), {
       target: { value: "Handles auth." },
     })
-    fireEvent.change(screen.getByPlaceholderText("Core value or pitch of this skill..."), {
-      target: { value: "Auth made easy." },
-    })
+    fireEvent.change(
+      screen.getByPlaceholderText("Core value or pitch of this skill..."),
+      {
+        target: { value: "Auth made easy." },
+      }
+    )
 
     fireEvent.click(saveButton)
 
@@ -259,11 +287,15 @@ describe("edit-skill content loading", () => {
     await renderPage()
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
+      expect(
+        screen.getByRole("button", { name: /save changes/i })
+      ).not.toBeDisabled()
       expect(screen.getByDisplayValue("Does the thing.")).toBeInTheDocument()
     })
 
-    const bodyField = screen.getByPlaceholderText(/describe how the agent should act/i)
+    const bodyField = screen.getByPlaceholderText(
+      /describe how the agent should act/i
+    )
     // A user documenting a frontmatter example at the *top* of the body --
     // parseSkillMd only looks for a fence at position 0, so this has to be
     // the very first thing in the textarea to reproduce NB2b. The example
@@ -271,12 +303,15 @@ describe("edit-skill content loading", () => {
     // *stored* file loaded cleanly, so this must not block saving.
     fireEvent.change(bodyField, {
       target: {
-        value: "---\nUsage: run it like: this\n---\n\n## Persona\n\nBe helpful.",
+        value:
+          "---\nUsage: run it like: this\n---\n\n## Persona\n\nBe helpful.",
       },
     })
 
     expect(screen.queryByText(/not valid yaml/i)).not.toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
+    expect(
+      screen.getByRole("button", { name: /save changes/i })
+    ).not.toBeDisabled()
   })
 
   it("treats a 404 (no content row yet) as a safe, savable empty state -- not a load failure", async () => {
@@ -296,14 +331,20 @@ describe("edit-skill content loading", () => {
     await renderPage()
 
     await waitFor(() => {
-      expect(screen.queryByText(/stored instructions could not be loaded/i)).not.toBeInTheDocument()
+      expect(
+        screen.queryByText(/stored instructions could not be loaded/i)
+      ).not.toBeInTheDocument()
       expect(screen.getByText(/has no instructions yet/i)).toBeInTheDocument()
-      expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
+      expect(
+        screen.getByRole("button", { name: /save changes/i })
+      ).not.toBeDisabled()
     })
 
     // Nothing was ever stored -- the body textarea starts empty, not an
     // error state, so the owner can create the file from here.
-    const bodyField = screen.getByPlaceholderText(/describe how the agent should act/i)
+    const bodyField = screen.getByPlaceholderText(
+      /describe how the agent should act/i
+    )
     expect(bodyField).toHaveValue("")
   })
 
@@ -325,7 +366,9 @@ describe("edit-skill content loading", () => {
     await renderPage()
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
+      expect(
+        screen.getByRole("button", { name: /save changes/i })
+      ).not.toBeDisabled()
       expect(screen.getByDisplayValue("Does the thing.")).toBeInTheDocument()
     })
   })
@@ -340,7 +383,10 @@ describe("edit-skill content loading", () => {
     const baseImpl = vi.mocked(fetch).getMockImplementation()!
     vi.mocked(fetch).mockImplementation(async (input, init) => {
       const url = String(input)
-      if (url === "/api/private-artifacts/artifact-1/content/skill_md" && init?.method !== "PUT") {
+      if (
+        url === "/api/private-artifacts/artifact-1/content/skill_md" &&
+        init?.method !== "PUT"
+      ) {
         return new Response(storedFileWithUnknownKey, {
           status: 200,
           headers: { "Content-Type": "text/markdown; charset=utf-8" },
@@ -358,14 +404,18 @@ describe("edit-skill content loading", () => {
     // button can race ahead of that effect and interact with a still-blank
     // form (see edit-tool's equivalent fix for the bug this caused there).
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
+      expect(
+        screen.getByRole("button", { name: /save changes/i })
+      ).not.toBeDisabled()
       expect(screen.getByDisplayValue("A skill.")).toBeInTheDocument()
     })
 
     // Edit only a known field -- description -- leaving `custom_owner_note`
     // untouched, exactly the scenario D5's binding rule covers.
     const descriptionField = screen.getByDisplayValue("A skill.")
-    fireEvent.change(descriptionField, { target: { value: "An updated skill description." } })
+    fireEvent.change(descriptionField, {
+      target: { value: "An updated skill description." },
+    })
 
     fireEvent.click(screen.getByRole("button", { name: /save changes/i }))
 
@@ -398,7 +448,10 @@ describe("edit-skill content loading", () => {
     const baseImpl = vi.mocked(fetch).getMockImplementation()!
     vi.mocked(fetch).mockImplementation(async (input, init) => {
       const url = String(input)
-      if (url === "/api/private-artifacts/artifact-1/content/skill_md" && init?.method !== "PUT") {
+      if (
+        url === "/api/private-artifacts/artifact-1/content/skill_md" &&
+        init?.method !== "PUT"
+      ) {
         return new Response(storedFileWithUnknownKey, {
           status: 200,
           headers: { "Content-Type": "text/markdown; charset=utf-8" },
@@ -413,7 +466,9 @@ describe("edit-skill content loading", () => {
     // as the test above -- otherwise this test could pass or fail on
     // timing rather than on the skip-when-unchanged logic under test.
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
+      expect(
+        screen.getByRole("button", { name: /save changes/i })
+      ).not.toBeDisabled()
       expect(screen.getByDisplayValue("Does the thing.")).toBeInTheDocument()
     })
 
@@ -453,7 +508,9 @@ describe("edit-skill content loading", () => {
     const { queryClient } = await renderPage()
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
+      expect(
+        screen.getByRole("button", { name: /save changes/i })
+      ).not.toBeDisabled()
       expect(screen.getByDisplayValue("Does the thing.")).toBeInTheDocument()
     })
 
@@ -465,7 +522,9 @@ describe("edit-skill content loading", () => {
         return new Response(JSON.stringify({ artifact }), { status: 200 })
       }
       if (url === "/api/private-artifacts/artifact-1/content/skill_md") {
-        return new Response(JSON.stringify({ error: "Internal error" }), { status: 500 })
+        return new Response(JSON.stringify({ error: "Internal error" }), {
+          status: 500,
+        })
       }
       throw new Error(`Unexpected fetch: ${url}`)
     })
@@ -481,10 +540,16 @@ describe("edit-skill content loading", () => {
     // disabled), a soft non-blocking note instead, and the button and the
     // already-loaded form are unaffected.
     await waitFor(() => {
-      expect(screen.getByText(/could not refresh the stored instructions/i)).toBeInTheDocument()
+      expect(
+        screen.getByText(/could not refresh the stored instructions/i)
+      ).toBeInTheDocument()
     })
-    expect(screen.queryByText(/stored instructions could not be loaded/i)).not.toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
+    expect(
+      screen.queryByText(/stored instructions could not be loaded/i)
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /save changes/i })
+    ).not.toBeDisabled()
     expect(screen.getByDisplayValue("Does the thing.")).toBeInTheDocument()
   })
 })

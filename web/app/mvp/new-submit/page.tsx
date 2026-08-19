@@ -111,7 +111,9 @@ export default function NewSubmitPage() {
   // Submission progress / errors
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
-  const [uploadStatus, setUploadStatus] = useState<Record<string, "pending" | "uploading" | "done" | "error">>({})
+  const [uploadStatus, setUploadStatus] = useState<
+    Record<string, "pending" | "uploading" | "done" | "error">
+  >({})
 
   // Bumped on every zip selection so a slow-to-resolve inspect from a
   // previously selected file can't overwrite state after a faster-resolving
@@ -144,9 +146,18 @@ export default function NewSubmitPage() {
 
   // Compile SKILL.md Markdown format reactively
   const compileSkillMarkdown = () => {
-    const valTags = valueTagsText.split(",").map(t => t.trim()).filter(Boolean)
-    const keywords = activationKeywordsText.split(",").map(t => t.trim()).filter(Boolean)
-    const actTags = activationTagsText.split(",").map(t => t.trim()).filter(Boolean)
+    const valTags = valueTagsText
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean)
+    const keywords = activationKeywordsText
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean)
+    const actTags = activationTagsText
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean)
 
     const slug = slugify(title || "untitled-skill")
 
@@ -270,7 +281,9 @@ export default function NewSubmitPage() {
     if (file) void acceptZipFile(file)
   }
 
-  const bundleReadyForSubmit = Boolean(zipFile && inspectedManifest && !bundleError)
+  const bundleReadyForSubmit = Boolean(
+    zipFile && inspectedManifest && !bundleError
+  )
 
   // Form submit handler
   const handleSubmit = async (e: React.FormEvent) => {
@@ -280,13 +293,21 @@ export default function NewSubmitPage() {
     setSourceUrlError(null)
 
     if (type === "tool" && !bundleReadyForSubmit) {
-      setFormError("Upload and inspect a valid extension .zip before submitting.")
+      setFormError(
+        "Upload and inspect a valid extension .zip before submitting."
+      )
       return
     }
 
     const finalTitle =
-      title || (type === "skill" ? "Untitled Skill" : inspectedManifest?.name || "Uploaded Tool")
-    const name = type === "tool" ? artifactName || slugify(finalTitle) : slugify(finalTitle)
+      title ||
+      (type === "skill"
+        ? "Untitled Skill"
+        : inspectedManifest?.name || "Uploaded Tool")
+    const name =
+      type === "tool"
+        ? artifactName || slugify(finalTitle)
+        : slugify(finalTitle)
 
     setIsSubmitting(true)
     setUploadStatus({})
@@ -318,7 +339,10 @@ export default function NewSubmitPage() {
         }
         setUploadStatus((prev) => ({ ...prev, bundle: "uploading" }))
         try {
-          await uploadArtifactBundle.mutateAsync({ id: artifact.id, bytes: zipFile })
+          await uploadArtifactBundle.mutateAsync({
+            id: artifact.id,
+            bytes: zipFile,
+          })
           setUploadStatus((prev) => ({ ...prev, bundle: "done" }))
         } catch (uploadError) {
           setUploadStatus((prev) => ({ ...prev, bundle: "error" }))
@@ -367,7 +391,8 @@ export default function NewSubmitPage() {
       } else {
         const described = describeArtifactSaveError(error)
         if (described.field === "category") setCategoryError(described.message)
-        else if (described.field === "sourceUrl") setSourceUrlError(described.message)
+        else if (described.field === "sourceUrl")
+          setSourceUrlError(described.message)
         else setFormError(described.message)
       }
     } finally {
@@ -447,7 +472,8 @@ export default function NewSubmitPage() {
                   Skill
                 </span>
                 <span className="mt-1 block text-sm leading-snug text-muted-foreground">
-                  Instructions you write that tell an assistant how to do something. Nothing to upload.
+                  Instructions you write that tell an assistant how to do
+                  something. Nothing to upload.
                 </span>
               </span>
             </button>
@@ -504,7 +530,10 @@ export default function NewSubmitPage() {
             >
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="skill-name" className="text-sm font-medium text-foreground">
+                  <label
+                    htmlFor="skill-name"
+                    className="text-sm font-medium text-foreground"
+                  >
                     Skill name
                   </label>
                   <Input
@@ -516,13 +545,20 @@ export default function NewSubmitPage() {
                     onChange={(e) => setTitle(e.target.value)}
                     className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
                   />
-                  <p id="skill-name-help" className="text-xs text-muted-foreground">
-                    The name members see in the catalog. We create a short identifier from it automatically.
+                  <p
+                    id="skill-name-help"
+                    className="text-xs text-muted-foreground"
+                  >
+                    The name members see in the catalog. We create a short
+                    identifier from it automatically.
                   </p>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="skill-version" className="text-sm font-medium text-foreground">
+                  <label
+                    htmlFor="skill-version"
+                    className="text-sm font-medium text-foreground"
+                  >
                     Version
                   </label>
                   <Input
@@ -534,14 +570,21 @@ export default function NewSubmitPage() {
                     onChange={(e) => setVersion(e.target.value)}
                     className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
                   />
-                  <p id="skill-version-help" className="text-xs text-muted-foreground">
-                    Your own version number, for example 1.0.0. This cannot be changed later.
+                  <p
+                    id="skill-version-help"
+                    className="text-xs text-muted-foreground"
+                  >
+                    Your own version number, for example 1.0.0. This cannot be
+                    changed later.
                   </p>
                 </div>
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="skill-description" className="text-sm font-medium text-foreground">
+                <label
+                  htmlFor="skill-description"
+                  className="text-sm font-medium text-foreground"
+                >
                   Short description
                 </label>
                 <Input
@@ -553,7 +596,10 @@ export default function NewSubmitPage() {
                   placeholder="Core value or pitch of this skill..."
                   className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
                 />
-                <p id="skill-description-help" className="text-xs text-muted-foreground">
+                <p
+                  id="skill-description-help"
+                  className="text-xs text-muted-foreground"
+                >
                   One line explaining what this does.
                 </p>
               </div>
@@ -598,7 +644,9 @@ export default function NewSubmitPage() {
                         aria-label={`Use case ${index + 1}`}
                         placeholder="e.g. Automate client onboarding reports..."
                         value={uc}
-                        onChange={(e) => handleUseCaseChange(index, e.target.value)}
+                        onChange={(e) =>
+                          handleUseCaseChange(index, e.target.value)
+                        }
                         className="h-10 min-h-[40px] flex-1 rounded-lg bg-background/50 text-sm"
                       />
                       <Button
@@ -624,7 +672,10 @@ export default function NewSubmitPage() {
               {/* Tag Grid */}
               <div className="grid gap-4 border-t border-[var(--ironhub-line)] pt-4 sm:grid-cols-3">
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="skill-topics" className="text-sm font-medium text-foreground">
+                  <label
+                    htmlFor="skill-topics"
+                    className="text-sm font-medium text-foreground"
+                  >
                     Topics
                   </label>
                   <Input
@@ -635,13 +686,19 @@ export default function NewSubmitPage() {
                     placeholder="Automation, Security"
                     className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
                   />
-                  <p id="skill-topics-help" className="text-xs text-muted-foreground">
+                  <p
+                    id="skill-topics-help"
+                    className="text-xs text-muted-foreground"
+                  >
                     What this skill is about. Used for browsing and search.
                   </p>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="skill-trigger-words" className="text-sm font-medium text-foreground">
+                  <label
+                    htmlFor="skill-trigger-words"
+                    className="text-sm font-medium text-foreground"
+                  >
                     Trigger words
                   </label>
                   <Input
@@ -652,13 +709,19 @@ export default function NewSubmitPage() {
                     placeholder="auth, login"
                     className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
                   />
-                  <p id="skill-trigger-words-help" className="text-xs text-muted-foreground">
+                  <p
+                    id="skill-trigger-words-help"
+                    className="text-xs text-muted-foreground"
+                  >
                     Words in a request that should bring this skill in.
                   </p>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="skill-trigger-topics" className="text-sm font-medium text-foreground">
+                  <label
+                    htmlFor="skill-trigger-topics"
+                    className="text-sm font-medium text-foreground"
+                  >
                     Trigger topics
                   </label>
                   <Input
@@ -669,7 +732,10 @@ export default function NewSubmitPage() {
                     placeholder="productivity"
                     className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
                   />
-                  <p id="skill-trigger-topics-help" className="text-xs text-muted-foreground">
+                  <p
+                    id="skill-trigger-topics-help"
+                    className="text-xs text-muted-foreground"
+                  >
                     Broader subjects that should bring this skill in.
                   </p>
                 </div>
@@ -706,7 +772,7 @@ export default function NewSubmitPage() {
 Describe how the agent should act...`}
                     value={markdownContent}
                     onChange={(e) => setMarkdownContent(e.target.value)}
-                    className="flex min-h-[300px] w-full rounded-lg border border-[var(--ironhub-line)] bg-background/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                    className="flex min-h-[300px] w-full rounded-lg border border-[var(--ironhub-line)] bg-background/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-none"
                   />
                 </div>
               ) : (
@@ -724,7 +790,10 @@ Describe how the agent should act...`}
                     >
                       {copiedPreview ? (
                         <>
-                          <IconCheck className="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                          <IconCheck
+                            className="size-3.5 text-emerald-600 dark:text-emerald-400"
+                            aria-hidden="true"
+                          />
                           <span>Copied!</span>
                         </>
                       ) : (
@@ -736,7 +805,7 @@ Describe how the agent should act...`}
                     </Button>
                   </div>
 
-                  <div className="max-h-[600px] w-full min-w-0 overflow-auto rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 font-mono text-sm leading-relaxed text-foreground select-text selection:bg-primary/30 whitespace-pre">
+                  <div className="max-h-[600px] w-full min-w-0 overflow-auto rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 font-mono text-sm leading-relaxed whitespace-pre text-foreground select-text selection:bg-primary/30">
                     {compileSkillMarkdown()}
                   </div>
                 </div>
@@ -749,7 +818,10 @@ Describe how the agent should act...`}
               title="Who can see it"
               description="Choose who can find and use this skill."
             >
-              <VisibilitySelector visibility={visibility} onChange={setVisibility} />
+              <VisibilitySelector
+                visibility={visibility}
+                onChange={setVisibility}
+              />
             </FormSection>
           </>
         ) : (
@@ -792,13 +864,18 @@ Describe how the agent should act...`}
                       dragOver ? "text-primary" : "text-foreground"
                     )}
                   >
-                    {dragOver ? "Drop to upload" : "Drag a .zip file here, or click to choose one"}
+                    {dragOver
+                      ? "Drop to upload"
+                      : "Drag a .zip file here, or click to choose one"}
                   </span>
                 </div>
 
                 {inspectBundle.isPending && (
                   <div className="flex items-center gap-2 rounded-lg border border-[var(--ironhub-line)]/50 bg-background/30 p-3 text-xs font-medium text-muted-foreground">
-                    <IconLoader2 className="size-4 animate-spin text-primary shrink-0" aria-hidden="true" />
+                    <IconLoader2
+                      className="size-4 shrink-0 animate-spin text-primary"
+                      aria-hidden="true"
+                    />
                     <span>Inspecting archive...</span>
                   </div>
                 )}
@@ -808,7 +885,10 @@ Describe how the agent should act...`}
                     role="alert"
                     className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm font-normal text-destructive"
                   >
-                    <IconAlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                    <IconAlertTriangle
+                      className="mt-0.5 size-4 shrink-0"
+                      aria-hidden="true"
+                    />
                     <span>{bundleError}</span>
                   </div>
                 )}
@@ -842,7 +922,10 @@ Describe how the agent should act...`}
                           : "border-emerald-500/25 bg-emerald-500/10 text-emerald-800 dark:text-emerald-400"
                       )}
                     >
-                      <span className="size-1.5 rounded-full bg-current" aria-hidden="true" />
+                      <span
+                        className="size-1.5 rounded-full bg-current"
+                        aria-hidden="true"
+                      />
                       <span>
                         {uploadStatus.bundle === "uploading"
                           ? "Uploading..."
@@ -866,7 +949,10 @@ Describe how the agent should act...`}
             >
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="tool-name" className="text-sm font-medium text-foreground">
+                  <label
+                    htmlFor="tool-name"
+                    className="text-sm font-medium text-foreground"
+                  >
                     Tool name
                   </label>
                   <Input
@@ -878,13 +964,19 @@ Describe how the agent should act...`}
                     onChange={(e) => setTitle(e.target.value)}
                     className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
                   />
-                  <p id="tool-name-help" className="text-xs text-muted-foreground">
+                  <p
+                    id="tool-name-help"
+                    className="text-xs text-muted-foreground"
+                  >
                     The name members see in the catalog.
                   </p>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="tool-artifact-name" className="text-sm font-medium text-foreground">
+                  <label
+                    htmlFor="tool-artifact-name"
+                    className="text-sm font-medium text-foreground"
+                  >
                     Identifier
                   </label>
                   <Input
@@ -896,13 +988,20 @@ Describe how the agent should act...`}
                     onChange={(e) => setArtifactName(e.target.value)}
                     className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
                   />
-                  <p id="tool-artifact-name-help" className="text-xs text-muted-foreground">
-                    A short lowercase name used in links and commands, for example usdc-payments. This cannot be changed later.
+                  <p
+                    id="tool-artifact-name-help"
+                    className="text-xs text-muted-foreground"
+                  >
+                    A short lowercase name used in links and commands, for
+                    example usdc-payments. This cannot be changed later.
                   </p>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="tool-version" className="text-sm font-medium text-foreground">
+                  <label
+                    htmlFor="tool-version"
+                    className="text-sm font-medium text-foreground"
+                  >
                     Version
                   </label>
                   <Input
@@ -914,14 +1013,21 @@ Describe how the agent should act...`}
                     onChange={(e) => setVersion(e.target.value)}
                     className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
                   />
-                  <p id="tool-version-help" className="text-xs text-muted-foreground">
-                    Your own version number, for example 1.0.0. This cannot be changed later.
+                  <p
+                    id="tool-version-help"
+                    className="text-xs text-muted-foreground"
+                  >
+                    Your own version number, for example 1.0.0. This cannot be
+                    changed later.
                   </p>
                 </div>
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="tool-description" className="text-sm font-medium text-foreground">
+                <label
+                  htmlFor="tool-description"
+                  className="text-sm font-medium text-foreground"
+                >
                   Short description
                 </label>
                 <textarea
@@ -931,9 +1037,12 @@ Describe how the agent should act...`}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Provide a description of the tool capabilities..."
-                  className="flex min-h-[100px] w-full rounded-lg border border-[var(--ironhub-line)] bg-background/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                  className="flex min-h-[100px] w-full rounded-lg border border-[var(--ironhub-line)] bg-background/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-none"
                 />
-                <p id="tool-description-help" className="text-xs text-muted-foreground">
+                <p
+                  id="tool-description-help"
+                  className="text-xs text-muted-foreground"
+                >
                   One line explaining what this tool does.
                 </p>
               </div>
@@ -954,7 +1063,10 @@ Describe how the agent should act...`}
               title="Who can see it"
               description="Choose who can find and use this tool."
             >
-              <VisibilitySelector visibility={visibility} onChange={setVisibility} />
+              <VisibilitySelector
+                visibility={visibility}
+                onChange={setVisibility}
+              />
             </FormSection>
           </>
         )}
@@ -964,12 +1076,10 @@ Describe how the agent should act...`}
             --ironhub-shadow used by FormSection is too weak for a bar that floats
             over those cards.
             pr-16 on small screens reserves the corner so buttons do not sit under the floating scroll-to-top button. */}
-        <div className="sticky bottom-4 z-20 rounded-xl border border-[var(--ironhub-line)] bg-card p-4 pr-16 lg:pr-4 shadow-lg">
+        <div className="sticky bottom-4 z-20 rounded-xl border border-[var(--ironhub-line)] bg-card p-4 pr-16 shadow-lg lg:pr-4">
           <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
             {submitHint && (
-              <p className="text-sm text-muted-foreground">
-                {submitHint}
-              </p>
+              <p className="text-sm text-muted-foreground">{submitHint}</p>
             )}
             <div className="flex items-center justify-end gap-3 sm:ml-auto">
               <Button
@@ -984,11 +1094,14 @@ Describe how the agent should act...`}
                 type="submit"
                 disabled={
                   isSubmitting ||
-                  (type === "tool" && (!bundleReadyForSubmit || inspectBundle.isPending))
+                  (type === "tool" &&
+                    (!bundleReadyForSubmit || inspectBundle.isPending))
                 }
                 className="h-10 min-h-[40px] rounded-lg px-6"
               >
-                {isSubmitting && <IconLoader2 className="size-4 animate-spin" />}
+                {isSubmitting && (
+                  <IconLoader2 className="size-4 animate-spin" />
+                )}
                 <span>Add to space</span>
               </Button>
             </div>

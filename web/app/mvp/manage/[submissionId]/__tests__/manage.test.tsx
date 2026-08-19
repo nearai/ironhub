@@ -461,9 +461,7 @@ describe("manage page — review checks and publish/unpublish", () => {
 
     await renderPage()
 
-    const input = await screen.findByLabelText(
-      /replace the uploaded package/i
-    )
+    const input = await screen.findByLabelText(/replace the uploaded package/i)
     const file = new File(["zip bytes"], "firecrawl.zip", {
       type: "application/zip",
     })
@@ -509,9 +507,7 @@ describe("manage page — review checks and publish/unpublish", () => {
 
     await renderPage()
 
-    const input = await screen.findByLabelText(
-      /replace the uploaded package/i
-    )
+    const input = await screen.findByLabelText(/replace the uploaded package/i)
     const callsBefore = vi.mocked(fetch).mock.calls.length
 
     fireEvent.change(input, {

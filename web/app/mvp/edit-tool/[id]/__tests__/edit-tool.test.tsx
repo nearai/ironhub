@@ -78,9 +78,12 @@ describe("edit-tool capabilities content loading", () => {
         init?.method === "PUT"
       ) {
         capabilitiesPutCalls.push({ url })
-        return new Response(JSON.stringify({ content: { kind: "capabilities" } }), {
-          status: 201,
-        })
+        return new Response(
+          JSON.stringify({ content: { kind: "capabilities" } }),
+          {
+            status: 201,
+          }
+        )
       }
       if (url === "/api/private-artifacts/artifact-1/content/capabilities") {
         return new Response(JSON.stringify({ error: "Internal error" }), {
@@ -93,7 +96,9 @@ describe("edit-tool capabilities content loading", () => {
     await renderPage()
 
     await waitFor(() => {
-      expect(screen.getByText(/stored permissions could not be loaded/i)).toBeInTheDocument()
+      expect(
+        screen.getByText(/stored permissions could not be loaded/i)
+      ).toBeInTheDocument()
     })
 
     const saveButton = screen.getByRole("button", { name: /save changes/i })
@@ -135,8 +140,12 @@ describe("edit-tool capabilities content loading", () => {
       expect(
         screen.queryByText(/stored permissions could not be loaded/i)
       ).not.toBeInTheDocument()
-      expect(screen.getByText(/no permissions file is stored for this tool/i)).toBeInTheDocument()
-      expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
+      expect(
+        screen.getByText(/no permissions file is stored for this tool/i)
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole("button", { name: /save changes/i })
+      ).not.toBeDisabled()
     })
 
     expect(screen.getByPlaceholderText('{ "permissions": [] }')).toHaveValue("")
@@ -162,8 +171,12 @@ describe("edit-tool capabilities content loading", () => {
     await renderPage()
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
-      expect(screen.getByPlaceholderText('{ "permissions": [] }')).toHaveValue(storedCapabilities)
+      expect(
+        screen.getByRole("button", { name: /save changes/i })
+      ).not.toBeDisabled()
+      expect(screen.getByPlaceholderText('{ "permissions": [] }')).toHaveValue(
+        storedCapabilities
+      )
     })
   })
 
@@ -173,7 +186,10 @@ describe("edit-tool capabilities content loading", () => {
 
     vi.mocked(fetch).mockImplementation(async (input, init) => {
       const url = String(input)
-      if (url === "/api/private-artifacts/artifact-1" && init?.method === "PATCH") {
+      if (
+        url === "/api/private-artifacts/artifact-1" &&
+        init?.method === "PATCH"
+      ) {
         return new Response(JSON.stringify({ artifact }), { status: 200 })
       }
       if (url === "/api/private-artifacts/artifact-1") {
@@ -184,9 +200,12 @@ describe("edit-tool capabilities content loading", () => {
         init?.method === "PUT"
       ) {
         capabilitiesPutCalls.push({ url })
-        return new Response(JSON.stringify({ content: { kind: "capabilities" } }), {
-          status: 201,
-        })
+        return new Response(
+          JSON.stringify({ content: { kind: "capabilities" } }),
+          {
+            status: 201,
+          }
+        )
       }
       if (url === "/api/private-artifacts/artifact-1/content/capabilities") {
         return new Response(storedCapabilities, {
@@ -210,8 +229,12 @@ describe("edit-tool capabilities content loading", () => {
     // "seeds the capabilities editor" test above does, or this test can
     // pass/fail on timing rather than on the skip-when-unchanged logic.
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
-      expect(screen.getByPlaceholderText('{ "permissions": [] }')).toHaveValue(storedCapabilities)
+      expect(
+        screen.getByRole("button", { name: /save changes/i })
+      ).not.toBeDisabled()
+      expect(screen.getByPlaceholderText('{ "permissions": [] }')).toHaveValue(
+        storedCapabilities
+      )
     })
 
     // Change only the title -- leave the capabilities draft exactly as loaded.
@@ -250,8 +273,12 @@ describe("edit-tool capabilities content loading", () => {
     const queryClient = await renderPage()
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
-      expect(screen.getByPlaceholderText('{ "permissions": [] }')).toHaveValue(storedCapabilities)
+      expect(
+        screen.getByRole("button", { name: /save changes/i })
+      ).not.toBeDisabled()
+      expect(screen.getByPlaceholderText('{ "permissions": [] }')).toHaveValue(
+        storedCapabilities
+      )
     })
 
     // Now make the content route fail, and force a refetch (standing in
@@ -262,7 +289,9 @@ describe("edit-tool capabilities content loading", () => {
         return new Response(JSON.stringify({ artifact }), { status: 200 })
       }
       if (url === "/api/private-artifacts/artifact-1/content/capabilities") {
-        return new Response(JSON.stringify({ error: "Internal error" }), { status: 500 })
+        return new Response(JSON.stringify({ error: "Internal error" }), {
+          status: 500,
+        })
       }
       throw new Error(`Unexpected fetch: ${url}`)
     })
@@ -281,8 +310,12 @@ describe("edit-tool capabilities content loading", () => {
     })
 
     const textarea = screen.getByPlaceholderText('{ "permissions": [] }')
-    expect(screen.queryByText(/stored permissions could not be loaded/i)).not.toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled()
+    expect(
+      screen.queryByText(/stored permissions could not be loaded/i)
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /save changes/i })
+    ).not.toBeDisabled()
     expect(textarea).not.toBeDisabled()
     expect(textarea).toHaveValue(storedCapabilities)
   })

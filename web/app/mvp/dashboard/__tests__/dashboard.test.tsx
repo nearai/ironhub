@@ -271,9 +271,7 @@ describe("dashboard page", () => {
     expect(
       screen.getByRole("button", { name: /clear filters/i })
     ).toBeInTheDocument()
-    expect(
-      screen.queryByText("No skills or tools yet")
-    ).not.toBeInTheDocument()
+    expect(screen.queryByText("No skills or tools yet")).not.toBeInTheDocument()
     // Only 1 "Add skill or tool" link (in header) exists, empty state has none
     expect(
       screen.getAllByRole("link", { name: /add skill or tool/i })

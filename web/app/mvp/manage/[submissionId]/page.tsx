@@ -57,28 +57,29 @@ interface PageProps {
   params: Promise<{ submissionId: string }>
 }
 
-const CONTENT_KIND_INFO: Record<ContentKind, { name: string; blurb: string }> = {
-  wasm: {
-    name: "Program file",
-    blurb: "The compiled program that does the work.",
-  },
-  manifest_toml: {
-    name: "Setup details",
-    blurb: "Describes what the tool is and how to run it.",
-  },
-  capabilities: {
-    name: "Permissions file",
-    blurb: "Lists what the tool is allowed to access.",
-  },
-  bundle_zip: {
-    name: "Uploaded package",
-    blurb: "The original .zip you uploaded.",
-  },
-  skill_md: {
-    name: "Instructions file",
-    blurb: "The written instructions the assistant follows.",
-  },
-}
+const CONTENT_KIND_INFO: Record<ContentKind, { name: string; blurb: string }> =
+  {
+    wasm: {
+      name: "Program file",
+      blurb: "The compiled program that does the work.",
+    },
+    manifest_toml: {
+      name: "Setup details",
+      blurb: "Describes what the tool is and how to run it.",
+    },
+    capabilities: {
+      name: "Permissions file",
+      blurb: "Lists what the tool is allowed to access.",
+    },
+    bundle_zip: {
+      name: "Uploaded package",
+      blurb: "The original .zip you uploaded.",
+    },
+    skill_md: {
+      name: "Instructions file",
+      blurb: "The written instructions the assistant follows.",
+    },
+  }
 
 function formatFileSize(bytes: number): string {
   if (bytes === 1) return "1 byte"
@@ -448,7 +449,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
         {checks.data && !checks.isError && (
           <div className="space-y-3">
             {checks.data.checks.length === 0 && (
-              <p className="text-sm italic text-muted-foreground">
+              <p className="text-sm text-muted-foreground italic">
                 No checks reported.
               </p>
             )}
@@ -494,7 +495,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
                   </div>
                   <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="min-w-0 break-words text-sm font-medium text-foreground [overflow-wrap:anywhere]">
+                      <span className="min-w-0 text-sm font-medium [overflow-wrap:anywhere] break-words text-foreground">
                         {check.label}
                       </span>
                       <AttributeBadge className={cn("shrink-0", badgeClass)}>
@@ -502,7 +503,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
                       </AttributeBadge>
                     </div>
                     {check.detail && (
-                      <p className="min-w-0 break-words text-sm text-muted-foreground [overflow-wrap:anywhere]">
+                      <p className="min-w-0 text-sm [overflow-wrap:anywhere] break-words text-muted-foreground">
                         {check.detail}
                       </p>
                     )}
@@ -643,7 +644,10 @@ export default function ManageSubmissionPage({ params }: PageProps) {
                 }}
                 className="absolute inset-0 cursor-pointer opacity-0"
               />
-              <IconUpload className="size-6 text-muted-foreground" aria-hidden="true" />
+              <IconUpload
+                className="size-6 text-muted-foreground"
+                aria-hidden="true"
+              />
               <span className="mt-2 block text-sm font-medium text-foreground">
                 Drop a replacement package (.zip) here, or choose one
               </span>
@@ -692,10 +696,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
             className="h-10 rounded-lg"
           >
             {mintToken.isPending ? (
-              <IconLoader2
-                className="size-4 animate-spin"
-                aria-hidden="true"
-              />
+              <IconLoader2 className="size-4 animate-spin" aria-hidden="true" />
             ) : copiedInstall ? (
               <IconCheck
                 className="size-4 text-emerald-600 dark:text-emerald-400"

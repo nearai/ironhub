@@ -80,7 +80,10 @@ export default function EditToolPage({ params }: PageProps) {
   }, [artifact])
 
   useEffect(() => {
-    if (capabilitiesText !== undefined && seededCapabilitiesIdRef.current !== id) {
+    if (
+      capabilitiesText !== undefined &&
+      seededCapabilitiesIdRef.current !== id
+    ) {
       seededCapabilitiesIdRef.current = id
       // `capabilitiesText` is `null` for "no content row yet" (404) -- seed
       // an empty draft in that case, same as a genuinely empty stored file.
@@ -137,7 +140,8 @@ export default function EditToolPage({ params }: PageProps) {
   // not an error -- that keeps a tool whose capabilities upload never
   // completed during creation editable instead of permanently stuck.
   const capabilitiesReady = capabilitiesText !== undefined
-  const capabilitiesFailed = isCapabilitiesError && capabilitiesText === undefined
+  const capabilitiesFailed =
+    isCapabilitiesError && capabilitiesText === undefined
   // Informational, not an error: no capabilities.json has ever been stored
   // for this artifact (the 404-as-`null` sentinel). Saving from here
   // creates it -- the manage page's bundle re-upload replaces the whole
@@ -148,7 +152,8 @@ export default function EditToolPage({ params }: PageProps) {
   // loaded the first time. Do not block or disable the editor over this --
   // in-progress edits sit on top of real, safe content -- just note the
   // view may be stale.
-  const capabilitiesStaleRefreshFailed = isCapabilitiesError && capabilitiesText !== undefined
+  const capabilitiesStaleRefreshFailed =
+    isCapabilitiesError && capabilitiesText !== undefined
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -216,7 +221,8 @@ export default function EditToolPage({ params }: PageProps) {
     } catch (error) {
       const described = describeArtifactSaveError(error)
       if (described.field === "category") setCategoryError(described.message)
-      else if (described.field === "sourceUrl") setSourceUrlError(described.message)
+      else if (described.field === "sourceUrl")
+        setSourceUrlError(described.message)
       else setFormError(described.message)
     }
   }
@@ -234,27 +240,30 @@ export default function EditToolPage({ params }: PageProps) {
       />
 
       {formError && (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive flex items-start gap-2.5">
-          <IconAlertTriangle className="size-5 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          <IconAlertTriangle className="mt-0.5 size-5 shrink-0" />
           <span>{formError}</span>
         </div>
       )}
 
       {capabilitiesFailed && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+        <div className="flex flex-col justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive sm:flex-row sm:items-center">
           <div className="flex items-start gap-2.5">
-            <IconAlertTriangle className="size-5 shrink-0 mt-0.5" />
+            <IconAlertTriangle className="mt-0.5 size-5 shrink-0" />
             <span>
               This tool&apos;s stored permissions could not be loaded
-              {capabilitiesError instanceof Error ? `: ${capabilitiesError.message}. ` : ". "}
-              Saving is turned off so an empty editor cannot overwrite what is stored.
+              {capabilitiesError instanceof Error
+                ? `: ${capabilitiesError.message}. `
+                : ". "}
+              Saving is turned off so an empty editor cannot overwrite what is
+              stored.
             </span>
           </div>
           <Button
             type="button"
             variant="outline"
             onClick={() => refetchCapabilities()}
-            className="h-10 rounded-lg text-sm px-3 shrink-0 self-start sm:self-center"
+            className="h-10 shrink-0 self-start rounded-lg px-3 text-sm sm:self-center"
           >
             Retry
           </Button>
@@ -263,26 +272,28 @@ export default function EditToolPage({ params }: PageProps) {
 
       {capabilitiesAbsent && (
         <div className="flex items-start gap-2.5 rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 text-sm text-muted-foreground">
-          <IconInfoCircle className="size-5 shrink-0 mt-0.5" />
+          <IconInfoCircle className="mt-0.5 size-5 shrink-0" />
           <span>
-            No permissions file is stored for this tool. That is fine — add one only if this tool needs to reach something.
+            No permissions file is stored for this tool. That is fine — add one
+            only if this tool needs to reach something.
           </span>
         </div>
       )}
 
       {capabilitiesStaleRefreshFailed && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 text-sm text-muted-foreground">
+        <div className="flex flex-col justify-between gap-3 rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 text-sm text-muted-foreground sm:flex-row sm:items-center">
           <div className="flex items-start gap-2.5">
-            <IconInfoCircle className="size-5 shrink-0 mt-0.5" />
+            <IconInfoCircle className="mt-0.5 size-5 shrink-0" />
             <span>
-              Could not refresh the stored permissions. You are still editing the last version that loaded, and saving still works.
+              Could not refresh the stored permissions. You are still editing
+              the last version that loaded, and saving still works.
             </span>
           </div>
           <Button
             type="button"
             variant="outline"
             onClick={() => refetchCapabilities()}
-            className="h-10 rounded-lg text-sm px-3 shrink-0 self-start sm:self-center"
+            className="h-10 shrink-0 self-start rounded-lg px-3 text-sm sm:self-center"
           >
             Retry
           </Button>
@@ -291,7 +302,7 @@ export default function EditToolPage({ params }: PageProps) {
 
       {isCapabilitiesLoading && (
         <div className="flex items-start gap-2.5 rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 text-sm text-muted-foreground">
-          <IconLoader2 className="size-5 shrink-0 mt-0.5 animate-spin" />
+          <IconLoader2 className="mt-0.5 size-5 shrink-0 animate-spin" />
           <span>Loading this tool&apos;s stored permissions...</span>
         </div>
       )}
@@ -304,7 +315,10 @@ export default function EditToolPage({ params }: PageProps) {
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="tool-name" className="text-sm font-medium text-foreground">
+              <label
+                htmlFor="tool-name"
+                className="text-sm font-medium text-foreground"
+              >
                 Name
               </label>
               <Input
@@ -317,7 +331,10 @@ export default function EditToolPage({ params }: PageProps) {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="tool-version" className="text-sm font-medium text-foreground">
+              <label
+                htmlFor="tool-version"
+                className="text-sm font-medium text-foreground"
+              >
                 Version
               </label>
               <Input
@@ -325,7 +342,7 @@ export default function EditToolPage({ params }: PageProps) {
                 disabled
                 aria-readonly="true"
                 value={artifact.version}
-                className="h-11 rounded-lg sm:h-10 border-[var(--ironhub-line)] bg-muted text-muted-foreground disabled:opacity-100"
+                className="h-11 rounded-lg border-[var(--ironhub-line)] bg-muted text-muted-foreground disabled:opacity-100 sm:h-10"
               />
               <p className="text-sm text-muted-foreground">
                 Set when you publish an update. It cannot be changed here.
@@ -334,7 +351,10 @@ export default function EditToolPage({ params }: PageProps) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="tool-description" className="text-sm font-medium text-foreground">
+            <label
+              htmlFor="tool-description"
+              className="text-sm font-medium text-foreground"
+            >
               Short description
             </label>
             <textarea
@@ -343,10 +363,11 @@ export default function EditToolPage({ params }: PageProps) {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Provide a description of the tool capabilities..."
-              className="min-h-[100px] w-full rounded-lg border border-[var(--ironhub-line)] bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="min-h-[100px] w-full rounded-lg border border-[var(--ironhub-line)] bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             />
             <p className="text-sm text-muted-foreground">
-              One line explaining what this does. This is what people see in the catalog.
+              One line explaining what this does. This is what people see in the
+              catalog.
             </p>
           </div>
         </FormSection>
@@ -392,11 +413,12 @@ export default function EditToolPage({ params }: PageProps) {
                 className="absolute inset-0 cursor-pointer opacity-0"
               />
               <IconUpload className="size-6 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground mt-2 block">
+              <span className="mt-2 block text-sm font-medium text-foreground">
                 Drop a new program file here, or choose one
               </span>
-              <span className="text-sm text-muted-foreground mt-1">
-                This is the compiled .wasm program that runs the tool. Leave it empty to keep the one already stored. Up to 5MB.
+              <span className="mt-1 text-sm text-muted-foreground">
+                This is the compiled .wasm program that runs the tool. Leave it
+                empty to keep the one already stored. Up to 5MB.
               </span>
             </div>
 
@@ -404,7 +426,7 @@ export default function EditToolPage({ params }: PageProps) {
                 the emerald ramp means "published" everywhere else. */}
             {wasmFile && (
               <div className="mt-1 flex items-center justify-between rounded-lg border border-[var(--ironhub-line)] bg-muted/40 p-3 text-sm text-foreground">
-                <span className="flex items-center gap-2 min-w-0">
+                <span className="flex min-w-0 items-center gap-2">
                   <IconFileZip className="size-4 shrink-0 text-muted-foreground" />
                   <span className="truncate">{wasmFile.name}</span>
                 </span>
@@ -432,10 +454,12 @@ export default function EditToolPage({ params }: PageProps) {
               value={capabilitiesDraft}
               onChange={(e) => setCapabilitiesDraft(e.target.value)}
               placeholder='{ "permissions": [] }'
-              className="min-h-[220px] w-full rounded-lg border border-[var(--ironhub-line)] bg-background px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+              className="min-h-[220px] w-full rounded-lg border border-[var(--ironhub-line)] bg-background px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-60"
             />
             <p className="text-sm text-muted-foreground">
-              This declares what the package is allowed to access, and must be valid JSON or saving will be refused. Leave this as it is unless you were given something to paste in.
+              This declares what the package is allowed to access, and must be
+              valid JSON or saving will be refused. Leave this as it is unless
+              you were given something to paste in.
             </p>
           </div>
         </FormSection>
@@ -445,25 +469,30 @@ export default function EditToolPage({ params }: PageProps) {
           title="Who can see it"
           description="Private stays inside this workspace."
         >
-          <VisibilitySelector visibility={visibility} onChange={setVisibility} />
+          <VisibilitySelector
+            visibility={visibility}
+            onChange={setVisibility}
+          />
         </FormSection>
 
-        <div className="border-t border-[var(--ironhub-line)] pt-6 flex flex-col gap-4">
-          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">
+        <div className="flex flex-col gap-4 border-t border-[var(--ironhub-line)] pt-6">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
             <Button
               type="button"
               variant="outline"
               asChild
-              className="h-11 rounded-lg px-6 sm:h-10 w-full sm:w-auto"
+              className="h-11 w-full rounded-lg px-6 sm:h-10 sm:w-auto"
             >
               <Link href={`/mvp/manage/${id}`}>Cancel</Link>
             </Button>
             <Button
               type="submit"
               disabled={saveDisabled}
-              className="h-11 rounded-lg px-6 sm:h-10 w-full sm:w-auto"
+              className="h-11 w-full rounded-lg px-6 sm:h-10 sm:w-auto"
             >
-              {isSaving && <IconLoader2 className="size-4 animate-spin mr-1.5" />}
+              {isSaving && (
+                <IconLoader2 className="mr-1.5 size-4 animate-spin" />
+              )}
               Save changes
             </Button>
           </div>

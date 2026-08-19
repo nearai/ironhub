@@ -33,7 +33,9 @@ function openToolTab() {
 }
 
 function getZipInput() {
-  return document.querySelector('input[type="file"][accept=".zip"]') as HTMLInputElement
+  return document.querySelector(
+    'input[type="file"][accept=".zip"]'
+  ) as HTMLInputElement
 }
 
 function selectFile(file: File) {
@@ -82,10 +84,14 @@ describe("new-submit tool tab (zip bundle flow)", () => {
     renderPage()
     openToolTab()
 
-    const file = new File(["wasm bytes"], "usdc.wasm", { type: "application/wasm" })
+    const file = new File(["wasm bytes"], "usdc.wasm", {
+      type: "application/wasm",
+    })
     selectFile(file)
 
-    expect(screen.getByText("Only .zip archives are accepted.")).toBeInTheDocument()
+    expect(
+      screen.getByText("Only .zip archives are accepted.")
+    ).toBeInTheDocument()
     expect(fetch).not.toHaveBeenCalled()
   })
 
@@ -101,23 +107,33 @@ describe("new-submit tool tab (zip bundle flow)", () => {
     renderPage()
     openToolTab()
 
-    const file = new File(["zip bytes"], "usdc-payments.zip", { type: "application/zip" })
+    const file = new File(["zip bytes"], "usdc-payments.zip", {
+      type: "application/zip",
+    })
     selectFile(file)
 
     await waitFor(() =>
-      expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue("USDC Payments")
+      expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue(
+        "USDC Payments"
+      )
     )
-    expect(screen.getByPlaceholderText("e.g. usdc-payments")).toHaveValue("usdc-payments")
+    expect(screen.getByPlaceholderText("e.g. usdc-payments")).toHaveValue(
+      "usdc-payments"
+    )
     expect(screen.getByPlaceholderText("e.g. 1.0.0")).toHaveValue("1.2.0")
     expect(
-      screen.getByPlaceholderText("Provide a description of the tool capabilities...")
+      screen.getByPlaceholderText(
+        "Provide a description of the tool capabilities..."
+      )
     ).toHaveValue("Pays things in USDC.")
 
     // Prefilled fields stay editable.
     fireEvent.change(screen.getByPlaceholderText("e.g. USDC Payments"), {
       target: { value: "USDC Payments v2" },
     })
-    expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue("USDC Payments v2")
+    expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue(
+      "USDC Payments v2"
+    )
   })
 
   it("prefills normally and enables submission from an inspect response with no capabilities file", async () => {
@@ -144,14 +160,20 @@ describe("new-submit tool tab (zip bundle flow)", () => {
     renderPage()
     openToolTab()
 
-    const file = new File(["zip bytes"], "usdc-payments.zip", { type: "application/zip" })
+    const file = new File(["zip bytes"], "usdc-payments.zip", {
+      type: "application/zip",
+    })
     selectFile(file)
 
     await waitFor(() =>
-      expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue("USDC Payments")
+      expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue(
+        "USDC Payments"
+      )
     )
     expect(screen.getByText("Inspected")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /add to space/i })).not.toBeDisabled()
+    expect(
+      screen.getByRole("button", { name: /add to space/i })
+    ).not.toBeDisabled()
   })
 
   it("prefills the artifact name replacing only what's illegal for that field, preserving a legal underscore", async () => {
@@ -177,10 +199,14 @@ describe("new-submit tool tab (zip bundle flow)", () => {
     renderPage()
     openToolTab()
 
-    selectFile(new File(["zip bytes"], "usdc-payments.zip", { type: "application/zip" }))
+    selectFile(
+      new File(["zip bytes"], "usdc-payments.zip", { type: "application/zip" })
+    )
 
     await waitFor(() =>
-      expect(screen.getByPlaceholderText("e.g. usdc-payments")).toHaveValue("acme-usdc_payments")
+      expect(screen.getByPlaceholderText("e.g. usdc-payments")).toHaveValue(
+        "acme-usdc_payments"
+      )
     )
   })
 
@@ -191,7 +217,9 @@ describe("new-submit tool tab (zip bundle flow)", () => {
     vi.mocked(fetch).mockImplementation(async (input) => {
       const url = String(input)
       if (url === "/api/private-artifacts/bundle/inspect") {
-        return new Response(JSON.stringify({ error: wrapperMessage }), { status: 400 })
+        return new Response(JSON.stringify({ error: wrapperMessage }), {
+          status: 400,
+        })
       }
       throw new Error(`Unexpected fetch: ${url}`)
     })
@@ -199,10 +227,14 @@ describe("new-submit tool tab (zip bundle flow)", () => {
     renderPage()
     openToolTab()
 
-    const file = new File(["zip bytes"], "usdc-payments.zip", { type: "application/zip" })
+    const file = new File(["zip bytes"], "usdc-payments.zip", {
+      type: "application/zip",
+    })
     selectFile(file)
 
-    await waitFor(() => expect(screen.getByText(wrapperMessage)).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByText(wrapperMessage)).toBeInTheDocument()
+    )
 
     const submitButton = screen.getByRole("button", { name: /add to space/i })
     expect(submitButton).toBeDisabled()
@@ -219,7 +251,9 @@ describe("new-submit tool tab (zip bundle flow)", () => {
       }
       if (url === "/api/private-artifacts") {
         return new Response(
-          JSON.stringify({ artifact: { id: "artifact-1", title: "USDC Payments" } }),
+          JSON.stringify({
+            artifact: { id: "artifact-1", title: "USDC Payments" },
+          }),
           { status: 201 }
         )
       }
@@ -232,21 +266,30 @@ describe("new-submit tool tab (zip bundle flow)", () => {
     renderPage()
     openToolTab()
 
-    const file = new File(["zip bytes"], "usdc-payments.zip", { type: "application/zip" })
+    const file = new File(["zip bytes"], "usdc-payments.zip", {
+      type: "application/zip",
+    })
     selectFile(file)
 
     await waitFor(() =>
-      expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue("USDC Payments")
+      expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue(
+        "USDC Payments"
+      )
     )
 
     // Exercise category + repository link too, so the body assertion below
     // pins those exact field names reaching the create request rather than
     // just their falsy defaults — a route mocked purely by URL would never
     // catch a field going missing or misnamed.
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "Dev Tools" } })
-    fireEvent.change(screen.getByPlaceholderText("https://github.com/org/repo"), {
-      target: { value: "https://github.com/acme/usdc-payments" },
+    fireEvent.change(screen.getByRole("combobox"), {
+      target: { value: "Dev Tools" },
     })
+    fireEvent.change(
+      screen.getByPlaceholderText("https://github.com/org/repo"),
+      {
+        target: { value: "https://github.com/acme/usdc-payments" },
+      }
+    )
 
     fireEvent.click(screen.getByRole("button", { name: /add to space/i }))
 
@@ -285,12 +328,16 @@ describe("new-submit tool tab (zip bundle flow)", () => {
       }
       if (url === "/api/private-artifacts") {
         return new Response(
-          JSON.stringify({ artifact: { id: "artifact-2", title: "USDC Payments" } }),
+          JSON.stringify({
+            artifact: { id: "artifact-2", title: "USDC Payments" },
+          }),
           { status: 201 }
         )
       }
       if (url === "/api/private-artifacts/artifact-2/bundle") {
-        return new Response(JSON.stringify({ error: "storage unavailable" }), { status: 500 })
+        return new Response(JSON.stringify({ error: "storage unavailable" }), {
+          status: 500,
+        })
       }
       throw new Error(`Unexpected fetch: ${url}`)
     })
@@ -298,16 +345,22 @@ describe("new-submit tool tab (zip bundle flow)", () => {
     renderPage()
     openToolTab()
 
-    const file = new File(["zip bytes"], "usdc-payments.zip", { type: "application/zip" })
+    const file = new File(["zip bytes"], "usdc-payments.zip", {
+      type: "application/zip",
+    })
     selectFile(file)
 
     await waitFor(() =>
-      expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue("USDC Payments")
+      expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue(
+        "USDC Payments"
+      )
     )
 
     fireEvent.click(screen.getByRole("button", { name: /add to space/i }))
 
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/mvp/manage/artifact-2"))
+    await waitFor(() =>
+      expect(pushMock).toHaveBeenCalledWith("/mvp/manage/artifact-2")
+    )
     expect(pushMock).not.toHaveBeenCalledWith("/mvp/dashboard")
   })
 
@@ -330,25 +383,43 @@ describe("new-submit tool tab (zip bundle flow)", () => {
   it("renders visible helper text explaining why submit is disabled when no package is chosen in tool mode", () => {
     renderPage()
     openToolTab()
-    expect(screen.getByText("Upload a tool package to continue")).toBeInTheDocument()
+    expect(
+      screen.getByText("Upload a tool package to continue")
+    ).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /add to space/i })).toBeDisabled()
   })
 
   it("renders numbered sections and no step counter in both skill and tool modes", () => {
     renderPage()
     expect(screen.queryByText(/step \d+ of \d+/i)).not.toBeInTheDocument()
-    expect(screen.getByRole("heading", { name: "Step 1: What you are adding" })).toBeInTheDocument()
-    expect(screen.getByRole("heading", { name: "Step 2: Basics" })).toBeInTheDocument()
-    expect(screen.getByRole("heading", { name: "Step 3: Instructions" })).toBeInTheDocument()
-    expect(screen.getByRole("heading", { name: "Step 4: Who can see it" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: "Step 1: What you are adding" })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: "Step 2: Basics" })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: "Step 3: Instructions" })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: "Step 4: Who can see it" })
+    ).toBeInTheDocument()
 
     // Switch to tool mode
     openToolTab()
     expect(screen.queryByText(/step \d+ of \d+/i)).not.toBeInTheDocument()
-    expect(screen.getByRole("heading", { name: "Step 1: What you are adding" })).toBeInTheDocument()
-    expect(screen.getByRole("heading", { name: "Step 2: Tool package" })).toBeInTheDocument()
-    expect(screen.getByRole("heading", { name: "Step 3: Basics" })).toBeInTheDocument()
-    expect(screen.getByRole("heading", { name: "Step 4: Who can see it" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: "Step 1: What you are adding" })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: "Step 2: Tool package" })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: "Step 3: Basics" })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: "Step 4: Who can see it" })
+    ).toBeInTheDocument()
   })
 
   it("creates a skill artifact and uploads compiled markdown to skill_md, redirecting to the dashboard", async () => {
@@ -356,7 +427,9 @@ describe("new-submit tool tab (zip bundle flow)", () => {
       const url = String(input)
       if (url === "/api/private-artifacts") {
         return new Response(
-          JSON.stringify({ artifact: { id: "skill-1", title: "Invoice Auditor" } }),
+          JSON.stringify({
+            artifact: { id: "skill-1", title: "Invoice Auditor" },
+          }),
           { status: 201 }
         )
       }
@@ -374,9 +447,12 @@ describe("new-submit tool tab (zip bundle flow)", () => {
     fireEvent.change(screen.getByPlaceholderText("e.g. 1.0.0"), {
       target: { value: "2.1.0" },
     })
-    fireEvent.change(screen.getByPlaceholderText("Core value or pitch of this skill..."), {
-      target: { value: "Audits invoices." },
-    })
+    fireEvent.change(
+      screen.getByPlaceholderText("Core value or pitch of this skill..."),
+      {
+        target: { value: "Audits invoices." },
+      }
+    )
     fireEvent.change(screen.getByPlaceholderText(/## Persona/), {
       target: { value: "## Persona\n\nBe careful." },
     })
@@ -414,11 +490,15 @@ describe("new-submit tool tab (zip bundle flow)", () => {
     renderPage()
     openToolTab()
 
-    const file = new File(["zip bytes"], "usdc-payments.zip", { type: "application/zip" })
+    const file = new File(["zip bytes"], "usdc-payments.zip", {
+      type: "application/zip",
+    })
     selectFile(file)
 
     await waitFor(() =>
-      expect(screen.getByPlaceholderText("e.g. usdc-payments")).toHaveValue("usdc-payments")
+      expect(screen.getByPlaceholderText("e.g. usdc-payments")).toHaveValue(
+        "usdc-payments"
+      )
     )
     expect(screen.getByText("Inspected")).toBeInTheDocument()
 
@@ -437,10 +517,14 @@ describe("new-submit tool tab (zip bundle flow)", () => {
     renderPage()
     openToolTab()
 
-    const file = new File(["wasm bytes"], "usdc.wasm", { type: "application/wasm" })
+    const file = new File(["wasm bytes"], "usdc.wasm", {
+      type: "application/wasm",
+    })
     selectFile(file)
 
-    expect(screen.getByText("Only .zip archives are accepted.")).toBeInTheDocument()
+    expect(
+      screen.getByText("Only .zip archives are accepted.")
+    ).toBeInTheDocument()
 
     // Switch to Skill mode
     fireEvent.click(screen.getByRole("button", { name: /^skill\b/i }))
@@ -448,6 +532,8 @@ describe("new-submit tool tab (zip bundle flow)", () => {
     // Switch back to Tool mode
     openToolTab()
 
-    expect(screen.queryByText("Only .zip archives are accepted.")).not.toBeInTheDocument()
+    expect(
+      screen.queryByText("Only .zip archives are accepted.")
+    ).not.toBeInTheDocument()
   })
 })

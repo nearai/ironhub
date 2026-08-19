@@ -139,7 +139,14 @@ export default function DashboardPage() {
         matchesCategory
       )
     })
-  }, [items, search, typeFilter, statusFilter, visibilityFilter, categoryFilter])
+  }, [
+    items,
+    search,
+    typeFilter,
+    statusFilter,
+    visibilityFilter,
+    categoryFilter,
+  ])
 
   const handleClearFilters = () => {
     setSearch("")
@@ -158,7 +165,7 @@ export default function DashboardPage() {
       cell: (row) => (
         <Link
           href={`/mvp/manage/${row.id}`}
-          className="group block min-w-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="group block min-w-0 rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           <div className="truncate text-sm font-medium text-foreground group-hover:text-near-cobalt dark:group-hover:text-primary">
             {row.title}
@@ -189,7 +196,7 @@ export default function DashboardPage() {
         row.category ? (
           <span className="text-sm text-foreground">{row.category}</span>
         ) : (
-          <span className="text-sm italic text-muted-foreground">
+          <span className="text-sm text-muted-foreground italic">
             Uncategorised
           </span>
         ),
@@ -355,7 +362,7 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-3 rounded-xl border border-[var(--ironhub-line)] bg-card p-3 shadow-[var(--ironhub-shadow)]">
             <div className="relative w-full">
               <IconSearch
-                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
                 aria-hidden="true"
               />
               <Input
@@ -392,7 +399,9 @@ export default function DashboardPage() {
                 className="w-full sm:w-auto"
                 selectClassName="h-10 rounded-lg"
               >
-                <NativeSelectOption value="all">All statuses</NativeSelectOption>
+                <NativeSelectOption value="all">
+                  All statuses
+                </NativeSelectOption>
                 <NativeSelectOption value="draft">
                   {filterOptionLabel("Status", "Drafts")}
                 </NativeSelectOption>
@@ -439,7 +448,7 @@ export default function DashboardPage() {
                 ))}
               </NativeSelect>
 
-              <div className="hidden md:block md:ml-auto">
+              <div className="hidden md:ml-auto md:block">
                 <ViewToggle
                   value={view}
                   onChange={handleViewChange}

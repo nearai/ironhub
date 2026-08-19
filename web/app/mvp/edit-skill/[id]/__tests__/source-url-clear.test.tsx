@@ -86,7 +86,9 @@ describe("edit-skill page — clearing the repository link", () => {
             { status: 200 }
           )
         }
-        return new Response(JSON.stringify({ artifact: BASE_ARTIFACT }), { status: 200 })
+        return new Response(JSON.stringify({ artifact: BASE_ARTIFACT }), {
+          status: 200,
+        })
       }
       if (url === "/api/private-artifacts/skill-1/content/skill_md") {
         if (init?.method === "PUT") return new Response(null, { status: 201 })
@@ -102,7 +104,9 @@ describe("edit-skill page — clearing the repository link", () => {
 
     await renderPage()
 
-    const repoInput = await screen.findByPlaceholderText("https://github.com/org/repo")
+    const repoInput = await screen.findByPlaceholderText(
+      "https://github.com/org/repo"
+    )
     await waitFor(() => expect(repoInput).toHaveValue(BASE_ARTIFACT.sourceUrl))
 
     const saveButton = screen.getByRole("button", { name: /save changes/i })
@@ -117,7 +121,9 @@ describe("edit-skill page — clearing the repository link", () => {
     fireEvent.change(repoInput, { target: { value: "" } })
     fireEvent.click(saveButton)
 
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/mvp/manage/skill-1"))
+    await waitFor(() =>
+      expect(pushMock).toHaveBeenCalledWith("/mvp/manage/skill-1")
+    )
 
     const patchCall = vi
       .mocked(fetch)
