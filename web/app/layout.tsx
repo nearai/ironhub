@@ -5,6 +5,7 @@ import localFont from "next/font/local"
 import { SiteShell } from "@/features/shell/components/site-shell"
 import { ThemeProvider } from "@/features/shell/components/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { ToastProvider } from "@/features/partner/store/toast-provider"
 import { StructuredData } from "@/components/structured-data"
 import { buildSiteJsonLd } from "@/lib/discovery/json-ld"
 import { siteConfig, siteUrl } from "@/lib/discovery/site"
@@ -101,7 +102,12 @@ export default function RootLayout({
         <StructuredData id="ironhub-site-jsonld" data={buildSiteJsonLd()} />
         <TooltipProvider>
           <ThemeProvider defaultTheme="light">
-            <SiteShell>{children}</SiteShell>
+            {/* Single provider for the whole tree (design D1): the header's
+                notification bell and every workspace screen below it share
+                one feedback stack instead of each mounting its own. */}
+            <ToastProvider>
+              <SiteShell>{children}</SiteShell>
+            </ToastProvider>
           </ThemeProvider>
         </TooltipProvider>
       </body>

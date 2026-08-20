@@ -59,7 +59,7 @@ export function WorkspacePageHeader({
           )}
         </div>
         {action && (
-          <div className="flex shrink-0 items-center gap-2 sm:self-start">
+          <div className="flex min-w-0 items-center gap-2 sm:self-start">
             {action}
           </div>
         )}

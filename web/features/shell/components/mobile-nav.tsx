@@ -28,10 +28,11 @@ import {
 import { links } from "@/lib/shared/links"
 import { BrandMark } from "./brand-mark"
 import { visibleNavItems } from "./nav-items"
+import { isWorkspaceRoute } from "./nav-utils"
 
 export function MobileNav() {
   const pathname = usePathname()
-  const isMvp = pathname?.startsWith("/mvp")
+  const isWorkspace = isWorkspaceRoute(pathname)
 
   return (
     <Sheet>
@@ -50,33 +51,33 @@ export function MobileNav() {
           <BrandMark />
           <SheetTitle className="sr-only">IronHub navigation</SheetTitle>
           <SheetDescription>
-            {isMvp
-              ? "Manage organization submissions, webhooks, and team access."
+            {isWorkspace
+              ? "Manage your organization's catalog, members, and settings."
               : "Browse IronClaw extensions, tools, docs, and agent loadouts."}
           </SheetDescription>
         </SheetHeader>
         <nav className="grid gap-1 px-3">
-          {isMvp ? (
+          {isWorkspace ? (
             <>
               <SheetClose asChild>
                 <Button asChild variant="ghost" className="justify-start">
-                  <Link href="/mvp/dashboard">
+                  <Link href="/dashboard/catalog">
                     <IconLayoutDashboard className="mr-2 size-4" />
-                    Dashboard
+                    Catalog
                   </Link>
                 </Button>
               </SheetClose>
               <SheetClose asChild>
                 <Button asChild variant="ghost" className="justify-start">
-                  <Link href="/mvp/team">
+                  <Link href="/dashboard/team">
                     <IconUsers className="mr-2 size-4" />
-                    Team Members
+                    Members
                   </Link>
                 </Button>
               </SheetClose>
               <SheetClose asChild>
                 <Button asChild variant="ghost" className="justify-start">
-                  <Link href="/mvp/settings">
+                  <Link href="/dashboard/settings">
                     <IconSettings className="mr-2 size-4" />
                     Settings
                   </Link>
@@ -109,41 +110,51 @@ export function MobileNav() {
             ))
           )}
         </nav>
-        {!isMvp && (
-          <SheetFooter>
-            {!isAccountRouteDisabled && (
+        {/* The account entry no longer depends on isWorkspace (it used to
+            hide here on workspace routes, leaving a member with no route to
+            their account from the mobile menu). The marketing CTAs below it
+            still only make sense outside the workspace. */}
+        <SheetFooter>
+          {!isAccountRouteDisabled && (
+            <SheetClose asChild>
+              <Button asChild variant="outline">
+                <Link href="/account">Account</Link>
+              </Button>
+            </SheetClose>
+          )}
+          {!isWorkspace && (
+            <>
               <SheetClose asChild>
-                <Button asChild variant="outline">
-                  <Link href="/account">Account</Link>
+                <Button asChild>
+                  <a href={links.newSkill} target="_blank" rel="noreferrer">
+                    <IconPlus />
+                    Create Skill
+                  </a>
                 </Button>
               </SheetClose>
-            )}
-            <SheetClose asChild>
-              <Button asChild>
-                <a href={links.newSkill} target="_blank" rel="noreferrer">
-                  <IconPlus />
-                  Create Skill
-                </a>
-              </Button>
-            </SheetClose>
-            <SheetClose asChild>
-              <Button asChild variant="outline">
-                <a href={links.docs} target="_blank" rel="noreferrer">
-                  <IconBook />
-                  Docs
-                </a>
-              </Button>
-            </SheetClose>
-            <SheetClose asChild>
-              <Button asChild variant="outline">
-                <a href={links.suggestFeature} target="_blank" rel="noreferrer">
-                  <IconBulb />
-                  Suggest Feature
-                </a>
-              </Button>
-            </SheetClose>
-          </SheetFooter>
-        )}
+              <SheetClose asChild>
+                <Button asChild variant="outline">
+                  <a href={links.docs} target="_blank" rel="noreferrer">
+                    <IconBook />
+                    Docs
+                  </a>
+                </Button>
+              </SheetClose>
+              <SheetClose asChild>
+                <Button asChild variant="outline">
+                  <a
+                    href={links.suggestFeature}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <IconBulb />
+                    Suggest Feature
+                  </a>
+                </Button>
+              </SheetClose>
+            </>
+          )}
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   )
