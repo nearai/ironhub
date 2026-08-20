@@ -27,3 +27,7 @@ docker/dev-stack/data/
 .docker-data/
 pg-data/
 seaweedfs-data/
+
+# Crash dumps (a stray rtk core dump was committed once; keep it out)
+core
+core.*
