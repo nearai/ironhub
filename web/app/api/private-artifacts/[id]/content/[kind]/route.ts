@@ -2,6 +2,7 @@ import { requireActiveOrganization } from "@/lib/auth/org-context"
 import { assertSameOriginRequest, handleApiError } from "@/lib/http/api"
 import {
   CONTENT_MEDIA_TYPES,
+  contentDownloadFilename,
   describeLimit,
   getArtifactContentMetadata,
   MAX_CONTENT_BYTES_BY_KIND,
@@ -10,7 +11,10 @@ import {
   storeArtifactContent,
 } from "@/lib/private-artifacts/content"
 import { relayStoredObject } from "@/lib/private-artifacts/relay"
-import { deletePrivateArtifactContentRow } from "@/lib/private-artifacts/service"
+import {
+  deletePrivateArtifactContentRow,
+  getPrivateArtifact,
+} from "@/lib/private-artifacts/service"
 import { deleteObject, getPresignedDownloadUrl } from "@/lib/storage"
 
 type Params = {
@@ -26,7 +30,7 @@ const PRESIGNED_URL_TTL_SECONDS = 300
 // "artifact isn't in this org" and "no content of this kind" -- that's
 // intentional, it's what keeps this route from leaking artifact existence
 // across orgs.
-export async function GET(_request: Request, { params }: Params) {
+export async function GET(request: Request, { params }: Params) {
   try {
     const { organizationId } = await requireActiveOrganization()
     const { id, kind } = await params
@@ -38,6 +42,19 @@ export async function GET(_request: Request, { params }: Params) {
       contentKind
     )
 
+    // `?download=1` is opt-in: the edit pages read these same URLs to seed
+    // their editors and must keep getting an inline body. Only the explicit
+    // download affordance asks to be saved to disk, and only then is the
+    // artifact looked up for its name.
+    const wantsDownload =
+      new URL(request.url).searchParams.get("download") === "1"
+    const contentDisposition = wantsDownload
+      ? `attachment; filename="${contentDownloadFilename(
+          contentKind,
+          (await getPrivateArtifact(organizationId, id)).name
+        )}"`
+      : undefined
+
     // This route MAY redirect where its agent-facing sibling
     // (`[token]/route.ts`) may not, and the two must not be "unified" by
     // giving both the same answer. The caller here is a browser, which
@@ -47,7 +64,15 @@ export async function GET(_request: Request, { params }: Params) {
     // policy pinned to the hub's host alone, so the same 302 is denied there
     // (C5 / design.md D2). Same bytes, different transport, because the two
     // clients enforce different rules about where those bytes may come from.
-    if (REDIRECT_CONTENT_KINDS.has(contentKind)) {
+    // A download is relayed even for the redirect kinds. The 302 hands the
+    // browser a URL on the object store's own host, which is a second network
+    // path that does not have to be reachable from wherever the browser runs
+    // — in the dev stack it is not, and the download simply fails. Those bytes
+    // only ever move when a person clicks Download, so paying to stream them
+    // through this process buys a link that works on every deployment
+    // topology, and lets the filename be set here rather than signed into a
+    // URL.
+    if (REDIRECT_CONTENT_KINDS.has(contentKind) && !wantsDownload) {
       const url = await getPresignedDownloadUrl(
         content.storageKey,
         PRESIGNED_URL_TTL_SECONDS
@@ -58,11 +83,15 @@ export async function GET(_request: Request, { params }: Params) {
       })
     }
 
-    return await relayStoredObject({
+    const response = await relayStoredObject({
       storageKey: content.storageKey,
       sizeBytes: content.sizeBytes,
       contentType: CONTENT_MEDIA_TYPES[contentKind],
     })
+    if (contentDisposition) {
+      response.headers.set("Content-Disposition", contentDisposition)
+    }
+    return response
   } catch (error) {
     return handleApiError(error)
   }

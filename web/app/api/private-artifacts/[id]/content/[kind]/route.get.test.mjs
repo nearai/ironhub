@@ -8,6 +8,7 @@ import { mock, test } from "node:test"
 
 let metadataResult = null
 let metadataError = null
+const presignCalls = []
 let objectStreamImpl = async () => new Uint8Array([1, 2, 3, 4])
 
 mock.module("@/lib/auth/org-context", {
@@ -36,6 +37,7 @@ const {
   REDIRECT_CONTENT_KINDS,
   describeLimit,
   parseContentKind: realParseContentKind,
+  contentDownloadFilename: realContentDownloadFilename,
 } = await import("@/lib/private-artifacts/content.ts")
 
 mock.module("@/lib/private-artifacts/content", {
@@ -45,6 +47,7 @@ mock.module("@/lib/private-artifacts/content", {
     REDIRECT_CONTENT_KINDS,
     describeLimit,
     parseContentKind: realParseContentKind,
+    contentDownloadFilename: realContentDownloadFilename,
     getArtifactContentMetadata: async () => {
       if (metadataError) throw metadataError
       return metadataResult
@@ -62,14 +65,18 @@ mock.module("@/lib/private-artifacts/service", {
     deletePrivateArtifactContentRow: async () => {
       throw new Error("not used in these tests")
     },
+    // Only read on the `?download=1` path, for the filename.
+    getPrivateArtifact: async () => ({ id: "artifact-1", name: "my-tool" }),
   },
 })
 
 mock.module("@/lib/storage", {
   namedExports: {
     getObjectStream: async (key) => objectStreamImpl(key),
-    getPresignedDownloadUrl: async (storageKey, ttlSeconds) =>
-      `https://storage.test/${storageKey}?ttl=${ttlSeconds}`,
+    getPresignedDownloadUrl: async (storageKey, ttlSeconds) => {
+      presignCalls.push({ storageKey, ttlSeconds })
+      return `https://storage.test/${storageKey}?ttl=${ttlSeconds}`
+    },
     deleteObject: async () => {},
   },
 })
@@ -79,6 +86,61 @@ const { GET } = await import("./route.ts")
 function makeParams(kind = "skill_md", id = "artifact-1") {
   return { params: Promise.resolve({ id, kind }) }
 }
+
+test("names the file only when ?download=1 is asked for, and streams inline otherwise", async () => {
+  metadataError = null
+  metadataResult = { storageKey: "private-artifacts/org-1/artifact-1/skill_md", sizeBytes: 42 }
+  objectStreamImpl = async () => new Uint8Array([1, 2, 3, 4])
+
+  // The edit form reads this same URL to seed its editor, so the default must
+  // stay inline -- a Content-Disposition here would make the browser download
+  // the file instead of the page reading it.
+  const inline = await GET(new Request("http://localhost/x"), makeParams("skill_md"))
+  assert.equal(inline.headers.get("content-disposition"), null)
+
+  const download = await GET(
+    new Request("http://localhost/x?download=1"),
+    makeParams("skill_md")
+  )
+  assert.equal(
+    download.headers.get("content-disposition"),
+    'attachment; filename="SKILL.md"'
+  )
+})
+
+test("relays a download of a redirect kind instead of handing out a storage URL", async () => {
+  metadataError = null
+  metadataResult = { storageKey: "private-artifacts/org-1/artifact-1/bundle_zip", sizeBytes: 900 }
+  objectStreamImpl = async () => new Uint8Array([80, 75, 3, 4])
+  presignCalls.length = 0
+
+  // The 302 points at the object store's own host, which need not be
+  // reachable from wherever the browser runs. A download must not depend on
+  // that second network path.
+  const response = await GET(
+    new Request("http://localhost/x?download=1"),
+    makeParams("bundle_zip")
+  )
+
+  assert.equal(response.status, 200)
+  assert.equal(presignCalls.length, 0)
+  assert.equal(response.headers.get("content-type"), "application/zip")
+  assert.equal(
+    response.headers.get("content-disposition"),
+    'attachment; filename="my-tool.zip"'
+  )
+})
+
+test("still redirects a redirect kind when no download was asked for", async () => {
+  metadataError = null
+  metadataResult = { storageKey: "private-artifacts/org-1/artifact-1/wasm", sizeBytes: 8 }
+  presignCalls.length = 0
+
+  const response = await GET(new Request("http://localhost/x"), makeParams("wasm"))
+
+  assert.equal(response.status, 302)
+  assert.equal(presignCalls.length, 1)
+})
 
 test("streams a text kind inline with the kind's media type and no-store caching", async () => {
   metadataError = null

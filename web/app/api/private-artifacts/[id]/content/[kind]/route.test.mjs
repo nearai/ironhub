@@ -31,6 +31,7 @@ const {
   MAX_CONTENT_BYTES_BY_KIND,
   REDIRECT_CONTENT_KINDS,
   describeLimit: realDescribeLimit,
+  contentDownloadFilename: realContentDownloadFilename,
 } = await import("@/lib/private-artifacts/content.ts")
 
 mock.module("@/lib/private-artifacts/content", {
@@ -45,6 +46,7 @@ mock.module("@/lib/private-artifacts/content", {
     // manifest_toml and bundle_zip undefined.
     CONTENT_MEDIA_TYPES,
     REDIRECT_CONTENT_KINDS,
+    contentDownloadFilename: realContentDownloadFilename,
     getArtifactContentMetadata: async () => {
       throw new Error("not used by the PUT tests in this file")
     },

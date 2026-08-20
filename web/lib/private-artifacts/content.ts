@@ -65,6 +65,36 @@ export const REDIRECT_CONTENT_KINDS: ReadonlySet<ContentKind> = new Set([
   "bundle_zip",
 ])
 
+/**
+ * A filename an owner would recognise when they download a stored file.
+ *
+ * The storage key is a UUID path, so without this the browser saves every
+ * download under an opaque name. `skill_md` and `manifest_toml` keep their
+ * canonical filenames (they are that file); the rest are named after the
+ * artifact, matching how they arrive inside an uploaded package.
+ */
+export function contentDownloadFilename(
+  kind: ContentKind,
+  artifactName: string
+): string {
+  const safeName =
+    artifactName.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") ||
+    "download"
+
+  switch (kind) {
+    case "skill_md":
+      return "SKILL.md"
+    case "manifest_toml":
+      return "manifest.toml"
+    case "capabilities":
+      return `${safeName}.capabilities.json`
+    case "wasm":
+      return `${safeName}.wasm`
+    case "bundle_zip":
+      return `${safeName}.zip`
+  }
+}
+
 export function parseContentKind(value: string): ContentKind {
   if (!(CONTENT_KINDS as readonly string[]).includes(value)) {
     throw new Response(`Invalid content kind: ${value}`, { status: 400 })

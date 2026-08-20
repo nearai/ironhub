@@ -22,6 +22,17 @@ export interface ArtifactContent {
   createdAt: string
 }
 
+/**
+ * A schema or prompt file the tool's manifest declares, stored under the path
+ * the manifest spells. Returned by the detail read only.
+ */
+export interface ArtifactAsset {
+  kind: "schema" | "prompt"
+  path: string
+  sha256: string
+  sizeBytes: number
+}
+
 export interface PrivateArtifact {
   id: string
   organizationId: string
@@ -36,6 +47,7 @@ export interface PrivateArtifact {
   description: string | null
   sourceUrl: string | null
   content: ArtifactContent[]
+  assets?: ArtifactAsset[]
   createdAt: string
   updatedAt: string
 }
@@ -133,10 +145,11 @@ export function useArtifact(id: string | undefined) {
     queryKey: id ? artifactKey(id) : ["private-artifacts", "unknown"],
     queryFn: () =>
       fetchJson<{ artifact: PrivateArtifact }>(`/api/private-artifacts/${id}`),
-    // Defensive: tolerate a missing/empty content array from the API.
+    // Defensive: tolerate a missing/empty content or asset array from the API.
     select: (data) => ({
       ...data.artifact,
       content: data.artifact.content ?? [],
+      assets: data.artifact.assets ?? [],
     }),
     enabled: Boolean(id),
   })

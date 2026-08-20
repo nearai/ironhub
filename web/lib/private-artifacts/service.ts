@@ -45,6 +45,15 @@ const CONTENT_SUMMARY_SELECT = {
   createdAt: true,
 } as const
 
+// Same rule as above: `path` is the asset's identity to a reader, storageKey
+// is not theirs to see.
+const ASSET_SUMMARY_SELECT = {
+  kind: true,
+  path: true,
+  sizeBytes: true,
+  sha256: true,
+} as const
+
 export async function listPrivateArtifacts(organizationId: string) {
   return prisma.privateArtifact.findMany({
     where: { organizationId },
@@ -56,7 +65,14 @@ export async function listPrivateArtifacts(organizationId: string) {
 export async function getPrivateArtifact(organizationId: string, id: string) {
   const artifact = await prisma.privateArtifact.findFirst({
     where: { id, organizationId },
-    include: { content: { select: CONTENT_SUMMARY_SELECT } },
+    include: {
+      content: { select: CONTENT_SUMMARY_SELECT },
+      // Included on the single-artifact read only: the owner's item page
+      // lists what the hub actually stored and will serve, and the declared
+      // schema/prompt files are half of that. The catalog listing has no use
+      // for them and should not pay for the join.
+      assets: { select: ASSET_SUMMARY_SELECT, orderBy: { path: "asc" } },
+    },
   })
 
   if (!artifact) {
