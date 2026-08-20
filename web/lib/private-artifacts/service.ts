@@ -3,7 +3,6 @@ import { randomUUID } from "node:crypto"
 import { CATEGORIES } from "../catalog/inference"
 import { prisma } from "../db"
 import { Prisma } from "../prisma/client"
-import { getObjectStream } from "../storage"
 import { verifyPrivateArtifact } from "./verification"
 
 const ARTIFACT_TYPES = ["skill", "tool"] as const
@@ -350,10 +349,15 @@ export async function getArtifactChecks(
     // fails and names it -- a second row calling the same fact a `warn`
     // read as contradictory (one row implying the absence is tolerable,
     // the other being the hard publish gate). One fact, one row.
-    checks.push(
-      await checkCapabilitiesValidJson(organizationId, id, presentKinds)
-    )
-
+    // No capabilities check either. `*.capabilities.json` is the legacy
+    // carrier of data reborn.extension_manifest.v3 moved into manifest.toml,
+    // the agent stores whatever we publish under `legacy/capabilities.json`
+    // and never reads it (ironclaw-contract.ts), and nothing in the workspace
+    // offers to add or edit one any more. A row about a file the owner cannot
+    // see, cannot act on, and that no installer opens is noise on the one
+    // panel that is supposed to say why publishing is blocked. The bound that
+    // still matters -- its size -- is enforced by the agent_contract check
+    // below (verification.ts `capabilities_size`).
     checks.push(
       presentKinds.has("wasm")
         ? {
@@ -484,8 +488,7 @@ async function checkAgentContract(
   } catch (error) {
     // Storage unreachable, an unparseable stored document, anything that is
     // not a verdict about the artifact. Reporting it as `fail` would tell the
-    // owner their artifact is broken when the infrastructure is -- the same
-    // distinction checkCapabilitiesValidJson draws below.
+    // owner their artifact is broken when the infrastructure is.
     console.error(
       `Failed to verify publishable entry for artifact ${artifactId}:`,
       error
@@ -507,96 +510,6 @@ async function checkAgentContract(
       ? "The entry this artifact publishes satisfies the agent's asset, size, and manifest limits."
       : result.failures.map((failure) => failure.message).join(" "),
   }
-}
-
-async function checkCapabilitiesValidJson(
-  organizationId: string,
-  artifactId: string,
-  presentKinds: Set<string>
-): Promise<ArtifactCheck> {
-  const label = "Capabilities file is valid JSON"
-
-  // capabilities is optional (design.md D3): manifest.toml now owns the
-  // data it used to carry, so a tool with no capabilities row is a
-  // legitimate state, not a defect — this must not report `fail` merely
-  // because there is no row. Nothing was read either, so it may not report
-  // `pass` — the manage page renders these verbatim and a green tick here
-  // would claim a file we never opened. `warn` is the only honest status.
-  if (!presentKinds.has("capabilities")) {
-    return {
-      id: "capabilities_valid_json",
-      label,
-      status: "warn",
-      detail: "No capabilities content is stored, so it could not be checked.",
-    }
-  }
-
-  // A content row that vanished between the presence check above and here
-  // (race) and an unreachable object store are both infrastructure/timing
-  // problems, not corrupt data — reporting either as `fail` would tell the
-  // owner their file is broken when it is fine, so this stays a single
-  // "could not verify" path distinguishable from an actual parse failure.
-  let bytes: Buffer
-  try {
-    const content = await prisma.privateArtifactContent.findFirst({
-      where: { artifactId, kind: "capabilities", artifact: { organizationId } },
-      select: { storageKey: true },
-    })
-    if (!content) {
-      throw new Error("capabilities content row not found")
-    }
-    bytes = await streamToBuffer(await getObjectStream(content.storageKey))
-  } catch (error) {
-    console.error(
-      `Failed to read capabilities content for artifact ${artifactId}:`,
-      error
-    )
-    return {
-      id: "capabilities_valid_json",
-      label,
-      status: "warn",
-      detail: "Stored capabilities content could not be read from storage.",
-    }
-  }
-
-  try {
-    JSON.parse(bytes.toString("utf8"))
-  } catch {
-    return {
-      id: "capabilities_valid_json",
-      label,
-      status: "fail",
-      detail: "Stored capabilities content does not parse as JSON.",
-    }
-  }
-
-  return {
-    id: "capabilities_valid_json",
-    label,
-    status: "pass",
-    detail: "Stored capabilities content parses as JSON.",
-  }
-}
-
-// Mirrors the SdkStreamMixin handling in scripts/storage-smoke.ts — the S3
-// client's Node runtime attaches transformToByteArray() to the Body stream.
-async function streamToBuffer(stream: unknown): Promise<Buffer> {
-  if (stream instanceof Uint8Array) {
-    return Buffer.from(stream)
-  }
-  if (
-    stream &&
-    typeof stream === "object" &&
-    "transformToByteArray" in stream &&
-    typeof (stream as { transformToByteArray: unknown })
-      .transformToByteArray === "function"
-  ) {
-    const bytes = await (
-      stream as { transformToByteArray: () => Promise<Uint8Array> }
-    ).transformToByteArray()
-    return Buffer.from(bytes)
-  }
-  throw new Error("Unsupported stream type returned by getObjectStream")
 }
 
 export async function deletePrivateArtifactContentRow(

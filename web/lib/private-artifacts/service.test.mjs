@@ -52,11 +52,16 @@ function makeFakeDb() {
       privateArtifactContent: {
         findFirst: async ({ where }) => {
           const record = artifacts.get(where.artifactId)
-          if (!record || record.organizationId !== where.artifact.organizationId) {
+          if (
+            !record ||
+            record.organizationId !== where.artifact.organizationId
+          ) {
             return null
           }
           const hasKind = record.content.some((c) => c.kind === where.kind)
-          return hasKind ? { storageKey: `${where.artifactId}/${where.kind}` } : null
+          return hasKind
+            ? { storageKey: `${where.artifactId}/${where.kind}` }
+            : null
         },
       },
     },
@@ -385,7 +390,6 @@ test("getArtifactChecks reports every check pass/warn and publishable for a comp
   const ids = checks.map((check) => check.id)
   assert.deepEqual(ids, [
     "content_complete",
-    "capabilities_valid_json",
     "wasm_present",
     "agent_contract",
     "category_set",
@@ -412,21 +416,34 @@ test("getArtifactChecks reports skill_md_present for a skill artifact", async ()
   assert.equal(categoryCheck.status, "fail")
 })
 
-test("getArtifactChecks reports capabilities_valid_json as fail when the stored bytes do not parse", async () => {
+test("getArtifactChecks says nothing about a capabilities document", async () => {
+  // Removed deliberately: *.capabilities.json is the legacy carrier of data
+  // manifest.toml owns under reborn.extension_manifest.v3, the agent files it
+  // under `legacy/capabilities.json` and never reads it, and no workspace
+  // surface offers to add or fix one -- so a row about it could only tell an
+  // owner to act on a file they cannot see. Even stored bytes that do not
+  // parse produce no check.
   objectBytes = new TextEncoder().encode("not json")
 
   const seeded = seedArtifact({
     id: "checks-corrupt-capabilities",
     type: "tool",
     category: "Dev Tools",
-    content: [{ kind: "wasm" }, { kind: "capabilities" }],
+    content: [
+      { kind: "wasm" },
+      { kind: "manifest_toml" },
+      { kind: "capabilities" },
+    ],
   })
 
   const { checks, publishable } = await getArtifactChecks("org-1", seeded.id)
-  const capCheck = checks.find((check) => check.id === "capabilities_valid_json")
 
-  assert.equal(capCheck.status, "fail")
-  assert.equal(publishable, false)
+  assert.equal(
+    checks.find((check) => check.id === "capabilities_valid_json"),
+    undefined
+  )
+  assert.ok(checks.every((check) => !/capabilit/i.test(check.label)))
+  assert.equal(publishable, true)
 })
 
 test("getArtifactChecks warns rather than fails when the signing key is unset", async () => {
@@ -440,7 +457,11 @@ test("getArtifactChecks warns rather than fails when the signing key is unset", 
     // Content complete (wasm + manifest_toml per design.md D3) so the only
     // thing under test -- the signing-key check -- is isolated from
     // content_complete also failing and dragging publishable down with it.
-    content: [{ kind: "wasm" }, { kind: "capabilities" }, { kind: "manifest_toml" }],
+    content: [
+      { kind: "wasm" },
+      { kind: "capabilities" },
+      { kind: "manifest_toml" },
+    ],
   })
 
   const { checks, publishable } = await getArtifactChecks("org-1", seeded.id)
@@ -450,57 +471,6 @@ test("getArtifactChecks warns rather than fails when the signing key is unset", 
 
   assert.equal(signingCheck.status, "warn")
   assert.equal(publishable, true)
-})
-
-test("getArtifactChecks never reports capabilities_valid_json as pass when nothing was read", async () => {
-  objectBytes = new TextEncoder().encode("{}")
-
-  const seeded = seedArtifact({
-    id: "checks-absent-capabilities",
-    type: "tool",
-    category: "Dev Tools",
-    content: [{ kind: "wasm" }],
-  })
-
-  const { checks } = await getArtifactChecks("org-1", seeded.id)
-  const capCheck = checks.find((check) => check.id === "capabilities_valid_json")
-
-  // A green tick here would claim a file that was never opened.
-  assert.equal(capCheck.status, "warn")
-  // Absence is already reported by content_complete; it must not double-fail.
-  const completeCheck = checks.find((check) => check.id === "content_complete")
-  assert.equal(completeCheck.status, "fail")
-})
-
-test("getArtifactChecks warns rather than fails when capabilities cannot be read from storage", async () => {
-  storageError = new Error("S3 unreachable")
-  const originalConsoleError = console.error
-  console.error = () => {}
-
-  try {
-    const seeded = seedArtifact({
-      id: "checks-unreadable-capabilities",
-      type: "tool",
-      category: "Dev Tools",
-      // Content complete (wasm + manifest_toml) so the only thing under
-      // test -- the storage-read failure -- is isolated from
-      // content_complete also failing and dragging publishable down with it.
-      content: [{ kind: "wasm" }, { kind: "capabilities" }, { kind: "manifest_toml" }],
-    })
-
-    const { checks, publishable } = await getArtifactChecks("org-1", seeded.id)
-    const capCheck = checks.find(
-      (check) => check.id === "capabilities_valid_json"
-    )
-
-    // Infrastructure failure must not be reported as corrupt data.
-    assert.equal(capCheck.status, "warn")
-    assert.match(capCheck.detail, /could not be read/)
-    assert.equal(publishable, true)
-  } finally {
-    console.error = originalConsoleError
-    storageError = null
-  }
 })
 
 // --- cross-organization scoping -------------------------------------------
