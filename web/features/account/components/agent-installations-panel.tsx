@@ -45,8 +45,8 @@ export function AgentInstallationsPanel({
   const isPending = pendingAction !== null
 
   return (
-    <div className="grid gap-7">
-      <div className="flex items-start gap-4">
+    <div className="grid grid-cols-1 gap-7">
+      <div className="flex min-w-0 items-start gap-4">
         <span className="grid size-9 shrink-0 place-items-center rounded-full border border-[var(--ironhub-line)] bg-primary/10 text-primary">
           <IconShieldCheck className="size-5" />
         </span>
@@ -60,7 +60,7 @@ export function AgentInstallationsPanel({
         </div>
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid grid-cols-1 gap-4">
         {error ? (
           <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {describeInstallationError(error)}

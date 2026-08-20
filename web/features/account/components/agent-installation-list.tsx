@@ -30,13 +30,13 @@ export function AgentInstallationList({
   }
 
   return (
-    <div className="grid gap-3">
+    <div className="grid grid-cols-1 gap-3">
       {installations.map((installation) => (
         <div
           key={installation.id}
-          className="grid gap-3 rounded-lg border border-border/70 bg-background/45 p-4"
+          className="grid grid-cols-1 gap-3 rounded-lg border border-border/70 bg-background/45 p-4"
         >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="font-heading font-semibold">

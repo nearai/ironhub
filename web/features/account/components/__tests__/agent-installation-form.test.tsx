@@ -17,9 +17,18 @@ function generateResponse(sharedKey: string) {
   })
 }
 
+const AUTO_KEY = `ihub_sk_${"a".repeat(40)}`
+
 describe("AgentInstallationForm", () => {
   beforeEach(() => {
-    vi.stubGlobal("fetch", vi.fn())
+    window.localStorage.clear()
+    // The form mints a key as soon as it opens, so every render performs this
+    // call -- a factory, not a fixed value, because a Response body can only
+    // be consumed once.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(generateResponse(AUTO_KEY)))
+    )
     Object.defineProperty(navigator, "clipboard", {
       value: { writeText: vi.fn().mockResolvedValue(undefined) },
       configurable: true,
@@ -28,6 +37,7 @@ describe("AgentInstallationForm", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals()
+    window.localStorage.clear()
   })
 
   it("defaults to the generate option and shows its restart instructions", () => {
@@ -68,17 +78,22 @@ describe("AgentInstallationForm", () => {
     ).not.toBeInTheDocument()
   })
 
-  it("generates a key and populates the field", async () => {
+  it("opens with a key already minted, without the user asking for one", async () => {
     const sharedKey = `ihub_sk_${"b".repeat(40)}`
-    vi.mocked(fetch).mockResolvedValueOnce(generateResponse(sharedKey))
+    vi.mocked(fetch).mockImplementationOnce(() =>
+      Promise.resolve(generateResponse(sharedKey))
+    )
     render(<AgentInstallationForm isPending={false} onSubmit={vi.fn()} />)
-
-    fireEvent.click(screen.getByRole("button", { name: "Generate shared key" }))
 
     await waitFor(() =>
       expect(screen.getByLabelText("IronClaw shared key")).toHaveValue(
         sharedKey
       )
+    )
+    // Minted here, so it is also remembered here: a reload must not hand the
+    // user a different key from the one their agent was configured with.
+    expect(window.localStorage.getItem("ironhub.account.agentSharedKey")).toBe(
+      sharedKey
     )
     // A generated key is revealed immediately -- there is nothing sensitive
     // about seeing what the hub itself just produced.
@@ -88,12 +103,30 @@ describe("AgentInstallationForm", () => {
     )
   })
 
-  it("copies the shared key to the clipboard", async () => {
-    const sharedKey = `ihub_sk_${"c".repeat(40)}`
-    vi.mocked(fetch).mockResolvedValueOnce(generateResponse(sharedKey))
+  it("restores the key this browser already holds instead of minting another", async () => {
+    const stored = `ihub_sk_${"d".repeat(40)}`
+    window.localStorage.setItem("ironhub.account.agentSharedKey", stored)
     render(<AgentInstallationForm isPending={false} onSubmit={vi.fn()} />)
 
-    fireEvent.click(screen.getByRole("button", { name: "Generate shared key" }))
+    await waitFor(() =>
+      expect(screen.getByLabelText("IronClaw shared key")).toHaveValue(stored)
+    )
+    expect(fetch).not.toHaveBeenCalled()
+    // A key carried over from a previous visit stays masked: the user asked
+    // for it to be here, not for it to be on screen.
+    expect(screen.getByLabelText("IronClaw shared key")).toHaveAttribute(
+      "type",
+      "password"
+    )
+  })
+
+  it("copies the shared key to the clipboard", async () => {
+    const sharedKey = `ihub_sk_${"c".repeat(40)}`
+    vi.mocked(fetch).mockImplementationOnce(() =>
+      Promise.resolve(generateResponse(sharedKey))
+    )
+    render(<AgentInstallationForm isPending={false} onSubmit={vi.fn()} />)
+
     await waitFor(() =>
       expect(screen.getByLabelText("IronClaw shared key")).toHaveValue(
         sharedKey
@@ -139,11 +172,12 @@ describe("AgentInstallationForm", () => {
   })
 
   it("keeps the setup snippet in step with the reveal toggle, but copies the real command", async () => {
-    const sharedKey = `ihub_sk_${"d".repeat(40)}`
-    vi.mocked(fetch).mockResolvedValueOnce(generateResponse(sharedKey))
+    const sharedKey = `ihub_sk_${"e".repeat(40)}`
+    vi.mocked(fetch).mockImplementationOnce(() =>
+      Promise.resolve(generateResponse(sharedKey))
+    )
     render(<AgentInstallationForm isPending={false} onSubmit={vi.fn()} />)
 
-    fireEvent.click(screen.getByRole("button", { name: "Generate shared key" }))
     await waitFor(() =>
       expect(screen.getByLabelText("IronClaw shared key")).toHaveValue(
         sharedKey

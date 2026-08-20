@@ -60,10 +60,10 @@ export function AgentInstallationForm({
     keySource === "paste" ? getSharedKeyFormatHint(sharedKey) : null
 
   return (
-    <form className="grid gap-3" onSubmit={submit}>
+    <form className="grid grid-cols-1 gap-3" onSubmit={submit}>
       {/* Step 1: choose where the key comes from. Both paths are equally
           real -- neither is a fallback -- so they get equal weight here. */}
-      <div className="grid gap-1.5">
+      <div className="grid grid-cols-1 gap-1.5">
         <span className="text-xs font-medium tracking-normal text-muted-foreground uppercase">
           Shared key source
         </span>
@@ -142,7 +142,9 @@ export function AgentInstallationForm({
           readOnly={keySource === "generate"}
           placeholder={
             keySource === "generate"
-              ? "Click generate to create a key"
+              ? isGenerating
+                ? "Generating a key..."
+                : "Use the refresh button for a new key"
               : "ihub_sk_..."
           }
           aria-describedby={keyHint ? "shared-key-hint" : undefined}
