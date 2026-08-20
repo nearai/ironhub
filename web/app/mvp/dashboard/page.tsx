@@ -30,6 +30,7 @@ import { EmptyState } from "@/features/partner/components/ui/empty-state"
 import { RelativeTime } from "@/features/partner/components/ui/relative-time"
 import { StatCard, StatRow } from "@/features/partner/components/ui/stat-card"
 import { StatusBadge } from "@/features/partner/components/ui/status-badge"
+import { FilterMenu } from "@/features/partner/components/ui/filter-menu"
 import { ViewToggle } from "@/features/partner/components/ui/view-toggle"
 import { WorkspacePageHeader } from "@/features/partner/components/ui/workspace-page-header"
 import { workspaceLinkTone } from "@/features/partner/components/ui/tone"
@@ -58,10 +59,6 @@ function useIsBelowMd(): boolean {
   return React.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 }
 
-function filterOptionLabel(prefix: string, label: string): string {
-  return `${prefix}: ${label}`
-}
-
 const VIEW_OPTIONS = [
   { value: "table" as const, label: "Table", icon: IconTable },
   { value: "cards" as const, label: "Cards", icon: IconLayoutGrid },
@@ -75,6 +72,22 @@ export default function DashboardPage() {
   const [statusFilter, setStatusFilter] = React.useState("all")
   const [visibilityFilter, setVisibilityFilter] = React.useState("all")
   const [categoryFilter, setCategoryFilter] = React.useState("all")
+
+  // "all" is the unset value for every filter, so the count is just how many
+  // are set to something else — what the Filters button shows at a glance.
+  const activeFilterCount = [
+    typeFilter,
+    statusFilter,
+    visibilityFilter,
+    categoryFilter,
+  ].filter((value) => value !== "all").length
+
+  const clearFilters = () => {
+    setTypeFilter("all")
+    setStatusFilter("all")
+    setVisibilityFilter("all")
+    setCategoryFilter("all")
+  }
 
   const [view, setView] = React.useState<"table" | "cards">("table")
 
@@ -359,8 +372,8 @@ export default function DashboardPage() {
           </StatRow>
 
           {/* 3. Filter Toolbar */}
-          <div className="flex flex-col gap-3 rounded-xl border border-[var(--ironhub-line)] bg-card p-3 shadow-[var(--ironhub-shadow)]">
-            <div className="relative w-full">
+          <div className="flex flex-col gap-3 rounded-xl border border-[var(--ironhub-line)] bg-card p-3 shadow-[var(--ironhub-shadow)] sm:flex-row sm:items-center">
+            <div className="relative min-w-0 flex-1">
               <IconSearch
                 className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
                 aria-hidden="true"
@@ -375,87 +388,95 @@ export default function DashboardPage() {
               />
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <NativeSelect
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                aria-label="Filter by type"
-                className="w-full sm:w-auto"
-                selectClassName="h-10 rounded-lg"
-              >
-                <NativeSelectOption value="all">All types</NativeSelectOption>
-                <NativeSelectOption value="skill">
-                  {filterOptionLabel("Type", "Skills")}
-                </NativeSelectOption>
-                <NativeSelectOption value="tool">
-                  {filterOptionLabel("Type", "Tools")}
-                </NativeSelectOption>
-              </NativeSelect>
+            <FilterMenu
+              activeCount={activeFilterCount}
+              onClear={clearFilters}
+              className="shrink-0"
+            >
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+                Type
+                <NativeSelect
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  aria-label="Filter by type"
+                  className="w-full"
+                  selectClassName="h-10 rounded-lg"
+                >
+                  <NativeSelectOption value="all">All types</NativeSelectOption>
+                  <NativeSelectOption value="skill">Skills</NativeSelectOption>
+                  <NativeSelectOption value="tool">Tools</NativeSelectOption>
+                </NativeSelect>
+              </label>
 
-              <NativeSelect
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                aria-label="Filter by status"
-                className="w-full sm:w-auto"
-                selectClassName="h-10 rounded-lg"
-              >
-                <NativeSelectOption value="all">
-                  All statuses
-                </NativeSelectOption>
-                <NativeSelectOption value="draft">
-                  {filterOptionLabel("Status", "Drafts")}
-                </NativeSelectOption>
-                <NativeSelectOption value="published">
-                  {filterOptionLabel("Status", "Published")}
-                </NativeSelectOption>
-              </NativeSelect>
-
-              <NativeSelect
-                value={visibilityFilter}
-                onChange={(e) => setVisibilityFilter(e.target.value)}
-                aria-label="Filter by visibility"
-                className="w-full sm:w-auto"
-                selectClassName="h-10 rounded-lg"
-              >
-                <NativeSelectOption value="all">
-                  All visibilities
-                </NativeSelectOption>
-                <NativeSelectOption value="private">
-                  {filterOptionLabel("Visibility", "Private")}
-                </NativeSelectOption>
-                <NativeSelectOption value="public">
-                  {filterOptionLabel("Visibility", "Public")}
-                </NativeSelectOption>
-              </NativeSelect>
-
-              <NativeSelect
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                aria-label="Filter by category"
-                className="w-full sm:w-auto"
-                selectClassName="h-10 rounded-lg"
-              >
-                <NativeSelectOption value="all">
-                  All categories
-                </NativeSelectOption>
-                <NativeSelectOption value="uncategorised">
-                  {filterOptionLabel("Category", "Uncategorised")}
-                </NativeSelectOption>
-                {CATEGORIES.map((category) => (
-                  <NativeSelectOption key={category} value={category}>
-                    {filterOptionLabel("Category", category)}
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+                Status
+                <NativeSelect
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  aria-label="Filter by status"
+                  className="w-full"
+                  selectClassName="h-10 rounded-lg"
+                >
+                  <NativeSelectOption value="all">
+                    All statuses
                   </NativeSelectOption>
-                ))}
-              </NativeSelect>
+                  <NativeSelectOption value="draft">Drafts</NativeSelectOption>
+                  <NativeSelectOption value="published">
+                    Published
+                  </NativeSelectOption>
+                </NativeSelect>
+              </label>
 
-              <div className="hidden md:ml-auto md:block">
-                <ViewToggle
-                  value={view}
-                  onChange={handleViewChange}
-                  options={VIEW_OPTIONS}
-                  label="View"
-                />
-              </div>
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+                Visibility
+                <NativeSelect
+                  value={visibilityFilter}
+                  onChange={(e) => setVisibilityFilter(e.target.value)}
+                  aria-label="Filter by visibility"
+                  className="w-full"
+                  selectClassName="h-10 rounded-lg"
+                >
+                  <NativeSelectOption value="all">
+                    All visibilities
+                  </NativeSelectOption>
+                  <NativeSelectOption value="private">
+                    Private
+                  </NativeSelectOption>
+                  <NativeSelectOption value="public">Public</NativeSelectOption>
+                </NativeSelect>
+              </label>
+
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+                Category
+                <NativeSelect
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  aria-label="Filter by category"
+                  className="w-full"
+                  selectClassName="h-10 rounded-lg"
+                >
+                  <NativeSelectOption value="all">
+                    All categories
+                  </NativeSelectOption>
+                  <NativeSelectOption value="uncategorised">
+                    Uncategorised
+                  </NativeSelectOption>
+                  {CATEGORIES.map((category) => (
+                    <NativeSelectOption key={category} value={category}>
+                      {category}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </label>
+            </FilterMenu>
+
+            <div className="hidden shrink-0 md:block">
+              <ViewToggle
+                value={view}
+                onChange={handleViewChange}
+                options={VIEW_OPTIONS}
+                label="View"
+              />
             </div>
           </div>
 

@@ -26,6 +26,7 @@ import {
   DataTable,
   type DataTableColumn,
   EmptyState,
+  FilterMenu,
   FormSection,
   RelativeTime,
   StatCard,
@@ -628,5 +629,72 @@ describe("FormSection", () => {
     ).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Reset" })).toBeInTheDocument()
     expect(screen.getByPlaceholderText("Name")).toBeInTheDocument()
+  })
+})
+
+describe("FilterMenu", () => {
+  it("keeps its controls out of the document until it is opened", () => {
+    render(
+      <FilterMenu activeCount={0}>
+        <label htmlFor="t">
+          Type
+          <select id="t" />
+        </label>
+      </FilterMenu>
+    )
+
+    expect(screen.queryByLabelText("Type")).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: /filters/i }))
+    expect(screen.getByLabelText("Type")).toBeInTheDocument()
+  })
+
+  it("shows how many filters are set, and offers to clear them only then", () => {
+    const handleClear = vi.fn()
+    const { rerender } = render(
+      <FilterMenu activeCount={0} onClear={handleClear}>
+        <span>controls</span>
+      </FilterMenu>
+    )
+
+    const trigger = screen.getByRole("button", { name: /filters/i })
+    // No badge at rest: the count is there to say a filter is on, so zero must
+    // not draw the eye.
+    expect(trigger).toHaveTextContent(/^Filters$/)
+
+    fireEvent.click(trigger)
+    expect(
+      screen.queryByRole("button", { name: /clear filters/i })
+    ).not.toBeInTheDocument()
+
+    rerender(
+      <FilterMenu activeCount={2} onClear={handleClear}>
+        <span>controls</span>
+      </FilterMenu>
+    )
+    expect(
+      screen.getByRole("button", { name: /^filters/i })
+    ).toHaveTextContent("2")
+
+    fireEvent.click(screen.getByRole("button", { name: /clear filters/i }))
+    expect(handleClear).toHaveBeenCalledTimes(1)
+    // Clearing closes the panel -- there is nothing left in it to act on.
+    expect(
+      screen.queryByRole("button", { name: /clear filters/i })
+    ).not.toBeInTheDocument()
+  })
+
+  it("closes on Escape", () => {
+    render(
+      <FilterMenu activeCount={0}>
+        <span>controls</span>
+      </FilterMenu>
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: /filters/i }))
+    expect(screen.getByText("controls")).toBeInTheDocument()
+
+    fireEvent.keyDown(document, { key: "Escape" })
+    expect(screen.queryByText("controls")).not.toBeInTheDocument()
   })
 })
