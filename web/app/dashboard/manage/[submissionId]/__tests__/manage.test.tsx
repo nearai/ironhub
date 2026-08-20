@@ -11,6 +11,7 @@ vi.mock("next/link", () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { ToastProvider } from "@/features/partner/store/toast-provider"
 import ManageSubmissionPage from "../page"
 
@@ -71,11 +72,13 @@ async function renderPage(submissionId = "artifact-1") {
   await act(async () => {
     render(
       <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <Suspense fallback={<div>Loading route...</div>}>
-            <ManageSubmissionPage params={Promise.resolve({ submissionId })} />
-          </Suspense>
-        </ToastProvider>
+        <TooltipProvider>
+          <ToastProvider>
+            <Suspense fallback={<div>Loading route...</div>}>
+              <ManageSubmissionPage params={Promise.resolve({ submissionId })} />
+            </Suspense>
+          </ToastProvider>
+        </TooltipProvider>
       </QueryClientProvider>
     )
     await new Promise((resolve) => setTimeout(resolve, 0))
@@ -179,10 +182,14 @@ describe("manage page — review checks and publish/unpublish", () => {
     // install link" agrees with service.ts's REQUIRED_CONTENT_KINDS_BY_TYPE,
     // independent of whatever the mocked /checks endpoint above reports
     // (that route is unpublishable here purely on category/repo, not
-    // content).
-    expect(
-      screen.getByRole("button", { name: /copy install link/i })
-    ).not.toBeDisabled()
+    // content). While the item is a draft, Copy install link lives in the
+    // overflow menu rather than the header row (design D6).
+    const moreButton = screen.getByRole("button", { name: /more actions/i })
+    fireEvent.keyDown(moreButton, { key: "Enter" })
+    const copyInstallItem = await screen.findByRole("menuitem", {
+      name: /copy install link/i,
+    })
+    expect(copyInstallItem).not.toHaveAttribute("aria-disabled")
   })
 
   it("disables Copy install link for a pre-bundle-ingest tool (wasm + capabilities, no manifest_toml)", async () => {
@@ -225,14 +232,16 @@ describe("manage page — review checks and publish/unpublish", () => {
 
     await renderPage()
 
-    await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: /copy install link/i })
-      ).toBeInTheDocument()
-    )
-    expect(
-      screen.getByRole("button", { name: /copy install link/i })
-    ).toBeDisabled()
+    // Copy install link lives in the overflow menu while the item is a
+    // draft (design D6).
+    const moreButton = await screen.findByRole("button", {
+      name: /more actions/i,
+    })
+    fireEvent.keyDown(moreButton, { key: "Enter" })
+    const copyInstallItem = await screen.findByRole("menuitem", {
+      name: /copy install link/i,
+    })
+    expect(copyInstallItem).toHaveAttribute("aria-disabled", "true")
   })
 
   it("renders a lone failing check's own visible status text, not a fabricated pass indicator", async () => {
@@ -409,86 +418,90 @@ describe("manage page — review checks and publish/unpublish", () => {
 
     fireEvent.click(publishButton)
 
+    // design D6: once published, Copy install link becomes the primary
+    // action and Unpublish moves into the overflow menu.
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: /^unpublish$/i })
+        screen.getByRole("button", { name: /copy install link/i })
       ).toBeInTheDocument()
     )
+    const moreButton = screen.getByRole("button", { name: /more actions/i })
+    fireEvent.keyDown(moreButton, { key: "Enter" })
+    expect(
+      await screen.findByRole("menuitem", { name: /^unpublish$/i })
+    ).toBeInTheDocument()
   })
 
-  it("re-uploads an extension bundle via the recovery control, sending an explicit application/zip content type", async () => {
-    // Simulates the exact recovery scenario design.md D6 names this page
-    // for: an artifact whose create-flow bundle upload never landed.
-    const toolWithNoContent = { ...BASE_ARTIFACT, content: [] }
+  it("reaches delete from the overflow menu and still requires confirmation before removing anything (design D6)", async () => {
     vi.mocked(fetch).mockImplementation(async (input, init) => {
       const url = String(input)
       if (url === "/api/private-artifacts/artifact-1") {
-        return new Response(JSON.stringify({ artifact: toolWithNoContent }), {
-          status: 200,
-        })
+        return new Response(
+          JSON.stringify({ artifact: { ...BASE_ARTIFACT, status: "draft" } }),
+          { status: 200 }
+        )
       }
       if (url === "/api/private-artifacts/artifact-1/checks") {
         return new Response(
-          JSON.stringify({
-            checks: [
-              {
-                id: "content_complete",
-                label: "Content complete",
-                status: "fail",
-                detail: "wasm, capabilities are missing.",
-              },
-            ],
-            publishable: false,
-          }),
+          JSON.stringify({ checks: [], publishable: false }),
           { status: 200 }
         )
       }
       if (
-        url === "/api/private-artifacts/artifact-1/bundle" &&
-        init?.method === "PUT"
+        url === "/api/private-artifacts/artifact-1" &&
+        init?.method === "DELETE"
       ) {
-        return new Response(
-          JSON.stringify({
-            content: [{ kind: "wasm", sha256: "a", sizeBytes: 1 }],
-          }),
-          {
-            status: 201,
-          }
-        )
+        return new Response(null, { status: 204 })
       }
       throw new Error(`Unexpected fetch: ${url}`)
     })
 
     await renderPage()
 
-    const input = await screen.findByLabelText(/replace the uploaded package/i)
-    const file = new File(["zip bytes"], "firecrawl.zip", {
-      type: "application/zip",
+    const moreButton = await screen.findByRole("button", {
+      name: /more actions/i,
     })
+    fireEvent.keyDown(moreButton, { key: "Enter" })
 
-    await act(async () => {
-      fireEvent.change(input, { target: { files: [file] } })
-      await new Promise((resolve) => setTimeout(resolve, 0))
+    // Download is offered alongside Delete for a draft with stored content.
+    // BASE_ARTIFACT has no bundle_zip, so the primary download kind is the
+    // wasm program file -- "Download program", not "Download package".
+    expect(
+      await screen.findByRole("menuitem", { name: /download program/i })
+    ).toBeInTheDocument()
+
+    const deleteItem = screen.getByRole("menuitem", { name: /delete item/i })
+    fireEvent.click(deleteItem)
+
+    // Selecting Delete opens the confirmation dialog rather than deleting
+    // immediately -- the trigger moved, but the confirmation step did not.
+    const confirmHeading = await screen.findByRole("heading", {
+      name: /delete firecrawl\?/i,
     })
-
-    const bundleCall = vi
-      .mocked(fetch)
-      .mock.calls.find(
-        ([reqInput]) =>
-          String(reqInput) === "/api/private-artifacts/artifact-1/bundle"
+    expect(confirmHeading).toBeInTheDocument()
+    expect(
+      vi.mocked(fetch).mock.calls.some(
+        ([reqInput, reqInit]) =>
+          String(reqInput) === "/api/private-artifacts/artifact-1" &&
+          (reqInit as RequestInit | undefined)?.method === "DELETE"
       )
-    expect(bundleCall).toBeDefined()
-    expect(bundleCall?.[1]).toMatchObject({
-      method: "PUT",
-      headers: { "Content-Type": "application/zip" },
-    })
+    ).toBe(false)
+
+    const confirmButton = screen.getByRole("button", { name: /^delete item$/i })
+    fireEvent.click(confirmButton)
 
     await waitFor(() =>
-      expect(screen.getByText("Bundle uploaded")).toBeInTheDocument()
+      expect(
+        vi.mocked(fetch).mock.calls.some(
+          ([reqInput, reqInit]) =>
+            String(reqInput) === "/api/private-artifacts/artifact-1" &&
+            (reqInit as RequestInit | undefined)?.method === "DELETE"
+        )
+      ).toBe(true)
     )
   })
 
-  it("rejects a non-zip file on the re-upload control without making a request", async () => {
+  it("shows what the item is, and leaves a tool's files to its Package step", async () => {
     vi.mocked(fetch).mockImplementation(async (input) => {
       const url = String(input)
       if (url === "/api/private-artifacts/artifact-1") {
@@ -497,31 +510,23 @@ describe("manage page — review checks and publish/unpublish", () => {
         })
       }
       if (url === "/api/private-artifacts/artifact-1/checks") {
-        return new Response(
-          JSON.stringify({ checks: [], publishable: false }),
-          { status: 200 }
-        )
+        return new Response(JSON.stringify({ checks: [], publishable: false }), {
+          status: 200,
+        })
       }
       throw new Error(`Unexpected fetch: ${url}`)
     })
 
     await renderPage()
 
-    const input = await screen.findByLabelText(/replace the uploaded package/i)
-    const callsBefore = vi.mocked(fetch).mock.calls.length
-
-    fireEvent.change(input, {
-      target: {
-        files: [
-          new File(["x"], "firecrawl.wasm", { type: "application/wasm" }),
-        ],
-      },
-    })
-
+    await waitFor(() => expect(screen.getByText("Tool")).toBeInTheDocument())
+    // The generic Files section listed a tool's stored files as three
+    // separately managed things when they all come out of one archive; the
+    // tool editor's Package step owns that now.
+    expect(screen.queryByText("Files")).not.toBeInTheDocument()
     expect(
-      screen.getByText("Only .zip archives are accepted.")
-    ).toBeInTheDocument()
-    expect(vi.mocked(fetch).mock.calls.length).toBe(callsBefore)
+      screen.queryByText(/what's stored for this item right now/i)
+    ).not.toBeInTheDocument()
   })
 
   it("surfaces a 409 publish rejection as the server's reason, inline", async () => {

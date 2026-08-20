@@ -26,6 +26,8 @@ import {
   DataTable,
   type DataTableColumn,
   EmptyState,
+  FileTree,
+  buildFileTree,
   FilterMenu,
   FormSection,
   RelativeTime,
@@ -105,7 +107,7 @@ describe("ArtifactCard", () => {
         category={null}
         fileCount={0}
         updatedAt="2026-08-17T12:00:00.000Z"
-        href="/mvp/manage/skill-1"
+        href="/dashboard/manage/skill-1"
       />
     )
 
@@ -479,7 +481,7 @@ describe("WorkspacePageHeader", () => {
         title="Workspace Overview"
         eyebrow="Internal Tooling"
         description="Manage your artifacts and loadouts."
-        backHref="/mvp"
+        backHref="/dashboard"
         backLabel="Return"
         action={<button type="button">New Submission</button>}
       >
@@ -494,7 +496,7 @@ describe("WorkspacePageHeader", () => {
     ).toBeInTheDocument()
     expect(screen.getByRole("link", { name: /return/i })).toHaveAttribute(
       "href",
-      "/mvp"
+      "/dashboard"
     )
     expect(
       screen.getByRole("button", { name: "New Submission" })
@@ -696,5 +698,93 @@ describe("FilterMenu", () => {
 
     fireEvent.keyDown(document, { key: "Escape" })
     expect(screen.queryByText("controls")).not.toBeInTheDocument()
+  })
+})
+
+describe("buildFileTree", () => {
+  it("derives folders from the paths, deepest levels included", () => {
+    const tree = buildFileTree([
+      { path: "manifest.toml", sizeBytes: 10 },
+      { path: "schemas/nested/deep.json", sizeBytes: 20 },
+    ])
+
+    expect(tree).toHaveLength(2)
+    const schemas = tree[0]
+    expect(schemas).toMatchObject({ type: "folder", name: "schemas" })
+    if (schemas.type !== "folder") throw new Error("expected a folder")
+    const nested = schemas.children[0]
+    expect(nested).toMatchObject({ type: "folder", name: "nested", path: "schemas/nested" })
+    if (nested.type !== "folder") throw new Error("expected a folder")
+    expect(nested.children).toEqual([
+      {
+        type: "file",
+        name: "deep.json",
+        path: "schemas/nested/deep.json",
+        sizeBytes: 20,
+      },
+    ])
+  })
+
+  it("sorts folders before files and each group by name", () => {
+    const tree = buildFileTree([
+      { path: "zeta.txt", sizeBytes: 1 },
+      { path: "alpha.txt", sizeBytes: 1 },
+      { path: "schemas/one.json", sizeBytes: 1 },
+      { path: "prompts/one.md", sizeBytes: 1 },
+    ])
+
+    expect(tree.map((node) => node.name)).toEqual([
+      "prompts",
+      "schemas",
+      "alpha.txt",
+      "zeta.txt",
+    ])
+  })
+
+  it("counts every file beneath a folder, not only its direct children", () => {
+    const tree = buildFileTree([
+      { path: "a/b/one.json", sizeBytes: 1 },
+      { path: "a/two.json", sizeBytes: 1 },
+    ])
+
+    expect(tree[0]).toMatchObject({ name: "a", fileCount: 2 })
+  })
+})
+
+describe("FileTree", () => {
+  it("renders folder and file rows with sizes", () => {
+    render(
+      <FileTree
+        entries={[
+          { path: "manifest.toml", sizeBytes: 284 },
+          { path: "schemas/input.json", sizeBytes: 2048 },
+        ]}
+      />
+    )
+
+    expect(screen.getByText("manifest.toml")).toBeInTheDocument()
+    expect(screen.getByText("schemas/")).toBeInTheDocument()
+    expect(screen.getByText("input.json")).toBeInTheDocument()
+    expect(screen.getByText("2.0 KB")).toBeInTheDocument()
+    expect(screen.getByText("1 file")).toBeInTheDocument()
+  })
+
+  it("states how many files it left out rather than truncating silently", () => {
+    render(
+      <FileTree
+        entries={[
+          { path: "a.txt", sizeBytes: 1 },
+          { path: "b.txt", sizeBytes: 1 },
+          { path: "c.txt", sizeBytes: 1 },
+        ]}
+        maxFiles={1}
+      />
+    )
+
+    expect(screen.getByText("a.txt")).toBeInTheDocument()
+    expect(screen.queryByText("b.txt")).not.toBeInTheDocument()
+    expect(
+      screen.getByText(/and 2 more files not listed here/i)
+    ).toBeInTheDocument()
   })
 })
