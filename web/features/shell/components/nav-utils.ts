@@ -5,3 +5,9 @@ export function isNavItemActive(pathname: string, href: string) {
 
   return pathname === href || pathname.startsWith(`${href}/`)
 }
+
+export function isWorkspaceRoute(pathname: string | null | undefined) {
+  if (!pathname) return false
+
+  return pathname === "/dashboard" || pathname.startsWith("/dashboard/")
+}

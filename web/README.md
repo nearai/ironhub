@@ -60,7 +60,7 @@ no routed surface imports them.
 
 ## Local development stack
 
-The private workspace (`/mvp`) needs PostgreSQL and an S3-compatible store. A
+The private workspace (`/dashboard`) needs PostgreSQL and an S3-compatible store. A
 single-image dev stack (PostgreSQL 16 + SeaweedFS S3) lives in
 `docker/dev-stack` and is wired up via the root `docker-compose.yml`:
 

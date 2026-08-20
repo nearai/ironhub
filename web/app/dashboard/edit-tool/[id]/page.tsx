@@ -12,5 +12,5 @@ interface PageProps {
  */
 export default async function EditToolRedirect({ params }: PageProps) {
   const { id } = await params
-  return redirect(`/mvp/manage/${id}`)
+  return redirect(`/dashboard/manage/${id}`)
 }

@@ -72,7 +72,16 @@ export default function SettingsPage() {
       <WorkspacePageHeader
         title="Settings"
         description="Your workspace's name and who can change it."
-      />
+      >
+        {activeOrg && (
+          <div className="flex items-center gap-2">
+            <AttributeBadge>{roleDisplay}</AttributeBadge>
+            <span className="text-sm text-muted-foreground">
+              {roleDescription}
+            </span>
+          </div>
+        )}
+      </WorkspacePageHeader>
 
       {isError && (
         <div className="flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
@@ -85,10 +94,7 @@ export default function SettingsPage() {
       )}
 
       <div className="space-y-6">
-        <FormSection
-          title="Workspace"
-          description="How this workspace is named everywhere it appears."
-        >
+        <FormSection title="Workspace">
           <form onSubmit={handleSave} className="space-y-4">
             <div className="flex flex-col gap-1.5">
               <label
@@ -130,18 +136,6 @@ export default function SettingsPage() {
               </div>
             )}
           </form>
-        </FormSection>
-
-        <FormSection
-          title="Your access"
-          description="What you can do in this workspace."
-        >
-          <div className="space-y-2">
-            <div>
-              <AttributeBadge>{roleDisplay}</AttributeBadge>
-            </div>
-            <p className="text-sm text-muted-foreground">{roleDescription}</p>
-          </div>
         </FormSection>
       </div>
     </div>

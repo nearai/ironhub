@@ -64,7 +64,7 @@ const VIEW_OPTIONS = [
   { value: "cards" as const, label: "Cards", icon: IconLayoutGrid },
 ]
 
-export default function DashboardPage() {
+export default function CatalogPage() {
   const { data: submissions, isLoading, isError, error } = useArtifacts()
 
   const [search, setSearch] = React.useState("")
@@ -94,7 +94,9 @@ export default function DashboardPage() {
   React.useEffect(() => {
     try {
       if (typeof window !== "undefined") {
-        const stored = window.sessionStorage.getItem("ironhub.mvp.catalogView")
+        const stored = window.sessionStorage.getItem(
+          "ironhub.workspace.catalogView"
+        )
         if (stored === "table" || stored === "cards") {
           // The sessionStorage view preference must be applied after mount so the server-rendered default ("table") and the first client render agree (design decision D3).
           // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -110,7 +112,7 @@ export default function DashboardPage() {
     setView(next)
     try {
       if (typeof window !== "undefined") {
-        window.sessionStorage.setItem("ironhub.mvp.catalogView", next)
+        window.sessionStorage.setItem("ironhub.workspace.catalogView", next)
       }
     } catch {
       // Ignore sessionStorage exceptions
@@ -177,7 +179,7 @@ export default function DashboardPage() {
       cellClassName: "max-w-[20rem]",
       cell: (row) => (
         <Link
-          href={`/mvp/manage/${row.id}`}
+          href={`/dashboard/manage/${row.id}`}
           className="group block min-w-0 rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           <div className="truncate text-sm font-medium text-foreground group-hover:text-near-cobalt dark:group-hover:text-primary">
@@ -258,7 +260,7 @@ export default function DashboardPage() {
             "hover:text-near-cobalt dark:hover:text-primary"
           )}
         >
-          <Link href={`/mvp/manage/${row.id}`}>Manage</Link>
+          <Link href={`/dashboard/manage/${row.id}`}>Manage</Link>
         </Button>
       ),
     },
@@ -272,7 +274,7 @@ export default function DashboardPage() {
         description="Add your first skill or tool to share it with your organization."
         action={
           <Button asChild className="h-10 rounded-lg">
-            <Link href="/mvp/new-submit">Add skill or tool</Link>
+            <Link href="/dashboard/new-submit">Add skill or tool</Link>
           </Button>
         }
       />
@@ -303,10 +305,9 @@ export default function DashboardPage() {
       {/* 1. Page Header */}
       <WorkspacePageHeader
         title="Your skills and tools"
-        description="Everything your organization has added to its private space."
         action={
           <Button asChild className="h-10 rounded-lg">
-            <Link href="/mvp/new-submit">
+            <Link href="/dashboard/new-submit">
               <IconPlus className="size-4" aria-hidden="true" />
               <span>Add skill or tool</span>
             </Link>
@@ -505,7 +506,7 @@ export default function DashboardPage() {
                   category={item.category}
                   fileCount={item.content.length}
                   updatedAt={item.updatedAt}
-                  href={`/mvp/manage/${item.id}`}
+                  href={`/dashboard/manage/${item.id}`}
                   actionLabel="Manage"
                 />
               ))}

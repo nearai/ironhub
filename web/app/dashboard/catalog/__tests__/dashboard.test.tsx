@@ -30,7 +30,7 @@ vi.mock("next/link", () => ({
 }))
 
 import { ToastProvider } from "@/features/partner/store/toast-provider"
-import DashboardPage from "../page"
+import CatalogPage from "../page"
 
 const MOCK_ARTIFACTS = [
   {
@@ -140,7 +140,7 @@ async function renderDashboard(artifacts = MOCK_ARTIFACTS) {
     render(
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <DashboardPage />
+          <CatalogPage />
         </ToastProvider>
       </QueryClientProvider>
     )
@@ -240,7 +240,7 @@ describe("dashboard page", () => {
     const addLinks = screen.getAllByRole("link", { name: /add skill or tool/i })
     expect(addLinks).toHaveLength(2)
     for (const link of addLinks) {
-      expect(link).toHaveAttribute("href", "/mvp/new-submit")
+      expect(link).toHaveAttribute("href", "/dashboard/new-submit")
     }
     expect(
       screen.queryByText("Nothing matches these filters")
@@ -293,11 +293,13 @@ describe("dashboard page", () => {
     const cardsToggle = screen.getByRole("button", { name: /^cards$/i })
     fireEvent.click(cardsToggle)
 
-    expect(sessionStorage.getItem("ironhub.mvp.catalogView")).toBe("cards")
+    expect(sessionStorage.getItem("ironhub.workspace.catalogView")).toBe(
+      "cards"
+    )
   })
 
   it("yields the card view on mount when sessionStorage is pre-seeded with 'cards'", async () => {
-    sessionStorage.setItem("ironhub.mvp.catalogView", "cards")
+    sessionStorage.setItem("ironhub.workspace.catalogView", "cards")
     await renderDashboard(MOCK_ARTIFACTS)
 
     await waitFor(() =>

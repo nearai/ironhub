@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation"
 import { Separator } from "@/components/ui/separator"
 import { links } from "@/lib/shared/links"
 import { BrandMark } from "./brand-mark"
+import { isWorkspaceRoute } from "./nav-utils"
 
 const footerLinks: [string, string][] = [
   ["IronClaw", links.ironclaw],
@@ -17,7 +18,7 @@ const footerLinks: [string, string][] = [
 export function SiteFooter() {
   const pathname = usePathname()
 
-  if (pathname?.startsWith("/mvp")) {
+  if (isWorkspaceRoute(pathname)) {
     return null
   }
 

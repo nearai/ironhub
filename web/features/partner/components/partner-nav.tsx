@@ -13,9 +13,9 @@ import { workspaceLinkTone } from "@/features/partner/components/ui"
 import { cn } from "@/lib/shared/utils"
 
 const menuItems = [
-  { label: "Dashboard", href: "/mvp/dashboard", icon: IconLayoutDashboard },
-  { label: "Members & Access", href: "/mvp/team", icon: IconUsers },
-  { label: "Settings", href: "/mvp/settings", icon: IconSettings },
+  { label: "Catalog", href: "/dashboard/catalog", icon: IconLayoutDashboard },
+  { label: "Members", href: "/dashboard/team", icon: IconUsers },
+  { label: "Settings", href: "/dashboard/settings", icon: IconSettings },
 ]
 
 type PartnerNavProps = {
@@ -30,9 +30,9 @@ export function PartnerNav({ onNavigate }: PartnerNavProps) {
       {menuItems.map((item) => {
         const isActive =
           pathname === item.href ||
-          (item.href === "/mvp/dashboard" &&
-            (pathname.startsWith("/mvp/manage") ||
-              pathname.startsWith("/mvp/edit-skill")))
+          (item.href === "/dashboard/catalog" &&
+            (pathname.startsWith("/dashboard/manage") ||
+              pathname.startsWith("/dashboard/edit-")))
         const Icon = item.icon
 
         return (

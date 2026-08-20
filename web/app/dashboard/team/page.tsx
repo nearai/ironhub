@@ -90,7 +90,7 @@ export default function TeamPage() {
       setInviteIdentifier("")
       setInviteRole("member")
       setInviteDialogOpen(false)
-      notify(`Invited ${identifier}`)
+      notify(`${identifier} invited`)
     } catch (error) {
       notify(
         error instanceof Error ? error.message : "Failed to send invitation",
@@ -102,7 +102,7 @@ export default function TeamPage() {
   const handleRemoveMember = async (memberId: string, label: string) => {
     try {
       await removeMember.mutateAsync(memberId)
-      notify(`Removed member ${label}`, "info")
+      notify(`${label} removed`, "info")
     } catch (error) {
       notify(
         error instanceof Error ? error.message : "Failed to remove member",
@@ -375,8 +375,8 @@ export default function TeamPage() {
                       className="h-11 rounded-lg sm:h-10"
                     />
                     <p className="text-sm text-muted-foreground">
-                      Use whichever they sign in with. A NEAR account that has
-                      never signed in here can only be invited once it has.
+                      Use whichever they sign in with. A NEAR account must
+                      sign in here once before it can be invited.
                     </p>
                   </div>
 

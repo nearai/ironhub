@@ -156,8 +156,8 @@ export function SkillEditor({ id }: SkillEditorProps) {
       setValueTagsText(asStringArray(frontmatter.value_tags).join(", "))
       const activation =
         frontmatter.activation &&
-        typeof frontmatter.activation === "object" &&
-        !Array.isArray(frontmatter.activation)
+          typeof frontmatter.activation === "object" &&
+          !Array.isArray(frontmatter.activation)
           ? (frontmatter.activation as Record<string, unknown>)
           : {}
       setActivationKeywordsText(asStringArray(activation.keywords).join(", "))
@@ -198,7 +198,7 @@ export function SkillEditor({ id }: SkillEditorProps) {
         description="This item does not exist, or it is not a skill."
         action={
           <Button asChild variant="default" className="h-11 rounded-lg sm:h-10">
-            <Link href="/mvp/dashboard">Back to dashboard</Link>
+            <Link href="/dashboard/catalog">Back to your catalog</Link>
           </Button>
         }
       />
@@ -216,8 +216,8 @@ export function SkillEditor({ id }: SkillEditorProps) {
   const buildFrontmatter = () => {
     const existingActivation =
       baseFrontmatter.activation &&
-      typeof baseFrontmatter.activation === "object" &&
-      !Array.isArray(baseFrontmatter.activation)
+        typeof baseFrontmatter.activation === "object" &&
+        !Array.isArray(baseFrontmatter.activation)
         ? (baseFrontmatter.activation as Record<string, unknown>)
         : undefined
 
@@ -279,7 +279,7 @@ export function SkillEditor({ id }: SkillEditorProps) {
       await navigator.clipboard.writeText(compileSkillMarkdown())
       setCopiedPreview(true)
       setTimeout(() => setCopiedPreview(false), 2000)
-      notify("Compiled code copied", "info")
+      notify("Copied", "info")
     } catch (e) {
       console.error(e)
     }

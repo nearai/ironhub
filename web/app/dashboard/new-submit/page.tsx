@@ -210,7 +210,7 @@ export default function NewSubmitPage() {
       await navigator.clipboard.writeText(code)
       setCopiedPreview(true)
       setTimeout(() => setCopiedPreview(false), 2000)
-      notify("Compiled code copied", "info")
+      notify("copied", "info")
     } catch (e) {
       console.error(e)
     }
@@ -255,7 +255,8 @@ export default function NewSubmitPage() {
       setArtifactName(sanitizeArtifactName(result.manifest.id))
       setVersion(result.manifest.version)
       setDescription(result.manifest.description)
-      notify(`Inspected package: ${file.name}`, "info")
+      // No toast here (design D3): the result is already rendered as the
+      // filled-in fields below and the file chip in the drop zone.
     } catch (error) {
       if (inspectRequestIdRef.current !== requestId) return
       setBundleError(
@@ -371,8 +372,8 @@ export default function NewSubmitPage() {
       // refetch for that case.)
       queryClient.invalidateQueries({ queryKey: ["private-artifacts"] })
 
-      notify(`Created ${type}: ${finalTitle}`)
-      router.push("/mvp/dashboard")
+      notify(`${finalTitle} created`)
+      router.push("/dashboard/catalog")
     } catch (error) {
       if (createdArtifactId) {
         // The artifact row was created but the content upload failed partway
@@ -387,7 +388,7 @@ export default function NewSubmitPage() {
           "error"
         )
         queryClient.invalidateQueries({ queryKey: ["private-artifacts"] })
-        router.push(`/mvp/manage/${createdArtifactId}`)
+        router.push(`/dashboard/manage/${createdArtifactId}`)
       } else {
         const described = describeArtifactSaveError(error)
         if (described.field === "category") setCategoryError(described.message)
@@ -414,8 +415,8 @@ export default function NewSubmitPage() {
   return (
     <div className="flex flex-col gap-6 pb-12">
       <WorkspacePageHeader
-        backHref="/mvp/dashboard"
-        backLabel="Back to dashboard"
+        backHref="/dashboard/catalog"
+        backLabel="Back to your catalog"
         title="Add a skill or tool"
         description="Create a skill from instructions you write, or upload a packaged tool as a .zip file."
       />
@@ -526,7 +527,7 @@ export default function NewSubmitPage() {
             <FormSection
               step={2}
               title="Basics"
-              description="Name, version and how people find this skill."
+              description="The name, version and one-line summary people see."
             >
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
@@ -745,8 +746,8 @@ export default function NewSubmitPage() {
             {/* SKILL Step 3: Instructions */}
             <FormSection
               step={3}
-              title="Instructions"
-              description="What the assistant should do when this skill runs."
+              title="Instructions (SKILL.md)"
+              description="What the assistant should do when this skill runs. This is the whole of the stored file."
               action={
                 <ViewToggle
                   value={activeTab}
@@ -816,7 +817,7 @@ Describe how the agent should act...`}
             <FormSection
               step={4}
               title="Who can see it"
-              description="Choose who can find and use this skill."
+              description="Private stays inside this workspace."
             >
               <VisibilitySelector
                 visibility={visibility}
@@ -945,7 +946,7 @@ Describe how the agent should act...`}
             <FormSection
               step={3}
               title="Basics"
-              description="Name, version and how people find this tool."
+              description="The name, version and one-line summary people see."
             >
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="flex flex-col gap-1.5">
@@ -992,8 +993,8 @@ Describe how the agent should act...`}
                     id="tool-artifact-name-help"
                     className="text-xs text-muted-foreground"
                   >
-                    A short lowercase name used in links and commands, for
-                    example usdc-payments. This cannot be changed later.
+                    A short lowercase name used in links and commands. This
+                    cannot be changed later.
                   </p>
                 </div>
 
@@ -1061,7 +1062,7 @@ Describe how the agent should act...`}
             <FormSection
               step={4}
               title="Who can see it"
-              description="Choose who can find and use this tool."
+              description="Private stays inside this workspace."
             >
               <VisibilitySelector
                 visibility={visibility}
@@ -1088,7 +1089,7 @@ Describe how the agent should act...`}
                 asChild
                 className="h-10 min-h-[40px] rounded-lg px-4"
               >
-                <Link href="/mvp/dashboard">Cancel</Link>
+                <Link href="/dashboard/catalog">Cancel</Link>
               </Button>
               <Button
                 type="submit"

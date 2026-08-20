@@ -293,7 +293,7 @@ describe("new-submit tool tab (zip bundle flow)", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /add to space/i }))
 
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/mvp/dashboard"))
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/dashboard/catalog"))
 
     const calls = vi.mocked(fetch).mock.calls
     const calledUrls = calls.map(([input]) => String(input))
@@ -359,9 +359,9 @@ describe("new-submit tool tab (zip bundle flow)", () => {
     fireEvent.click(screen.getByRole("button", { name: /add to space/i }))
 
     await waitFor(() =>
-      expect(pushMock).toHaveBeenCalledWith("/mvp/manage/artifact-2")
+      expect(pushMock).toHaveBeenCalledWith("/dashboard/manage/artifact-2")
     )
-    expect(pushMock).not.toHaveBeenCalledWith("/mvp/dashboard")
+    expect(pushMock).not.toHaveBeenCalledWith("/dashboard/catalog")
   })
 
   it("renders the SKILL.md placeholder with a real newline and no literal backslash-n", () => {
@@ -399,7 +399,7 @@ describe("new-submit tool tab (zip bundle flow)", () => {
       screen.getByRole("heading", { name: "Step 2: Basics" })
     ).toBeInTheDocument()
     expect(
-      screen.getByRole("heading", { name: "Step 3: Instructions" })
+      screen.getByRole("heading", { name: "Step 3: Instructions (SKILL.md)" })
     ).toBeInTheDocument()
     expect(
       screen.getByRole("heading", { name: "Step 4: Who can see it" })
@@ -459,7 +459,7 @@ describe("new-submit tool tab (zip bundle flow)", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /add to space/i }))
 
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/mvp/dashboard"))
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/dashboard/catalog"))
 
     const calls = vi.mocked(fetch).mock.calls
     const calledUrls = calls.map(([input]) => String(input))

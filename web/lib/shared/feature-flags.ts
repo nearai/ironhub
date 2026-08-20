@@ -10,7 +10,10 @@ export const isAgentsRouteDisabled = isTrue(
   process.env.NEXT_PUBLIC_DISABLE_AGENTS_ROUTE
 )
 
-export const isMvpRouteDisabled = isTrue(
+// The env var keeps its `MVP` name even though the route it gates is now
+// `/dashboard`: it is already set in deployed environments, and renaming it
+// would silently un-hide the workspace wherever the new name isn't set.
+export const isWorkspaceRouteDisabled = isTrue(
   process.env.NEXT_PUBLIC_DISABLE_MVP_ROUTE
 )
 

@@ -15,7 +15,7 @@ function makeQueryClient() {
 }
 
 // The workspace mounts this provider twice: once in the site header (for the
-// notification bell, which lives outside the /mvp layout) and once around the
+// notification bell, which lives outside the /dashboard layout) and once around the
 // workspace shell. In the browser they must share one cache, otherwise
 // accepting an invitation in the header leaves the page below showing stale
 // organizations. On the server each render gets its own client so no state

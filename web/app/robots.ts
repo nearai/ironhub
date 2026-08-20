@@ -5,7 +5,7 @@ import { absoluteUrl } from "@/lib/discovery/site"
 const privatePaths = [
   "/account",
   "/hub",
-  "/mvp",
+  "/dashboard",
   "/api/auth",
   "/api/agent-installations",
   "/api/install-intents",
