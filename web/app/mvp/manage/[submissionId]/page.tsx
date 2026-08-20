@@ -8,7 +8,7 @@ import {
   IconArrowRight,
   IconCategory,
   IconCheck,
-  IconCopy,
+  IconDownload,
   IconFileZip,
   IconLink,
   IconLoader2,
@@ -43,6 +43,8 @@ import {
   useUploadArtifactBundle,
 } from "@/features/partner/api/artifacts"
 import { ApiError } from "@/features/partner/api/client"
+import { SkillEditor } from "@/features/partner/components/skill-editor"
+import { ToolEditor } from "@/features/partner/components/tool-editor"
 import { AttributeBadge } from "@/features/partner/components/ui/attribute-badge"
 import { EmptyState } from "@/features/partner/components/ui/empty-state"
 import { FormSection } from "@/features/partner/components/ui/form-section"
@@ -57,8 +59,13 @@ interface PageProps {
   params: Promise<{ submissionId: string }>
 }
 
-const CONTENT_KIND_INFO: Record<ContentKind, { name: string; blurb: string }> =
-  {
+// `capabilities` is deliberately absent: manifest.toml (schema
+// reborn.extension_manifest.v3) carries the effects, default permission and
+// secrets handles that *.capabilities.json used to, so showing it as a file
+// the owner manages made two sources of truth out of one.
+const CONTENT_KIND_INFO: Partial<
+  Record<ContentKind, { name: string; blurb: string }>
+> = {
     wasm: {
       name: "Program file",
       blurb: "The compiled program that does the work.",
@@ -67,19 +74,15 @@ const CONTENT_KIND_INFO: Record<ContentKind, { name: string; blurb: string }> =
       name: "Setup details",
       blurb: "Describes what the tool is and how to run it.",
     },
-    capabilities: {
-      name: "Permissions file",
-      blurb: "Lists what the tool is allowed to access.",
-    },
     bundle_zip: {
       name: "Uploaded package",
       blurb: "The original .zip you uploaded.",
     },
-    skill_md: {
-      name: "Instructions file",
-      blurb: "The written instructions the assistant follows.",
-    },
-  }
+  skill_md: {
+    name: "Instructions file (SKILL.md)",
+    blurb: "The written instructions the assistant follows.",
+  },
+}
 
 function formatFileSize(bytes: number): string {
   if (bytes === 1) return "1 byte"
@@ -159,10 +162,50 @@ export default function ManageSubmissionPage({ params }: PageProps) {
   // also writes (design.md D3/D6) — surface them too so the manage page
   // reflects everything actually stored, not just the required kinds.
   const additionalKinds = Array.from(uploadedKinds).filter(
-    (kind) => !expectedKinds.includes(kind)
+    (kind) => !expectedKinds.includes(kind) && kind in CONTENT_KIND_INFO
   )
   const displayKinds = [...expectedKinds, ...additionalKinds]
   const isSingleCard = displayKinds.length === 1
+
+  // `?download=1` makes the content route answer with a Content-Disposition
+  // naming the file; without it the same URL streams inline, which is what
+  // the editors below read.
+  // What the manifest declares and the hub therefore stored, listed by the
+  // path the agent will ask for. Grouped so schemas and prompts read as two
+  // lists rather than one interleaved one.
+  const declaredAssets = [...(artifact.assets ?? [])].sort((a, b) =>
+    a.kind === b.kind
+      ? a.path.localeCompare(b.path)
+      : a.kind.localeCompare(b.kind)
+  )
+
+  const downloadHref = (kind: ContentKind) =>
+    `/api/private-artifacts/${artifact.id}/content/${kind}?download=1`
+
+  // The one file a member is most likely to want a copy of: the package they
+  // uploaded for a tool, the instructions file for a skill. Only offered when
+  // it is actually stored.
+  const primaryDownloadKind: ContentKind | null =
+    artifact.type === "tool"
+      ? uploadedKinds.has("bundle_zip")
+        ? "bundle_zip"
+        : uploadedKinds.has("wasm")
+          ? "wasm"
+          : null
+      : uploadedKinds.has("skill_md")
+        ? "skill_md"
+        : null
+  const primaryDownload = primaryDownloadKind
+    ? {
+        kind: primaryDownloadKind,
+        label:
+          primaryDownloadKind === "bundle_zip"
+            ? "Download package"
+            : primaryDownloadKind === "wasm"
+              ? "Download program"
+              : "Download skill",
+      }
+    : null
 
   const handleCopyInstall = async () => {
     try {
@@ -259,19 +302,83 @@ export default function ManageSubmissionPage({ params }: PageProps) {
         action={
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
             <Button
-              asChild
+              type="button"
+              onClick={handleCopyInstall}
+              disabled={mintToken.isPending || !isContentComplete}
+              aria-describedby={
+                isContentComplete ? undefined : "install-blocked-reason"
+              }
               className="h-10 min-w-0 flex-1 rounded-lg sm:flex-none"
             >
-              <Link
-                href={
-                  artifact.type === "skill"
-                    ? `/mvp/edit-skill/${artifact.id}`
-                    : `/mvp/edit-tool/${artifact.id}`
-                }
-              >
-                {artifact.type === "skill" ? "Edit skill" : "Edit tool"}
-              </Link>
+              {mintToken.isPending ? (
+                <IconLoader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : copiedInstall ? (
+                <IconCheck className="size-4" aria-hidden="true" />
+              ) : (
+                <IconLink className="size-4" aria-hidden="true" />
+              )}
+              <span>{copiedInstall ? "Link copied" : "Copy install link"}</span>
             </Button>
+
+            {primaryDownload && (
+              <Button
+                asChild
+                variant="outline"
+                className="h-10 min-w-0 flex-1 rounded-lg sm:flex-none"
+              >
+                <a href={downloadHref(primaryDownload.kind)}>
+                  <IconDownload className="size-4" aria-hidden="true" />
+                  <span>{primaryDownload.label}</span>
+                </a>
+              </Button>
+            )}
+
+            {artifact.status === "published" ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleUnpublish}
+                disabled={unpublishArtifact.isPending}
+                className="h-10 shrink-0 rounded-lg"
+              >
+                {unpublishArtifact.isPending ? (
+                  <IconLoader2 className="size-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <IconRocketOff className="size-4" aria-hidden="true" />
+                )}
+                <span>Unpublish</span>
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handlePublish}
+                disabled={
+                  publishArtifact.isPending ||
+                  checks.isLoading ||
+                  checks.isError ||
+                  !checks.data?.publishable
+                }
+                aria-describedby={
+                  checks.data && !checks.isError && !checks.data.publishable
+                    ? "publish-blocked-reason"
+                    : undefined
+                }
+                title={
+                  checks.data && !checks.isError && !checks.data.publishable
+                    ? "Resolve the failing checks below before publishing."
+                    : undefined
+                }
+                className="h-10 shrink-0 rounded-lg"
+              >
+                {publishArtifact.isPending ? (
+                  <IconLoader2 className="size-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <IconRocket className="size-4" aria-hidden="true" />
+                )}
+                <span>Publish</span>
+              </Button>
+            )}
 
             <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
               <DialogTrigger asChild>
@@ -355,65 +462,236 @@ export default function ManageSubmissionPage({ params }: PageProps) {
         </div>
       </WorkspacePageHeader>
 
-      {/* 2. Publishing Section */}
+      {/* 2. Details -- the editable record, on the same page as everything
+          else about this item rather than behind a separate edit route. */}
+      <div id="item-details">
+        {artifact.type === "skill" ? (
+          <SkillEditor id={artifact.id} />
+        ) : (
+          <ToolEditor id={artifact.id} />
+        )}
+      </div>
+
+      {/* 3. Files */}
       <FormSection
-        title="Publishing"
-        description="These checks run on the server and decide whether this item can go live."
+        title="Files"
+        description="What's stored for this item right now. Members install it with the link at the top of the page."
       >
-        <div>
-          {artifact.status === "published" ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleUnpublish}
-              disabled={unpublishArtifact.isPending}
-              className="h-10 rounded-lg"
-            >
-              {unpublishArtifact.isPending ? (
-                <IconLoader2
-                  className="size-4 animate-spin"
-                  aria-hidden="true"
-                />
-              ) : (
-                <IconRocketOff className="size-4" aria-hidden="true" />
-              )}
-              <span>Unpublish</span>
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              onClick={handlePublish}
-              disabled={
-                publishArtifact.isPending ||
-                checks.isLoading ||
-                checks.isError ||
-                !checks.data?.publishable
-              }
-              aria-describedby={
-                checks.data && !checks.isError && !checks.data.publishable
-                  ? "publish-blocked-reason"
-                  : undefined
-              }
-              title={
-                checks.data && !checks.isError && !checks.data.publishable
-                  ? "Resolve the failing checks below before publishing."
-                  : undefined
-              }
-              className="h-10 rounded-lg"
-            >
-              {publishArtifact.isPending ? (
-                <IconLoader2
-                  className="size-4 animate-spin"
-                  aria-hidden="true"
-                />
-              ) : (
-                <IconRocket className="size-4" aria-hidden="true" />
-              )}
-              <span>Publish</span>
-            </Button>
+        {!isContentComplete && (
+          <p id="install-blocked-reason" className="text-sm text-muted-foreground">
+            Add the required files before you can copy an install link.
+          </p>
+        )}
+        <div
+          className={cn(
+            "grid gap-3",
+            isSingleCard ? "grid-cols-1" : "sm:grid-cols-2"
           )}
+        >
+          {displayKinds.map((kind) => {
+            const uploaded = uploadedKinds.has(kind)
+            const content = artifact.content.find((c) => c.kind === kind)
+            const info = CONTENT_KIND_INFO[kind] ?? {
+              name: kind,
+              blurb: "",
+            }
+
+            return (
+              <div
+                key={kind}
+                className="flex flex-col justify-between rounded-xl border border-[var(--ironhub-line)] bg-card p-4"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-foreground">
+                      {info.name}
+                    </span>
+                    {uploaded ? (
+                      <AttributeBadge>Stored</AttributeBadge>
+                    ) : (
+                      <AttributeBadge className="border-amber-500/25 bg-amber-500/10 text-amber-800 dark:text-amber-400">
+                        Not added yet
+                      </AttributeBadge>
+                    )}
+                  </div>
+                  {info.blurb && (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {info.blurb}
+                    </p>
+                  )}
+                </div>
+
+                {uploaded ? (
+                  content && (
+                    <>
+                    <div
+                      className="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground"
+                      title={content.sha256}
+                    >
+                      <span>{formatFileSize(content.sizeBytes)}</span>
+                      {content.sha256 && (
+                        <>
+                          <span>·</span>
+                          <span className="font-mono">
+                            sha256 {content.sha256.slice(0, 10)}...
+                          </span>
+                        </>
+                      )}
+                      {content.createdAt && (
+                        <>
+                          <span>·</span>
+                          <span>added</span>
+                          <RelativeTime value={content.createdAt} />
+                        </>
+                      )}
+                    </div>
+                    <div className="mt-3">
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="h-10 rounded-lg sm:h-8"
+                      >
+                        <a href={downloadHref(kind)}>
+                          <IconDownload className="size-4" aria-hidden="true" />
+                          <span>Download</span>
+                        </a>
+                      </Button>
+                    </div>
+                    </>
+                  )
+                ) : (
+                  <div className="mt-3">
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        "h-10 rounded-lg sm:h-8",
+                        workspaceLinkTone,
+                        "hover:text-near-cobalt dark:hover:text-primary"
+                      )}
+                    >
+                      <a href="#item-details">
+                        <span>Add {info.name.toLowerCase()}</span>
+                        <IconArrowRight className="size-4" aria-hidden="true" />
+                      </a>
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
 
+        {declaredAssets.length > 0 && (
+          <div className="mt-4 flex flex-col gap-3">
+            <div>
+              <h3 className="text-sm font-medium text-foreground">
+                Files the package declares
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Stored under the exact path the setup details name. The agent
+                fetches these by path when it installs.
+              </p>
+            </div>
+            <ul className="flex flex-col divide-y divide-[var(--ironhub-line)] rounded-xl border border-[var(--ironhub-line)]">
+              {declaredAssets.map((asset) => (
+                <li
+                  key={`${asset.kind}-${asset.path}`}
+                  className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5"
+                >
+                  <span className="min-w-0 font-mono text-sm [overflow-wrap:anywhere] text-foreground">
+                    {asset.path}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-2">
+                    <AttributeBadge>
+                      {asset.kind === "schema" ? "Schema" : "Prompt"}
+                    </AttributeBadge>
+                    <span className="text-xs text-muted-foreground">
+                      {formatFileSize(asset.sizeBytes)}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {artifact.type === "tool" && (
+          <div className="mt-4 flex flex-col gap-2">
+            <label
+              htmlFor="bundle-reupload-input"
+              className="text-sm font-medium text-foreground"
+            >
+              Replace the uploaded package (.zip)
+            </label>
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={cn(
+                "relative flex min-h-[120px] flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-colors",
+                dragOver
+                  ? "border-primary bg-primary/5"
+                  : "border-[var(--ironhub-line)] bg-background/50 hover:border-primary/50"
+              )}
+            >
+              <input
+                id="bundle-reupload-input"
+                type="file"
+                accept=".zip"
+                disabled={uploadArtifactBundle.isPending}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  e.target.value = ""
+                  if (file) void handleBundleReupload(file)
+                }}
+                className="absolute inset-0 cursor-pointer opacity-0"
+              />
+              <IconUpload
+                className="size-6 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <span className="mt-2 block text-sm font-medium text-foreground">
+                Drop a replacement package (.zip) here, or choose one
+              </span>
+              <span className="mt-1 text-sm text-muted-foreground">
+                Recovery path if a bundle upload failed partway through, or to
+                replace the stored package.
+              </span>
+            </div>
+            {uploadArtifactBundle.isPending && (
+              <span className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+                <IconLoader2
+                  className="size-4 animate-spin"
+                  aria-hidden="true"
+                />
+                <span>Uploading...</span>
+              </span>
+            )}
+            {uploadArtifactBundle.isSuccess &&
+              !uploadArtifactBundle.isPending &&
+              !bundleReuploadError && (
+                <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-800 dark:text-emerald-400">
+                  <IconFileZip className="size-4" aria-hidden="true" />
+                  <span>Bundle uploaded</span>
+                </span>
+              )}
+            {bundleReuploadError && (
+              <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm font-medium text-destructive">
+                {bundleReuploadError}
+              </div>
+            )}
+          </div>
+        )}
+      </FormSection>
+
+      {/* 4. Publishing Section */}
+      <FormSection
+        title="Publishing"
+        description="These checks run on the server and decide whether this item can go live. Publish from the button at the top of the page."
+      >
         {artifact.status !== "published" &&
           checks.data &&
           !checks.isError &&
@@ -515,208 +793,6 @@ export default function ManageSubmissionPage({ params }: PageProps) {
         )}
       </FormSection>
 
-      {/* 3. Files Section */}
-      <FormSection
-        title="Files"
-        description="What's stored for this item right now."
-      >
-        <div
-          className={cn(
-            "grid gap-3",
-            isSingleCard ? "grid-cols-1" : "sm:grid-cols-2"
-          )}
-        >
-          {displayKinds.map((kind) => {
-            const uploaded = uploadedKinds.has(kind)
-            const content = artifact.content.find((c) => c.kind === kind)
-            const info = CONTENT_KIND_INFO[kind] ?? {
-              name: kind,
-              blurb: "",
-            }
-
-            return (
-              <div
-                key={kind}
-                className="flex flex-col justify-between rounded-xl border border-[var(--ironhub-line)] bg-card p-4"
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium text-foreground">
-                      {info.name}
-                    </span>
-                    {uploaded ? (
-                      <AttributeBadge>Stored</AttributeBadge>
-                    ) : (
-                      <AttributeBadge className="border-amber-500/25 bg-amber-500/10 text-amber-800 dark:text-amber-400">
-                        Not added yet
-                      </AttributeBadge>
-                    )}
-                  </div>
-                  {info.blurb && (
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {info.blurb}
-                    </p>
-                  )}
-                </div>
-
-                {uploaded ? (
-                  content && (
-                    <div
-                      className="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground"
-                      title={content.sha256}
-                    >
-                      <span>{formatFileSize(content.sizeBytes)}</span>
-                      {content.sha256 && (
-                        <>
-                          <span>·</span>
-                          <span className="font-mono">
-                            sha256 {content.sha256.slice(0, 10)}...
-                          </span>
-                        </>
-                      )}
-                      {content.createdAt && (
-                        <>
-                          <span>·</span>
-                          <span>added</span>
-                          <RelativeTime value={content.createdAt} />
-                        </>
-                      )}
-                    </div>
-                  )
-                ) : (
-                  <div className="mt-3">
-                    <Button
-                      asChild
-                      variant="ghost"
-                      size="sm"
-                      className={cn(
-                        "h-10 rounded-lg sm:h-8",
-                        workspaceLinkTone,
-                        "hover:text-near-cobalt dark:hover:text-primary"
-                      )}
-                    >
-                      <Link
-                        href={
-                          artifact.type === "skill"
-                            ? `/mvp/edit-skill/${artifact.id}`
-                            : `/mvp/edit-tool/${artifact.id}`
-                        }
-                      >
-                        <span>Add {info.name.toLowerCase()}</span>
-                        <IconArrowRight className="size-4" aria-hidden="true" />
-                      </Link>
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-
-        {artifact.type === "tool" && (
-          <div className="mt-4 flex flex-col gap-2">
-            <label
-              htmlFor="bundle-reupload-input"
-              className="text-sm font-medium text-foreground"
-            >
-              Replace the uploaded package (.zip)
-            </label>
-            <div
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className={cn(
-                "relative flex min-h-[120px] flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-colors",
-                dragOver
-                  ? "border-primary bg-primary/5"
-                  : "border-[var(--ironhub-line)] bg-background/50 hover:border-primary/50"
-              )}
-            >
-              <input
-                id="bundle-reupload-input"
-                type="file"
-                accept=".zip"
-                disabled={uploadArtifactBundle.isPending}
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  e.target.value = ""
-                  if (file) void handleBundleReupload(file)
-                }}
-                className="absolute inset-0 cursor-pointer opacity-0"
-              />
-              <IconUpload
-                className="size-6 text-muted-foreground"
-                aria-hidden="true"
-              />
-              <span className="mt-2 block text-sm font-medium text-foreground">
-                Drop a replacement package (.zip) here, or choose one
-              </span>
-              <span className="mt-1 text-sm text-muted-foreground">
-                Recovery path if a bundle upload failed partway through, or to
-                replace the stored package.
-              </span>
-            </div>
-            {uploadArtifactBundle.isPending && (
-              <span className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
-                <IconLoader2
-                  className="size-4 animate-spin"
-                  aria-hidden="true"
-                />
-                <span>Uploading...</span>
-              </span>
-            )}
-            {uploadArtifactBundle.isSuccess &&
-              !uploadArtifactBundle.isPending &&
-              !bundleReuploadError && (
-                <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-800 dark:text-emerald-400">
-                  <IconFileZip className="size-4" aria-hidden="true" />
-                  <span>Bundle uploaded</span>
-                </span>
-              )}
-            {bundleReuploadError && (
-              <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm font-medium text-destructive">
-                {bundleReuploadError}
-              </div>
-            )}
-          </div>
-        )}
-      </FormSection>
-
-      {/* 4. Install Link Section */}
-      <FormSection
-        title="Install link"
-        description="Share this link with a member so they can add this item to their agent."
-      >
-        <div className="flex flex-col items-start gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleCopyInstall}
-            disabled={mintToken.isPending || !isContentComplete}
-            className="h-10 rounded-lg"
-          >
-            {mintToken.isPending ? (
-              <IconLoader2 className="size-4 animate-spin" aria-hidden="true" />
-            ) : copiedInstall ? (
-              <IconCheck
-                className="size-4 text-emerald-600 dark:text-emerald-400"
-                aria-hidden="true"
-              />
-            ) : (
-              <IconCopy
-                className="size-4 text-muted-foreground"
-                aria-hidden="true"
-              />
-            )}
-            <span>{copiedInstall ? "Copied" : "Copy install link"}</span>
-          </Button>
-          {!isContentComplete && (
-            <p className="text-sm text-muted-foreground">
-              Add the required files before you can copy an install link.
-            </p>
-          )}
-        </div>
-      </FormSection>
     </div>
   )
 }

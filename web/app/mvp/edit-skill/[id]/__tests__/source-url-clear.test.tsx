@@ -14,7 +14,7 @@ vi.mock("next/link", () => ({
 }))
 
 import { ToastProvider } from "@/features/partner/store/toast-provider"
-import EditSkillPage from "../page"
+import { SkillEditor } from "@/features/partner/components/skill-editor"
 
 const BASE_ARTIFACT = {
   id: "skill-1",
@@ -57,7 +57,7 @@ async function renderPage(id = "skill-1") {
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <Suspense fallback={<div>Loading route...</div>}>
-            <EditSkillPage params={Promise.resolve({ id })} />
+            <SkillEditor id={id} />
           </Suspense>
         </ToastProvider>
       </QueryClientProvider>
@@ -122,7 +122,11 @@ describe("edit-skill page — clearing the repository link", () => {
     fireEvent.click(saveButton)
 
     await waitFor(() =>
-      expect(pushMock).toHaveBeenCalledWith("/mvp/manage/skill-1")
+      expect(
+        vi
+          .mocked(fetch)
+          .mock.calls.some(([, callInit]) => callInit?.method === "PATCH")
+      ).toBe(true)
     )
 
     const patchCall = vi

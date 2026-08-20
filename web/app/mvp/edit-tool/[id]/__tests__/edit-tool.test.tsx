@@ -1,12 +1,10 @@
-import { act, Suspense } from "react"
+import { act } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-const pushMock = vi.fn()
-
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: pushMock }),
+  useRouter: () => ({ push: vi.fn() }),
 }))
 
 vi.mock("next/link", () => ({
@@ -14,7 +12,7 @@ vi.mock("next/link", () => ({
 }))
 
 import { ToastProvider } from "@/features/partner/store/toast-provider"
-import EditToolPage from "../page"
+import { ToolEditor } from "@/features/partner/components/tool-editor"
 
 const artifact = {
   id: "artifact-1",
@@ -27,17 +25,15 @@ const artifact = {
   visibility: "private",
   status: "draft",
   description: "A tool.",
+  category: "Dev Tools",
   sourceUrl: null,
   content: [],
+  assets: [],
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
 }
 
-// See edit-skill.test.tsx for why render + the initial settle need an
-// explicit async act() here: EditToolPage suspends on `use(params)`, and
-// testing-library's own act-wrapping doesn't flush that combined with the
-// async react-query fetches.
-async function renderPage() {
+async function renderEditor() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
@@ -45,9 +41,7 @@ async function renderPage() {
     render(
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <Suspense fallback={null}>
-            <EditToolPage params={Promise.resolve({ id: "artifact-1" })} />
-          </Suspense>
+          <ToolEditor id="artifact-1" />
         </ToastProvider>
       </QueryClientProvider>
     )
@@ -56,9 +50,31 @@ async function renderPage() {
   return queryClient
 }
 
-describe("edit-tool capabilities content loading", () => {
+/** Records every write the editor makes, so "wrote nothing" is assertable. */
+function trackWrites() {
+  const writes: Array<{ url: string; method: string }> = []
+  vi.mocked(fetch).mockImplementation(async (input, init) => {
+    const url = String(input)
+    const method = init?.method ?? "GET"
+    if (url === "/api/private-artifacts/artifact-1" && method === "GET") {
+      return new Response(JSON.stringify({ artifact }), { status: 200 })
+    }
+    writes.push({ url, method })
+    if (url === "/api/private-artifacts/artifact-1" && method === "PATCH") {
+      return new Response(JSON.stringify({ artifact }), { status: 200 })
+    }
+    if (url.endsWith("/content/wasm") && method === "PUT") {
+      return new Response(JSON.stringify({ content: { kind: "wasm" } }), {
+        status: 201,
+      })
+    }
+    throw new Error(`Unexpected fetch: ${method} ${url}`)
+  })
+  return writes
+}
+
+describe("edit-tool", () => {
   beforeEach(() => {
-    pushMock.mockClear()
     vi.stubGlobal("fetch", vi.fn())
   })
 
@@ -66,257 +82,73 @@ describe("edit-tool capabilities content loading", () => {
     vi.unstubAllGlobals()
   })
 
-  it("disables saving, shows an error, and blocks the actual PUT when the stored capabilities.json fails to load (500)", async () => {
-    const capabilitiesPutCalls: Array<{ url: string }> = []
-    vi.mocked(fetch).mockImplementation(async (input, init) => {
-      const url = String(input)
-      if (url === "/api/private-artifacts/artifact-1") {
-        return new Response(JSON.stringify({ artifact }), { status: 200 })
-      }
-      if (
-        url === "/api/private-artifacts/artifact-1/content/capabilities" &&
-        init?.method === "PUT"
-      ) {
-        capabilitiesPutCalls.push({ url })
-        return new Response(
-          JSON.stringify({ content: { kind: "capabilities" } }),
-          {
-            status: 201,
-          }
-        )
-      }
-      if (url === "/api/private-artifacts/artifact-1/content/capabilities") {
-        return new Response(JSON.stringify({ error: "Internal error" }), {
-          status: 500,
-        })
-      }
-      throw new Error(`Unexpected fetch: ${url} ${init?.method ?? "GET"}`)
-    })
+  it("seeds the form from the artifact record and saves without touching stored files", async () => {
+    const writes = trackWrites()
 
-    await renderPage()
+    await renderEditor()
 
     await waitFor(() => {
-      expect(
-        screen.getByText(/stored permissions could not be loaded/i)
-      ).toBeInTheDocument()
+      expect(screen.getByDisplayValue("My Tool")).toBeInTheDocument()
     })
+    expect(screen.getByDisplayValue("A tool.")).toBeInTheDocument()
 
-    const saveButton = screen.getByRole("button", { name: /save changes/i })
-    expect(saveButton).toBeDisabled()
-
-    // B3: the guard must live in the submit handler, not just the button's
-    // `disabled` prop -- firing a submit directly must not produce a PUT.
-    // The draft is seeded to valid JSON first (bypassing the textarea's
-    // `disabled` via fireEvent, which jsdom does not enforce) so this
-    // isolates the `capabilitiesReady` guard from the separate JSON.parse
-    // validity check -- an empty, never-seeded draft would fail that check
-    // regardless of the guard, which would make this assertion pass for
-    // the wrong reason.
-    fireEvent.change(screen.getByPlaceholderText('{ "permissions": [] }'), {
-      target: { value: "{}" },
-    })
-    fireEvent.submit(saveButton.closest("form")!)
-    await new Promise((resolve) => setTimeout(resolve, 0))
-    expect(capabilitiesPutCalls.length).toBe(0)
-  })
-
-  it("treats a 404 (no content row yet) as a safe, savable empty state -- not a load failure", async () => {
-    vi.mocked(fetch).mockImplementation(async (input) => {
-      const url = String(input)
-      if (url === "/api/private-artifacts/artifact-1") {
-        return new Response(JSON.stringify({ artifact }), { status: 200 })
-      }
-      if (url === "/api/private-artifacts/artifact-1/content/capabilities") {
-        return new Response(JSON.stringify({ error: "Content not found" }), {
-          status: 404,
-        })
-      }
-      throw new Error(`Unexpected fetch: ${url}`)
-    })
-
-    await renderPage()
-
-    await waitFor(() => {
-      expect(
-        screen.queryByText(/stored permissions could not be loaded/i)
-      ).not.toBeInTheDocument()
-      expect(
-        screen.getByText(/no permissions file is stored for this tool/i)
-      ).toBeInTheDocument()
-      expect(
-        screen.getByRole("button", { name: /save changes/i })
-      ).not.toBeDisabled()
-    })
-
-    expect(screen.getByPlaceholderText('{ "permissions": [] }')).toHaveValue("")
-  })
-
-  it("seeds the capabilities editor and enables saving once the stored document loads", async () => {
-    const storedCapabilities = JSON.stringify({ permissions: ["net"] }, null, 2)
-
-    vi.mocked(fetch).mockImplementation(async (input) => {
-      const url = String(input)
-      if (url === "/api/private-artifacts/artifact-1") {
-        return new Response(JSON.stringify({ artifact }), { status: 200 })
-      }
-      if (url === "/api/private-artifacts/artifact-1/content/capabilities") {
-        return new Response(storedCapabilities, {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        })
-      }
-      throw new Error(`Unexpected fetch: ${url}`)
-    })
-
-    await renderPage()
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: /save changes/i })
-      ).not.toBeDisabled()
-      expect(screen.getByPlaceholderText('{ "permissions": [] }')).toHaveValue(
-        storedCapabilities
-      )
-    })
-  })
-
-  it("does not re-upload capabilities on a metadata-only save when the draft is unchanged", async () => {
-    const storedCapabilities = JSON.stringify({ permissions: ["net"] }, null, 2)
-    const capabilitiesPutCalls: Array<{ url: string }> = []
-
-    vi.mocked(fetch).mockImplementation(async (input, init) => {
-      const url = String(input)
-      if (
-        url === "/api/private-artifacts/artifact-1" &&
-        init?.method === "PATCH"
-      ) {
-        return new Response(JSON.stringify({ artifact }), { status: 200 })
-      }
-      if (url === "/api/private-artifacts/artifact-1") {
-        return new Response(JSON.stringify({ artifact }), { status: 200 })
-      }
-      if (
-        url === "/api/private-artifacts/artifact-1/content/capabilities" &&
-        init?.method === "PUT"
-      ) {
-        capabilitiesPutCalls.push({ url })
-        return new Response(
-          JSON.stringify({ content: { kind: "capabilities" } }),
-          {
-            status: 201,
-          }
-        )
-      }
-      if (url === "/api/private-artifacts/artifact-1/content/capabilities") {
-        return new Response(storedCapabilities, {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        })
-      }
-      throw new Error(`Unexpected fetch: ${url} ${init?.method ?? "GET"}`)
-    })
-
-    await renderPage()
-
-    // `capabilitiesReady` (which enables the button) and `capabilitiesDraft`
-    // (seeded by a separate useEffect, one render later) can be observed in
-    // different commits: the button can already be enabled on the render
-    // where `capabilitiesText` first resolves, before the effect that
-    // copies it into `capabilitiesDraft` has run. Waiting only for the
-    // button lets a submit race ahead of seeding, land with an empty draft,
-    // and upload it as if it were a real (spurious) change -- wait for the
-    // textarea to actually hold the loaded value too, exactly as the
-    // "seeds the capabilities editor" test above does, or this test can
-    // pass/fail on timing rather than on the skip-when-unchanged logic.
-    await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: /save changes/i })
-      ).not.toBeDisabled()
-      expect(screen.getByPlaceholderText('{ "permissions": [] }')).toHaveValue(
-        storedCapabilities
-      )
-    })
-
-    // Change only the title -- leave the capabilities draft exactly as loaded.
     fireEvent.change(screen.getByDisplayValue("My Tool"), {
       target: { value: "My Renamed Tool" },
     })
     fireEvent.click(screen.getByRole("button", { name: /save changes/i }))
 
-    await waitFor(() => {
-      expect(pushMock).toHaveBeenCalled()
-    })
+    await waitFor(() => expect(writes.length).toBeGreaterThan(0))
 
-    expect(capabilitiesPutCalls.length).toBe(0)
+    // A metadata edit is a PATCH and nothing else: no stored file is rewritten
+    // just because the title changed.
+    expect(writes).toEqual([
+      { url: "/api/private-artifacts/artifact-1", method: "PATCH" },
+    ])
   })
 
-  // N6 regression: a background refetch failing *after* an initial success
-  // must not block saving, disable the textarea, or clear the draft -- the
-  // user still has real, safe content loaded to save on top of.
-  it("does not block saving or disable the editor when a background refetch fails after an initial success", async () => {
-    const storedCapabilities = JSON.stringify({ permissions: ["net"] }, null, 2)
+  it("does not ask for a capabilities document, which the manifest now carries", async () => {
+    // Regression guard for the removal: *.capabilities.json is the legacy
+    // carrier of data reborn.extension_manifest.v3 owns, so the editor must
+    // neither read it nor offer to edit it.
+    const writes = trackWrites()
 
-    vi.mocked(fetch).mockImplementation(async (input) => {
-      const url = String(input)
-      if (url === "/api/private-artifacts/artifact-1") {
-        return new Response(JSON.stringify({ artifact }), { status: 200 })
-      }
-      if (url === "/api/private-artifacts/artifact-1/content/capabilities") {
-        return new Response(storedCapabilities, {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        })
-      }
-      throw new Error(`Unexpected fetch: ${url}`)
-    })
-
-    const queryClient = await renderPage()
+    await renderEditor()
 
     await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: /save changes/i })
-      ).not.toBeDisabled()
-      expect(screen.getByPlaceholderText('{ "permissions": [] }')).toHaveValue(
-        storedCapabilities
-      )
+      expect(screen.getByDisplayValue("My Tool")).toBeInTheDocument()
     })
 
-    // Now make the content route fail, and force a refetch (standing in
-    // for the real trigger -- refetchOnWindowFocus after staleTime elapses).
-    vi.mocked(fetch).mockImplementation(async (input) => {
-      const url = String(input)
-      if (url === "/api/private-artifacts/artifact-1") {
-        return new Response(JSON.stringify({ artifact }), { status: 200 })
-      }
-      if (url === "/api/private-artifacts/artifact-1/content/capabilities") {
-        return new Response(JSON.stringify({ error: "Internal error" }), {
-          status: 500,
-        })
-      }
-      throw new Error(`Unexpected fetch: ${url}`)
-    })
+    expect(screen.queryByLabelText(/permissions/i)).not.toBeInTheDocument()
+    expect(
+      vi
+        .mocked(fetch)
+        .mock.calls.some(([input]) => String(input).includes("capabilities"))
+    ).toBe(false)
+    expect(writes).toEqual([])
+  })
 
-    await act(async () => {
-      queryClient.refetchQueries({
-        queryKey: ["private-artifact-content", "artifact-1", "capabilities"],
-      })
-      await new Promise((resolve) => setTimeout(resolve, 0))
-    })
+  it("uploads a replacement program file when one is chosen", async () => {
+    const writes = trackWrites()
+
+    await renderEditor()
 
     await waitFor(() => {
-      expect(
-        screen.getByText(/could not refresh the stored permissions/i)
-      ).toBeInTheDocument()
+      expect(screen.getByDisplayValue("My Tool")).toBeInTheDocument()
     })
 
-    const textarea = screen.getByPlaceholderText('{ "permissions": [] }')
-    expect(
-      screen.queryByText(/stored permissions could not be loaded/i)
-    ).not.toBeInTheDocument()
-    expect(
-      screen.getByRole("button", { name: /save changes/i })
-    ).not.toBeDisabled()
-    expect(textarea).not.toBeDisabled()
-    expect(textarea).toHaveValue(storedCapabilities)
+    const fileInput = document.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement
+    fireEvent.change(fileInput, {
+      target: { files: [new File([new Uint8Array([0])], "tool.wasm")] },
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: /save changes/i }))
+
+    await waitFor(() => expect(writes.length).toBe(2))
+    expect(writes[1]).toEqual({
+      url: "/api/private-artifacts/artifact-1/content/wasm",
+      method: "PUT",
+    })
   })
 })

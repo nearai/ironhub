@@ -14,7 +14,7 @@ vi.mock("next/link", () => ({
 }))
 
 import { ToastProvider } from "@/features/partner/store/toast-provider"
-import EditSkillPage from "../page"
+import { SkillEditor } from "@/features/partner/components/skill-editor"
 
 const artifact = {
   id: "artifact-1",
@@ -64,7 +64,7 @@ async function renderPage() {
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <Suspense fallback={null}>
-            <EditSkillPage params={Promise.resolve({ id: "artifact-1" })} />
+            <SkillEditor id="artifact-1" />
           </Suspense>
         </ToastProvider>
       </QueryClientProvider>
@@ -348,6 +348,56 @@ describe("edit-skill content loading", () => {
     expect(bodyField).toHaveValue("")
   })
 
+  it("falls back to the record's description when the stored file has none, so saving cannot blank the catalog copy", async () => {
+    const patchBodies: string[] = []
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/artifact-1" && !init?.method) {
+        return new Response(JSON.stringify({ artifact }), { status: 200 })
+      }
+      if (url === "/api/private-artifacts/artifact-1" && init?.method === "PATCH") {
+        patchBodies.push(String(init.body))
+        return new Response(JSON.stringify({ artifact }), { status: 200 })
+      }
+      if (url === "/api/private-artifacts/artifact-1/content/skill_md") {
+        if (init?.method === "PUT") {
+          return new Response(JSON.stringify({ content: { kind: "skill_md" } }), {
+            status: 201,
+          })
+        }
+        // A stored file whose frontmatter carries no `description` at all --
+        // the catalog copy lives only on the artifact record.
+        return new Response(
+          [
+            "---",
+            "name: my-skill",
+            "version: 1.0.0",
+            "value_prop: Does the thing.",
+            "---",
+            "",
+            "Body.",
+          ].join("\n"),
+          { status: 200 }
+        )
+      }
+      throw new Error(`Unexpected fetch: ${url} ${init?.method ?? "GET"}`)
+    })
+
+    await renderPage()
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /save changes/i })
+      ).not.toBeDisabled()
+    })
+    expect(screen.getByDisplayValue("A skill.")).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: /save changes/i }))
+
+    await waitFor(() => expect(patchBodies.length).toBe(1))
+    expect(JSON.parse(patchBodies[0]).description).toBe("A skill.")
+  })
+
   it("seeds the body and known frontmatter fields, and enables saving once the file loads", async () => {
     vi.mocked(fetch).mockImplementation(async (input) => {
       const url = String(input)
@@ -479,9 +529,15 @@ describe("edit-skill content loading", () => {
     })
     fireEvent.click(screen.getByRole("button", { name: /save changes/i }))
 
-    await waitFor(() => {
-      expect(pushMock).toHaveBeenCalled()
-    })
+    // Editing happens on the item's own page now, so a finished save is
+    // observed by the PATCH going out rather than by a navigation.
+    await waitFor(() =>
+      expect(
+        vi
+          .mocked(fetch)
+          .mock.calls.some(([, callInit]) => callInit?.method === "PATCH")
+      ).toBe(true)
+    )
 
     expect(putCalls.length).toBe(0)
   })
