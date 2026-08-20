@@ -48,7 +48,8 @@ export async function getObjectStream(key: string) {
 /**
  * The whole object as bytes, for callers that must parse it rather than relay
  * it. Only ever used on objects already bounded by a per-kind upload cap --
- * `manifest.toml` at 256KB today -- because nothing here bounds the read.
+ * `manifest.toml` at 256KB and `bundle_zip` at 25MB today -- because nothing
+ * here bounds the read.
  *
  * `transformToByteArray` is the SDK's own one-shot collector on a Node
  * `SdkStream`; the async-iteration fallback covers the non-Node body types

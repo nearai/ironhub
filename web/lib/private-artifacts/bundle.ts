@@ -1136,3 +1136,32 @@ export function inspectExtensionBundle(zip: Uint8Array): InspectedBundle {
     totalUncompressedBytes,
   }
 }
+
+/** One file inside a stored package, as the owner's Files view lists it. */
+export type BundleEntry = {
+  path: string
+  sizeBytes: number
+}
+
+/**
+ * The files an already-stored package contains, read from the zip's central
+ * directory alone -- nothing is inflated, so this stays cheap on a 25MB
+ * archive.
+ *
+ * Deliberately *not* the same list as `InspectedBundle.declaredSchemas` /
+ * `declaredPrompts`, which answer "what will the agent install". This answers
+ * the plainer question the owner is asking when they look at the Files
+ * section: what did I actually upload.
+ *
+ * Directory entries are dropped -- the view rebuilds the folder structure
+ * from the paths, and a zip may or may not carry explicit directory records
+ * for the same tree. Symlink entries are dropped too: `inspectExtensionBundle`
+ * rejects them outright (rule 3), so a stored archive has none, and listing
+ * one as if it were a file would be a lie about bytes that cannot be there.
+ */
+export function listBundleEntries(zip: Uint8Array): BundleEntry[] {
+  return listZipEntries(zip)
+    .filter((entry) => !entry.isDirectory && !entry.isSymlink)
+    .map((entry) => ({ path: entry.name, sizeBytes: entry.uncompressedSize }))
+    .sort((a, b) => a.path.localeCompare(b.path))
+}

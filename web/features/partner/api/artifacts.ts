@@ -109,6 +109,12 @@ export interface BundleUploadResult {
   content: BundleContentSummary[]
 }
 
+/** One file inside the package stored for a tool, as the Files view lists it. */
+export interface BundleEntry {
+  path: string
+  sizeBytes: number
+}
+
 export interface ArtifactCheck {
   id: string
   label: string
@@ -125,6 +131,8 @@ const artifactsKey = ["private-artifacts"] as const
 const artifactKey = (id: string) => ["private-artifacts", id] as const
 const artifactChecksKey = (id: string) =>
   ["private-artifacts", id, "checks"] as const
+const artifactBundleEntriesKey = (id: string) =>
+  ["private-artifacts", id, "bundle-entries"] as const
 
 export function useArtifacts() {
   return useQuery({
@@ -269,7 +277,35 @@ export function useUploadArtifactBundle() {
       queryClient.invalidateQueries({ queryKey: artifactsKey })
       queryClient.invalidateQueries({ queryKey: artifactKey(id) })
       queryClient.invalidateQueries({ queryKey: artifactChecksKey(id) })
+      // The upload replaced the stored archive, so the file listing read
+      // from it is stale by definition.
+      queryClient.invalidateQueries({ queryKey: artifactBundleEntriesKey(id) })
     },
+  })
+}
+
+/**
+ * The files inside the package stored for a tool, listed straight from the
+ * archive in storage.
+ *
+ * `enabled` is the caller's job: a tool whose bundle upload never completed
+ * has no package at all, and asking for its listing would only produce a 404
+ * the view already knows about from the artifact's content rows.
+ */
+export function useArtifactBundleEntries(
+  id: string | undefined,
+  options?: { enabled?: boolean }
+) {
+  return useQuery({
+    queryKey: id
+      ? artifactBundleEntriesKey(id)
+      : ["private-artifacts", "unknown", "bundle-entries"],
+    queryFn: () =>
+      fetchJson<{ entries: BundleEntry[] }>(
+        `/api/private-artifacts/${id}/bundle/entries`
+      ),
+    select: (data) => data.entries ?? [],
+    enabled: Boolean(id) && (options?.enabled ?? true),
   })
 }
 
