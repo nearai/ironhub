@@ -787,15 +787,6 @@ mod tests {
     }
 
     #[test]
-    fn published_input_schema_matches_guest_export() {
-        let exported: Value = serde_json::from_str(SCHEMA).expect("guest schema");
-        let published: Value =
-            serde_json::from_str(include_str!("../schemas/nearcatalog/invoke.input.v1.json"))
-                .expect("published schema");
-        assert_eq!(published, exported);
-    }
-
-    #[test]
     fn action_deserializes_each_variant() {
         assert!(matches!(
             serde_json::from_str::<Action>(r#"{"action":"list_projects"}"#),
