@@ -128,6 +128,14 @@ export default function NewSubmitPage() {
     setArtifactName("")
   }
 
+  // A tool's identifier is never shown or typed -- exactly as for a skill.
+  // It follows the name the author gives the tool, and is seeded from the
+  // package's manifest id on inspect, so the two can't silently disagree.
+  const handleToolTitleChange = (value: string) => {
+    setTitle(value)
+    setArtifactName(value.trim() ? slugify(value) : "")
+  }
+
   // Handlers for Skill Use Cases list
   const handleAddUseCase = () => {
     setUseCases([...useCases, ""])
@@ -372,7 +380,15 @@ export default function NewSubmitPage() {
       // refetch for that case.)
       queryClient.invalidateQueries({ queryKey: ["private-artifacts"] })
 
-      notify(`${finalTitle} created`)
+      // The server suffixes a name another item already holds (service.ts:
+      // findAvailableArtifactName). The author never sees the name field, so
+      // say which one they got rather than letting it surprise them later in
+      // an install link.
+      notify(
+        artifact.name === name
+          ? `${finalTitle} created`
+          : `${finalTitle} created as "${artifact.name}" — "${name}" was already taken.`
+      )
       router.push("/dashboard/catalog")
     } catch (error) {
       if (createdArtifactId) {
@@ -948,7 +964,7 @@ Describe how the agent should act...`}
               title="Basics"
               description="The name, version and one-line summary people see."
             >
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
                   <label
                     htmlFor="tool-name"
@@ -962,39 +978,15 @@ Describe how the agent should act...`}
                     required
                     placeholder="e.g. USDC Payments"
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                    onChange={(e) => handleToolTitleChange(e.target.value)}
                     className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
                   />
                   <p
                     id="tool-name-help"
                     className="text-xs text-muted-foreground"
                   >
-                    The name members see in the catalog.
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label
-                    htmlFor="tool-artifact-name"
-                    className="text-sm font-medium text-foreground"
-                  >
-                    Identifier
-                  </label>
-                  <Input
-                    id="tool-artifact-name"
-                    aria-describedby="tool-artifact-name-help"
-                    required
-                    placeholder="e.g. usdc-payments"
-                    value={artifactName}
-                    onChange={(e) => setArtifactName(e.target.value)}
-                    className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
-                  />
-                  <p
-                    id="tool-artifact-name-help"
-                    className="text-xs text-muted-foreground"
-                  >
-                    A short lowercase name used in links and commands. This
-                    cannot be changed later.
+                    The name members see in the catalog. We create a short
+                    identifier from it automatically.
                   </p>
                 </div>
 
@@ -1008,18 +1000,17 @@ Describe how the agent should act...`}
                   <Input
                     id="tool-version"
                     aria-describedby="tool-version-help"
-                    required
+                    readOnly
                     placeholder="e.g. 1.0.0"
                     value={version}
-                    onChange={(e) => setVersion(e.target.value)}
-                    className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
+                    className="h-10 min-h-[40px] cursor-default rounded-lg bg-muted/40 text-sm text-muted-foreground"
                   />
                   <p
                     id="tool-version-help"
                     className="text-xs text-muted-foreground"
                   >
-                    Your own version number, for example 1.0.0. This cannot be
-                    changed later.
+                    Read from the package you upload. Ship a new version by
+                    uploading a package that declares one.
                   </p>
                 </div>
               </div>

@@ -1,6 +1,8 @@
 import assert from "node:assert/strict"
 import { mock, test } from "node:test"
 
+import { Prisma } from "../prisma/client"
+
 /**
  * Minimal in-memory fake for the subset of the Prisma Client API used by
  * service.ts. `findFirst`/`update` intentionally ignore `select`/`include`
@@ -16,6 +18,20 @@ function makeFakeDb() {
     prisma: {
       privateArtifact: {
         create: async ({ data }) => {
+          // The real (organizationId, name, version) unique index, since the
+          // create path's name-collision handling is driven by P2002.
+          const clash = [...artifacts.values()].some(
+            (existing) =>
+              existing.organizationId === data.organizationId &&
+              existing.name === data.name &&
+              existing.version === data.version
+          )
+          if (clash) {
+            throw new Prisma.PrismaClientKnownRequestError(
+              "Unique constraint failed",
+              { code: "P2002", clientVersion: "test" }
+            )
+          }
           const record = {
             status: "draft",
             description: null,
@@ -26,6 +42,16 @@ function makeFakeDb() {
           }
           artifacts.set(record.id, record)
           return { ...record, content: [...record.content] }
+        },
+        findMany: async ({ where }) => {
+          const prefix = where?.name?.startsWith ?? ""
+          return [...artifacts.values()]
+            .filter(
+              (record) =>
+                record.organizationId === where.organizationId &&
+                record.name.startsWith(prefix)
+            )
+            .map((record) => ({ name: record.name }))
         },
         findFirst: async ({ where }) => {
           const record = artifacts.get(where.id)
@@ -143,6 +169,82 @@ function baseCreateInput(overrides = {}) {
     ...overrides,
   }
 }
+
+// --- name collisions ---------------------------------------------------
+//
+// Each of these uses a base name of its own: the fake db is shared across
+// the whole file, so a test that leaned on the default "my-tool" would see
+// the names its neighbours created.
+
+test("createPrivateArtifact suffixes a tool name another artifact already holds", async () => {
+  seedArtifact({ name: "usdc-payments", version: "1.0.0" })
+
+  const artifact = await createPrivateArtifact(
+    "org-1",
+    "user-1",
+    baseCreateInput({ name: "usdc-payments", version: "2.0.0" })
+  )
+
+  // Not "usdc-payments" at a new version: a name is one item's identity to
+  // the agent, so an unrelated item asking for a taken name gets its own.
+  assert.equal(artifact.name, "usdc-payments-2")
+})
+
+test("createPrivateArtifact suffixes a skill name the same way", async () => {
+  seedArtifact({ type: "skill", name: "invoice-auditor" })
+
+  const artifact = await createPrivateArtifact(
+    "org-1",
+    "user-1",
+    baseCreateInput({
+      type: "skill",
+      name: "invoice-auditor",
+      title: "Invoice Auditor",
+    })
+  )
+
+  assert.equal(artifact.name, "invoice-auditor-2")
+})
+
+test("createPrivateArtifact walks past suffixes that are themselves taken", async () => {
+  seedArtifact({ name: "csv-cleaner" })
+  seedArtifact({ name: "csv-cleaner-2" })
+  seedArtifact({ name: "csv-cleaner-3" })
+
+  const artifact = await createPrivateArtifact(
+    "org-1",
+    "user-1",
+    baseCreateInput({ name: "csv-cleaner" })
+  )
+
+  assert.equal(artifact.name, "csv-cleaner-4")
+})
+
+test("createPrivateArtifact keeps the requested name when nothing holds it", async () => {
+  seedArtifact({ name: "report-generator" })
+
+  const artifact = await createPrivateArtifact(
+    "org-1",
+    "user-1",
+    baseCreateInput({ name: "report-gen" })
+  )
+
+  // "report-generator" starts with "report-gen" but is neither "report-gen"
+  // nor "report-gen-<n>", so it must not push the new artifact to a suffix.
+  assert.equal(artifact.name, "report-gen")
+})
+
+test("createPrivateArtifact ignores names held by another organization", async () => {
+  seedArtifact({ name: "shared-name", organizationId: "org-2" })
+
+  const artifact = await createPrivateArtifact(
+    "org-1",
+    "user-1",
+    baseCreateInput({ name: "shared-name" })
+  )
+
+  assert.equal(artifact.name, "shared-name")
+})
 
 // --- category validation ---------------------------------------------
 

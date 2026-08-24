@@ -9,6 +9,7 @@ import {
   IconBook,
   IconCategory,
   IconCheck,
+  IconCopy,
   IconDotsVertical,
   IconDownload,
   IconInfoCircle,
@@ -101,6 +102,12 @@ export default function ManageSubmissionPage({ params }: PageProps) {
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [copiedInstall, setCopiedInstall] = useState(false)
+  // The minted link is kept on the page rather than only on the clipboard:
+  // `navigator.clipboard.writeText` rejects whenever the document isn't
+  // focused (devtools open, another window in front) and in insecure
+  // contexts, and a link the author can select by hand is the only fallback
+  // that always works.
+  const [installUrl, setInstallUrl] = useState<string | null>(null)
   const [publishError, setPublishError] = useState<string | null>(null)
 
   if (isLoading) {
@@ -180,18 +187,49 @@ export default function ManageSubmissionPage({ params }: PageProps) {
       }
     : null
 
-  const handleCopyInstall = async () => {
+  const copyToClipboard = async (value: string) => {
+    if (!navigator.clipboard?.writeText) return false
     try {
-      const { manifestUrl } = await mintToken.mutateAsync()
-      await navigator.clipboard.writeText(manifestUrl)
-      setCopiedInstall(true)
-      setTimeout(() => setCopiedInstall(false), 2000)
-      notify("Install link copied")
+      await navigator.clipboard.writeText(value)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  const handleCopyInstall = async () => {
+    let manifestUrl: string
+    try {
+      ;({ manifestUrl } = await mintToken.mutateAsync())
     } catch (error) {
       notify(
         error instanceof Error ? error.message : "Failed to copy install link",
         "error"
       )
+      return
+    }
+
+    // Always reveal the link, then try the clipboard: a failed copy is a
+    // browser condition the author can work around by selecting the link,
+    // not a failure of minting it.
+    setInstallUrl(manifestUrl)
+    if (await copyToClipboard(manifestUrl)) {
+      setCopiedInstall(true)
+      setTimeout(() => setCopiedInstall(false), 2000)
+      notify("Install link copied")
+    } else {
+      notify("Install link ready -- copy it from the box below", "info")
+    }
+  }
+
+  const handleCopyInstallUrlAgain = async () => {
+    if (!installUrl) return
+    if (await copyToClipboard(installUrl)) {
+      setCopiedInstall(true)
+      setTimeout(() => setCopiedInstall(false), 2000)
+      notify("Install link copied")
+    } else {
+      notify("Copying is blocked here -- select the link and copy it", "info")
     }
   }
 
@@ -466,6 +504,55 @@ export default function ManageSubmissionPage({ params }: PageProps) {
           </p>
         )}
       </WorkspacePageHeader>
+
+      {/* The minted install link, shown in full so it can always be copied
+          by hand -- see `installUrl` above. */}
+      {installUrl && (
+        <div className="flex flex-col gap-2 rounded-xl border border-[var(--ironhub-line)] bg-card p-4">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground">
+                Install link
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Paste this into the agent to install {artifact.title}.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-8 shrink-0 rounded-lg"
+              aria-label="Dismiss install link"
+              onClick={() => setInstallUrl(null)}
+            >
+              <IconX className="size-4" aria-hidden="true" />
+            </Button>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <input
+              readOnly
+              value={installUrl}
+              aria-label="Install link"
+              onFocus={(e) => e.currentTarget.select()}
+              className="h-10 min-w-0 flex-1 rounded-lg border border-[var(--ironhub-line)] bg-background/50 px-3 font-mono text-xs text-foreground"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCopyInstallUrlAgain}
+              className="h-10 shrink-0 rounded-lg"
+            >
+              {copiedInstall ? (
+                <IconCheck className="size-4" aria-hidden="true" />
+              ) : (
+                <IconCopy className="size-4" aria-hidden="true" />
+              )}
+              <span>{copiedInstall ? "Copied" : "Copy"}</span>
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* 2. Details -- the editable record, on the same page as everything
           else about this item rather than behind a separate edit route. */}

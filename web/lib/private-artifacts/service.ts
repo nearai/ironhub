@@ -99,34 +99,87 @@ export async function createPrivateArtifact(
     ? assertEnum(input.visibility, VISIBILITIES, "visibility")
     : "private"
 
-  try {
-    return await prisma.privateArtifact.create({
-      data: {
-        id: randomUUID(),
-        organizationId,
-        createdById: userId,
-        type,
-        name: input.name,
-        title: input.title,
-        version: input.version,
-        visibility,
-        description: input.description,
-        sourceUrl,
-        category,
-      },
-    })
-  } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
-      throw new Response(
-        "An artifact with this name and version already exists in this organization.",
-        { status: 409 }
-      )
+  // The name is derived from a title the author typed, never typed itself
+  // (both the skill and the tool form do this), so two unrelated items are
+  // one shared title away from claiming the same name. Rather than rejecting
+  // the second one with a 409 the author can do nothing about — the field
+  // that collided isn't even on screen — the name is suffixed to the first
+  // free `-2`, `-3`, ... The caller is told which name it actually got by
+  // the returned row.
+  let candidate = await findAvailableArtifactName(organizationId, input.name)
+
+  // Two authors submitting the same title at once both see the same free
+  // name above, so the unique index — not the lookup — is what decides.
+  // Re-resolving on P2002 lets the loser take the next name instead of
+  // failing; the bound stops a permanently colliding name from spinning.
+  for (let attempt = 0; attempt < NAME_COLLISION_RETRIES; attempt += 1) {
+    try {
+      return await prisma.privateArtifact.create({
+        data: {
+          id: randomUUID(),
+          organizationId,
+          createdById: userId,
+          type,
+          name: candidate,
+          title: input.title,
+          version: input.version,
+          visibility,
+          description: input.description,
+          sourceUrl,
+          category,
+        },
+      })
+    } catch (error) {
+      if (
+        !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+        error.code !== "P2002"
+      ) {
+        throw error
+      }
+      candidate = await findAvailableArtifactName(organizationId, input.name)
     }
-    throw error
   }
+
+  throw new Response(
+    "An artifact with this name and version already exists in this organization.",
+    { status: 409 }
+  )
+}
+
+/** How many times a create retries after losing a name race (see above). */
+const NAME_COLLISION_RETRIES = 5
+
+/**
+ * `base` if no artifact in the organization holds it, else `base-2`,
+ * `base-3`, ... — the first suffix nothing holds.
+ *
+ * Uniqueness is checked against the name alone, not the `(name, version)`
+ * pair the index enforces: a name is the identity an installed skill or tool
+ * carries into the agent (`manifest.ts` publishes it as the entry's `name`
+ * and a skill's `trunk`), so two different items sharing one name across two
+ * versions would read as two versions of a single item.
+ */
+async function findAvailableArtifactName(
+  organizationId: string,
+  base: string
+) {
+  // `startsWith` is the index-usable half of the filter; it also matches
+  // names that merely begin with `base` ("my-tool" -> "my-toolkit"), so the
+  // exact `base` / `base-<n>` shape is what actually decides below.
+  const taken = new Set(
+    (
+      await prisma.privateArtifact.findMany({
+        where: { organizationId, name: { startsWith: base } },
+        select: { name: true },
+      })
+    ).map((artifact) => artifact.name)
+  )
+
+  if (!taken.has(base)) return base
+
+  let suffix = 2
+  while (taken.has(`${base}-${suffix}`)) suffix += 1
+  return `${base}-${suffix}`
 }
 
 export async function updatePrivateArtifact(

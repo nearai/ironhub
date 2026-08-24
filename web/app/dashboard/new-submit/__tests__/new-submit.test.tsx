@@ -95,7 +95,7 @@ describe("new-submit tool tab (zip bundle flow)", () => {
     expect(fetch).not.toHaveBeenCalled()
   })
 
-  it("prefills title, artifact name, version, and description from a successful inspect response", async () => {
+  it("prefills title, version, and description from a successful inspect response", async () => {
     vi.mocked(fetch).mockImplementation(async (input) => {
       const url = String(input)
       if (url === "/api/private-artifacts/bundle/inspect") {
@@ -117,9 +117,6 @@ describe("new-submit tool tab (zip bundle flow)", () => {
         "USDC Payments"
       )
     )
-    expect(screen.getByPlaceholderText("e.g. usdc-payments")).toHaveValue(
-      "usdc-payments"
-    )
     expect(screen.getByPlaceholderText("e.g. 1.0.0")).toHaveValue("1.2.0")
     expect(
       screen.getByPlaceholderText(
@@ -127,13 +124,71 @@ describe("new-submit tool tab (zip bundle flow)", () => {
       )
     ).toHaveValue("Pays things in USDC.")
 
-    // Prefilled fields stay editable.
+    // The name stays editable; the version is the package's own and is not
+    // editable here. There is no identifier field at all -- a tool derives
+    // one from its name exactly as a skill does.
     fireEvent.change(screen.getByPlaceholderText("e.g. USDC Payments"), {
       target: { value: "USDC Payments v2" },
     })
     expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue(
       "USDC Payments v2"
     )
+    expect(
+      screen.queryByPlaceholderText("e.g. usdc-payments")
+    ).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/identifier/i)).not.toBeInTheDocument()
+    expect(screen.getByPlaceholderText("e.g. 1.0.0")).toHaveAttribute(
+      "readonly"
+    )
+    expect(screen.getByPlaceholderText("e.g. 1.0.0")).toHaveValue("1.2.0")
+  })
+
+  it("sends an identifier derived from the tool name the author last typed", async () => {
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/bundle/inspect") {
+        return new Response(JSON.stringify(inspectManifest), { status: 200 })
+      }
+      if (url === "/api/private-artifacts") {
+        return new Response(
+          JSON.stringify({ artifact: { id: "artifact-3" } }),
+          { status: 201 }
+        )
+      }
+      if (url === "/api/private-artifacts/artifact-3/bundle") {
+        return new Response(JSON.stringify({ content: [] }), { status: 201 })
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    renderPage()
+    openToolTab()
+
+    selectFile(
+      new File(["zip bytes"], "usdc-payments.zip", { type: "application/zip" })
+    )
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue(
+        "USDC Payments"
+      )
+    )
+
+    fireEvent.change(screen.getByPlaceholderText("e.g. USDC Payments"), {
+      target: { value: "USDC Payments v2" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: /add to space/i }))
+
+    await waitFor(() => expect(pushMock).toHaveBeenCalled())
+
+    const createCall = vi
+      .mocked(fetch)
+      .mock.calls.find(([input]) => String(input) === "/api/private-artifacts")
+    const createBody = JSON.parse(String(createCall?.[1]?.body))
+    expect(createBody).toMatchObject({
+      name: "usdc-payments-v2",
+      title: "USDC Payments v2",
+      version: "1.2.0",
+    })
   })
 
   it("prefills normally and enables submission from an inspect response with no capabilities file", async () => {
@@ -176,7 +231,50 @@ describe("new-submit tool tab (zip bundle flow)", () => {
     ).not.toBeDisabled()
   })
 
-  it("prefills the artifact name replacing only what's illegal for that field, preserving a legal underscore", async () => {
+  it("names the suffix the server picked when the derived identifier was taken", async () => {
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts/bundle/inspect") {
+        return new Response(JSON.stringify(inspectManifest), { status: 200 })
+      }
+      if (url === "/api/private-artifacts") {
+        // The server suffixes a name another item already holds
+        // (service.ts: findAvailableArtifactName).
+        return new Response(
+          JSON.stringify({
+            artifact: { id: "artifact-5", name: "usdc-payments-2" },
+          }),
+          { status: 201 }
+        )
+      }
+      if (url === "/api/private-artifacts/artifact-5/bundle") {
+        return new Response(JSON.stringify({ content: [] }), { status: 201 })
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    renderPage()
+    openToolTab()
+
+    selectFile(
+      new File(["zip bytes"], "usdc-payments.zip", { type: "application/zip" })
+    )
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue(
+        "USDC Payments"
+      )
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: /add to space/i }))
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/created as "usdc-payments-2"/i)
+      ).toBeInTheDocument()
+    )
+  })
+
+  it("derives the artifact name from the manifest id, replacing only what's illegal for that field and preserving a legal underscore", async () => {
     // manifest.toml `id` (D6 rule 8) allows "." and "_"; the server's
     // artifact-name charset (service.ts: /^[a-z0-9][a-z0-9_-]*$/) allows "_"
     // but not ".". A general slugify() would collapse "_" to "-" too,
@@ -193,6 +291,15 @@ describe("new-submit tool tab (zip bundle flow)", () => {
           { status: 200 }
         )
       }
+      if (url === "/api/private-artifacts") {
+        return new Response(
+          JSON.stringify({ artifact: { id: "artifact-4" } }),
+          { status: 201 }
+        )
+      }
+      if (url === "/api/private-artifacts/artifact-4/bundle") {
+        return new Response(JSON.stringify({ content: [] }), { status: 201 })
+      }
       throw new Error(`Unexpected fetch: ${url}`)
     })
 
@@ -204,10 +311,19 @@ describe("new-submit tool tab (zip bundle flow)", () => {
     )
 
     await waitFor(() =>
-      expect(screen.getByPlaceholderText("e.g. usdc-payments")).toHaveValue(
-        "acme-usdc_payments"
+      expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue(
+        "USDC Payments"
       )
     )
+
+    fireEvent.click(screen.getByRole("button", { name: /add to space/i }))
+    await waitFor(() => expect(pushMock).toHaveBeenCalled())
+
+    const createCall = vi
+      .mocked(fetch)
+      .mock.calls.find(([input]) => String(input) === "/api/private-artifacts")
+    const createBody = JSON.parse(String(createCall?.[1]?.body))
+    expect(createBody).toMatchObject({ name: "acme-usdc_payments" })
   })
 
   it("shows the server's wrapper-folder message verbatim and blocks submission", async () => {
@@ -478,7 +594,7 @@ describe("new-submit tool tab (zip bundle flow)", () => {
     expect(bodyText).toContain("Be careful.")
   })
 
-  it("clears inspected bundle state and prefilled identifier when switching away from tool mode and back", async () => {
+  it("clears inspected bundle state and prefilled fields when switching away from tool mode and back", async () => {
     vi.mocked(fetch).mockImplementation(async (input) => {
       const url = String(input)
       if (url === "/api/private-artifacts/bundle/inspect") {
@@ -496,8 +612,8 @@ describe("new-submit tool tab (zip bundle flow)", () => {
     selectFile(file)
 
     await waitFor(() =>
-      expect(screen.getByPlaceholderText("e.g. usdc-payments")).toHaveValue(
-        "usdc-payments"
+      expect(screen.getByPlaceholderText("e.g. USDC Payments")).toHaveValue(
+        "USDC Payments"
       )
     )
     expect(screen.getByText("Inspected")).toBeInTheDocument()
@@ -510,7 +626,6 @@ describe("new-submit tool tab (zip bundle flow)", () => {
 
     expect(screen.queryByText("Inspected")).not.toBeInTheDocument()
     expect(screen.queryByText("usdc-payments.zip")).not.toBeInTheDocument()
-    expect(screen.getByPlaceholderText("e.g. usdc-payments")).toHaveValue("")
   })
 
   it("clears bundle error when switching away from tool mode and back", () => {
