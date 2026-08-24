@@ -146,10 +146,24 @@ function createFakeDb({ users = {}, membersSeed = [], nearAccounts = [] } = {}) 
     },
   }
 
+  const userOps = {
+    async findMany({ where, select }) {
+      const wanted = new Set(where?.email?.in ?? [])
+      return Object.values(users)
+        .filter((u) => wanted.has(u.email))
+        .map((u) => {
+          if (!select?.nearAccounts) return u
+          const owned = nearAccounts.filter((a) => a.userId === u.id)
+          return { ...u, nearAccounts: owned.slice(0, 1) }
+        })
+    },
+  }
+
   const db = {
     member: memberOps,
     invitation: invitationOps,
     nearAccount: nearAccountOps,
+    user: userOps,
     session: sessionOps,
     async $transaction(fn) {
       return fn(db)
@@ -379,7 +393,9 @@ test("invite by NEAR account reuses the address of an account that has signed in
   // the only way to reach them — deriving would address nobody.
   const db = createFakeDb({
     membersSeed: seedOwner("org1"),
-    users: { u2: { id: "u2", name: "Dev", email: "temp-9f2c1a@example.com" } },
+    users: {
+      u2: { id: "u2", name: "Dev", email: "temp-9f2c1a2b@http://localhost:3000" },
+    },
     nearAccounts: [{ accountId: "dev.alice.near", network: "mainnet", userId: "u2" }],
   })
 
@@ -391,7 +407,7 @@ test("invite by NEAR account reuses the address of an account that has signed in
     db
   )
 
-  assert.equal(invitation.email, "temp-9f2c1a@example.com")
+  assert.equal(invitation.email, "temp-9f2c1a2b@http://localhost:3000")
 })
 
 test("invite by a top-level .near account that has never signed in derives its address", async () => {
@@ -454,6 +470,99 @@ test("invite by identifier rejects something that is neither an email nor an acc
 
   await assert.rejects(
     () => createInvitationForIdentifier("org1", "owner1", "alice", "member", db),
+    (err) => err instanceof Response && err.status === 400
+  )
+})
+
+test("a .tg account that has signed in can be invited", async () => {
+  const db = createFakeDb({
+    membersSeed: seedOwner("org1"),
+    users: {
+      u3: { id: "u3", name: "efiz", email: "temp-4b7d0e11@http://localhost:3000" },
+    },
+    nearAccounts: [{ accountId: "efiz.tg", network: "mainnet", userId: "u3" }],
+  })
+
+  const invitation = await createInvitationForIdentifier(
+    "org1",
+    "owner1",
+    "efiz.tg",
+    "member",
+    db
+  )
+
+  assert.equal(invitation.email, "temp-4b7d0e11@http://localhost:3000")
+})
+
+test("a sub-account's placeholder address is never rejected as an invalid email", async () => {
+  // better-near-auth builds it as `temp-<hex>@<BETTER_AUTH_URL>`, which is not
+  // a syntactically valid address — validating it is what used to break this.
+  const db = createFakeDb({
+    membersSeed: seedOwner("org1"),
+    users: {
+      u4: { id: "u4", name: "work.efiz.near", email: "temp-1a2b3c4d@http://localhost:3000" },
+    },
+    nearAccounts: [
+      { accountId: "work.efiz.near", network: "mainnet", userId: "u4" },
+    ],
+  })
+
+  const invitation = await createInvitationForIdentifier(
+    "org1",
+    "owner1",
+    "work.efiz.near",
+    "member",
+    db
+  )
+
+  assert.equal(invitation.email, "temp-1a2b3c4d@http://localhost:3000")
+  assert.equal(invitation.status, "pending")
+
+  // And the same account cannot be invited twice.
+  await assert.rejects(
+    () =>
+      createInvitationForIdentifier("org1", "owner1", "work.efiz.near", "member", db),
+    (err) => err instanceof Response && err.status === 409
+  )
+})
+
+test("listOrgInvitations reports the NEAR account id behind a placeholder address", async () => {
+  const db = createFakeDb({
+    membersSeed: seedOwner("org1"),
+    users: {
+      u4: { id: "u4", name: "work.efiz.near", email: "temp-1a2b3c4d@http://localhost:3000" },
+    },
+    nearAccounts: [
+      { accountId: "work.efiz.near", network: "mainnet", userId: "u4" },
+    ],
+  })
+  await createInvitationForIdentifier(
+    "org1",
+    "owner1",
+    "work.efiz.near",
+    "member",
+    db
+  )
+  await createInvitation("org1", "owner1", "dev@example.com", "member", db)
+
+  const list = await listOrgInvitations("org1", "owner1", db)
+  const wallet = list.find((i) => i.email.startsWith("temp-"))
+  const mailbox = list.find((i) => i.email === "dev@example.com")
+
+  assert.equal(wallet.accountId, "work.efiz.near")
+  assert.equal(mailbox.accountId, null)
+})
+
+test("a plainly malformed identifier is still rejected", async () => {
+  const db = createFakeDb({ membersSeed: seedOwner("org1") })
+
+  await assert.rejects(
+    () => createInvitationForIdentifier("org1", "owner1", "alice", "member", db),
+    (err) => err instanceof Response && err.status === 400
+  )
+  await assert.rejects(
+    () =>
+      createInvitationForIdentifier("org1", "owner1", "not an email", "member", db),
     (err) => err instanceof Response && err.status === 400
   )
 })

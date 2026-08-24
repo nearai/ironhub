@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { UserClawAvatar } from "@/features/account/components/user-claw-avatar"
 import { useAccountActions } from "@/features/account/hooks/use-account-actions"
-import { formatAccountIdentity } from "@/lib/orgs/near-identity"
+import { displayIdentity } from "@/lib/orgs/near-identity"
 import {
   isAccountRouteDisabled,
   isWorkspaceRouteDisabled,
@@ -75,7 +75,9 @@ export function UserMenu() {
 
   const { user } = session
   const label = user.name || user.email || "Account"
-  const identity = user.email ? formatAccountIdentity(user.email) : undefined
+  // Hides the `temp-…` placeholder better-near-auth mints for accounts it
+  // cannot derive a stable address for; the name above it is the account id.
+  const identity = displayIdentity(user.email)
 
   return (
     <DropdownMenu>

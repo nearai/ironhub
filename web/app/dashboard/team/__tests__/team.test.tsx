@@ -63,6 +63,27 @@ const mockInvitations: OrgInvitation[] = [
   },
 ]
 
+/**
+ * Routes the two calls the page makes: the invitations listing on mount and
+ * the invite POST. Returns a fresh Response per call — a Response body can
+ * only be read once.
+ */
+function createFetchMock(
+  onPost: () => Response = () =>
+    new Response(
+      JSON.stringify({ invitation: { id: "inv-2", email: "new@example.com" } }),
+      { status: 201, headers: { "content-type": "application/json" } }
+    )
+) {
+  return vi.fn(async (_url: string, init?: RequestInit) => {
+    if (init?.method === "POST") return onPost()
+    return new Response(JSON.stringify({ invitations: mockInvitations }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    })
+  })
+}
+
 async function renderPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -97,10 +118,9 @@ describe("TeamPage", () => {
       data: { members: mockMembers },
       error: null,
     } as never)
-    vi.mocked(authClient.organization.listInvitations).mockResolvedValue({
-      data: mockInvitations,
-      error: null,
-    } as never)
+    // Invitations come from the custom route (it resolves NEAR account ids),
+    // so they are served through fetch rather than the BetterAuth client.
+    vi.stubGlobal("fetch", createFetchMock())
   })
 
   afterEach(() => {
@@ -109,14 +129,7 @@ describe("TeamPage", () => {
 
   describe("(a) invite dialog lifecycle", () => {
     it("opens on 'Invite member', closes on 'Cancel', and closes after a successful invitation submit", async () => {
-      const fetchMock = vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            invitation: { id: "inv-2", email: "new@example.com" },
-          }),
-          { status: 201 }
-        )
-      )
+      const fetchMock = createFetchMock()
       vi.stubGlobal("fetch", fetchMock)
 
       await renderPage()

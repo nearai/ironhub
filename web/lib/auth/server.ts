@@ -7,11 +7,18 @@ import { prisma } from "../db"
 import { hasReachedOrganizationLimit } from "../orgs/limits"
 import { getInitialOrganization } from "./organization"
 
+const configuredOrigins = (process.env.TRUSTED_ORIGINS ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean)
+
 const trustedOrigins = Array.from(
   new Set(
-    [process.env.BETTER_AUTH_URL, process.env.NEXT_PUBLIC_APP_URL].filter(
-      (origin): origin is string => Boolean(origin)
-    )
+    [
+      process.env.BETTER_AUTH_URL,
+      process.env.NEXT_PUBLIC_APP_URL,
+      ...configuredOrigins,
+    ].filter((origin): origin is string => Boolean(origin))
   )
 )
 

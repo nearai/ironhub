@@ -11,6 +11,8 @@ export interface OrgInvitation {
   organizationId: string
   organizationName?: string
   email: string
+  /** NEAR account id this invitation was addressed to, when it has one. */
+  accountId?: string | null
   role: OrgRole | null
   status: string
   expiresAt: string
@@ -33,18 +35,22 @@ function unwrap<T>(result: {
   return result.data
 }
 
-/** Invitations created by/for this organization (owner/admin view). */
+/**
+ * Invitations created by/for this organization (owner/admin view).
+ *
+ * Uses the custom route rather than `authClient.organization.listInvitations`
+ * so each row carries the invitee's NEAR account id: a wallet user's stored
+ * address is a `temp-…` placeholder that means nothing to a human reader.
+ */
 export function useOrgInvitations(organizationId: string | undefined) {
   return useQuery({
     queryKey: organizationId
       ? orgInvitationsKey(organizationId)
       : ["organizations", "unknown", "invitations"],
-    queryFn: async () => {
-      const result = await authClient.organization.listInvitations({
-        query: { organizationId },
-      })
-      return unwrap(result) as unknown as OrgInvitation[]
-    },
+    queryFn: () =>
+      fetchJson<{ invitations: OrgInvitation[] }>(
+        `/api/orgs/${organizationId}/invitations`
+      ).then((data) => data.invitations),
     enabled: Boolean(organizationId),
   })
 }

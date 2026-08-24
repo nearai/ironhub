@@ -51,9 +51,11 @@ async function requireMembership(
  * to the email an invitation is addressed to.
  *
  * A wallet user's email is minted by better-near-auth on first sign-in, so
- * the account is looked up first and its stored address reused. Only when the
- * account has never signed in does this fall back to deriving the address,
- * which is possible for top-level `<name>.near` accounts alone.
+ * the account is looked up first and its stored address reused verbatim.
+ * For anything but a top-level `<name>.near` account that address is a
+ * `temp-<hex>@<app url>` placeholder — an internal key rather than a mailbox,
+ * so it must never be validated as an email. Only when the account has never
+ * signed in does this fall back to deriving the address.
  */
 export async function resolveInviteeEmail(
   identifier: string,
@@ -92,7 +94,7 @@ export async function resolveInviteeEmail(
   }
 
   throw new Response(
-    "This NEAR account has not signed in to IronHub yet. Ask them to sign in once, then invite them.",
+    `${accountId} has not signed in to IronHub yet. Only a top-level .near account can be invited before its first sign-in — sub-accounts, .tg accounts, testnet and implicit accounts have to sign in once first.`,
     { status: 404 }
   )
 }
@@ -116,9 +118,16 @@ export async function createInvitationForIdentifier(
     throw new Response("You are not allowed to invite members", { status: 403 })
   }
 
+  // Deliberately not re-validated as an email: what comes back is either an
+  // address `resolveInviteeEmail` already checked, or the address stored
+  // against a NEAR account — and better-near-auth stores a
+  // `temp-<hex>@<app url>` placeholder for every account it cannot derive a
+  // stable address for (sub-accounts, .tg, testnet, implicit). Running that
+  // through `assertEmail` is what used to reject `work.efiz.near` with
+  // "Invalid email address".
   const email = await resolveInviteeEmail(identifier, client)
 
-  return createInvitation(organizationId, actorUserId, email, role, client)
+  return insertInvitation(organizationId, actorUserId, email, role, client)
 }
 
 export async function createInvitation(
@@ -133,14 +142,35 @@ export async function createInvitation(
     throw new Response("You are not allowed to invite members", { status: 403 })
   }
 
+  return insertInvitation(
+    organizationId,
+    actorUserId,
+    assertEmail(email),
+    role,
+    client
+  )
+}
+
+/**
+ * Shared tail of both invite paths: role check, duplicate checks and the row
+ * itself. Assumes the caller has already proved the actor may invite and has
+ * settled which address the invitation is addressed to.
+ */
+async function insertInvitation(
+  organizationId: string,
+  actorUserId: string,
+  email: string,
+  role: string,
+  client: PrismaLike
+) {
   if (!(INVITABLE_ROLES as readonly string[]).includes(role)) {
     throw new Response(`Invalid role: ${role}`, { status: 400 })
   }
 
-  // Store the normalized (lowercased) email so DB-level case-insensitive
+  // Store the normalized (lowercased) address so DB-level case-insensitive
   // lookups (Prisma `mode: "insensitive"` and plain equality alike) stay
   // consistent regardless of how the inviter typed it.
-  const lowerEmail = assertEmail(email)
+  const lowerEmail = normalizeEmail(email)
 
   const existingMembers = await client.member.findMany({
     where: { organizationId },
@@ -150,7 +180,7 @@ export async function createInvitation(
     (m) => normalizeEmail(m.user.email) === lowerEmail
   )
   if (isExistingMember) {
-    throw new Response("This email already belongs to a member", {
+    throw new Response("This person already belongs to this workspace", {
       status: 409,
     })
   }
@@ -161,7 +191,7 @@ export async function createInvitation(
   })
   const hasPending = pending.some((inv) => inv.expiresAt > now)
   if (hasPending) {
-    throw new Response("A pending invitation already exists for this email", {
+    throw new Response("A pending invitation already exists for this person", {
       status: 409,
     })
   }
@@ -201,6 +231,39 @@ export async function listPendingInvitationsForEmail(
   })
 }
 
+/**
+ * Maps invitation addresses back to the NEAR account ids that own them.
+ *
+ * An invitation is stored against an address, but for a wallet user that
+ * address is usually a `temp-…` placeholder, which is meaningless to whoever
+ * is reading the members page. The account id is the identity they invited
+ * and the one to show back to them.
+ */
+async function nearAccountIdsByEmail(emails: string[], client: PrismaLike) {
+  const byEmail = new Map<string, string>()
+  const unique = Array.from(new Set(emails.map(normalizeEmail)))
+  if (unique.length === 0) return byEmail
+
+  const users = await client.user.findMany({
+    where: { email: { in: unique } },
+    select: {
+      email: true,
+      nearAccounts: {
+        select: { accountId: true },
+        orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
+        take: 1,
+      },
+    },
+  })
+
+  for (const user of users) {
+    const accountId = user.nearAccounts[0]?.accountId
+    if (accountId) byEmail.set(normalizeEmail(user.email), accountId)
+  }
+
+  return byEmail
+}
+
 export async function listOrgInvitations(
   organizationId: string,
   actorUserId: string,
@@ -219,11 +282,17 @@ export async function listOrgInvitations(
     orderBy: { createdAt: "desc" },
   })
 
+  const accountIds = await nearAccountIdsByEmail(
+    invitations.map((inv) => inv.email),
+    client
+  )
+
   const now = new Date()
   // Display-only derived status: a "pending" row whose expiresAt has passed
   // reads as "expired" to callers without needing a background sweep job.
   return invitations.map((inv) => ({
     ...inv,
+    accountId: accountIds.get(normalizeEmail(inv.email)) ?? null,
     displayStatus:
       inv.status === "pending" && inv.expiresAt <= now ? "expired" : inv.status,
   }))

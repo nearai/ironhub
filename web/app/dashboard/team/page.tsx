@@ -28,7 +28,7 @@ import {
   RelativeTime,
   workspaceLinkTone,
 } from "@/features/partner/components/ui"
-import { formatAccountIdentity } from "@/lib/orgs/near-identity"
+import { displayIdentity } from "@/lib/orgs/near-identity"
 import { cn } from "@/lib/shared/utils"
 import {
   IconAlertTriangle,
@@ -49,6 +49,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+
+/**
+ * What to call an invitee: the NEAR account id they were invited by when the
+ * server resolved one, otherwise the readable form of the address. Falls back
+ * to the raw stored value only for rows with neither.
+ */
+function inviteLabel(invite: OrgInvitation) {
+  return displayIdentity(invite.email, invite.accountId) ?? invite.email
+}
 
 export default function TeamPage() {
   const { data: session } = authClient.useSession()
@@ -145,9 +154,7 @@ export default function TeamPage() {
         // A wallet user's name and derived address render as the same string
         // (both "alice.near"), so only show the second line when it adds
         // something.
-        const identity = member.user?.email
-          ? formatAccountIdentity(member.user.email)
-          : undefined
+        const identity = displayIdentity(member.user?.email)
         const initials = label.slice(0, 2).toUpperCase()
         return (
           <div className="flex min-w-0 items-center gap-3 py-1">
@@ -283,7 +290,7 @@ export default function TeamPage() {
       wrap: true,
       cell: (invite) => (
         <span className="text-sm font-medium text-foreground">
-          {formatAccountIdentity(invite.email)}
+          {inviteLabel(invite)}
         </span>
       ),
     },
@@ -323,7 +330,7 @@ export default function TeamPage() {
             size="icon"
             onClick={() => handleCancelInvitation(invite.id)}
             className="inline-flex size-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-            aria-label={`Cancel invitation for ${formatAccountIdentity(invite.email)}`}
+            aria-label={`Cancel invitation for ${inviteLabel(invite)}`}
           >
             <IconX className="size-4" />
           </Button>

@@ -5,7 +5,10 @@ import {
   parseJsonObject,
   readString,
 } from "@/lib/http/api"
-import { createInvitationForIdentifier } from "@/lib/orgs/invitations"
+import {
+  createInvitationForIdentifier,
+  listOrgInvitations,
+} from "@/lib/orgs/invitations"
 
 type Params = {
   params: Promise<{ organizationId: string }>
@@ -34,6 +37,27 @@ export async function POST(request: Request, { params }: Params) {
     )
 
     return Response.json({ invitation }, { status: 201 })
+  } catch (error) {
+    return handleApiError(error)
+  }
+}
+
+/**
+ * Lists this organization's invitations.
+ *
+ * Preferred over `authClient.organization.listInvitations`, which returns the
+ * stored address and nothing else: a wallet user's address is a
+ * `temp-…@<app url>` placeholder, so this route resolves each invitation back
+ * to the NEAR account id it was actually addressed to.
+ */
+export async function GET(_request: Request, { params }: Params) {
+  try {
+    const { user } = await requireAuthSession()
+    const { organizationId } = await params
+
+    const invitations = await listOrgInvitations(organizationId, user.id)
+
+    return Response.json({ invitations })
   } catch (error) {
     return handleApiError(error)
   }
