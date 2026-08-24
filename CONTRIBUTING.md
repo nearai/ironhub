@@ -20,7 +20,7 @@ PRs are the canonical source of truth. They answer: **is the repo artifact compl
 2. **Triage the proposal.** Maintainers may ask for clarification, reject vague proposals, or mark accepted work.
 3. **Branch and implement.** Branch name should reflect the artifact: `use-case/<slug>`, `tool/<name>`, `skill/<name>`, or `fix/<integration>-<short-tag>`.
 4. **Open a PR** that closes the issue. The PR carries the strict repo artifact and testing evidence.
-5. **Reviewer merges to `main`.** Once merged, the issue closes. Shipped tools and skills must update both `tracking.md` and README in the same PR.
+5. **Reviewer merges to `main`.** Once merged, the issue closes. Shipped tools and skills run `node scripts/generate-tracking.mjs` and commit the regenerated `tracking.md` in the same PR. Do not edit `tracking.md` by hand; authorship and any tool use cases, value tags, or limits belong in `tracking-metadata.json`, which the generator reads.
 6. **Pack for upstream IronClaw** when an integration is stable. Run `scripts/pack-for-ironclaw.sh` to produce the `tools-src/`, `skills/`, and `registry/tools/` layout that `nearai/ironclaw` accepts. Open the PR there.
 
 ## Adding a use case

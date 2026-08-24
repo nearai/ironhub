@@ -1,0 +1,53 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "Zulip read integration, for Zulip Cloud and self-hosted realms alike. Actions: search_messages (fetch messages filtered by Zulip narrow operators such as channel, topic, sender, has, and search, anchored anywhere in history), fetch_since (incremental read of everything after a known message ID, for cursor-based syncing), list_streams (channels visible to the bot, with stream IDs), list_topics (topics in one channel by stream ID), list_users (realm members). Read-only: the tool sends, edits, and reacts to nothing. Authenticates as a Zulip bot over HTTP Basic, where the bot email is the username baked into this file and the API key is the password, injected by the host. The realm hostname is read from the workspace file `zulip/host`, which must match the host baked into the allowlist below. INSTALL EDIT REQUIRED: replace YOUR_ZULIP_HOST (2 places: allowlist.host and host_patterns) and YOUR_ZULIP_BOT_EMAIL (the Basic username) before installing.",
+  "effects": [],
+  "http": {
+    "allowlist": [
+      {
+        "host": "YOUR_ZULIP_HOST",
+        "path_prefix": "/api/v1/",
+        "methods": ["GET"]
+      }
+    ],
+    "credentials": {
+      "zulip_api_key": {
+        "secret_name": "zulip_api_key",
+        "location": { "type": "basic", "username": "YOUR_ZULIP_BOT_EMAIL" },
+        "host_patterns": ["YOUR_ZULIP_HOST"],
+        "path_patterns": ["/api/v1/"]
+      }
+    },
+    "rate_limit": {
+      "requests_per_minute": 120,
+      "requests_per_hour": 4000
+    },
+    "timeout_secs": 60
+  },
+  "workspace": {
+    "allowed_prefixes": ["zulip/"]
+  },
+  "secrets": {
+    "allowed_names": ["zulip_api_key"]
+  },
+  "auth": {
+    "secret_name": "zulip_api_key",
+    "display_name": "Zulip",
+    "static_token": {
+      "env_var": "ZULIP_API_KEY",
+      "instructions": "Create a bot in your Zulip realm and use its API key. A Generic bot with read access to the channels you care about is enough; this tool never posts."
+    },
+    "env_var": "ZULIP_API_KEY",
+    "setup_url": "https://zulip.com/api/api-keys",
+    "instructions": "1. In Zulip, go to Personal settings > Bots and add a Generic bot. Copy its email address (it looks like mybot-bot@myorg.zulipchat.com) and its API key.\n2. Edit this capabilities file and replace YOUR_ZULIP_HOST in both places (`allowlist.host` and the credential's `host_patterns`) with your realm hostname, and YOUR_ZULIP_BOT_EMAIL with the bot's email address. Zulip authenticates with HTTP Basic where the bot email is the username, so it has to be pinned per install; the host performs the join and the base64 encoding, and the tool never sees either value.\n3. Store the API key on the IronClaw host:\n\n   ```sh\n   export ZULIP_API_KEY=<bot api key>\n   ```\n\n4. Write the same hostname to the workspace file `zulip/host`, as a bare hostname with no scheme or path, for example `myorg.zulipchat.com`. Append a port if your realm uses one.\n5. Subscribe the bot to every channel it should be able to read. Zulip scopes message access by subscription, so an unsubscribed private channel stays invisible.\n6. Run `ironclaw tool install zulip` to register the tool."
+  },
+  "setup": {
+    "required_secrets": [
+      {
+        "name": "zulip_api_key",
+        "prompt": "Zulip bot API key"
+      }
+    ]
+  }
+}

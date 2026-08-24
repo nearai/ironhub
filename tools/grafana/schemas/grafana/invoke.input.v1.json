@@ -1,0 +1,241 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GrafanaAction",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_alerts"
+        },
+        "active": {
+          "type": "boolean",
+          "default": true
+        },
+        "filter": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "inhibited": {
+          "type": "boolean",
+          "default": false
+        },
+        "silenced": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_alert_rules"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_alert_rule"
+        },
+        "uid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "uid"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "search_dashboards"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SearchKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 100,
+          "minimum": 0
+        },
+        "page": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 1,
+          "minimum": 0
+        },
+        "query": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "tag": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "get_dashboard"
+        },
+        "uid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "uid"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_datasources"
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "query_metrics"
+        },
+        "datasource_uid": {
+          "type": "string"
+        },
+        "expr": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string",
+          "default": "now-1h"
+        },
+        "max_data_points": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 100,
+          "minimum": 0
+        },
+        "to": {
+          "type": "string",
+          "default": "now"
+        }
+      },
+      "required": [
+        "action",
+        "datasource_uid",
+        "expr"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "fetch_since"
+        },
+        "from_epoch_ms": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AnnotationKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 100,
+          "minimum": 0
+        },
+        "tags": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "to_epoch_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action",
+        "from_epoch_ms"
+      ]
+    }
+  ],
+  "$defs": {
+    "AnnotationKind": {
+      "type": "string",
+      "enum": [
+        "alert",
+        "annotation"
+      ]
+    },
+    "SearchKind": {
+      "type": "string",
+      "enum": [
+        "dashboard",
+        "folder"
+      ]
+    }
+  }
+}

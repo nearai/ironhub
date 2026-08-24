@@ -1,0 +1,402 @@
+{
+  "tools": {
+    "attio": {
+      "author": "Brandon",
+      "useCases": "Query and update CRM records, Log notes and tasks against records, Sync deals and companies into agent workflows",
+      "valueTags": "Sales / CRM, Business ops",
+      "limits": "Record queries return up to 1000 entries per call; page with `offset`. Attio rate-limits reads near 100/s and writes near 25/s, returning HTTP 429 with a `Retry-After` header. Attribute values must follow Attio's per-type value shapes; call `list_attributes` before writing."
+    },
+    "microsoft-365": {
+      "author": "Brandon",
+      "useCases": "List recent Outlook emails, Manage OneDrive and SharePoint files, Send Teams channel messages",
+      "valueTags": "Automation, Productivity",
+      "limits": "Teams actions return 403 on personal Microsoft accounts (Microsoft does not serve Teams business APIs to consumer MSAs). Simple upload capped at 4 MB; chunked upload session not yet implemented."
+    },
+    "near-rpc": {
+      "author": "Brandon",
+      "useCases": "",
+      "valueTags": "",
+      "limits": "Public RPC endpoints rate-limit aggressively; production deployments should use FastNEAR, Pagoda, or another dedicated provider. Signed-write actions (`send_tx`, `broadcast_tx_async`, `broadcast_tx_commit`) accept a pre-signed base64-encoded `SignedTransaction`; the tool does not perform local signing. Validator-set, state-change, and contract-code responses can be megabytes in size on busy blocks."
+    },
+    "polymarket": {
+      "author": "Brandon",
+      "useCases": "Query real-time election odds, Track crypto prediction markets, Feed sentiment data into trading agents",
+      "valueTags": "Data Feed, Web3",
+      "limits": "Public list endpoints cap at 500 entries per request. Batch price endpoints accept up to 500 token IDs per call. WebSocket subscriptions are deferred until the IronClaw runtime exposes a WebSocket primitive to wasm tools. Signed CLOB write operations (post and cancel orders, manage relayer, bridge) live in the separate `polymarket-clob` trunk."
+    },
+    "bluesky-analytics": {
+      "author": "cuongdcdev",
+      "useCases": "Audit a Bluesky account's reach — follower/following/post counts and per-post engagement, Read a post's reply (comment) tree or see who liked/reposted it, Discover accounts by keyword and map their social graph",
+      "valueTags": "Bluesky, Social, Analytics",
+      "limits": "Posting, replying, liking, reposting, and following are not supported (read-only). Depth default 6, max 100. Limit 1–100, default 50."
+    },
+    "crypto-ta-engine": {
+      "author": "cuongdcdev",
+      "useCases": "Compute reliable indicator values from live Binance candles, Produce a weighted multi-timeframe (4H/1H/15M) confluence verdict, Return ATR-based stop-loss and scaled take-profit levels",
+      "valueTags": "Trading, Crypto, TechnicalAnalysis",
+      "limits": "Read-only: no orders, accounts, or futures. Restricted to api.binance.com and api.binance.us under /api/v3 (GET only)."
+    },
+    "firecrawl": {
+      "author": "cuongdcdev",
+      "useCases": "Scrape a web page into clean LLM-ready markdown, Search the web/news for pages matching a query, Map every URL on a site, or crawl a docs section recursively",
+      "valueTags": "WebScraping, Search, Research",
+      "limits": "Search limit 1–100 (default 10). Scrape timeout 1000–300000 ms, wait_for ≤ 60000 ms. crawl_status returns at most 25 pages."
+    },
+    "nearcatalog": {
+      "author": "cuongdcdev",
+      "useCases": "Keyword-search NEAR projects or surface what's trending, Look up a project's full profile and discover related projects, Find people building on NEAR or curated awesome-near OSS libraries",
+      "valueTags": "Web3, NEAR, Research",
+      "limits": "Read-only access to public API endpoints. Limit clamped to 1–100 (default 25)."
+    },
+    "nova-submit": {
+      "author": "Julien",
+      "useCases": "",
+      "valueTags": "",
+      "limits": "Need to create an account at https://nova-sdk.com and collect account-id and api key."
+    },
+    "wordpress": {
+      "author": "cuongdcdev",
+      "useCases": "Draft, schedule and update WordPress blog posts or pages from an agent, List and fulfil WooCommerce orders and update order status, Create and update Woocommerce products, inspect customers, moderate content",
+      "valueTags": "CMS, WordPress, Woocommerce, E-commerce, Productivity",
+      "limits": "Requires HTTPS and pretty permalinks (/wp-json/). The target site host is baked into the capabilities file at install via configure.py. Application Password used for WP core routes, consumer key/secret for WooCommerce."
+    },
+    "coingecko": {
+      "author": "cuongdcdev",
+      "useCases": "Retrieve current crypto prices, Rank assets by market cap, Inspect historical charts and OHLC candles",
+      "valueTags": "Crypto, PriceFeed, MarketOracle, Finance",
+      "limits": "Requires a CoinGecko Demo or Pro API key. Provider quotas and endpoint availability depend on the selected plan."
+    },
+    "defillama": {
+      "author": "cuongdcdev",
+      "useCases": "Rank protocols and chains by TVL, Screen yield pools, Compare DEX volume and protocol revenue",
+      "valueTags": "DeFi, Analytics, Research",
+      "limits": "Large protocol, pool, and protocol-detail scans may exceed the stock WASM fuel budget even though memory use is bounded. Other actions run on stock limits."
+    },
+    "etherscan": {
+      "author": "cuongdcdev",
+      "useCases": "Audit EVM wallet balances, List transactions and token transfers, Inspect verified contracts",
+      "valueTags": "Blockchain, EVM, Oracle, Transactions, ABI",
+      "limits": "Requires an Etherscan API key. Pagination and rate limits follow the account's Etherscan plan."
+    },
+    "frankfurter-fx": {
+      "author": "cuongdcdev",
+      "useCases": "Convert fiat currencies, Run multi-currency conversions, Analyze historical exchange-rate trends",
+      "valueTags": "Finance, Forex, CurrencyConversion, ExchangeRates",
+      "limits": "No authentication required. Rates are reference central-bank rates rather than real-time tradable quotes."
+    },
+    "jina": {
+      "author": "cuongdcdev",
+      "useCases": "Convert URLs and PDFs to markdown, Capture web screenshots, Search web and academic sources",
+      "valueTags": "Search, Reader, Scraping, Research, Academic",
+      "limits": "Requires a Jina API key. Target URLs are fetched through Jina's service and remain subject to provider limits."
+    },
+    "messari": {
+      "author": "cuongdcdev",
+      "useCases": "Research crypto markets, Track token unlocks and fundraising, Query news and analyst reports",
+      "valueTags": "Crypto, MarketData, TokenUnlocks, Fundraising, Research",
+      "limits": "Requires a Messari API key. Free accounts currently have tighter AI and general API quotas than paid plans."
+    },
+    "pikespeak": {
+      "author": "cuongdcdev",
+      "useCases": "Inspect NEAR portfolios, Query balances and transfers, Track validators and DeFi positions",
+      "valueTags": "NEAR Protocol, DeFi, Portfolio Tracking, Blockchain Indexer",
+      "limits": "Requires a Pikespeak API key. Generic GET access remains bounded to the declared Pikespeak host and response limits."
+    },
+    "serper": {
+      "author": "cuongdcdev",
+      "useCases": "Search Google web and news, Discover local places, Find images, videos, and products",
+      "valueTags": "Search, WebSearch, SEO, SERP",
+      "limits": "Requires a Serper.dev API key. Query volume is limited by the provider account quota."
+    },
+    "tavily": {
+      "author": "cuongdcdev",
+      "useCases": "Search the live web and social sources, Extract pages, Crawl or map websites",
+      "valueTags": "Search, WebScraping, Research, RAG",
+      "limits": "Requires a Tavily API key. Crawl breadth, depth, and result volume are bounded by both tool clamps and provider plan limits."
+    },
+    "grafana": {
+      "author": "Brandon",
+      "useCases": "Read alerts that are currently firing, Query metrics over a time range, Inspect dashboards and data sources",
+      "valueTags": "Engineering, Monitoring",
+      "limits": "One host per installation; reading two Grafana instances requires two installs. Assumes Grafana is served at the root of its host, so a sub-path deployment needs the allowlist path prefix widened. Dashboard search caps at 5000 results per call. Not yet verified against a live instance."
+    },
+    "irm": {
+      "author": "Brandon",
+      "useCases": "Read declared incidents, Follow an incident timeline, See who is on call now, Read escalation policies",
+      "valueTags": "Engineering, Monitoring, Incident response",
+      "limits": "Two APIs with two credentials: incidents use the Grafana service account token, on-call needs a separate OnCall API token and its own hostname. Configure only the first and the incident actions still work. on_call_now is point-in-time; historical shift windows via final_shifts are not exposed. Write methods on both APIs are deliberately not exposed. Not yet verified against a live instance."
+    },
+    "zulip": {
+      "author": "Brandon",
+      "useCases": "Search messages by channel, topic or sender, Read channels and their topics, Follow new messages incrementally",
+      "valueTags": "Business ops, Engineering",
+      "limits": "Zulip scopes message access by subscription, so the bot reads only channels it has been subscribed to and an empty result may mean no access rather than no messages. One realm and one bot identity per installation. Message queries return at most 5000 messages per call. Not yet verified against a live realm."
+    },
+    "request-finance": {
+      "author": "Brandon",
+      "useCases": "List invoices and payment requests, Retrieve a single invoice, Read the client directory",
+      "valueTags": "Finance, Business ops",
+      "limits": "Read-only by design: creates no invoices, changes no payment state, and never executes a payment. One workspace per API key. Page size caps at 100. Date-range filtering is not exposed because the published reference does not state the range syntax. Multiple status values are sent as repeated query parameters on an unconfirmed convention, so a multi-status filter should be checked against a live workspace. Not yet verified against a live workspace."
+    },
+    "juro": {
+      "author": "Brandon",
+      "useCases": "List contracts with an incremental cursor, Retrieve a contract, Read the template library",
+      "valueTags": "Finance, Legal",
+      "limits": "Read-only by design: drafts, sends and signs nothing. One workspace per key, and the key's own permissions decide which contracts are visible. Signed-document retrieval is not exposed because no read endpoint for it was confirmed in the published v3 reference. Team filters are sent as repeated query parameters on an unconfirmed convention. Not yet verified against a live workspace."
+    },
+    "google-meet": {
+      "author": "Brandon",
+      "useCases": "Find past conferences and who attended, Read a meeting transcript with speaker attribution, Locate recordings in Drive",
+      "valueTags": "Business ops, Productivity",
+      "limits": "Recordings and transcripts exist only when they were enabled for the meeting. Conference records are scoped to the consenting user, so workspace-wide coverage requires domain-wide delegation configured in Google Workspace. Recording media is not retrievable here; the resource carries a Drive `exportUri`. Meeting space write methods are not exposed. Not yet verified against a live account."
+    },
+    "youtube": {
+      "author": "cuongdcdev",
+      "useCases": "Inspect video and channel metrics, Analyze comments, Track uploads and extract transcripts",
+      "valueTags": "YouTube, Video, Transcript, Analytics, Research",
+      "limits": "Five Data API actions require a YouTube API key and consume Google quota; search is substantially more expensive than list endpoints. Transcript extraction uses a separate public service."
+    },
+    "clickup": {
+      "author": "Brandon"
+    },
+    "evm-rpc": {
+      "author": "Brandon"
+    },
+    "gitlab": {
+      "author": "Brandon"
+    },
+    "hubspot": {
+      "author": "Brandon"
+    },
+    "monday": {
+      "author": "Brandon"
+    },
+    "wazuh": {
+      "author": "Brandon"
+    },
+    "whatsapp": {
+      "author": "Brandon"
+    },
+    "xero": {
+      "author": "Brandon"
+    }
+  },
+  "skills": {
+    "microsoft-365-workflow": {
+      "author": "Brandon"
+    },
+    "engineering-reconciliation": {
+      "author": "Brandon"
+    },
+    "alert-triage": {
+      "author": "Brandon"
+    },
+    "meeting-processing": {
+      "author": "Brandon"
+    },
+    "invoice-reconciliation": {
+      "author": "Brandon"
+    },
+    "workflow-completeness-reviewer": {
+      "author": "Brandon"
+    },
+    "perk-travel-expense": {
+      "author": "Brandon"
+    },
+    "pr-triage-digest": {
+      "author": "Skytonet2"
+    },
+    "bitcoin-reddit-sentiment": {
+      "author": "haenko"
+    },
+    "blog-transaction-log-data-quality": {
+      "author": "Brandon"
+    },
+    "brand_reputation_monitor": {
+      "author": "cuongdcdev"
+    },
+    "btc-anomaly-detector": {
+      "author": "haenko"
+    },
+    "btc-dominance-alert": {
+      "author": "haenko"
+    },
+    "chief-of-staff": {
+      "author": "Brandon"
+    },
+    "commitment-capture": {
+      "author": "Brandon"
+    },
+    "commitment-digest": {
+      "author": "Brandon"
+    },
+    "community-engagement-monitoring-and-matchmaking": {
+      "author": "Brandon"
+    },
+    "competitor-page-watcher": {
+      "author": "haenko"
+    },
+    "cross-exchange-spread-monitor": {
+      "author": "haenko"
+    },
+    "crypto-hypothesis-tester": {
+      "author": "haenko"
+    },
+    "crypto-macro-confluence-monitor": {
+      "author": "haenko"
+    },
+    "crypto-trade-journal": {
+      "author": "Brandon"
+    },
+    "crypto_trend_sentiment": {
+      "author": "cuongdcdev"
+    },
+    "crypto-wallet-verification": {
+      "author": "Brandon"
+    },
+    "daily-crypto-briefing": {
+      "author": "haenko"
+    },
+    "decision-journal": {
+      "author": "haenko"
+    },
+    "defi-portfolio-monitor": {
+      "author": "haenko"
+    },
+    "direct-report-1-1-prep": {
+      "author": "Brandon"
+    },
+    "english-vocabulary-builder-ru": {
+      "author": "haenko"
+    },
+    "executive-coaching-agenda": {
+      "author": "Brandon"
+    },
+    "expense-receipt-compliance": {
+      "author": "Brandon"
+    },
+    "free-trial-guardian": {
+      "author": "haenko"
+    },
+    "habit-streak-keeper": {
+      "author": "haenko"
+    },
+    "kyc-renewal-tracking": {
+      "author": "Brandon"
+    },
+    "legal-readiness-check-and-contract-kickoff-packet": {
+      "author": "Brandon"
+    },
+    "local_business_lead_generator": {
+      "author": "cuongdcdev"
+    },
+    "obsidian-accountability": {
+      "author": "Brandon"
+    },
+    "obsidian-idea-capture": {
+      "author": "Brandon"
+    },
+    "obsidian-task-ledger": {
+      "author": "Brandon"
+    },
+    "otc-demand-triage": {
+      "author": "Brandon"
+    },
+    "partner-milestone-detection-and-marketing-alert": {
+      "author": "Brandon"
+    },
+    "pre-meeting-relationship-brief": {
+      "author": "Brandon"
+    },
+    "presentation-generation": {
+      "author": "Brandon"
+    },
+    "project-prioritisation-and-vision-alignment": {
+      "author": "Brandon"
+    },
+    "remote-job-alert": {
+      "author": "haenko"
+    },
+    "reply-chaser": {
+      "author": "haenko"
+    },
+    "smart_buyer_assistant": {
+      "author": "cuongdcdev"
+    },
+    "stablecoin-supply-tracker": {
+      "author": "haenko"
+    },
+    "stakeholder-identification-and-messaging-strategy": {
+      "author": "Brandon"
+    },
+    "tavily_search_skills": {
+      "author": "cuongdcdev"
+    },
+    "time-capsule": {
+      "author": "haenko"
+    },
+    "token-unlock-warning": {
+      "author": "haenko"
+    },
+    "trading-plan-enforcer": {
+      "author": "haenko"
+    },
+    "voulai-trading": {
+      "author": "Brandon"
+    },
+    "woo_copilot": {
+      "author": "cuongdcdev"
+    },
+    "woo_product_copywriter": {
+      "author": "cuongdcdev"
+    },
+    "wp_content_research_writer": {
+      "author": "cuongdcdev"
+    },
+    "wp_copy_editor": {
+      "author": "cuongdcdev"
+    },
+    "wp_publisher": {
+      "author": "cuongdcdev"
+    },
+    "wp_seo_auditor": {
+      "author": "cuongdcdev"
+    },
+    "wp_social_sentiment_miner": {
+      "author": "cuongdcdev"
+    },
+    "youtube_competitor_analyst": {
+      "author": "cuongdcdev"
+    },
+    "youtube_content_insights": {
+      "author": "cuongdcdev"
+    },
+    "youtube_recap_expert": {
+      "author": "cuongdcdev"
+    },
+    "binance-ta-expert-v2": {
+      "author": "cuongdcdev"
+    },
+    "source-health-monitor": {
+      "author": "Brandon"
+    },
+    "partner-request-intake": {
+      "author": "Brandon"
+    },
+    "action-extraction": {
+      "author": "Brandon"
+    },
+    "evidence-backed-report-draft": {
+      "author": "Brandon"
+    },
+    "incremental-source-sync": {
+      "author": "Brandon"
+    },
+    "knowledge-extraction": {
+      "author": "Brandon"
+    },
+    "sharing-review": {
+      "author": "Brandon"
+    }
+  }
+}

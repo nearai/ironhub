@@ -1,0 +1,68 @@
+{
+  "version": "0.1.0",
+  "wit_version": "0.3.0",
+  "description": "Google Meet read integration via the Meet REST API v2. Actions: list_conference_records (past conferences, newest first, filterable by start_time, end_time, space.meeting_code, space.name), list_participants, list_recordings and get_recording (recording metadata including the Drive exportUri), list_transcripts and get_transcript (transcript metadata including the Docs destination), list_transcript_entries (the spoken text with speaker attribution). Start from list_conference_records to obtain a conference record name, then pass that name to the other actions; the spoken words live in list_transcript_entries rather than get_transcript. Read-only: the tool creates no meeting spaces, changes no settings, and ends no conferences. Authenticates against meet.googleapis.com with a Google OAuth user token injected by the host as a Bearer header, scoped to meetings.space.readonly.",
+  "effects": [],
+  "http": {
+    "allowlist": [
+      {
+        "host": "meet.googleapis.com",
+        "path_prefix": "/v2/",
+        "methods": ["GET"]
+      },
+      {
+        "host": "oauth2.googleapis.com",
+        "path_prefix": "/token",
+        "methods": ["POST"]
+      }
+    ],
+    "credentials": {
+      "google_meet_oauth_token": {
+        "secret_name": "google_meet_oauth_token",
+        "location": { "type": "bearer" },
+        "host_patterns": ["meet.googleapis.com"],
+        "path_patterns": ["/v2/"]
+      }
+    },
+    "rate_limit": {
+      "requests_per_minute": 120,
+      "requests_per_hour": 4000
+    },
+    "timeout_secs": 60
+  },
+  "secrets": {
+    "allowed_names": ["google_meet_oauth_token"]
+  },
+  "auth": {
+    "secret_name": "google_meet_oauth_token",
+    "display_name": "Google Meet",
+    "oauth": {
+      "authorization_url": "https://accounts.google.com/o/oauth2/v2/auth",
+      "token_url": "https://oauth2.googleapis.com/token",
+      "client_id_env": "GOOGLE_MEET_OAUTH_CLIENT_ID",
+      "client_secret_env": "GOOGLE_MEET_OAUTH_CLIENT_SECRET",
+      "scopes": ["https://www.googleapis.com/auth/meetings.space.readonly"],
+      "use_pkce": true,
+      "pending_instructions": "Create an OAuth client in Google Cloud Console under APIs & Services > Credentials, of type Web application, with redirect URI http://localhost:9876/callback. Enable the Google Meet API for the project. Export GOOGLE_MEET_OAUTH_CLIENT_ID and GOOGLE_MEET_OAUTH_CLIENT_SECRET on the IronClaw host before running ironclaw tool auth google-meet."
+    },
+    "env_var": "GOOGLE_MEET_OAUTH_TOKEN",
+    "setup_url": "https://developers.google.com/workspace/meet/api/guides/overview",
+    "instructions": "1. In Google Cloud Console, enable the Google Meet API for your project.\n2. Under APIs & Services > Credentials, create an OAuth client ID of type Web application with redirect URI http://localhost:9876/callback.\n3. Export the client credentials on the IronClaw host:\n\n   ```sh\n   export GOOGLE_MEET_OAUTH_CLIENT_ID=<client id>\n   export GOOGLE_MEET_OAUTH_CLIENT_SECRET=<client secret>\n   ```\n\n4. Run `ironclaw tool auth google-meet` to launch the consent flow. The tool requests only `meetings.space.readonly`.\n5. This credential is deliberately separate from the first-party Google tools, because those tokens do not carry the Meet scope.\n6. Recordings and transcripts are only produced when they were switched on for the meeting, and conference records are visible according to the consenting user's access. Workspace-wide coverage requires domain-wide delegation, which is configured in Google Workspace rather than here."
+  },
+  "setup": {
+    "fields": [
+      {
+        "name": "GOOGLE_MEET_OAUTH_CLIENT_ID",
+        "label": "Google OAuth client ID",
+        "kind": "secret",
+        "required": true
+      },
+      {
+        "name": "GOOGLE_MEET_OAUTH_CLIENT_SECRET",
+        "label": "Google OAuth client secret",
+        "kind": "secret",
+        "required": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+[package]
+name = "irm-tool"
+version = "0.1.0"
+edition = "2021"
+description = "Grafana IRM integration for the IronClaw agent runtime. Reads incidents, incident timelines, and custom incident fields over the Grafana Incident RPC API using a service account token."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/nearai/ironhub"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wit-bindgen = "0.59"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+schemars = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+codegen-units = 1
+
+[workspace]

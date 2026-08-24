@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ZulipAction",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "search_messages"
+        },
+        "anchor": {
+          "type": "string",
+          "default": "newest"
+        },
+        "narrow": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/NarrowFilter"
+          }
+        },
+        "num_after": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 0,
+          "minimum": 0
+        },
+        "num_before": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 50,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "fetch_since"
+        },
+        "after_message_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "limit": {
+          "type": "integer",
+          "format": "uint32",
+          "default": 50,
+          "minimum": 0
+        },
+        "narrow": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/NarrowFilter"
+          }
+        }
+      },
+      "required": [
+        "action",
+        "after_message_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_streams"
+        },
+        "exclude_archived": {
+          "type": "boolean",
+          "default": true
+        },
+        "include_public": {
+          "type": "boolean",
+          "default": true
+        },
+        "include_subscribed": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_topics"
+        },
+        "stream_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "action",
+        "stream_id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "list_users"
+        },
+        "include_custom_profile_fields": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "action"
+      ]
+    }
+  ],
+  "$defs": {
+    "NarrowFilter": {
+      "type": "object",
+      "properties": {
+        "negated": {
+          "type": "boolean",
+          "default": false
+        },
+        "operand": true,
+        "operator": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "operator",
+        "operand"
+      ]
+    }
+  }
+}
