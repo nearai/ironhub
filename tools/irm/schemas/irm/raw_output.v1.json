@@ -1,0 +1,1 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","description":"Raw JSON returned by the upstream API, passed through unmodified. Incident actions return the Grafana Incident RPC result shape; on-call actions return the Grafana OnCall paginated list shape with count, next, previous and results. Shape varies by action."}
