@@ -5,6 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: release-publish
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -80,12 +84,349 @@ jobs:
         run: |
           set -euo pipefail
           tag="${{ steps.tag.outputs.tag }}"
+          repo="${{ github.repository }}"
           notes="Automated release built from ${{ github.sha }} on $(date -u +"%Y-%m-%dT%H:%M:%SZ"). See tools.json for the full manifest."
 
-          gh release create "$tag" \
-            --title "$tag" \
-            --notes "$notes" \
-            --target "${{ github.sha }}" \
-            staging/*
+          release_json="$(mktemp)"
+          expected_assets="$(mktemp)"
+          trap 'rm -f "$release_json" "$expected_assets"' EXIT
+
+          while IFS= read -r -d '' asset; do
+            asset_name="${asset##*/}"
+            asset_size="$(stat -c '%s' "$asset")"
+            asset_digest="sha256:$(sha256sum "$asset" | awk '{print $1}')"
+            printf '%s\t%s\t%s\t%s\n' \
+              "$asset" "$asset_name" "$asset_size" "$asset_digest" >> "$expected_assets"
+          done < <(find staging -maxdepth 1 -type f -print0 | sort -z)
+
+          expected_asset_count="$(wc -l < "$expected_assets" | tr -d '[:space:]')"
+          if [ "$expected_asset_count" -eq 0 ]; then
+            echo "no release assets were staged" >&2
+            exit 1
+          fi
+
+          next_retry_delay() {
+            local delay="$1"
+            if [ "$delay" -lt 300 ]; then
+              delay=$((delay * 2))
+              if [ "$delay" -gt 300 ]; then
+                delay=300
+              fi
+            fi
+            printf '%s' "$delay"
+          }
+
+          get_release() {
+            local response request_status release_id response_body repo_owner repo_name
+            response="$(mktemp)"
+            repo_owner="${repo%%/*}"
+            repo_name="${repo#*/}"
+
+            if gh api graphql \
+              --include \
+              -F "name=${repo_name}" \
+              -F "owner=${repo_owner}" \
+              -F "tagName=${tag}" \
+              -f 'query=query($name:String!$owner:String!$tagName:String!){repository(owner:$owner,name:$name){release(tagName:$tagName){databaseId}}}' \
+              >"$response" 2>&1; then
+              request_status=0
+            else
+              request_status=$?
+            fi
+
+            if [ "$request_status" -ne 0 ]; then
+              cat "$response" >&2
+              rm -f "$response"
+              return 1
+            fi
+
+            response_body="$(sed -n '/^{/,$p' "$response")"
+            if jq -e '((.errors // []) | length) > 0' <<< "$response_body" >/dev/null; then
+              cat "$response" >&2
+              rm -f "$response"
+              return 1
+            fi
+
+            if jq -e '.data.repository == null' <<< "$response_body" >/dev/null; then
+              cat "$response" >&2
+              rm -f "$response"
+              return 1
+            fi
+
+            release_id="$(jq -r '.data.repository.release.databaseId // empty' <<< "$response_body")"
+            if [ -z "$release_id" ]; then
+              rm -f "$response"
+              return 2
+            fi
+
+            if gh api --include "repos/${repo}/releases/${release_id}" >"$response" 2>&1; then
+              request_status=0
+            else
+              request_status=$?
+            fi
+
+            if [ "$request_status" -ne 0 ]; then
+              cat "$response" >&2
+              rm -f "$response"
+              return 1
+            fi
+
+            sed -n '/^{/,$p' "$response" > "$release_json"
+            rm -f "$response"
+            return 0
+          }
+
+          asset_matches() {
+            local asset_name="$1"
+            local asset_size="$2"
+            local asset_digest="$3"
+
+            jq -e \
+              --arg name "$asset_name" \
+              --arg digest "$asset_digest" \
+              --argjson size "$asset_size" \
+              'any(.assets[]?; .name == $name and .size == $size and .digest == $digest)' \
+              "$release_json" >/dev/null
+          }
+
+          asset_present() {
+            local asset_name="$1"
+
+            jq -e \
+              --arg name "$asset_name" \
+              'any(.assets[]?; .name == $name)' \
+              "$release_json" >/dev/null
+          }
+
+          release_is_complete() {
+            local remote_asset_count
+            remote_asset_count="$(jq '.assets | length' "$release_json")"
+            if [ "$remote_asset_count" -ne "$expected_asset_count" ]; then
+              echo "release has $remote_asset_count assets; expected $expected_asset_count" >&2
+              return 1
+            fi
+
+            while IFS=$'\t' read -r asset asset_name asset_size asset_digest; do
+              if ! asset_matches "$asset_name" "$asset_size" "$asset_digest"; then
+                echo "release asset mismatch: $asset_name" >&2
+                return 1
+              fi
+            done < "$expected_assets"
+          }
+
+          release_state() {
+            if [ "$(jq -r '.draft' "$release_json")" = "true" ]; then
+              return 0
+            fi
+
+            if release_is_complete; then
+              return 2
+            fi
+
+            echo "refusing to modify published incomplete release $tag" >&2
+            return 1
+          }
+
+          wait_for_release() {
+            local attempt lookup_status state
+            for attempt in 1 2 3 4 5 6 7 8 9 10; do
+              if get_release; then
+                if release_state; then
+                  return 0
+                fi
+                state=$?
+                if [ "$state" -eq 2 ]; then
+                  return 2
+                fi
+                return 1
+              fi
+
+              lookup_status=$?
+              if [ "$lookup_status" -ne 2 ]; then
+                echo "unable to determine release state after creation" >&2
+                return 1
+              fi
+              sleep 2
+            done
+
+            echo "release $tag was not visible after creation" >&2
+            return 1
+          }
+
+          # Keep incomplete releases out of the public catalog. A rerun of the
+          # same workflow can resume a draft release after a transient failure.
+          if get_release; then
+            if release_state; then
+              echo "release $tag already exists as a draft; resuming asset upload"
+            else
+              release_state_result=$?
+              if [ "$release_state_result" -eq 2 ]; then
+                echo "release $tag is already complete and published"
+                exit 0
+              fi
+              exit 1
+            fi
+          else
+            release_lookup_status=$?
+            if [ "$release_lookup_status" -ne 2 ]; then
+              echo "unable to determine whether release $tag exists" >&2
+              exit 1
+            fi
+
+            release_ready=0
+            release_retry_delay=60
+            for attempt in 1 2 3 4 5 6; do
+              if gh release create "$tag" \
+                --repo "$repo" \
+                --draft \
+                --title "$tag" \
+                --notes "$notes" \
+                --target "${{ github.sha }}"; then
+                if wait_for_release; then
+                  release_ready=1
+                  break
+                fi
+                wait_result=$?
+                if [ "$wait_result" -eq 2 ]; then
+                  echo "release $tag is already complete and published"
+                  exit 0
+                fi
+                exit 1
+              fi
+
+              # The create request may have succeeded even if the client lost
+              # its response. Wait before checking state so a rate-limit error
+              # does not trigger another API request while the limit is active.
+              echo "release creation failed; waiting ${release_retry_delay}s before checking state (attempt ${attempt}/6)" >&2
+              sleep "$release_retry_delay"
+              if get_release; then
+                if release_state; then
+                  release_ready=1
+                  break
+                fi
+                release_state_result=$?
+                if [ "$release_state_result" -eq 2 ]; then
+                  echo "release $tag is already complete and published"
+                  exit 0
+                fi
+                exit 1
+              fi
+              release_lookup_status=$?
+              if [ "$release_lookup_status" -ne 2 ]; then
+                echo "unable to determine release state after creation failure" >&2
+                exit 1
+              fi
+              if [ "$attempt" -eq 6 ]; then
+                echo "failed to create release $tag after $attempt attempts" >&2
+                exit 1
+              fi
+              release_retry_delay="$(next_retry_delay "$release_retry_delay")"
+            done
+            if [ "$release_ready" -ne 1 ]; then
+              echo "release $tag was not created" >&2
+              exit 1
+            fi
+          fi
+
+          upload_interval=2
+          upload_retry_delay=60
+          max_upload_attempts=6
+
+          # Upload one asset at a time. The previous single gh invocation
+          # created hundreds of API mutations in a burst and hit GitHub's
+          # secondary rate limit. Existing assets make failed runs resumable.
+          while IFS=$'\t' read -r asset asset_name asset_size asset_digest; do
+            if asset_matches "$asset_name" "$asset_size" "$asset_digest"; then
+              echo "already uploaded and verified: $asset_name"
+              continue
+            fi
+
+            attempt=1
+            retry_delay="$upload_retry_delay"
+            clobber_asset=0
+            if asset_present "$asset_name"; then
+              # Draft releases are mutable. Replace same-name assets whose
+              # content changed between the failed run and its rerun.
+              clobber_asset=1
+            fi
+            while true; do
+              if [ "$clobber_asset" -eq 1 ]; then
+                upload_succeeded=0
+                if gh release upload "$tag" "$asset" --repo "$repo" --clobber; then
+                  upload_succeeded=1
+                fi
+              else
+                upload_succeeded=0
+                if gh release upload "$tag" "$asset" --repo "$repo"; then
+                  upload_succeeded=1
+                fi
+              fi
+              if [ "$upload_succeeded" -eq 1 ]; then
+                break
+              fi
+
+              # The upload may have succeeded even if the client lost its
+              # response. Wait before checking state so a rate-limit error
+              # does not trigger another API request while the limit is active.
+              echo "upload failed for $asset_name; waiting ${retry_delay}s before confirmation (attempt ${attempt}/${max_upload_attempts})" >&2
+              sleep "$retry_delay"
+              if get_release; then
+                if asset_matches "$asset_name" "$asset_size" "$asset_digest"; then
+                  echo "upload confirmed after retry check: $asset_name"
+                  break
+                fi
+                if asset_present "$asset_name"; then
+                  clobber_asset=1
+                fi
+              else
+                upload_lookup_status=$?
+                if [ "$upload_lookup_status" -eq 2 ]; then
+                  echo "release $tag disappeared after upload failure" >&2
+                else
+                  echo "unable to determine release state after upload failure" >&2
+                fi
+                exit 1
+              fi
+              if [ "$attempt" -ge "$max_upload_attempts" ]; then
+                echo "failed to upload $asset_name after $attempt attempts" >&2
+                exit 1
+              fi
+              retry_delay="$(next_retry_delay "$retry_delay")"
+              attempt=$((attempt + 1))
+            done
+
+            sleep "$upload_interval"
+          done < "$expected_assets"
+
+          if ! get_release; then
+            echo "unable to verify release assets before publish" >&2
+            exit 1
+          fi
+          if [ "$(jq -r '.draft' "$release_json")" != "true" ]; then
+            echo "release $tag is no longer a draft; refusing to publish" >&2
+            exit 1
+          fi
+          if ! release_is_complete; then
+            echo "release $tag is incomplete; refusing to publish" >&2
+            exit 1
+          fi
+
+          # Publish only after every staged asset, including tools.json, is up.
+          publish_retry_delay=60
+          for attempt in 1 2 3 4 5 6; do
+            if gh release edit "$tag" \
+              --repo "$repo" \
+              --draft=false \
+              --latest; then
+              break
+            fi
+            if [ "$attempt" -eq 6 ]; then
+              echo "failed to publish release $tag after $attempt attempts" >&2
+              exit 1
+            fi
+            echo "release publication failed; retrying in ${publish_retry_delay}s (attempt ${attempt}/6)" >&2
+            sleep "$publish_retry_delay"
+            publish_retry_delay="$(next_retry_delay "$publish_retry_delay")"
+          done
 
           echo "release published: https://github.com/${{ github.repository }}/releases/tag/${tag}"
