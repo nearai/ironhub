@@ -80,12 +80,122 @@ jobs:
         run: |
           set -euo pipefail
           tag="${{ steps.tag.outputs.tag }}"
+          repo="${{ github.repository }}"
           notes="Automated release built from ${{ github.sha }} on $(date -u +"%Y-%m-%dT%H:%M:%SZ"). See tools.json for the full manifest."
 
-          gh release create "$tag" \
-            --title "$tag" \
-            --notes "$notes" \
-            --target "${{ github.sha }}" \
-            staging/*
+          # Keep incomplete releases out of the public catalog. A rerun of the
+          # same workflow can resume a draft release after a transient failure.
+          if ! gh release view "$tag" --repo "$repo" >/dev/null 2>&1; then
+            release_retry_delay=30
+            for attempt in 1 2 3 4 5 6; do
+              if gh release create "$tag" \
+                --repo "$repo" \
+                --draft \
+                --title "$tag" \
+                --notes "$notes" \
+                --target "${{ github.sha }}"; then
+                break
+              fi
+
+              # The create request may have succeeded even if the client lost
+              # its response. Treat an existing release as a successful create.
+              if gh release view "$tag" --repo "$repo" >/dev/null 2>&1; then
+                break
+              fi
+              if [ "$attempt" -eq 6 ]; then
+                echo "failed to create release $tag after $attempt attempts" >&2
+                exit 1
+              fi
+              echo "release creation failed; retrying in ${release_retry_delay}s (attempt ${attempt}/6)" >&2
+              sleep "$release_retry_delay"
+              if [ "$release_retry_delay" -lt 300 ]; then
+                release_retry_delay=$((release_retry_delay * 2))
+                if [ "$release_retry_delay" -gt 300 ]; then
+                  release_retry_delay=300
+                fi
+              fi
+            done
+          else
+            echo "release $tag already exists; resuming asset upload"
+          fi
+
+          existing_assets="$(mktemp)"
+          trap 'rm -f "$existing_assets"' EXIT
+          gh release view "$tag" \
+            --repo "$repo" \
+            --json assets \
+            --jq '.assets[].name' > "$existing_assets"
+
+          upload_interval=2
+          upload_retry_delay=30
+          max_upload_attempts=6
+
+          # Upload one asset at a time. The previous single gh invocation
+          # created hundreds of API mutations in a burst and hit GitHub's
+          # secondary rate limit. Existing assets make failed runs resumable.
+          while IFS= read -r -d '' asset; do
+            asset_name="${asset##*/}"
+            if grep -Fxq -- "$asset_name" "$existing_assets"; then
+              echo "already uploaded: $asset_name"
+              continue
+            fi
+
+            attempt=1
+            retry_delay="$upload_retry_delay"
+            while true; do
+              if gh release upload "$tag" "$asset" --repo "$repo"; then
+                break
+              fi
+
+              # The upload may have succeeded even if the client lost its
+              # response. Avoid uploading the same asset twice.
+              if gh release view "$tag" \
+                --repo "$repo" \
+                --json assets \
+                --jq '.assets[].name' | grep -Fxq -- "$asset_name"; then
+                echo "upload confirmed after retry check: $asset_name"
+                break
+              fi
+              if [ "$attempt" -ge "$max_upload_attempts" ]; then
+                echo "failed to upload $asset_name after $attempt attempts" >&2
+                exit 1
+              fi
+              echo "upload failed for $asset_name; retrying in ${retry_delay}s (attempt ${attempt}/${max_upload_attempts})" >&2
+              sleep "$retry_delay"
+              if [ "$retry_delay" -lt 300 ]; then
+                retry_delay=$((retry_delay * 2))
+                if [ "$retry_delay" -gt 300 ]; then
+                  retry_delay=300
+                fi
+              fi
+              attempt=$((attempt + 1))
+            done
+
+            printf '%s\n' "$asset_name" >> "$existing_assets"
+            sleep "$upload_interval"
+          done < <(find staging -maxdepth 1 -type f -print0 | sort -z)
+
+          # Publish only after every staged asset, including tools.json, is up.
+          publish_retry_delay=30
+          for attempt in 1 2 3 4 5 6; do
+            if gh release edit "$tag" \
+              --repo "$repo" \
+              --draft=false \
+              --latest; then
+              break
+            fi
+            if [ "$attempt" -eq 6 ]; then
+              echo "failed to publish release $tag after $attempt attempts" >&2
+              exit 1
+            fi
+            echo "release publication failed; retrying in ${publish_retry_delay}s (attempt ${attempt}/6)" >&2
+            sleep "$publish_retry_delay"
+            if [ "$publish_retry_delay" -lt 300 ]; then
+              publish_retry_delay=$((publish_retry_delay * 2))
+              if [ "$publish_retry_delay" -gt 300 ]; then
+                publish_retry_delay=300
+              fi
+            fi
+          done
 
           echo "release published: https://github.com/${{ github.repository }}/releases/tag/${tag}"
