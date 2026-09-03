@@ -5,19 +5,30 @@ import { cn } from "@/lib/shared/utils"
 
 export interface StatRowProps {
   children: React.ReactNode
-  columns?: 2 | 3 | 4
+  columns?: 2 | 3 | 4 | 5 | 6
   className?: string
 }
 
+// The wide counts break to three across at `sm` rather than straight to five
+// or six: at 640px a six-column row of tabular numbers is narrower than the
+// numbers themselves.
 const columnStyles: Record<NonNullable<StatRowProps["columns"]>, string> = {
-  2: "grid-cols-2",
-  3: "grid-cols-2 sm:grid-cols-3",
-  4: "grid-cols-2 sm:grid-cols-4",
+  2: "sm:grid-cols-2",
+  3: "sm:grid-cols-3",
+  4: "sm:grid-cols-2 sm:grid-cols-4",
+  5: "sm:grid-cols-3 lg:grid-cols-5",
+  6: "sm:grid-cols-3 lg:grid-cols-6",
 }
 
 export function StatRow({ children, columns = 4, className }: StatRowProps) {
   return (
-    <div className={cn("grid gap-3", columnStyles[columns], className)}>
+    <div
+      className={cn(
+        "flex w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x snap-mandatory gap-2.5 pb-1 sm:pb-0 sm:grid sm:gap-3",
+        columnStyles[columns],
+        className
+      )}
+    >
       {children}
     </div>
   )
@@ -56,13 +67,13 @@ export function StatCard({
       <div className="min-w-0 flex-1">
         <div
           className={cn(
-            "text-2xl font-semibold tabular-nums",
+            "text-xl sm:text-2xl font-semibold tabular-nums",
             toneStyles[tone]
           )}
         >
           {value}
         </div>
-        <div className="mt-0.5 text-xs text-muted-foreground">{label}</div>
+        <div className="mt-0.5 text-xs text-muted-foreground whitespace-nowrap">{label}</div>
         {hint && (
           <div className="mt-1 text-xs text-muted-foreground">{hint}</div>
         )}
@@ -77,10 +88,10 @@ export function StatCard({
   )
 
   const cardClasses = cn(
-    "rounded-xl border border-[var(--ironhub-line)] bg-card p-4 shadow-[var(--ironhub-shadow)]",
+    "min-w-[125px] shrink-0 snap-start sm:min-w-0 sm:shrink rounded-xl border border-[var(--ironhub-line)] bg-card p-3 sm:p-4 shadow-[var(--ironhub-shadow)]",
     onSelect &&
       cn(
-        "w-full text-left transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+        "text-left transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:w-full",
         selected && "border-primary/40 bg-primary/5 hover:bg-primary/10"
       ),
     className
