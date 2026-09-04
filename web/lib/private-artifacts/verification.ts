@@ -87,7 +87,28 @@ export function verifyPublishedEntry(
     }
   }
 
-  if (entry.type === "skill") {
+  // A soul has exactly two things to verify, because it has exactly two rules
+  // (design.md -- Context): the document fits the agent's metadata ceiling,
+  // and it is not empty. Presence is not checked here and cannot be: the
+  // builder refuses to produce an entry for a soul with no `soul_md` at all
+  // (409, reported as `entry_publishable`), so by the time an entry exists
+  // the document does too.
+  if (entry.type === "soul") {
+    const soulDocument = entry.skill.skill_md
+    checkSize("soul_md_size", "SOUL.md", soulDocument, MAX_METADATA_BYTES)
+    // Non-emptiness is checked here as well as at upload because upload is
+    // not the only writer: the document can be replaced at any point before
+    // the version is frozen, and a soul that publishes zero bytes installs
+    // and digests cleanly while contributing nothing to the system prompt it
+    // is meant to open. Measured off the entry's advertised size, which is
+    // the number the agent will download against.
+    if (soulDocument.size_bytes === 0) {
+      failures.push({
+        id: "soul_md_empty",
+        message: "SOUL.md is empty; a soul must carry a document with content",
+      })
+    }
+  } else if (entry.type === "skill") {
     checkSize(
       "skill_md_size",
       "SKILL.md",
@@ -169,11 +190,11 @@ function checkCount(
  * C11's two document ceilings, measured rather than assumed.
  *
  * They used to be unreachable: an entry was four artifacts of fixed shape.
- * Publishing schemas and prompts adds roughly 150 bytes of JSON per asset, so
- * at the 32/64 ceilings the document is still comfortably inside 1MB -- but
- * "comfortably" is a calculation about today's URL lengths, and the token in
- * every URL is the longest part of it. Measuring the built document costs one
- * `JSON.stringify` and removes the calculation.
+ * Publishing schemas and prompts adds roughly 490 bytes of JSON per asset, so
+ * at the 32/64 ceilings a single artifact is still inside 1MB -- but that is a
+ * calculation about today's URL lengths, and the token in every URL is the
+ * longest part of it. Measuring the built document costs one `JSON.stringify`
+ * and removes the calculation.
  *
  * The signed size is derived rather than produced: signing needs the private
  * key, which a read-only verification pass has no business loading. The
@@ -323,9 +344,15 @@ export async function assertPrivateArtifactPublishable(
 
 /**
  * The same gate for a caller that has already built the entry, so the install
- * path does not build it twice. Throws an `Error` rather than a `Response`
- * because its caller (`createInstallIntent`) reports failures as JSON errors,
- * not as thrown HTTP responses.
+ * path does not build it twice.
+ *
+ * Throws an `Error` rather than a `Response` because this is the one failure
+ * on the install path that is about the artifact's own contents rather than
+ * about the request, and `handleApiError` turns a bare `Error` into the same
+ * `{ error }` JSON body `createInstallIntent`'s other content-side failures
+ * use. Resolution failures beside it -- a name absent from the named catalog,
+ * a type mismatch -- do throw `Response`, because those carry a status that
+ * says which: 404 and 409 respectively. Mixed on purpose, not by drift.
  */
 export function assertPublishedEntryInstallable(entry: PrivateArtifactEntry) {
   const failures = verifyPublishedEntry(entry)

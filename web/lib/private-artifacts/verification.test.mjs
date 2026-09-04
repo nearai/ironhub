@@ -384,3 +384,79 @@ test("an explicitly supplied base URL and token are used as given", async () => 
 
   assert.equal(result.ok, true)
 })
+
+// --- Souls ------------------------------------------------------------------
+
+function soulFixture(soulSizeBytes, extraKinds = []) {
+  findFirstResult = {
+    id: "artifact-1",
+    type: "soul",
+    name: "careful-analyst",
+    version: "1.0.0",
+    description: "desc",
+    content: [
+      content("soul_md", soulSizeBytes),
+      ...extraKinds.map((kind) => content(kind, 4096)),
+    ],
+  }
+  storedAssets = []
+  storedObjects = new Map()
+}
+
+test("an in-bounds soul verifies clean", async () => {
+  soulFixture(2048)
+
+  const { ok, failures } = await verify()
+
+  assert.equal(ok, true)
+  assert.deepEqual(failures, [])
+})
+
+test("an oversized soul document blocks the install, naming the agent's ceiling", async () => {
+  soulFixture(MAX_METADATA_BYTES + 1)
+
+  const { ok, failures } = await verify()
+
+  assert.equal(ok, false)
+  assert.equal(failures[0].id, "soul_md_size")
+  assert.match(failures[0].message, new RegExp(String(MAX_METADATA_BYTES)))
+})
+
+test("an empty soul document blocks the install", async () => {
+  // Refused at upload too, but upload is not the only writer: the document
+  // can be replaced right up until the published version freezes it.
+  soulFixture(0)
+
+  const { ok, failures } = await verify()
+
+  assert.equal(ok, false)
+  assert.equal(failures[0].id, "soul_md_empty")
+})
+
+test("a soul with no document at all is reported as unpublishable, not as a size failure", async () => {
+  findFirstResult = {
+    id: "artifact-1",
+    type: "soul",
+    name: "unwritten-soul",
+    version: "1.0.0",
+    description: "desc",
+    content: [],
+  }
+  storedAssets = []
+  storedObjects = new Map()
+
+  const { ok, failures } = await verify()
+
+  assert.equal(ok, false)
+  assert.equal(failures[0].id, "entry_publishable")
+  assert.match(failures[0].message, /soul_md/)
+})
+
+test("a stored readme neither adds a failure nor changes the verdict", async () => {
+  soulFixture(2048, ["readme_md"])
+
+  const { ok, failures } = await verify()
+
+  assert.equal(ok, true)
+  assert.deepEqual(failures, [])
+})

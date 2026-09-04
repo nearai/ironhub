@@ -7,12 +7,41 @@ import {
   INSTALL_WINDOW_SECONDS,
   useInstallIntent,
 } from "@/features/account/hooks/use-install-intent"
+import { SoulInstallDisclosure } from "@/features/partner/components/soul-install-disclosure"
 import { describeInstallWindow } from "@/lib/agent-installations/install-timing"
+import type { InstallSource } from "@/lib/agent-installations/types"
 import { isAgentInstallEnabled } from "@/lib/shared/feature-flags"
 
 type SecureInstallButtonProps = {
   slug: string
-}
+  /**
+   * Which catalog `slug` names. Stated by the call site because the screen
+   * knows -- a marketplace detail page is on the public catalog, a workspace
+   * screen is on its organization's private one -- and because the hub no
+   * longer guesses: a name can exist in both, and guessing installed the
+   * wrong one without saying so.
+   */
+  source: InstallSource
+} & (
+  | {
+      /** The kind the call site believes `slug` is, asserted during
+       *  resolution. */
+      type: "tool" | "skill"
+      artifactId?: undefined
+    }
+  | {
+      /**
+       * A soul's install is disclosed before it is confirmed, and the
+       * disclosure needs the artifact to read the document from. Required by
+       * the type rather than checked at runtime so a call site cannot start a
+       * soul install with nothing shown -- which is the one failure mode the
+       * disclosure exists to prevent (design.md -- "Full-text disclosure
+       * before install").
+       */
+      type: "soul"
+      artifactId: string
+    }
+)
 
 /**
  * The install surface, and the only place the click-through deadline exists
@@ -40,10 +69,22 @@ export function SecureInstallButton(props: SecureInstallButtonProps) {
     return null
   }
 
+  if (props.type === "soul") {
+    return (
+      <SoulInstallDisclosure artifactId={props.artifactId}>
+        <SecureInstallButtonContent {...props} />
+      </SoulInstallDisclosure>
+    )
+  }
+
   return <SecureInstallButtonContent {...props} />
 }
 
-function SecureInstallButtonContent({ slug }: SecureInstallButtonProps) {
+function SecureInstallButtonContent({
+  slug,
+  source,
+  type,
+}: SecureInstallButtonProps) {
   const {
     dismiss,
     error,
@@ -52,7 +93,7 @@ function SecureInstallButtonContent({ slug }: SecureInstallButtonProps) {
     pending,
     secondsRemaining,
     startInstall,
-  } = useInstallIntent(slug)
+  } = useInstallIntent(slug, source, type)
 
   if (pending && isExpired) {
     return (

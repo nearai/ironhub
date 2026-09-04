@@ -9,8 +9,15 @@ import {
 } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+const replaceMock = vi.fn()
+let searchParams = new URLSearchParams()
+
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace: replaceMock }),
+  usePathname: () => "/dashboard/catalog",
+  // The type selection lives in the URL, so the mock has to be a real
+  // `URLSearchParams` a test can set before rendering.
+  useSearchParams: () => searchParams,
 }))
 
 vi.mock("next/link", () => ({
@@ -123,7 +130,29 @@ const MOCK_ARTIFACTS = [
   },
 ]
 
-async function renderDashboard(artifacts = MOCK_ARTIFACTS) {
+const MOCK_SOUL = {
+  id: "art-5",
+  organizationId: "org-1",
+  createdById: "u1",
+  type: "soul" as const,
+  name: "careful-analyst",
+  title: "Careful Analyst",
+  version: "1.0.0",
+  visibility: "private" as const,
+  status: "draft" as const,
+  category: "Productivity",
+  description: "A cautious, citation-first persona.",
+  sourceUrl: null,
+  content: [],
+  createdAt: "2026-08-18T10:00:00.000Z",
+  updatedAt: "2026-08-18T10:00:00.000Z",
+}
+
+/** Widened past the fixture array's own element type so a test can add a
+ *  soul to it -- the array literal alone infers only the types it contains. */
+type MockArtifact = (typeof MOCK_ARTIFACTS)[number] | typeof MOCK_SOUL
+
+async function renderDashboard(artifacts: MockArtifact[] = MOCK_ARTIFACTS) {
   vi.mocked(fetch).mockImplementation(async (input) => {
     const url = String(input)
     if (url === "/api/private-artifacts") {
@@ -153,6 +182,8 @@ async function renderDashboard(artifacts = MOCK_ARTIFACTS) {
 describe("dashboard page", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn())
+    searchParams = new URLSearchParams()
+    replaceMock.mockReset()
   })
 
   afterEach(() => {
@@ -229,15 +260,15 @@ describe("dashboard page", () => {
     await renderDashboard([])
 
     await waitFor(() =>
-      expect(screen.getByText("No skills or tools yet")).toBeInTheDocument()
+      expect(screen.getByText("Nothing in your catalog yet")).toBeInTheDocument()
     )
     expect(
       screen.getByText(
-        "Add your first skill or tool to share it with your organization."
+        "Add your first skill, tool or soul to share it with your organization."
       )
     ).toBeInTheDocument()
     // Both header and empty state have "Add skill or tool" links
-    const addLinks = screen.getAllByRole("link", { name: /add skill or tool/i })
+    const addLinks = screen.getAllByRole("link", { name: /add an item/i })
     expect(addLinks).toHaveLength(2)
     for (const link of addLinks) {
       expect(link).toHaveAttribute("href", "/dashboard/new-submit")
@@ -257,7 +288,7 @@ describe("dashboard page", () => {
       expect(screen.getByText("Invoice Summariser")).toBeInTheDocument()
     )
 
-    const searchInput = screen.getByLabelText("Search your skills and tools")
+    const searchInput = screen.getByLabelText("Search your catalog")
     fireEvent.change(searchInput, { target: { value: "nonexistent-item-xyz" } })
 
     expect(
@@ -271,10 +302,12 @@ describe("dashboard page", () => {
     expect(
       screen.getByRole("button", { name: /clear filters/i })
     ).toBeInTheDocument()
-    expect(screen.queryByText("No skills or tools yet")).not.toBeInTheDocument()
+    expect(
+      screen.queryByText("Nothing in your catalog yet")
+    ).not.toBeInTheDocument()
     // Only 1 "Add skill or tool" link (in header) exists, empty state has none
     expect(
-      screen.getAllByRole("link", { name: /add skill or tool/i })
+      screen.getAllByRole("link", { name: /add an item/i })
     ).toHaveLength(1)
 
     // Clicking Clear filters resets and restores items
@@ -334,5 +367,100 @@ describe("dashboard page", () => {
 
     expect(tableToggle).toHaveAttribute("aria-pressed", "false")
     expect(cardsToggle).toHaveAttribute("aria-pressed", "true")
+  })
+})
+
+describe("catalog type filtering", () => {
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn())
+    searchParams = new URLSearchParams()
+    replaceMock.mockReset()
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    sessionStorage.clear()
+  })
+
+  it("lists only artifacts of the type named in the URL", async () => {
+    searchParams = new URLSearchParams("type=soul")
+    await renderDashboard([...MOCK_ARTIFACTS, MOCK_SOUL])
+
+    await waitFor(() =>
+      expect(screen.getByText("Careful Analyst")).toBeInTheDocument()
+    )
+    expect(screen.queryByText("Invoice Summariser")).not.toBeInTheDocument()
+    expect(screen.queryByText("Wallet Activity Watcher")).not.toBeInTheDocument()
+    expect(document.querySelectorAll("tbody tr")).toHaveLength(1)
+  })
+
+  it("lists every type when no type is named", async () => {
+    await renderDashboard([...MOCK_ARTIFACTS, MOCK_SOUL])
+
+    await waitFor(() =>
+      expect(screen.getByText("Careful Analyst")).toBeInTheDocument()
+    )
+    expect(screen.getByText("Invoice Summariser")).toBeInTheDocument()
+    expect(document.querySelectorAll("tbody tr")).toHaveLength(5)
+  })
+
+  it("reflects a type selection in the URL rather than in local state", async () => {
+    await renderDashboard([...MOCK_ARTIFACTS, MOCK_SOUL])
+
+    await waitFor(() =>
+      expect(screen.getByText("Careful Analyst")).toBeInTheDocument()
+    )
+    fireEvent.click(screen.getByRole("button", { name: /1\s*Souls/ }))
+
+    // The selection is a URL write, which is what makes it survive a reload
+    // and what the navigation's sub-items read to mark themselves active.
+    expect(replaceMock).toHaveBeenCalledWith("/dashboard/catalog?type=soul", {
+      scroll: false,
+    })
+  })
+
+  it("applies the type selection together with the search box", async () => {
+    searchParams = new URLSearchParams("type=skill")
+    await renderDashboard([...MOCK_ARTIFACTS, MOCK_SOUL])
+
+    await waitFor(() =>
+      expect(screen.getByText("Invoice Summariser")).toBeInTheDocument()
+    )
+    fireEvent.change(screen.getByLabelText("Search your catalog"), {
+      target: { value: "onboarding" },
+    })
+
+    expect(screen.getByText("Onboarding Buddy")).toBeInTheDocument()
+    expect(screen.queryByText("Invoice Summariser")).not.toBeInTheDocument()
+    expect(screen.queryByText("Careful Analyst")).not.toBeInTheDocument()
+  })
+
+  it("names the type and offers to create one when the type is empty", async () => {
+    searchParams = new URLSearchParams("type=soul")
+    await renderDashboard(MOCK_ARTIFACTS)
+
+    await waitFor(() =>
+      expect(screen.getByText("No souls yet")).toBeInTheDocument()
+    )
+    // Distinct from the filter-mismatch state: clearing filters would not
+    // produce a soul, so that is not the offer made here.
+    expect(
+      screen.queryByText("Nothing matches these filters")
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole("link", { name: /add a soul/i })
+    ).toHaveAttribute("href", "/dashboard/new-submit?type=soul")
+  })
+
+  it("treats an unrecognised type in the URL as no selection", async () => {
+    // Not merely a type the workspace has yet to support -- one it never
+    // will -- so this stays a test about unrecognised input.
+    searchParams = new URLSearchParams("type=widget")
+    await renderDashboard([...MOCK_ARTIFACTS, MOCK_SOUL])
+
+    await waitFor(() =>
+      expect(screen.getByText("Careful Analyst")).toBeInTheDocument()
+    )
+    expect(document.querySelectorAll("tbody tr")).toHaveLength(5)
   })
 })

@@ -6,6 +6,9 @@ const pushMock = vi.fn()
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: pushMock }),
+  // The form seeds its type from `?type=`, so the hook has to exist even
+  // where no test exercises the deep link.
+  useSearchParams: () => new URLSearchParams(),
 }))
 
 vi.mock("next/link", () => ({
@@ -650,5 +653,169 @@ describe("new-submit tool tab (zip bundle flow)", () => {
     expect(
       screen.queryByText("Only .zip archives are accepted.")
     ).not.toBeInTheDocument()
+  })
+})
+
+describe("new-submit soul tab", () => {
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn())
+    pushMock.mockReset()
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  function openSoulTab() {
+    fireEvent.click(screen.getByRole("button", { name: /^soul\b/i }))
+  }
+
+  it("creates a private soul and uploads SOUL.md, with no readme when none was written", async () => {
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts") {
+        return new Response(
+          JSON.stringify({
+            artifact: { id: "soul-1", name: "careful-analyst" },
+          }),
+          { status: 201 }
+        )
+      }
+      if (url === "/api/private-artifacts/soul-1/content/soul_md") {
+        return new Response(null, { status: 200 })
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    renderPage()
+    openSoulTab()
+
+    fireEvent.change(screen.getByPlaceholderText("e.g. Careful Analyst"), {
+      target: { value: "Careful Analyst" },
+    })
+    fireEvent.change(
+      screen.getByPlaceholderText("One line describing this persona..."),
+      { target: { value: "Cites every claim." } }
+    )
+    fireEvent.change(screen.getByLabelText("The soul document"), {
+      target: { value: "# Who you are\n\nYou are careful." },
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: /add to space/i }))
+
+    await waitFor(() =>
+      expect(pushMock).toHaveBeenCalledWith("/dashboard/catalog")
+    )
+
+    const calls = vi.mocked(fetch).mock.calls
+    // No readme_md upload: an empty readme would be a stored file that says
+    // nothing, and the readme is optional by design.
+    expect(calls.map(([input]) => String(input))).toEqual([
+      "/api/private-artifacts",
+      "/api/private-artifacts/soul-1/content/soul_md",
+    ])
+
+    const created = JSON.parse(String(calls[0][1]?.body))
+    expect(created).toMatchObject({
+      type: "soul",
+      name: "careful-analyst",
+      visibility: "private",
+      description: "Cites every claim.",
+    })
+
+    expect(await readBlobText(calls[1][1]?.body as Blob)).toBe(
+      "# Who you are\n\nYou are careful."
+    )
+  })
+
+  it("uploads the readme as its own content kind when one was written", async () => {
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === "/api/private-artifacts") {
+        return new Response(
+          JSON.stringify({ artifact: { id: "soul-2", name: "steady-hand" } }),
+          { status: 201 }
+        )
+      }
+      if (
+        url === "/api/private-artifacts/soul-2/content/soul_md" ||
+        url === "/api/private-artifacts/soul-2/content/readme_md"
+      ) {
+        return new Response(null, { status: 200 })
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+
+    renderPage()
+    openSoulTab()
+
+    fireEvent.change(screen.getByPlaceholderText("e.g. Careful Analyst"), {
+      target: { value: "Steady Hand" },
+    })
+    fireEvent.change(
+      screen.getByPlaceholderText("One line describing this persona..."),
+      { target: { value: "Unflappable." } }
+    )
+    fireEvent.change(screen.getByLabelText("The soul document"), {
+      target: { value: "# Who you are\n\nYou are steady." },
+    })
+    fireEvent.change(screen.getByLabelText("Readme"), {
+      target: { value: "Use this for incident work." },
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: /add to space/i }))
+
+    await waitFor(() =>
+      expect(pushMock).toHaveBeenCalledWith("/dashboard/catalog")
+    )
+
+    expect(
+      vi.mocked(fetch).mock.calls.map(([input]) => String(input))
+    ).toEqual([
+      "/api/private-artifacts",
+      "/api/private-artifacts/soul-2/content/soul_md",
+      "/api/private-artifacts/soul-2/content/readme_md",
+    ])
+  })
+
+  it("offers the public option for a soul, and states what installing one does", () => {
+    renderPage()
+    openSoulTab()
+
+    // Souls are shareable like every other type. The note beside the control
+    // is what carries the difference -- a soul's text is read as the opening
+    // of the installer's system prompt -- so assert both, not just the
+    // control: the control alone would let the warning be dropped silently.
+    expect(
+      screen.getByRole("button", { name: /request public listing/i })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/opening of an installer's system prompt/i)
+    ).toBeInTheDocument()
+  })
+
+  it("refuses to submit a soul with no document written", async () => {
+    renderPage()
+    openSoulTab()
+
+    fireEvent.change(screen.getByPlaceholderText("e.g. Careful Analyst"), {
+      target: { value: "Empty Soul" },
+    })
+    fireEvent.change(
+      screen.getByPlaceholderText("One line describing this persona..."),
+      { target: { value: "Nothing here." } }
+    )
+    fireEvent.change(screen.getByLabelText("The soul document"), {
+      target: { value: "   \n  " },
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: /add to space/i }))
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("Write the soul document before submitting.")
+      ).toBeInTheDocument()
+    )
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled()
   })
 })

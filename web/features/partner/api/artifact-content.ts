@@ -46,10 +46,13 @@ async function fetchTextContent(url: string): Promise<TextContentResult> {
 }
 
 /**
- * Reads an artifact's stored text content (`skill_md`, `capabilities`)
- * through the owner-facing read route (`GET .../content/[kind]`, no install
- * token needed) so an edit page can seed its editor from what is actually
- * stored, instead of starting blank and silently overwriting it on save.
+ * Reads an artifact's stored text content (`skill_md`, `capabilities`,
+ * `soul_md`, `readme_md`) through the owner-facing read route
+ * (`GET .../content/[kind]`, no install token needed) so an edit page can seed
+ * its editor from what is actually stored, instead of starting blank and
+ * silently overwriting it on save. It is also what the install disclosure
+ * reads a soul's document from: the route is scoped to the caller's active
+ * organization, which is the only audience a soul ever has.
  *
  * `data` is one of three states once settled:
  * - `string` -- the stored file's bytes (may be `""` if it was genuinely
@@ -67,7 +70,10 @@ async function fetchTextContent(url: string): Promise<TextContentResult> {
  */
 export function useArtifactTextContent(
   id: string | undefined,
-  kind: Extract<ContentKind, "skill_md" | "capabilities">
+  kind: Extract<
+    ContentKind,
+    "skill_md" | "capabilities" | "soul_md" | "readme_md"
+  >
 ) {
   return useQuery({
     queryKey: ["private-artifact-content", id, kind],

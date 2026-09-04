@@ -7,6 +7,10 @@ import {
 
 import { prisma } from "../db"
 import { deleteObject, putObject } from "../storage"
+import {
+  PUBLISH_FREEZE_SELECT,
+  assertArtifactContentUnfrozen,
+} from "./publish-freeze"
 
 const CONTENT_KINDS = [
   "skill_md",
@@ -14,6 +18,8 @@ const CONTENT_KINDS = [
   "capabilities",
   "manifest_toml",
   "bundle_zip",
+  "soul_md",
+  "readme_md",
 ] as const
 
 export type ContentKind = (typeof CONTENT_KINDS)[number]
@@ -24,7 +30,25 @@ export const CONTENT_MEDIA_TYPES: Record<ContentKind, string> = {
   capabilities: "application/json",
   manifest_toml: "application/toml; charset=utf-8",
   bundle_zip: "application/zip",
+  soul_md: "text/markdown; charset=utf-8",
+  readme_md: "text/markdown; charset=utf-8",
 }
+
+/**
+ * Kinds the hub stores and displays but never publishes to an agent.
+ *
+ * `readme_md` is the whole list, and it exists as a list so the exclusion is
+ * a property of the kind rather than an omission in `manifest.ts` that a later
+ * edit could quietly reverse. A soul's README is authored for the people
+ * browsing the workspace; the agent would store it, never read it, and carry
+ * it in the digest -- which is exactly the `capabilities.json` situation
+ * ironclaw-contract.ts already carries a workaround for (design.md --
+ * "`readme_md` is a content kind, not an asset, and never published"). One of
+ * those is enough.
+ */
+export const HUB_ONLY_CONTENT_KINDS: ReadonlySet<ContentKind> = new Set([
+  "readme_md",
+])
 
 // Per-kind ceilings. Each is the *smaller* of what the agent will accept for
 // that kind and any tighter bound the hub imposes deliberately, so a payload
@@ -46,12 +70,20 @@ export const CONTENT_MEDIA_TYPES: Record<ContentKind, string> = {
 //   * `bundle_zip` never reaches an agent at all -- it is the upload envelope
 //     ingest reads and discards. 25MB matches the compressed-size cap
 //     bundle.ts enforces before storage is reached.
+//
+// `soul_md` is published as a skill document (manifest.ts), so it answers to
+// the same agent ceiling `skill_md` does. `readme_md` is never published at
+// all, but it is held to the same number anyway: it is the one bound that
+// makes the pair storable as a unit, and a readme that dwarfs the document it
+// describes is not a shape worth accommodating.
 export const MAX_CONTENT_BYTES_BY_KIND: Record<ContentKind, number> = {
   skill_md: MAX_METADATA_BYTES,
   wasm: MAX_WASM_BYTES,
   capabilities: MAX_METADATA_BYTES,
   manifest_toml: 256 * 1024,
   bundle_zip: 25 * 1024 * 1024,
+  soul_md: MAX_METADATA_BYTES,
+  readme_md: MAX_METADATA_BYTES,
 }
 
 /**
@@ -69,9 +101,10 @@ export const REDIRECT_CONTENT_KINDS: ReadonlySet<ContentKind> = new Set([
  * A filename an owner would recognise when they download a stored file.
  *
  * The storage key is a UUID path, so without this the browser saves every
- * download under an opaque name. `skill_md` and `manifest_toml` keep their
- * canonical filenames (they are that file); the rest are named after the
- * artifact, matching how they arrive inside an uploaded package.
+ * download under an opaque name. `skill_md`, `manifest_toml`, `soul_md` and
+ * `readme_md` keep their canonical filenames (they are that file); the rest
+ * are named after the artifact, matching how they arrive inside an uploaded
+ * package.
  */
 export function contentDownloadFilename(
   kind: ContentKind,
@@ -92,7 +125,31 @@ export function contentDownloadFilename(
       return `${safeName}.wasm`
     case "bundle_zip":
       return `${safeName}.zip`
+    case "soul_md":
+      return "SOUL.md"
+    case "readme_md":
+      return "README.md"
   }
+}
+
+/**
+ * A soul is one free-form Markdown document with no frontmatter, no required
+ * headers and no schema (design.md -- Context), so size and non-emptiness are
+ * the only two things there are to check. This is the second of them.
+ *
+ * Whitespace-only is refused alongside genuinely empty because the two mean
+ * the same thing to the agent and only one of them is visible to the author:
+ * a soul is read as the first block of the system prompt, and a blank one
+ * publishes, installs and digests cleanly while doing nothing at all. The
+ * route's own zero-length guard fires earlier for the empty case; this is the
+ * authoritative check both ingest paths inherit, the same way the size guard
+ * above is.
+ */
+function assertSoulDocumentHasContent(kind: ContentKind, input: Uint8Array) {
+  if (kind !== "soul_md") return
+  if (new TextDecoder().decode(input).trim() !== "") return
+
+  throw new Response("SOUL.md must have content", { status: 400 })
 }
 
 export function parseContentKind(value: string): ContentKind {
@@ -136,14 +193,19 @@ export async function storeArtifactContent(
       { status: 413 }
     )
   }
+  assertSoulDocumentHasContent(kind, input)
 
   const artifact = await prisma.privateArtifact.findFirst({
     where: { id: artifactId, organizationId },
-    select: { id: true },
+    select: PUBLISH_FREEZE_SELECT,
   })
   if (!artifact) {
     throw new Response("Artifact not found", { status: 404 })
   }
+  // Checked here rather than in the routes for the same reason the size limit
+  // is: this is the single funnel every content write passes through, direct
+  // PUT and bundle ingest alike, so a caller cannot be added that misses it.
+  assertArtifactContentUnfrozen(artifact)
 
   const bytes = new Uint8Array(input)
   const sha256 = createHash("sha256").update(bytes).digest("hex")
@@ -181,6 +243,17 @@ export async function deleteArtifactContent(
   artifactId: string,
   kind: ContentKind
 ) {
+  const artifact = await prisma.privateArtifact.findFirst({
+    where: { id: artifactId, organizationId },
+    select: PUBLISH_FREEZE_SELECT,
+  })
+  if (!artifact) {
+    throw new Response("Artifact not found", { status: 404 })
+  }
+  // Removing a file changes what the published version resolves to just as
+  // much as replacing one does, so it answers to the same freeze.
+  assertArtifactContentUnfrozen(artifact)
+
   const content = await prisma.privateArtifactContent.findFirst({
     where: { artifactId, kind, artifact: { organizationId } },
     select: { id: true, storageKey: true },

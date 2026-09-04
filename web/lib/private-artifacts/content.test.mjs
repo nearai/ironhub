@@ -113,6 +113,100 @@ test("storeArtifactContent rejects an oversized body with 413 before touching pr
   assert.equal(findFirstCalls.length, 0)
 })
 
+// --- the published-content freeze ---------------------------------------
+//
+// `findFirstResult` stands in for the artifact row the write path looks up.
+// The fixtures above leave `status` off entirely, which is the draft case --
+// these three supply it.
+
+test("storeArtifactContent refuses a write to a published artifact whose version has not moved", async () => {
+  putObjectCalls.length = 0
+  upsertCalls.length = 0
+  findFirstResult = {
+    status: "published",
+    version: "1.0.0",
+    publishedVersion: "1.0.0",
+  }
+
+  try {
+    await storeArtifactContent(
+      "org-1",
+      "artifact-1",
+      "skill_md",
+      new TextEncoder().encode("hello")
+    )
+    assert.fail("expected the write to be refused")
+  } catch (error) {
+    assert.ok(error instanceof Response)
+    assert.equal(error.status, 409)
+    assert.match(await error.text(), /Change the version before changing its files/)
+  }
+
+  // Nothing may reach storage: the point of the freeze is that the bytes a
+  // published version names cannot be replaced, not that the row stays put.
+  assert.equal(putObjectCalls.length, 0)
+  assert.equal(upsertCalls.length, 0)
+  findFirstResult = { id: "artifact-1" }
+})
+
+test("storeArtifactContent accepts a write once the version has been bumped", async () => {
+  putObjectCalls.length = 0
+  findFirstResult = {
+    status: "published",
+    version: "1.1.0",
+    publishedVersion: "1.0.0",
+  }
+
+  await storeArtifactContent(
+    "org-1",
+    "artifact-1",
+    "skill_md",
+    new TextEncoder().encode("hello")
+  )
+
+  assert.equal(putObjectCalls.length, 1)
+  findFirstResult = { id: "artifact-1" }
+})
+
+test("storeArtifactContent leaves a draft artifact unguarded", async () => {
+  putObjectCalls.length = 0
+  // A draft records no published version, so there is nothing for a bump to
+  // be measured against and nothing an agent could already be running.
+  findFirstResult = { status: "draft", version: "1.0.0", publishedVersion: null }
+
+  await storeArtifactContent(
+    "org-1",
+    "artifact-1",
+    "skill_md",
+    new TextEncoder().encode("hello")
+  )
+
+  assert.equal(putObjectCalls.length, 1)
+  findFirstResult = { id: "artifact-1" }
+})
+
+test("deleteArtifactContent is refused on a frozen published artifact", async () => {
+  deleteCalls.length = 0
+  deleteObjectCalls.length = 0
+  findFirstResult = {
+    status: "published",
+    version: "2.0.0",
+    publishedVersion: "2.0.0",
+  }
+  contentFindFirstResult = {
+    id: "content-1",
+    storageKey: "private-artifacts/org-1/artifact-1/wasm",
+  }
+
+  await assert.rejects(
+    () => deleteArtifactContent("org-1", "artifact-1", "wasm"),
+    (error) => error instanceof Response && error.status === 409
+  )
+  assert.equal(deleteCalls.length, 0)
+  assert.equal(deleteObjectCalls.length, 0)
+  findFirstResult = { id: "artifact-1" }
+})
+
 test("storeArtifactContent 404s when the artifact is not found in the org", async () => {
   findFirstResult = null
   await assert.rejects(
@@ -124,6 +218,9 @@ test("storeArtifactContent 404s when the artifact is not found in the org", asyn
 test("deleteArtifactContent removes the row then the S3 object", async () => {
   deleteObjectCalls.length = 0
   deleteCalls.length = 0
+  // A delete now looks the artifact up first, to check the published-content
+  // freeze -- a draft (no status) is unfrozen, so this stays a plain delete.
+  findFirstResult = { id: "artifact-1" }
   contentFindFirstResult = {
     id: "content-1",
     storageKey: "private-artifacts/org-1/artifact-1/wasm",
@@ -137,6 +234,7 @@ test("deleteArtifactContent removes the row then the S3 object", async () => {
 })
 
 test("deleteArtifactContent 404s when no content row exists", async () => {
+  findFirstResult = { id: "artifact-1" }
   contentFindFirstResult = null
   await assert.rejects(
     () => deleteArtifactContent("org-1", "artifact-1", "wasm"),
@@ -213,4 +311,121 @@ test("a wasm module past the agent's own ceiling is still rejected", async () =>
     (error) => error instanceof Response && error.status === 413
   )
   assert.equal(putObjectCalls.length, 0)
+})
+
+// --- Souls ------------------------------------------------------------------
+
+test("a soul document and its readme read their ceiling from the agent's metadata bound", () => {
+  // A soul publishes as a skill document, so the number the agent enforces on
+  // it is the same one -- restating it here is how skill_md came to accept
+  // 5MB against the agent's 1MB.
+  assert.equal(MAX_CONTENT_BYTES_BY_KIND.soul_md, MAX_METADATA_BYTES)
+  assert.equal(MAX_CONTENT_BYTES_BY_KIND.readme_md, MAX_METADATA_BYTES)
+})
+
+test("parseContentKind accepts the soul kinds", () => {
+  assert.equal(parseContentKind("soul_md"), "soul_md")
+  assert.equal(parseContentKind("readme_md"), "readme_md")
+})
+
+test("storeArtifactContent stores a soul document with its size and sha256", async () => {
+  putObjectCalls.length = 0
+  upsertCalls.length = 0
+  findFirstResult = { id: "artifact-1" }
+
+  const body = new TextEncoder().encode("# Who you are\n\nYou are careful.\n")
+  const result = await storeArtifactContent(
+    "org-1",
+    "artifact-1",
+    "soul_md",
+    body
+  )
+
+  assert.equal(putObjectCalls.length, 1)
+  assert.equal(
+    putObjectCalls[0].key,
+    "private-artifacts/org-1/artifact-1/soul_md"
+  )
+  assert.equal(putObjectCalls[0].contentType, "text/markdown; charset=utf-8")
+  assert.equal(result.sizeBytes, body.length)
+  assert.match(result.sha256, /^[0-9a-f]{64}$/)
+})
+
+test("a whitespace-only soul document is refused with 400 before anything is stored", async () => {
+  putObjectCalls.length = 0
+  upsertCalls.length = 0
+  findFirstResult = { id: "artifact-1" }
+
+  let thrown = null
+  try {
+    await storeArtifactContent(
+      "org-1",
+      "artifact-1",
+      "soul_md",
+      new TextEncoder().encode("   \n\t\n  ")
+    )
+  } catch (error) {
+    thrown = error
+  }
+
+  assert.ok(thrown instanceof Response)
+  assert.equal(thrown.status, 400)
+  assert.match(await thrown.text(), /must have content/)
+  assert.equal(putObjectCalls.length, 0)
+  assert.equal(upsertCalls.length, 0)
+})
+
+test("an empty soul document is refused the same way", async () => {
+  findFirstResult = { id: "artifact-1" }
+
+  await assert.rejects(
+    () => storeArtifactContent("org-1", "artifact-1", "soul_md", new Uint8Array()),
+    (error) => error instanceof Response && error.status === 400
+  )
+})
+
+test("a 2MB soul document is rejected with 413 naming the 1MB limit", async () => {
+  putObjectCalls.length = 0
+  findFirstResult = { id: "artifact-1" }
+
+  let thrown = null
+  try {
+    await storeArtifactContent(
+      "org-1",
+      "artifact-1",
+      "soul_md",
+      new Uint8Array(2 * 1024 * 1024)
+    )
+  } catch (error) {
+    thrown = error
+  }
+
+  assert.ok(thrown instanceof Response)
+  assert.equal(thrown.status, 413)
+  assert.match(await thrown.text(), /1MB limit for soul_md/)
+  assert.equal(putObjectCalls.length, 0)
+})
+
+test("an empty readme is stored, because only the soul document must say something", async () => {
+  putObjectCalls.length = 0
+  findFirstResult = { id: "artifact-1" }
+
+  const result = await storeArtifactContent(
+    "org-1",
+    "artifact-1",
+    "readme_md",
+    new TextEncoder().encode("   ")
+  )
+
+  assert.equal(result.sizeBytes, 3)
+  assert.equal(putObjectCalls.length, 1)
+})
+
+test("neither soul kind is served as a redirect", async () => {
+  const { REDIRECT_CONTENT_KINDS } = await import("./content.ts")
+
+  // Relayed, matching skill_md: these are small text documents, and the
+  // owner-facing editors and the install disclosure read them inline.
+  assert.equal(REDIRECT_CONTENT_KINDS.has("soul_md"), false)
+  assert.equal(REDIRECT_CONTENT_KINDS.has("readme_md"), false)
 })
