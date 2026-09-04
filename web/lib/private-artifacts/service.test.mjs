@@ -75,7 +75,14 @@ function makeFakeDb() {
       privateArtifactAsset: {
         findMany: async () => [],
       },
+      // A loadout publishes its members rather than content rows, so the
+      // publish path asks for them. No fixture here composes one, and an
+      // empty membership is exactly what the loadout publish gate refuses.
+      loadoutMember: {
+        findMany: async () => loadoutMemberRows,
+      },
       privateArtifactContent: {
+        delete: async ({ where }) => ({ id: where.id }),
         findFirst: async ({ where }) => {
           const record = artifacts.get(where.artifactId)
           if (
@@ -97,6 +104,41 @@ function makeFakeDb() {
 const { prisma, artifacts } = makeFakeDb()
 
 mock.module("../db", { namedExports: { prisma } })
+
+// The member rows a loadout holds, and what they resolve to. Member health is
+// another module's job (loadout-health.ts); what these tests are about is the
+// row the manage screen renders from its verdicts.
+let loadoutMemberRows = []
+let loadoutResolution = []
+
+mock.module("./loadout-health", {
+  namedExports: {
+    resolveLoadoutMembers: async () => loadoutResolution,
+  },
+})
+
+function resolvedMember(overrides = {}) {
+  return {
+    memberId: "member-1",
+    source: "private",
+    kind: "tool",
+    name: "scraper",
+    pinnedVersion: null,
+    pinnedDigest: null,
+    currentVersion: "1.0.0",
+    currentDigest: "sha256:aaa",
+    status: "ok",
+    reason: null,
+    blocksInstall: false,
+    blocksPublish: false,
+    entry: { type: "tool", tool: { name: "scraper", version: "1.0.0" } },
+    ...overrides,
+  }
+}
+
+function agentContractRow(checks) {
+  return checks.find((check) => check.id === "agent_contract")
+}
 
 let objectBytes = new TextEncoder().encode("{}")
 // Set to an Error to simulate the object store being unreachable, which must
@@ -131,12 +173,27 @@ mock.module("../storage", {
 process.env.NEXT_PUBLIC_APP_URL = "https://hub.example"
 
 const {
+  assertArtifactContentComplete,
   createPrivateArtifact,
   updatePrivateArtifact,
   publishPrivateArtifact,
   unpublishPrivateArtifact,
+  deletePrivateArtifactContentRow,
   getArtifactChecks,
 } = await import("./service.ts")
+
+// `assert.rejects` only honours a *synchronous* validator, so reading the
+// Response body has to happen outside it.
+async function assertResponseRejection(run, status, messagePattern) {
+  try {
+    await run()
+    assert.fail("expected the call to reject")
+  } catch (error) {
+    assert.ok(error instanceof Response, "rejection must be a Response")
+    assert.equal(error.status, status)
+    assert.match(await error.text(), messagePattern)
+  }
+}
 
 function seedArtifact(overrides = {}) {
   const id = overrides.id ?? `artifact-${artifacts.size + 1}`
@@ -150,6 +207,7 @@ function seedArtifact(overrides = {}) {
     version: "1.0.0",
     visibility: "private",
     status: "draft",
+    publishedVersion: null,
     description: null,
     sourceUrl: null,
     category: null,
@@ -431,6 +489,184 @@ test("publishPrivateArtifact succeeds once content and category are both set", a
   assert.equal(artifact.status, "published")
 })
 
+test("task 3.4: publishing a loadout with no members is refused, and it stays a draft", async () => {
+  // The loadout branch replaces the content-completeness gate rather than
+  // sitting beside it: a loadout stores no content, so "missing required
+  // content" would be the wrong sentence for the wrong problem.
+  const seeded = seedArtifact({
+    id: "pub-empty-loadout",
+    type: "loadout",
+    name: "a-trader",
+    content: [],
+    category: "Dev Tools",
+  })
+  await assertResponseRejection(
+    () => publishPrivateArtifact("org-1", seeded.id),
+    409,
+    /at least one member/
+  )
+  assert.equal(artifacts.get(seeded.id).status, "draft")
+})
+
+// --- the readiness panel for a loadout ----------------------------------
+//
+// The bug these guard: the agent-contract row asked for the single entry a
+// loadout does not have, and rendered "Unsupported artifact type: loadout"
+// directly beneath an install panel correctly saying the hub knows what a
+// loadout is and is waiting on the agent. One screen, two contradictory
+// claims.
+
+test("the readiness row for an empty loadout says it has no members, not that its type is unsupported", async () => {
+  loadoutMemberRows = []
+  loadoutResolution = []
+  const seeded = seedArtifact({
+    id: "checks-empty-loadout",
+    type: "loadout",
+    name: "checks-empty",
+    content: [],
+    category: "Dev Tools",
+  })
+
+  const { checks, publishable } = await getArtifactChecks("org-1", seeded.id)
+  const row = agentContractRow(checks)
+
+  assert.equal(row.status, "fail")
+  assert.match(row.detail, /must have at least one member/)
+  assert.doesNotMatch(row.detail, /Unsupported artifact type/)
+  assert.equal(publishable, false)
+})
+
+test("the readiness row for a loadout names every failing member, the way the publish refusal does", async () => {
+  loadoutMemberRows = [{ id: "member-1" }, { id: "member-2" }]
+  loadoutResolution = [
+    resolvedMember({
+      memberId: "member-1",
+      status: "draft",
+      reason: "tool scraper is still a draft",
+      blocksPublish: true,
+    }),
+    resolvedMember({
+      memberId: "member-2",
+      status: "missing",
+      reason: "skill summarise cannot be resolved",
+      blocksPublish: true,
+    }),
+  ]
+  const seeded = seedArtifact({
+    id: "checks-broken-loadout",
+    type: "loadout",
+    name: "checks-broken",
+    content: [],
+    category: "Dev Tools",
+  })
+
+  const row = agentContractRow((await getArtifactChecks("org-1", seeded.id)).checks)
+
+  assert.equal(row.status, "fail")
+  // One row, several reasons -- the shape the row has always had.
+  assert.match(row.detail, /scraper is still a draft/)
+  assert.match(row.detail, /summarise cannot be resolved/)
+  // The gate's "Loadout cannot be published:" framing is redundant under a row
+  // already labelled "Installable by an agent".
+  assert.doesNotMatch(row.detail, /cannot be published/)
+})
+
+test("a loadout whose members all resolve passes the readiness row", async () => {
+  loadoutMemberRows = [{ id: "member-1" }]
+  loadoutResolution = [resolvedMember()]
+  const seeded = seedArtifact({
+    id: "checks-healthy-loadout",
+    type: "loadout",
+    name: "checks-healthy",
+    content: [],
+    category: "Dev Tools",
+  })
+
+  const { checks, publishable } = await getArtifactChecks("org-1", seeded.id)
+  const row = agentContractRow(checks)
+
+  assert.equal(row.status, "pass")
+  assert.match(row.detail, /Every member resolves/)
+  assert.equal(publishable, true)
+})
+
+test("a loadout is not asked for a repository link, while a tool still is", async () => {
+  loadoutMemberRows = [{ id: "member-1" }]
+  loadoutResolution = [resolvedMember()]
+  const loadout = seedArtifact({
+    id: "checks-repo-loadout",
+    type: "loadout",
+    name: "checks-repo",
+    content: [],
+    category: "Dev Tools",
+  })
+  const tool = seedArtifact({
+    id: "checks-repo-tool",
+    content: [{ kind: "wasm" }, { kind: "manifest_toml" }],
+    category: "Dev Tools",
+  })
+
+  const loadoutChecks = (await getArtifactChecks("org-1", loadout.id)).checks
+  const toolChecks = (await getArtifactChecks("org-1", tool.id)).checks
+
+  // Omitted, not passed: a pass would claim a repository link the loadout does
+  // not have and cannot meaningfully have.
+  assert.equal(
+    loadoutChecks.some((check) => check.id === "repo_link_set"),
+    false
+  )
+  assert.equal(
+    toolChecks.some((check) => check.id === "repo_link_set"),
+    true
+  )
+})
+
+test("task 7.8: the install-link gate refuses a loadout as unavailable rather than as an unknown type", async () => {
+  const seeded = seedArtifact({
+    id: "install-loadout",
+    type: "loadout",
+    name: "a-trader-install",
+    content: [],
+    category: "Dev Tools",
+  })
+
+  // The refusal itself is correct -- delivery is blocked on the agent's
+  // multi-entry payload. Only the wording was wrong: "unsupported artifact
+  // type" says the hub does not know what a loadout is, which would be filed
+  // as a defect against the hub.
+  await assertResponseRejection(
+    () => assertArtifactContentComplete("org-1", seeded.id),
+    409,
+    /not available yet/
+  )
+
+  try {
+    await assertArtifactContentComplete("org-1", seeded.id)
+    assert.fail("expected the call to reject")
+  } catch (error) {
+    const message = await error.text()
+    assert.doesNotMatch(message, /Unsupported artifact type/)
+    // Says the same thing the loadout editor says, so the API and the screen
+    // do not contradict each other.
+    assert.match(message, /multi-entry install payload/)
+  }
+})
+
+test("the install-link gate still reports a genuinely unknown type as unsupported", async () => {
+  const seeded = seedArtifact({
+    id: "install-unknown",
+    type: "sculpture",
+    name: "not-a-real-type",
+    content: [],
+  })
+
+  await assertResponseRejection(
+    () => assertArtifactContentComplete("org-1", seeded.id),
+    409,
+    /Unsupported artifact type: sculpture/
+  )
+})
+
 test("publishPrivateArtifact 409s naming manifest_toml for a tool with wasm + capabilities but no manifest_toml", async () => {
   // The exact "pre-existing tool" shape design.md D3 calls out: created
   // before bundle ingest existed, so it has capabilities but never got a
@@ -707,5 +943,405 @@ test("task 7.2: agent_contract is not a second voice on missing content", async 
   assert.equal(
     checks.find((check) => check.id === "agent_contract").status,
     "warn"
+  )
+})
+
+// --- version is mutable, and only ever moves forward --------------------
+
+test("updatePrivateArtifact accepts a version bump", async () => {
+  const seeded = seedArtifact({ id: "ver-bump", version: "1.2.0" })
+
+  const artifact = await updatePrivateArtifact("org-1", seeded.id, {
+    version: "1.3.0",
+  })
+
+  assert.equal(artifact.version, "1.3.0")
+  assert.equal(artifacts.get(seeded.id).version, "1.3.0")
+})
+
+test("updatePrivateArtifact rejects a version outside the creation grammar", async () => {
+  const seeded = seedArtifact({ id: "ver-grammar", version: "1.0.0" })
+
+  await assertResponseRejection(
+    () => updatePrivateArtifact("org-1", seeded.id, { version: "1.0.0 beta" }),
+    400,
+    /version must be 1-64 characters/
+  )
+  assert.equal(artifacts.get(seeded.id).version, "1.0.0")
+})
+
+test("updatePrivateArtifact rejects an empty version", async () => {
+  const seeded = seedArtifact({ id: "ver-empty", version: "1.0.0" })
+
+  await assertResponseRejection(
+    () => updatePrivateArtifact("org-1", seeded.id, { version: "" }),
+    400,
+    /version must be 1-64 characters/
+  )
+})
+
+test("updatePrivateArtifact rejects resubmitting the current version", async () => {
+  const seeded = seedArtifact({ id: "ver-same", version: "2.1.0" })
+
+  await assertResponseRejection(
+    () => updatePrivateArtifact("org-1", seeded.id, { version: "2.1.0" }),
+    400,
+    /version is already 2\.1\.0/
+  )
+})
+
+test("updatePrivateArtifact rejects a semver downgrade, naming both versions", async () => {
+  const seeded = seedArtifact({ id: "ver-down", version: "1.3.0" })
+
+  await assertResponseRejection(
+    () => updatePrivateArtifact("org-1", seeded.id, { version: "1.2.0" }),
+    400,
+    /version 1\.2\.0 is not greater than the current version 1\.3\.0/
+  )
+  assert.equal(artifacts.get(seeded.id).version, "1.3.0")
+})
+
+test("updatePrivateArtifact rejects a prerelease that ranks below its own release", async () => {
+  const seeded = seedArtifact({ id: "ver-prerelease", version: "1.1.0" })
+
+  // Semver 2.0.0: a prerelease ranks below the release sharing its core, so
+  // this is a downgrade even though the string looks like it grew.
+  await assertResponseRejection(
+    () => updatePrivateArtifact("org-1", seeded.id, { version: "1.1.0-rc.1" }),
+    400,
+    /is not greater than/
+  )
+})
+
+test("updatePrivateArtifact accepts a prerelease bump ordered numerically", async () => {
+  const seeded = seedArtifact({ id: "ver-rc", version: "2.0.0-rc.9" })
+
+  // `rc.10` sorts below `rc.9` as text; semver compares numeric identifiers
+  // as numbers, so this is the bump it looks like.
+  const artifact = await updatePrivateArtifact("org-1", seeded.id, {
+    version: "2.0.0-rc.10",
+  })
+
+  assert.equal(artifact.version, "2.0.0-rc.10")
+})
+
+test("updatePrivateArtifact rejects a change that only moves build metadata", async () => {
+  const seeded = seedArtifact({ id: "ver-build", version: "1.0.0+alpha" })
+
+  // The strings differ, so the inequality check passes -- but semver excludes
+  // build metadata from precedence, so nothing about the version has moved.
+  await assertResponseRejection(
+    () => updatePrivateArtifact("org-1", seeded.id, { version: "1.0.0+beta" }),
+    400,
+    /is not greater than/
+  )
+})
+
+test("updatePrivateArtifact compares non-semver versions on inequality alone", async () => {
+  const seeded = seedArtifact({ id: "ver-datey", version: "2024-06-release" })
+
+  const artifact = await updatePrivateArtifact("org-1", seeded.id, {
+    version: "2024-07-release",
+  })
+
+  assert.equal(artifact.version, "2024-07-release")
+})
+
+test("updatePrivateArtifact skips the ordering check when only one side is semver", async () => {
+  const seeded = seedArtifact({ id: "ver-mixed", version: "nightly" })
+
+  // Nothing orders "nightly" against "0.0.1", so demanding an increase here
+  // would only make the artifact unbumpable.
+  const artifact = await updatePrivateArtifact("org-1", seeded.id, {
+    version: "0.0.1",
+  })
+
+  assert.equal(artifact.version, "0.0.1")
+})
+
+test("updatePrivateArtifact refuses a version bump from another organization", async () => {
+  const seeded = seedArtifact({ id: "ver-cross-org", version: "1.0.0" })
+
+  await assert.rejects(
+    () => updatePrivateArtifact("org-2", seeded.id, { version: "2.0.0" }),
+    (error) => error instanceof Response && error.status === 404
+  )
+  assert.equal(artifacts.get(seeded.id).version, "1.0.0")
+})
+
+test("a bump does not create a second row for the same name", async () => {
+  const seeded = seedArtifact({ id: "ver-one-row", name: "one-row-only" })
+  const before = artifacts.size
+
+  await updatePrivateArtifact("org-1", seeded.id, { version: "9.9.9" })
+
+  assert.equal(artifacts.size, before)
+  assert.equal(
+    [...artifacts.values()].filter(
+      (record) =>
+        record.organizationId === "org-1" && record.name === "one-row-only"
+    ).length,
+    1
+  )
+})
+
+// --- the published-content freeze ---------------------------------------
+
+test("publishPrivateArtifact records the version it published", async () => {
+  const seeded = seedArtifact({
+    id: "freeze-publish",
+    type: "skill",
+    content: [{ kind: "skill_md" }],
+    category: "Dev Tools",
+    version: "1.0.0",
+  })
+
+  const artifact = await publishPrivateArtifact("org-1", seeded.id)
+
+  assert.equal(artifact.status, "published")
+  assert.equal(artifact.publishedVersion, "1.0.0")
+})
+
+test("unpublishPrivateArtifact clears the recorded version", async () => {
+  const seeded = seedArtifact({
+    id: "freeze-unpublish",
+    type: "skill",
+    status: "published",
+    publishedVersion: "1.0.0",
+  })
+
+  const artifact = await unpublishPrivateArtifact("org-1", seeded.id)
+
+  assert.equal(artifact.status, "draft")
+  assert.equal(artifact.publishedVersion, null)
+})
+
+test("deletePrivateArtifactContentRow is refused on a published artifact at its published version", async () => {
+  const seeded = seedArtifact({
+    id: "freeze-delete-row",
+    status: "published",
+    version: "1.0.0",
+    publishedVersion: "1.0.0",
+    content: [{ kind: "wasm" }],
+  })
+
+  await assertResponseRejection(
+    () => deletePrivateArtifactContentRow("org-1", seeded.id, "wasm"),
+    409,
+    /Change the version before changing its files/
+  )
+})
+
+test("deletePrivateArtifactContentRow is allowed once the version has moved", async () => {
+  const seeded = seedArtifact({
+    id: "freeze-delete-row-bumped",
+    status: "published",
+    version: "1.1.0",
+    publishedVersion: "1.0.0",
+    content: [{ kind: "wasm" }],
+  })
+
+  await deletePrivateArtifactContentRow("org-1", seeded.id, "wasm")
+})
+
+test("a bump on a published artifact releases the freeze without unpublishing it", async () => {
+  const seeded = seedArtifact({
+    id: "freeze-bump-releases",
+    status: "published",
+    version: "1.0.0",
+    publishedVersion: "1.0.0",
+    content: [{ kind: "wasm" }],
+  })
+
+  await updatePrivateArtifact("org-1", seeded.id, { version: "1.0.1" })
+
+  // Still published -- the freeze is about which bytes a version names, not
+  // about taking the artifact off the shelf.
+  assert.equal(artifacts.get(seeded.id).status, "published")
+  await deletePrivateArtifactContentRow("org-1", seeded.id, "wasm")
+})
+
+// --- Soul visibility --------------------------------------------------------
+//
+// A soul's text becomes the opening of the agent's system prompt, ahead of
+// memory and tools, so it is the one artifact type the agent does not
+// sandbox. The refusal lives in the service and not in the form because it is
+// a security property: an API client never sees the form.
+
+test("createPrivateArtifact accepts a public soul", async () => {
+  const soul = await createPrivateArtifact(
+    "org-1",
+    "user-1",
+    baseCreateInput({
+      type: "soul",
+      name: "public-soul",
+      title: "Public Soul",
+      visibility: "public",
+    })
+  )
+
+  // Souls are shareable like every other type. What sets them apart is not
+  // who may see one but what installing one does -- the text is read as the
+  // opening of the installer's system prompt -- and that is answered by
+  // disclosing the document before an install, not by withholding the type.
+  assert.equal(soul.visibility, "public")
+})
+
+test("createPrivateArtifact accepts a soul with no visibility, defaulting to private", async () => {
+  const artifact = await createPrivateArtifact(
+    "org-1",
+    "user-1",
+    baseCreateInput({
+      type: "soul",
+      name: "careful-analyst",
+      title: "Careful Analyst",
+    })
+  )
+
+  assert.equal(artifact.type, "soul")
+  assert.equal(artifact.visibility, "private")
+})
+
+test("updatePrivateArtifact lets a soul be turned public", async () => {
+  const soul = seedArtifact({
+    id: "soul-visibility",
+    type: "soul",
+    name: "steady-hand",
+    visibility: "private",
+  })
+
+  await updatePrivateArtifact("org-1", soul.id, { visibility: "public" })
+
+  assert.equal(artifacts.get(soul.id).visibility, "public")
+})
+
+test("updatePrivateArtifact still lets a soul be set back to private", async () => {
+  const soul = seedArtifact({
+    id: "soul-visibility-private",
+    type: "soul",
+    name: "steady-hand-2",
+    visibility: "private",
+  })
+
+  const updated = await updatePrivateArtifact("org-1", soul.id, {
+    visibility: "private",
+  })
+
+  assert.equal(updated.visibility, "private")
+})
+
+test("skills and tools are unaffected by the soul visibility rule", async () => {
+  const skill = seedArtifact({
+    id: "skill-visibility",
+    type: "skill",
+    name: "public-able-skill",
+    visibility: "private",
+  })
+  const tool = seedArtifact({
+    id: "tool-visibility",
+    type: "tool",
+    name: "public-able-tool",
+    visibility: "private",
+  })
+
+  assert.equal(
+    (await updatePrivateArtifact("org-1", skill.id, { visibility: "public" }))
+      .visibility,
+    "public"
+  )
+  assert.equal(
+    (await updatePrivateArtifact("org-1", tool.id, { visibility: "public" }))
+      .visibility,
+    "public"
+  )
+
+  const created = await createPrivateArtifact(
+    "org-1",
+    "user-1",
+    baseCreateInput({
+      type: "skill",
+      name: "public-request-skill",
+      title: "Public Request Skill",
+      visibility: "public",
+    })
+  )
+  assert.equal(created.visibility, "public")
+})
+
+test("createPrivateArtifact rejects a type outside the supported list", async () => {
+  await assertResponseRejection(
+    () =>
+      createPrivateArtifact(
+        "org-1",
+        "user-1",
+        // A word the hub will never accept as a type. An artifact type that
+        // is merely unsupported today is the wrong stand-in here: this test
+        // would then pass for as long as it takes somebody to support it.
+        baseCreateInput({ type: "widget", name: "not-a-type" })
+      ),
+    400,
+    /Invalid type: widget/
+  )
+})
+
+// --- Soul publish preconditions --------------------------------------------
+
+test("publishPrivateArtifact is blocked for a soul with no document", async () => {
+  const soul = seedArtifact({
+    id: "soul-publish-missing",
+    type: "soul",
+    name: "unwritten-soul",
+    category: "Productivity",
+    content: [],
+  })
+
+  await assertResponseRejection(
+    () => publishPrivateArtifact("org-1", soul.id),
+    409,
+    /soul_md/
+  )
+})
+
+test("publishPrivateArtifact does not require a readme", async () => {
+  const soul = seedArtifact({
+    id: "soul-publish-ready",
+    type: "soul",
+    name: "written-soul",
+    category: "Productivity",
+    content: [{ kind: "soul_md" }],
+  })
+
+  const published = await publishPrivateArtifact("org-1", soul.id)
+
+  assert.equal(published.status, "published")
+  assert.equal(published.publishedVersion, "1.0.0")
+})
+
+test("getArtifactChecks reports soul_md_present and says nothing about a readme", async () => {
+  const soul = seedArtifact({
+    id: "soul-checks",
+    type: "soul",
+    name: "checked-soul",
+    category: "Productivity",
+    content: [{ kind: "soul_md" }],
+  })
+
+  const { checks } = await getArtifactChecks("org-1", soul.id)
+  const ids = checks.map((check) => check.id)
+
+  assert.ok(ids.includes("soul_md_present"))
+  assert.equal(
+    checks.find((check) => check.id === "soul_md_present").status,
+    "pass"
+  )
+  // The readme is optional and never published, so a row about it would be a
+  // row nobody can fail.
+  assert.equal(
+    checks.some((check) => check.id.includes("readme")),
+    false
+  )
+  assert.equal(
+    checks.some((check) => check.id === "skill_md_present"),
+    false
   )
 })

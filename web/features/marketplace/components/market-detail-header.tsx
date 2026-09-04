@@ -67,7 +67,11 @@ export function MarketDetailHeader({ item }: MarketDetailHeaderProps) {
         </div>
       </div>
       <div className="w-full sm:w-auto sm:min-w-48 lg:hidden">
-        <SecureInstallButton slug={item.slug} />
+        <SecureInstallButton
+          slug={item.slug}
+          source="public"
+          type={item.kind}
+        />
       </div>
     </div>
   )

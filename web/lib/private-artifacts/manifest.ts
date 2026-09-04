@@ -9,10 +9,19 @@
 // only until one of them is edited, and D1/D4 are what that looks like when it
 // happens. `resolvePrivateInstall` therefore calls `buildPrivateArtifactEntry`
 // and digests its result -- it does not query for assets itself.
+//
+// A loadout install is the same rule over several entries: `privateManifestDocument`
+// takes the entries its members resolved to and `loadoutEntryArtifactDigest`
+// digests that same array, so no member can reach the digest without being
+// published or be published without reaching the digest.
 import { hubToolEntry } from "@/lib/catalog/hub-entry"
 import {
   CAPABILITIES_STUB_SHA256,
   CAPABILITIES_STUB_SIZE_BYTES,
+  loadoutArtifactDigest,
+  skillEntryArtifactDigest,
+  soulArtifactDigest,
+  toolEntryArtifactDigest,
 } from "@/lib/catalog/ironclaw-contract"
 import type {
   HubArtifact,
@@ -60,9 +69,34 @@ function assetUrl(
   return `${baseUrl}/api/private-artifacts/${artifactId}/asset/${kind}/${encodeURIComponent(token)}/${path}`
 }
 
-export type PrivateArtifactEntry =
-  | { type: "tool"; artifactId: string; tool: HubToolEntry }
-  | { type: "skill"; artifactId: string; skill: HubSkillEntry }
+/**
+ * A soul carries `skill` rather than a `soul` field of its own: what it
+ * publishes today *is* a skill entry, and typing it as anything else would be
+ * a second name for the same document that every consumer then has to unify.
+ * The discriminant is still `"soul"`, so publish-time verification and the
+ * install digest can say something about a soul that they do not say about a
+ * skill -- which is the whole reason it is not simply built as one.
+ */
+export type PrivateArtifactEntry = LoadoutManifestEntry & { artifactId: string }
+
+/**
+ * One published entry, without the private artifact it came from.
+ *
+ * A loadout's members are not all private artifacts: a public member is
+ * resolved live from the IronHub release or the Iliad backend and has no row
+ * here to carry an id (design.md -- "Public members resolve live; no bytes are
+ * copied"). The document builder and the install digest both need to accept
+ * such an entry, so what they take is this shape and `PrivateArtifactEntry` is
+ * it plus the id the private path additionally has.
+ *
+ * The `soul` discriminant survives into both, which is the point of it: what a
+ * soul publishes is a skill entry, and only this label lets the digest say
+ * `soul:` where the document says `skills[]`.
+ */
+export type LoadoutManifestEntry =
+  | { type: "tool"; tool: HubToolEntry }
+  | { type: "skill"; skill: HubSkillEntry }
+  | { type: "soul"; skill: HubSkillEntry }
 
 type EntryInput = {
   organizationId: string
@@ -114,6 +148,15 @@ export async function buildPrivateArtifactEntry(
         skill_md: hubArtifact("skill_md"),
       },
     }
+  }
+
+  if (artifact.type === "soul") {
+    return soulEntry(artifact.id, {
+      name: artifact.name,
+      version: artifact.version,
+      description: artifact.description,
+      soulDocument: hubArtifact("soul_md"),
+    })
   }
 
   if (artifact.type !== "tool") {
@@ -188,6 +231,53 @@ export async function buildPrivateArtifactEntry(
 }
 
 /**
+ * The one place a soul becomes something an agent can install.
+ *
+ * Today's agent has no soul entry type, so a soul is published as a skill
+ * entry whose skill document is the SOUL.md: structurally a soul *is* a skill
+ * with no bundled files, and that shape installs on an unmodified agent
+ * (design.md -- "Publish a soul as a skill entry, behind an adapter"). Asks 1
+ * and 2 to IronClaw would give souls an entry of their own; when they land,
+ * this function and the `skills`/`souls` split in
+ * `privateArtifactManifestDocument` are the whole edit, because nothing else
+ * constructs the published shape.
+ *
+ * `files` is deliberately absent rather than `[]`: the agent switches digest
+ * formula on whether the list is empty and the two framings are not
+ * extensions of each other, so publishing an empty list where the no-files
+ * branch is meant is a digest the agent never reproduces
+ * (`skillEntryArtifactDigest` in ironclaw-contract.ts).
+ *
+ * The soul's `readme_md` is not passed in and has no field to go in. It is
+ * hub-only (`HUB_ONLY_CONTENT_KINDS` in content.ts): publishing a document
+ * the agent stores and never reads is the `capabilities.json` situation, and
+ * it would also enter the digest, which is worse -- the readme is editable
+ * without the soul changing at all.
+ */
+function soulEntry(
+  artifactId: string,
+  soul: {
+    name: string
+    version: string
+    description: string | null
+    soulDocument: HubArtifact
+  }
+): PrivateArtifactEntry {
+  return {
+    type: "soul",
+    artifactId,
+    skill: {
+      name: soul.name,
+      trunk: soul.name,
+      version: soul.version,
+      description: soul.description ?? "",
+      provenance: PRIVATE_PROVENANCE,
+      skill_md: soul.soulDocument,
+    },
+  }
+}
+
+/**
  * UPSTREAM WORKAROUND -- see CAPABILITIES_STUB_TEXT in ironclaw-contract.ts.
  *
  * `capabilities` cannot be omitted: it has no serde default on the agent side
@@ -251,25 +341,121 @@ async function readDeclaredAssets(storageKey: string) {
 }
 
 /**
- * Wraps a single entry in the one-entry manifest document a private install
- * serves. Split out from `buildPrivateArtifactManifest` so publish-time
- * verification can measure the document an entry *would* produce (C11 caps the
- * decoded manifest at 1MB and its signed envelope at 2MB, and both now scale
- * with published asset count) without a second idea of what that document
- * looks like.
+ * The manifest document an install serves, over however many entries it has.
+ *
+ * `HubManifest.tools[]` and `skills[]` were always arrays; until loadouts,
+ * every caller put exactly one entry in exactly one of them. A loadout puts
+ * one entry per member into the array matching that member's kind, and this is
+ * the only function that decides which array that is -- so a soul's home moves
+ * once, here and in `soulEntry`, the day the agent grows a `souls[]` (ask 2).
+ *
+ * `artifactId` is the artifact the document is *served for*: the leaf itself
+ * on a single-artifact install, and the loadout on a loadout install. It
+ * reaches only `release_tag`, which exists so an agent's logs name what it was
+ * handed, and never enters any digest.
+ *
+ * Split out from `buildPrivateArtifactManifest` so publish-time verification
+ * can measure the document a set of entries *would* produce (C11 caps the
+ * decoded manifest at 1MB and its signed envelope at 2MB, and both scale with
+ * published asset count -- for a loadout, summed over every member) without a
+ * second idea of what that document looks like.
+ */
+export function privateManifestDocument(input: {
+  artifactId: string
+  entries: readonly LoadoutManifestEntry[]
+  generatedAt: string
+}): HubManifest {
+  const tools: HubToolEntry[] = []
+  // A soul rides in `skills[]` because that is where the agent looks for a
+  // document to install; there is no `souls[]` to put it in yet.
+  const skills: HubSkillEntry[] = []
+  for (const entry of input.entries) {
+    if (entry.type === "tool") {
+      tools.push(entry.tool)
+    } else {
+      skills.push(entry.skill)
+    }
+  }
+
+  return {
+    version: "1",
+    generated_at: input.generatedAt,
+    release_tag: `private-${input.artifactId}`,
+    repo: "ironhub-private",
+    tools,
+    skills,
+  }
+}
+
+/**
+ * The one-entry case, kept as its own name because the single-artifact install
+ * path and publish-time verification both read better for it -- and because a
+ * single artifact's document is served under that artifact's own id, which is
+ * a fact about the caller rather than something to restate at each call site.
  */
 export function privateArtifactManifestDocument(
   entry: PrivateArtifactEntry,
   generatedAt: string
 ): HubManifest {
-  return {
-    version: "1",
-    generated_at: generatedAt,
-    release_tag: `private-${entry.artifactId}`,
-    repo: "ironhub-private",
-    tools: entry.type === "tool" ? [entry.tool] : [],
-    skills: entry.type === "skill" ? [entry.skill] : [],
-  }
+  return privateManifestDocument({
+    artifactId: entry.artifactId,
+    entries: [entry],
+    generatedAt,
+  })
+}
+
+/**
+ * The digest an install payload for a loadout carries, taken over the entries
+ * that loadout is about to publish.
+ *
+ * This is the loadout counterpart of `toolEntryArtifactDigest`, and it exists
+ * for the same reason (D4): the agent recomputes the loadout digest from the
+ * members it parsed out of the manifest document, so the digest and the
+ * document have to be taken over one set of entries rather than two
+ * assembled beside each other. Call it with the same array that was passed to
+ * `privateManifestDocument`; anything else is the second derivation the whole
+ * shape of this module exists to prevent.
+ *
+ * A member's own digest is taken from its published entry by the same function
+ * the single-artifact install path uses, so a member installed alone and the
+ * same member installed inside a loadout digest identically. A soul is
+ * digested with `soulArtifactDigest` even though it publishes a skill entry --
+ * the two agree today only because a soul publishes no `files[]`, and naming
+ * the soul formula here is what makes the day they diverge a change in
+ * ironclaw-contract.ts rather than a hunt through call sites.
+ *
+ * Nothing here is stored. The value is minted with the payload, over the
+ * members as they resolved at that moment, because a loadout's public members
+ * are allowed to track upstream and a digest taken at publish would stop
+ * matching what the agent recomputes from what it downloaded (design.md --
+ * "The loadout digest is computed at install, not at publish").
+ */
+export function loadoutEntryArtifactDigest(
+  entries: readonly LoadoutManifestEntry[]
+): string {
+  return loadoutArtifactDigest(
+    entries.map((entry) => {
+      if (entry.type === "tool") {
+        return {
+          kind: "tool" as const,
+          name: entry.tool.name,
+          digest: toolEntryArtifactDigest(entry.tool),
+        }
+      }
+      if (entry.type === "soul") {
+        return {
+          kind: "soul" as const,
+          name: entry.skill.name,
+          digest: soulArtifactDigest(entry.skill.skill_md.sha256),
+        }
+      }
+      return {
+        kind: "skill" as const,
+        name: entry.skill.name,
+        digest: skillEntryArtifactDigest(entry.skill),
+      }
+    })
+  )
 }
 
 export async function buildPrivateArtifactManifest(input: {

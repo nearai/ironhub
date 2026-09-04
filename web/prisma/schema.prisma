@@ -212,24 +212,56 @@ model Invitation {
 }
 
 model PrivateArtifact {
-  id             String                   @id
-  organizationId String                   @map("organization_id")
-  organization   Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  createdById    String?                  @map("created_by_id")
-  createdBy      User?                    @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  content        PrivateArtifactContent[]
-  assets         PrivateArtifactAsset[]
-  type           String
-  name           String
-  title          String
-  version        String
-  visibility     String                   @default("private")
-  status         String                   @default("draft")
-  description    String?
-  sourceUrl      String?                  @map("source_url")
-  category       String?
-  createdAt      DateTime                 @default(now()) @map("created_at")
-  updatedAt      DateTime                 @updatedAt @map("updated_at")
+  id                  String                   @id
+  organizationId      String                   @map("organization_id")
+  organization        Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdById         String?                  @map("created_by_id")
+  createdBy           User?                    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  content             PrivateArtifactContent[]
+  assets              PrivateArtifactAsset[]
+  /// The members this artifact holds, when it is a loadout. Empty for every
+  /// other type, and for a loadout that is still an empty draft.
+  members             LoadoutMember[]          @relation("LoadoutMembers")
+  /// The loadout member rows that point at this artifact. Non-empty means
+  /// some loadout lists it, which is what makes it undeletable.
+  memberships         LoadoutMember[]          @relation("LoadoutMemberArtifact")
+  type                String
+  name                String
+  title               String
+  version             String
+  visibility          String                   @default("private")
+  status              String                   @default("draft")
+  /// The value `version` held the moment `status` became `published`, and
+  /// null whenever the artifact is a draft. It exists so the hub can tell
+  /// "this is the version an agent may already have installed" from "the
+  /// author has bumped since"; the content freeze releases only on the
+  /// latter. A version alone cannot answer that -- it is mutable, so it
+  /// carries no record of what it used to be.
+  publishedVersion    String?                  @map("published_version")
+  /// The upstream catalog release a loadout's members were last verified
+  /// against. Meaningful only for `type = "loadout"` -- nothing else has
+  /// members to verify -- and null means never verified, which is not the
+  /// same as verified against nothing. A blank would otherwise read as a
+  /// clean bill of health, so a loadout the poll has not reached yet, or one
+  /// read for the first time after a deploy, re-verifies instead of trusting
+  /// it.
+  ///
+  /// This is a column rather than process memory because the poll that marks
+  /// a loadout and the read that acts on the mark are different processes in
+  /// a serverless deployment. A mark held in memory would never reach the
+  /// owner it exists to warn, which is the whole point of keeping it.
+  verifiedReleaseTag  String?                  @map("verified_release_tag")
+  /// Set by the upstream release poll, cleared by the re-verification it
+  /// provokes. Not nullable, unlike its neighbours: null and false would
+  /// describe the same loadout, and the "never verified" state a read
+  /// actually has to act on is already carried by a null `verifiedReleaseTag`.
+  /// A third state here would only be one more thing for a caller to forget.
+  needsReverification Boolean                  @default(false) @map("needs_reverification")
+  description         String?
+  sourceUrl           String?                  @map("source_url")
+  category            String?
+  createdAt           DateTime                 @default(now()) @map("created_at")
+  updatedAt           DateTime                 @updatedAt @map("updated_at")
 
   @@unique([organizationId, name, version])
   @@index([organizationId])
@@ -273,4 +305,63 @@ model PrivateArtifactContent {
   @@unique([artifactId, kind])
   @@index([artifactId])
   @@map("private_artifact_content")
+}
+
+/// One member of a loadout: a tool, skill, or soul the loadout installs
+/// alongside its siblings.
+///
+/// Members are leaves. A loadout is never a member of another one -- the
+/// composition service refuses it, and this table gives nesting no foothold:
+/// a row is either a pointer at one leaf artifact in the same organization or
+/// a public entry named by kind and name, and neither reaches another
+/// loadout's membership.
+///
+/// `source` says where the member is read from, and with it what a digest
+/// difference means. A `private` member is a row in this hub owned by the
+/// loadout's own organization, and `artifactId` points at it. A `public`
+/// member is a verified marketplace entry resolved live from upstream, so
+/// there is no row to point at: `artifactId` stays null and `kind`, `name`
+/// and `version` are the whole address. That is also why the reference is
+/// optional -- the two sources are addressed differently, not one of them
+/// half-recorded.
+///
+/// `version` and `pinnedDigest` are null until the loadout is published,
+/// because publish is when they are taken. A draft records only which members
+/// it holds; publishing resolves each one and writes down what it found. The
+/// pin is a fingerprint rather than an address: no source retains a previous
+/// version, so a member always resolves to whatever is currently published
+/// under its identity, and the digest exists to say whether that is still
+/// what was pinned. A private member is blocked on a mismatch; a public one
+/// is only reported, since its release cadence is not the loadout owner's to
+/// control.
+model LoadoutMember {
+  id           String           @id
+  loadoutId    String           @map("loadout_id")
+  loadout      PrivateArtifact  @relation("LoadoutMembers", fields: [loadoutId], references: [id], onDelete: Cascade)
+  source       String
+  kind         String
+  name         String
+  version      String?
+  artifactId   String?          @map("artifact_id")
+  /// Restrict where PrivateArtifactContent and PrivateArtifactAsset cascade,
+  /// and the difference is the point. Those rows are parts of an artifact and
+  /// are right to die with it. This one is a reference held by a *different*
+  /// artifact, and cascading would empty a published loadout silently, from a
+  /// screen that never mentioned it. The database refuses the delete instead,
+  /// so removing a member is something its owner does deliberately after
+  /// being told which loadout is holding it.
+  ///
+  /// The rule protects only the rows that carry the pointer, which is to say
+  /// the private ones. A private member recorded without it would be
+  /// unprotected by a table that looks like it protects everything, so the
+  /// composition service sets `artifactId` on every private member rather
+  /// than treating it as optional metadata.
+  artifact     PrivateArtifact? @relation("LoadoutMemberArtifact", fields: [artifactId], references: [id], onDelete: Restrict)
+  pinnedDigest String?          @map("pinned_digest")
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  @@unique([loadoutId, source, kind, name])
+  @@index([loadoutId])
+  @@index([artifactId])
+  @@map("loadout_member")
 }

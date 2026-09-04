@@ -1,12 +1,14 @@
 import * as React from "react"
 import Link from "next/link"
 import {
+  IconBackpack,
   IconArrowRight,
   IconCategory,
   IconFile,
   IconLock,
   IconSparkles,
   IconTool,
+  IconUserHeart,
   IconWorld,
 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
@@ -17,6 +19,7 @@ import type {
   ArtifactType,
   ArtifactVisibility,
 } from "@/features/partner/api/artifacts"
+import { ARTIFACT_TYPE_LABELS } from "@/lib/private-artifacts/artifact-types"
 import { AttributeBadge } from "./attribute-badge"
 import { RelativeTime } from "./relative-time"
 import { StatusBadge } from "./status-badge"
@@ -36,6 +39,16 @@ export interface ArtifactCardProps {
   actionLabel?: string
   action?: React.ReactNode
   className?: string
+}
+
+const TYPE_ICONS: Record<
+  ArtifactType,
+  React.ComponentType<{ className?: string }>
+> = {
+  skill: IconSparkles,
+  tool: IconTool,
+  soul: IconUserHeart,
+  loadout: IconBackpack,
 }
 
 function getFileCountLabel(count: number): string {
@@ -59,8 +72,8 @@ export function ArtifactCard({
   action,
   className,
 }: ArtifactCardProps) {
-  const TypeIcon = type === "skill" ? IconSparkles : IconTool
-  const typeWord = type === "skill" ? "Skill" : "Tool"
+  const TypeIcon = TYPE_ICONS[type]
+  const typeWord = ARTIFACT_TYPE_LABELS[type].singular
 
   return (
     <Card
@@ -116,9 +129,15 @@ export function ArtifactCard({
             {category || "Uncategorised"}
           </AttributeBadge>
 
-          <AttributeBadge icon={IconFile}>
-            {getFileCountLabel(fileCount)}
-          </AttributeBadge>
+          {/* A loadout stores no bytes of its own -- its items each carry their
+              own content -- so a file count on one is always zero, and a "No
+              files" badge reads as something missing rather than as something
+              that never applied. Omitted rather than shown as zero. */}
+          {type === "loadout" ? null : (
+            <AttributeBadge icon={IconFile}>
+              {getFileCountLabel(fileCount)}
+            </AttributeBadge>
+          )}
         </div>
 
         {/* Row 2: Updated time + Action */}

@@ -3,9 +3,18 @@ import { randomUUID } from "node:crypto"
 import { CATEGORIES } from "../catalog/inference"
 import { prisma } from "../db"
 import { Prisma } from "../prisma/client"
+import { ARTIFACT_TYPES } from "./artifact-types"
+import {
+  assertLoadoutPublishable,
+  loadoutDocumentAssembler,
+  pinLoadoutMembers,
+} from "./loadout-composition"
+import {
+  PUBLISH_FREEZE_SELECT,
+  assertArtifactContentUnfrozen,
+} from "./publish-freeze"
 import { verifyPrivateArtifact } from "./verification"
 
-const ARTIFACT_TYPES = ["skill", "tool"] as const
 const VISIBILITIES = ["private", "public"] as const
 
 type CreatePrivateArtifactInput = {
@@ -25,6 +34,7 @@ export const MUTABLE_ARTIFACT_FIELDS = [
   "visibility",
   "sourceUrl",
   "category",
+  "version",
 ] as const
 
 type UpdatePrivateArtifactInput = {
@@ -33,6 +43,7 @@ type UpdatePrivateArtifactInput = {
   visibility?: string
   sourceUrl?: string | null
   category?: string | null
+  version?: string
 }
 
 // Never select storageKey here — it's an internal S3 object pointer, not
@@ -211,7 +222,13 @@ export async function updatePrivateArtifact(
     data.category = category
   }
   if (input.visibility !== undefined) {
-    data.visibility = assertEnum(input.visibility, VISIBILITIES, "visibility")
+    const visibility = assertEnum(input.visibility, VISIBILITIES, "visibility")
+    data.visibility = visibility
+  }
+  if (input.version !== undefined) {
+    assertValidArtifactVersion(input.version)
+    assertVersionMovesForward(artifact.version, input.version)
+    data.version = input.version
   }
 
   // publishPrivateArtifact/unpublishPrivateArtifact both include content in
@@ -250,19 +267,40 @@ export async function publishPrivateArtifact(
 ) {
   const artifact = await getPrivateArtifact(organizationId, id)
 
-  const required = requiredContentKindsFor(artifact.type)
-  if (!required) {
-    throw new Response(`Unsupported artifact type: ${artifact.type}`, {
-      status: 409,
+  // A loadout stores no content of its own -- its members are what it
+  // publishes -- so content completeness is not the question to ask of it.
+  // Its gate is composition: at least one member, every member healthy, and
+  // the assembled document inside the agent's ceiling. The resolution the
+  // gate produced is held rather than discarded, because the pins written
+  // below have to be the same resolution the gate approved and not a second
+  // one taken a moment later.
+  //
+  // The assembler is passed explicitly rather than defaulted inside the gate,
+  // so a caller that measures nothing is a visible omission rather than a
+  // quiet one: with no assembler the gate refuses, which is the right way for
+  // an unmeasured document to fail.
+  let resolvedMembers:
+    | Awaited<ReturnType<typeof assertLoadoutPublishable>>
+    | null = null
+  if (artifact.type === "loadout") {
+    resolvedMembers = await assertLoadoutPublishable(organizationId, artifact, {
+      assembleDocument: loadoutDocumentAssembler,
     })
-  }
-  const presentKinds = new Set(artifact.content.map((c) => c.kind))
-  const missing = required.filter((kind) => !presentKinds.has(kind))
-  if (missing.length > 0) {
-    throw new Response(
-      `Artifact is missing required content: ${missing.join(", ")}`,
-      { status: 409 }
-    )
+  } else {
+    const required = requiredContentKindsFor(artifact.type)
+    if (!required) {
+      throw new Response(`Unsupported artifact type: ${artifact.type}`, {
+        status: 409,
+      })
+    }
+    const presentKinds = new Set(artifact.content.map((c) => c.kind))
+    const missing = required.filter((kind) => !presentKinds.has(kind))
+    if (missing.length > 0) {
+      throw new Response(
+        `Artifact is missing required content: ${missing.join(", ")}`,
+        { status: 409 }
+      )
+    }
   }
   if (!artifact.category) {
     throw new Response("Artifact cannot be published: category is not set", {
@@ -270,9 +308,21 @@ export async function publishPrivateArtifact(
     })
   }
 
+  // Pinned after every refusal has been raised and before the status moves,
+  // so a loadout is never published carrying the pins of a resolution that
+  // was rejected, and never left pinned to a publication that did not happen.
+  if (resolvedMembers) {
+    await pinLoadoutMembers(resolvedMembers)
+  }
+
+  // `publishedVersion` is stamped here and nowhere else: it is the record of
+  // which version an agent may from now on have installed, and the content
+  // freeze reads it to decide whether the stored files are still the ones that
+  // version named. Re-publishing after a bump restamps it, which re-freezes
+  // the new version's files.
   return prisma.privateArtifact.update({
     where: { id: artifact.id },
-    data: { status: "published" },
+    data: { status: "published", publishedVersion: artifact.version },
     include: { content: { select: CONTENT_SUMMARY_SELECT } },
   })
 }
@@ -283,9 +333,12 @@ export async function unpublishPrivateArtifact(
 ) {
   const artifact = await getPrivateArtifact(organizationId, id)
 
+  // Cleared alongside the status so the two never disagree about whether this
+  // artifact is published. A draft is freely editable, so the recorded version
+  // has nothing left to guard.
   return prisma.privateArtifact.update({
     where: { id: artifact.id },
-    data: { status: "draft" },
+    data: { status: "draft", publishedVersion: null },
     include: { content: { select: CONTENT_SUMMARY_SELECT } },
   })
 }
@@ -303,6 +356,10 @@ export async function unpublishPrivateArtifact(
 const REQUIRED_CONTENT_KINDS_BY_TYPE: Record<string, readonly string[]> = {
   tool: ["wasm", "manifest_toml"],
   skill: ["skill_md"],
+  // `readme_md` is deliberately absent: a soul is one required document plus
+  // an optional readme, and the readme is never published anyway (design.md
+  // -- "`readme_md` is a content kind, not an asset, and never published").
+  soul: ["soul_md"],
 }
 
 function requiredContentKindsFor(type: string): readonly string[] | undefined {
@@ -327,6 +384,21 @@ export async function assertArtifactContentComplete(
   })
   if (!artifact) {
     throw new Response("Artifact not found", { status: 404 })
+  }
+
+  // A loadout is refused here, and the refusal is deliberate rather than a
+  // gap: install delivery waits on the agent's multi-entry payload (blocked on
+  // IronClaw asks 4 and 5), and a partial loadout is never served. What it
+  // must not do is fall through to "unsupported artifact type" -- the hub
+  // knows exactly what a loadout is, and a message saying otherwise reads as a
+  // defect in the hub rather than as the state we are actually in. Worded to
+  // match what the loadout editor already tells the owner, so the API and the
+  // screen do not contradict each other.
+  if (artifact.type === "loadout") {
+    throw new Response(
+      "Installing a loadout is not available yet: an install payload carries one artifact and a loadout is many, and a partial loadout is never served. This will work once the agent supports a multi-entry install payload.",
+      { status: 409 }
+    )
   }
 
   const required = requiredContentKindsFor(artifact.type)
@@ -367,6 +439,9 @@ export async function getArtifactChecks(
     select: {
       id: true,
       type: true,
+      // Selected for the agent-contract row: a loadout's answer depends on
+      // whether each member is at least as visible as the loadout is.
+      visibility: true,
       category: true,
       sourceUrl: true,
       content: { select: { kind: true } },
@@ -446,8 +521,30 @@ export async function getArtifactChecks(
     )
   }
 
+  if (artifact.type === "soul") {
+    // Only the soul document gets a row. A stored README is not a publish
+    // precondition and never reaches an agent, so a row about it would be a
+    // row the owner cannot fail -- noise on the one panel that exists to say
+    // why publishing is blocked.
+    checks.push(
+      presentKinds.has("soul_md")
+        ? {
+            id: "soul_md_present",
+            label: "SOUL.md uploaded",
+            status: "pass",
+            detail: "soul_md content is stored for this soul.",
+          }
+        : {
+            id: "soul_md_present",
+            label: "SOUL.md uploaded",
+            status: "fail",
+            detail: "soul_md content is missing.",
+          }
+    )
+  }
+
   checks.push(
-    await checkAgentContract(organizationId, id, missing.length === 0)
+    await checkAgentContract(organizationId, artifact, missing.length === 0)
   )
 
   checks.push(
@@ -466,21 +563,31 @@ export async function getArtifactChecks(
         }
   )
 
-  checks.push(
-    artifact.sourceUrl
-      ? {
-          id: "repo_link_set",
-          label: "Repository link set",
-          status: "pass",
-          detail: `Repository link is set to ${artifact.sourceUrl}.`,
-        }
-      : {
-          id: "repo_link_set",
-          label: "Repository link set",
-          status: "warn",
-          detail: "No repository link is set.",
-        }
-  )
+  // Omitted entirely for a loadout rather than passed. Every other type is
+  // built from code that lives somewhere, so a link to it tells a reader where
+  // the thing came from. A loadout is composed inside the hub out of members
+  // that each already carry their own link, so a link on the loadout would
+  // either duplicate one member's or point at nothing (design.md -- "A loadout
+  // has no source repository"). Reporting it as a pass would be the worse of
+  // the two, since it would claim a link this artifact does not have and
+  // cannot meaningfully have.
+  if (artifact.type !== "loadout") {
+    checks.push(
+      artifact.sourceUrl
+        ? {
+            id: "repo_link_set",
+            label: "Repository link set",
+            status: "pass",
+            detail: `Repository link is set to ${artifact.sourceUrl}.`,
+          }
+        : {
+            id: "repo_link_set",
+            label: "Repository link set",
+            status: "warn",
+            detail: "No repository link is set.",
+          }
+    )
+  }
 
   checks.push(
     process.env.IRONHUB_MANIFEST_SIGNING_KEY
@@ -520,10 +627,26 @@ export async function getArtifactChecks(
  */
 async function checkAgentContract(
   organizationId: string,
-  artifactId: string,
+  artifact: { id: string; type: string; visibility: string },
   contentComplete: boolean
 ): Promise<ArtifactCheck> {
   const label = "Installable by an agent"
+  const artifactId = artifact.id
+
+  // A loadout is not one entry, so there is no entry to verify and asking for
+  // one produces "Unsupported artifact type: loadout" -- which says the hub
+  // does not know what a loadout is, on the same screen where the install
+  // panel correctly explains that it does and is waiting on the agent. The
+  // question this row asks ("would an agent accept this?") is answerable for a
+  // composite; it is just answered over the assembled document and the members
+  // rather than over a single entry.
+  //
+  // Answered by the publish gate itself, not by a second implementation of it:
+  // the row and the refusal an owner gets on publish are then the same verdict
+  // in the same words, which is the property whose absence caused this bug.
+  if (artifact.type === "loadout") {
+    return await checkLoadoutAgentContract(organizationId, artifact, label)
+  }
 
   if (!contentComplete) {
     return {
@@ -565,11 +688,91 @@ async function checkAgentContract(
   }
 }
 
+/**
+ * The agent-contract row for a composite.
+ *
+ * Keeps the row's three states and its "one row, several reasons" shape -- the
+ * reasons a loadout is unpublishable are a list for the same reason a tool's
+ * are (an owner should fix them in one pass), and they are already delivered
+ * as one joined sentence by the gate.
+ *
+ * `fail` is reserved for verdicts about the loadout, and `warn` for everything
+ * that is not one, matching the tool path directly above. The gate reports a
+ * verdict as a 409; anything else -- storage, an unreadable stored document --
+ * is infrastructure, and telling an owner their loadout is broken when the
+ * infrastructure is would be the same mistake in a new place.
+ */
+async function checkLoadoutAgentContract(
+  organizationId: string,
+  loadout: { id: string; visibility: string },
+  label: string
+): Promise<ArtifactCheck> {
+  try {
+    await assertLoadoutPublishable(organizationId, loadout, {
+      assembleDocument: loadoutDocumentAssembler,
+    })
+  } catch (error) {
+    if (error instanceof Response && error.status === 409) {
+      return {
+        id: "agent_contract",
+        label,
+        status: "fail",
+        detail: asDetailSentence(await error.text()),
+      }
+    }
+
+    console.error(
+      `Failed to verify publishable loadout ${loadout.id}:`,
+      error
+    )
+    return {
+      id: "agent_contract",
+      label,
+      status: "warn",
+      detail: "The loadout's members could not be checked, so it was not verified.",
+    }
+  }
+
+  return {
+    id: "agent_contract",
+    label,
+    status: "pass",
+    detail:
+      "Every member resolves, and the document this loadout publishes satisfies the agent's size and manifest limits.",
+  }
+}
+
+/**
+ * The gate's refusal, as a sentence for a checks row.
+ *
+ * The gate prefixes its reasons with what it was refusing to do, which reads
+ * correctly on a publish attempt and redundantly under a row already labelled
+ * "Installable by an agent". The reasons themselves are what the owner acts
+ * on, so they are what is kept.
+ */
+function asDetailSentence(message: string): string {
+  const reasons = message.replace(/^Loadout cannot be published:\s*/, "")
+  const sentence = reasons.charAt(0).toUpperCase() + reasons.slice(1)
+  return sentence.endsWith(".") ? sentence : `${sentence}.`
+}
+
 export async function deletePrivateArtifactContentRow(
   organizationId: string,
   artifactId: string,
   kind: string
 ) {
+  // Removing a content row changes what a published version resolves to just
+  // as much as overwriting it does, so it answers to the same freeze the
+  // upload paths do (content.ts, assets.ts).
+  const artifact = await prisma.privateArtifact.findFirst({
+    where: { id: artifactId, organizationId },
+    select: PUBLISH_FREEZE_SELECT,
+  })
+  if (!artifact) {
+    throw new Response("Artifact not found", { status: 404 })
+  }
+  assertArtifactContentUnfrozen(artifact)
+
   const content = await prisma.privateArtifactContent.findFirst({
     where: { artifactId, kind, artifact: { organizationId } },
     select: { id: true },
@@ -597,6 +800,108 @@ function assertValidArtifactVersion(version: string) {
       { status: 400 }
     )
   }
+}
+
+/**
+ * A new version must differ from the current one, and where both values are
+ * semantic versions it must be greater.
+ *
+ * Ordering is enforced only where both sides parse because the grammar above
+ * is far wider than semver: date stamps, build numbers and bare words are all
+ * legal and already stored, and a rule that demanded semver would leave those
+ * artifacts unbumpable forever. Inequality alone is the weaker guarantee those
+ * values get. It still holds the line the content freeze depends on — bytes
+ * cannot change under a version string that stayed put — it just cannot tell
+ * an accidental downgrade from a deliberate one.
+ */
+function assertVersionMovesForward(current: string, next: string) {
+  if (current === next) {
+    throw new Response(
+      `version is already ${current}; a new version must differ from the current one`,
+      { status: 400 }
+    )
+  }
+
+  const currentSemver = parseSemver(current)
+  const nextSemver = parseSemver(next)
+  if (!currentSemver || !nextSemver) return
+
+  // `<= 0` and not `< 0`: two strings can differ while ranking equal, because
+  // build metadata carries no precedence (`1.0.0+a` -> `1.0.0+b` moves the
+  // string and nothing else). That is a downgrade's twin, not a bump.
+  if (compareSemver(nextSemver, currentSemver) <= 0) {
+    throw new Response(
+      `version ${next} is not greater than the current version ${current}`,
+      { status: 400 }
+    )
+  }
+}
+
+type Semver = {
+  core: readonly [number, number, number]
+  /** Dot-separated identifiers, or null when the version carries none. */
+  prerelease: readonly string[] | null
+}
+
+// Semver 2.0.0's own recommended pattern, minus the named groups. Build
+// metadata is matched so that a version carrying one still parses, then
+// dropped: the specification excludes it from precedence, so keeping it would
+// only invite a comparison that pretends it means something.
+const SEMVER_PATTERN =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*)?$/
+
+function parseSemver(value: string): Semver | null {
+  const match = SEMVER_PATTERN.exec(value)
+  if (!match) return null
+
+  return {
+    core: [Number(match[1]), Number(match[2]), Number(match[3])],
+    prerelease: match[4] === undefined ? null : match[4].split("."),
+  }
+}
+
+/** Negative, zero or positive as `a` ranks below, with, or above `b`. */
+function compareSemver(a: Semver, b: Semver): number {
+  for (let index = 0; index < 3; index += 1) {
+    if (a.core[index] !== b.core[index]) {
+      return a.core[index] < b.core[index] ? -1 : 1
+    }
+  }
+
+  // A prerelease ranks below the release that shares its core, so `1.1.0-rc.1`
+  // is not a bump over `1.1.0` even though it is a bump over `1.0.0`.
+  if (a.prerelease === null || b.prerelease === null) {
+    if (a.prerelease === b.prerelease) return 0
+    return a.prerelease === null ? 1 : -1
+  }
+
+  return comparePrereleaseIdentifiers(a.prerelease, b.prerelease)
+}
+
+function comparePrereleaseIdentifiers(
+  a: readonly string[],
+  b: readonly string[]
+): number {
+  for (let index = 0; index < Math.min(a.length, b.length); index += 1) {
+    const left = a[index]
+    const right = b[index]
+    const leftIsNumeric = /^\d+$/.test(left)
+    const rightIsNumeric = /^\d+$/.test(right)
+
+    if (leftIsNumeric && rightIsNumeric) {
+      // Compared as numbers, so `rc.9` -> `rc.10` reads as a bump where an
+      // ASCII comparison would call it a downgrade.
+      if (left !== right) return Number(left) < Number(right) ? -1 : 1
+      continue
+    }
+    if (leftIsNumeric !== rightIsNumeric) return leftIsNumeric ? -1 : 1
+    if (left !== right) return left < right ? -1 : 1
+  }
+
+  // Every identifier they share is equal, so the longer one wins: `alpha` <
+  // `alpha.1`.
+  if (a.length === b.length) return 0
+  return a.length < b.length ? -1 : 1
 }
 
 function assertMaxLength(value: string, field: string, max: number) {

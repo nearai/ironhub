@@ -15,6 +15,7 @@ const STORED = {
 
 let verifyResult = { organizationId: "org-1", artifactId: "artifact-1" }
 let verifyThrows = null
+let loadoutMembers = []
 let metadataResult = null
 let streamedKeys = []
 let streamThrows = null
@@ -36,7 +37,13 @@ mock.module("@/lib/private-artifacts/content", {
       capabilities: "application/json",
       manifest_toml: "application/toml; charset=utf-8",
       bundle_zip: "application/zip",
+      soul_md: "text/markdown; charset=utf-8",
+      readme_md: "text/markdown; charset=utf-8",
     },
+    // Mirrors the real set rather than aliasing it: this file mocks the whole
+    // content module, so an import the mock omits arrives `undefined` and the
+    // route throws on it instead of testing it.
+    HUB_ONLY_CONTENT_KINDS: new Set(["readme_md"]),
     getArtifactContentMetadata: async () => {
       if (!metadataResult) {
         throw new Response("Content not found", { status: 404 })
@@ -52,6 +59,18 @@ mock.module("@/lib/private-artifacts/token", {
     verifyArtifactToken: () => {
       if (verifyThrows) throw verifyThrows
       return verifyResult
+    },
+    // Mirrors the real rule rather than stubbing it out, so the route's
+    // ordering (authorize before storage) is still what is under test here
+    // while token.test.mjs owns the rule itself. `loadoutMembers` stands in
+    // for the member table.
+    authorizeArtifactRead: async (claims, id) => {
+      const authorized = claims.loadoutId
+        ? loadoutMembers.includes(id)
+        : claims.artifactId === id
+      if (!authorized) {
+        throw new Response("Token does not match artifact", { status: 403 })
+      }
     },
   },
 })
@@ -90,6 +109,7 @@ function makeParams(overrides = {}) {
 function reset(kind = "wasm") {
   verifyThrows = null
   verifyResult = { organizationId: "org-1", artifactId: "artifact-1" }
+  loadoutMembers = []
   metadataResult = {
     storageKey: `private-artifacts/org-1/artifact-1/${kind}`,
     sizeBytes: STORED[kind].length,
@@ -221,6 +241,61 @@ test("token scoped to a different artifact is rejected before storage is touched
   assert.equal(streamedKeys.length, 0)
 })
 
+test("task 6.2: a loadout-scoped token reads a member's content", async () => {
+  reset("wasm")
+  verifyResult = {
+    organizationId: "org-1",
+    artifactId: "loadout-1",
+    loadoutId: "loadout-1",
+  }
+  loadoutMembers = ["artifact-1", "artifact-2"]
+
+  const response = await GET(new Request("http://localhost/x"), makeParams({ token: "v1.loadout-token" }))
+
+  assert.equal(response.status, 200)
+  assert.deepEqual(new Uint8Array(await response.arrayBuffer()), STORED.wasm)
+})
+
+test("task 8.5: a loadout-scoped token is refused for an artifact that is not a member", async () => {
+  reset("wasm")
+  // Same organization, same still-valid token, artifact simply not in this
+  // loadout. Authorizing against membership rather than against the token's
+  // organization is what makes this a 403 (design.md -- "Token claims move
+  // from an artifact to a loadout, with membership authorization").
+  verifyResult = {
+    organizationId: "org-1",
+    artifactId: "loadout-1",
+    loadoutId: "loadout-1",
+  }
+  loadoutMembers = ["artifact-2"]
+
+  const response = await GET(new Request("http://localhost/x"), makeParams({ token: "v1.loadout-token" }))
+
+  assert.equal(response.status, 403)
+  assert.equal(streamedKeys.length, 0)
+})
+
+test("task 8.5: the capabilities stub is not a way around membership", async () => {
+  reset("capabilities")
+  // The stub answers a 404 from the metadata lookup, which happens *after*
+  // authorization -- so a non-member must never reach it. A route that
+  // authorized late would hand out a 200 here instead of a 403.
+  metadataResult = null
+  verifyResult = {
+    organizationId: "org-1",
+    artifactId: "loadout-1",
+    loadoutId: "loadout-1",
+  }
+  loadoutMembers = ["artifact-2"]
+
+  const response = await GET(
+    new Request("http://localhost/x"),
+    makeParams({ kind: "capabilities", token: "v1.loadout-token" })
+  )
+
+  assert.equal(response.status, 403)
+})
+
 test("invalid/expired token surfaces the token error status", async () => {
   reset("wasm")
   verifyThrows = new Response("Invalid or expired artifact token", { status: 403 })
@@ -246,4 +321,57 @@ test("a real storage failure answers 500 rather than being read as an absence", 
   const response = await GET(new Request("http://localhost/x"), makeParams())
 
   assert.equal(response.status, 500)
+})
+
+// --- hub-only kinds ---------------------------------------------------------
+
+test("a hub-only kind is refused on the agent-facing route", async () => {
+  reset("skill_md")
+  metadataResult = {
+    storageKey: "private-artifacts/org-1/artifact-1/readme_md",
+    sizeBytes: 4,
+  }
+
+  const response = await GET(
+    new Request("http://localhost/x"),
+    makeParams({ kind: "readme_md" })
+  )
+
+  // 404, not 403: the document has no published existence to authorize
+  // against. Asserted on the stream log too, because a route that refused
+  // after fetching would still have read the object it must not serve.
+  assert.equal(response.status, 404)
+  assert.deepEqual(streamedKeys, [])
+})
+
+test("the refusal does not depend on the token being valid", async () => {
+  reset("skill_md")
+  // Ordered before token verification on purpose: a hub-only kind is refused
+  // for every caller, so a valid install token is never the thing standing
+  // between an agent and a soul's README.
+  verifyThrows = new Response("Invalid or expired artifact token", {
+    status: 403,
+  })
+
+  const response = await GET(
+    new Request("http://localhost/x"),
+    makeParams({ kind: "readme_md" })
+  )
+
+  assert.equal(response.status, 404)
+})
+
+test("a published kind on the same artifact still relays", async () => {
+  reset("skill_md")
+
+  const response = await GET(
+    new Request("http://localhost/x"),
+    makeParams({ kind: "skill_md" })
+  )
+
+  assert.equal(response.status, 200)
+  assert.equal(
+    sha256(new Uint8Array(await response.arrayBuffer())),
+    sha256(STORED.skill_md)
+  )
 })

@@ -5,14 +5,17 @@ import test from "node:test"
 import {
   CAPABILITIES_STUB_SHA256,
   CAPABILITIES_STUB_SIZE_BYTES,
+  LOADOUT_MEMBER_KINDS,
   MAX_METADATA_BYTES,
   MAX_TOOL_PROMPT_ARTIFACTS,
   MAX_TOOL_SCHEMA_ARTIFACTS,
   MAX_WASM_BYTES,
   capabilitiesStubBytes,
   isExtensionAssetPath,
+  loadoutArtifactDigest,
   skillArtifactDigest,
   skillEntryArtifactDigest,
+  soulArtifactDigest,
   toolArtifactDigest,
   toolEntryArtifactDigest,
 } from "./ironclaw-contract.ts"
@@ -313,4 +316,187 @@ test("toolEntryArtifactDigest refuses an entry with no capabilities artifact", (
       }),
     /capabilities/
   )
+})
+
+// --- Souls ------------------------------------------------------------------
+
+test("soulArtifactDigest matches the skill no-bundled-files vector", () => {
+  // A soul publishes as a skill entry with no `files[]`, so the value the
+  // agent recomputes is `skill_artifact_digest`'s no-files branch. Pinned
+  // against the same known vector the skill branch uses: if these two ever
+  // stop being equal without the agent having grown a soul formula, one of
+  // them is wrong.
+  assert.equal(soulArtifactDigest(WASM), SKILL_DIGEST)
+  assert.equal(soulArtifactDigest(WASM), skillArtifactDigest(WASM))
+  assert.equal(
+    soulArtifactDigest(WASM),
+    `sha256:${createHash("sha256").update(WASM, "utf8").digest("hex")}`
+  )
+})
+
+test("a soul's digest changes when its document changes", () => {
+  assert.notEqual(soulArtifactDigest(WASM), soulArtifactDigest(CAPABILITIES))
+})
+
+// --- Loadouts ---------------------------------------------------------------
+//
+// UNCONFIRMED formula: these vectors pin what IronHub proposed in ask 4 and
+// implemented against, not something read out of the agent. When ask 4 comes
+// back (task 9.1), this block is what says whether the answer agrees with what
+// the hub has been computing.
+
+const MEMBER_NEAR_RPC = `sha256:${"a".repeat(64)}`
+const MEMBER_RISK_TOOL = `sha256:${"b".repeat(64)}`
+const MEMBER_CHART_SKILL = `sha256:${"c".repeat(64)}`
+const MEMBER_TRADER_SOUL = `sha256:${"d".repeat(64)}`
+
+// Computed outside this codebase, by assembling the material byte-for-byte
+// from ask 4's formula block and hashing it independently -- the regression
+// anchor for the kind order, the NUL layout, and the `sha256:` prefix being
+// part of the member digest rather than stripped from it.
+const LOADOUT_DIGEST =
+  "sha256:de6a4410db611b7e61b086715398fd0830f9076c9aa681fa8e52733a1bcf31cd"
+
+/** Deliberately in no useful order: sorting is the function's job. */
+function traderLoadout() {
+  return [
+    { kind: "soul", name: "trader", digest: MEMBER_TRADER_SOUL },
+    { kind: "tool", name: "risk-tool", digest: MEMBER_RISK_TOOL },
+    { kind: "skill", name: "chart", digest: MEMBER_CHART_SKILL },
+    { kind: "tool", name: "near-rpc", digest: MEMBER_NEAR_RPC },
+  ]
+}
+
+test("loadoutArtifactDigest matches the known vector for a mixed loadout", () => {
+  assert.equal(loadoutArtifactDigest(traderLoadout()), LOADOUT_DIGEST)
+})
+
+test("task 4.3: member insertion order does not affect the digest", () => {
+  // Members arrive from a query with its own idea of order, and re-adding one
+  // member rewrites that order without changing what the loadout holds. The
+  // agent recomputes from the manifest arrays and compares for equality, so an
+  // order-sensitive digest would refuse an install for a reordering nobody
+  // made.
+  const members = traderLoadout()
+  const reversed = [...members].reverse()
+  const rotated = [...members.slice(2), ...members.slice(0, 2)]
+
+  assert.equal(loadoutArtifactDigest(reversed), LOADOUT_DIGEST)
+  assert.equal(loadoutArtifactDigest(rotated), LOADOUT_DIGEST)
+  // Every permutation, not three hand-picked ones: with four members that is
+  // 24 orderings and costs nothing.
+  for (const permutation of permutations(members)) {
+    assert.equal(loadoutArtifactDigest(permutation), LOADOUT_DIGEST)
+  }
+  // The input is not sorted in place: a caller's array is its own.
+  assert.equal(members[0].name, "trader")
+})
+
+function permutations(items) {
+  if (items.length <= 1) {
+    return [items]
+  }
+  return items.flatMap((item, index) =>
+    permutations([...items.slice(0, index), ...items.slice(index + 1)]).map(
+      (rest) => [item, ...rest]
+    )
+  )
+}
+
+test("kinds are concatenated in the declared order, not bytewise", () => {
+  // Ask 4's two ordering clauses disagree, and this is the one we implement:
+  // tool, skill, soul -- the order its formula block lists and the order the
+  // manifest arrays are in. Bytewise on the kind label would give skill, soul,
+  // tool and a different digest, so the choice is pinned rather than implied.
+  const bytewiseByKind = [
+    { kind: "skill", name: "chart", digest: MEMBER_CHART_SKILL },
+    { kind: "soul", name: "trader", digest: MEMBER_TRADER_SOUL },
+    { kind: "tool", name: "near-rpc", digest: MEMBER_NEAR_RPC },
+    { kind: "tool", name: "risk-tool", digest: MEMBER_RISK_TOOL },
+  ]
+  const material =
+    `tool:near-rpc\0${MEMBER_NEAR_RPC}\0` +
+    `tool:risk-tool\0${MEMBER_RISK_TOOL}\0` +
+    `skill:chart\0${MEMBER_CHART_SKILL}\0` +
+    `soul:trader\0${MEMBER_TRADER_SOUL}\0`
+
+  assert.equal(
+    loadoutArtifactDigest(bytewiseByKind),
+    `sha256:${createHash("sha256").update(material, "utf8").digest("hex")}`
+  )
+  assert.deepEqual(LOADOUT_MEMBER_KINDS, ["tool", "skill", "soul"])
+})
+
+test("names sort bytewise within a kind, not by UTF-16 code unit", () => {
+  // Same divergence `compareAssetPaths` documents: above the BMP the two
+  // orderings disagree, and the agent's is the bytewise one.
+  const astral = { kind: "tool", name: "\u{1f600}", digest: MEMBER_NEAR_RPC }
+  const bmp = { kind: "tool", name: "ﬀ", digest: MEMBER_RISK_TOOL }
+  const material =
+    `tool:ﬀ\0${MEMBER_RISK_TOOL}\0` + `tool:\u{1f600}\0${MEMBER_NEAR_RPC}\0`
+
+  assert.equal(
+    loadoutArtifactDigest([astral, bmp]),
+    `sha256:${createHash("sha256").update(material, "utf8").digest("hex")}`
+  )
+})
+
+test("changing any one member changes the loadout digest", () => {
+  // The property the whole formula exists for: a member that moved must be
+  // visible in the loadout's digest, whichever member it was.
+  const seen = new Set([LOADOUT_DIGEST])
+  for (let index = 0; index < traderLoadout().length; index += 1) {
+    const changed = traderLoadout()
+    changed[index] = { ...changed[index], digest: `sha256:${"e".repeat(64)}` }
+    const digest = loadoutArtifactDigest(changed)
+    assert.equal(seen.has(digest), false, `member ${index} did not move the digest`)
+    seen.add(digest)
+  }
+
+  // A renamed member too: the name is in the material, so renaming is a change
+  // even when every byte the member publishes is identical.
+  const renamed = traderLoadout()
+  renamed[1] = { ...renamed[1], name: "risk-tool-2" }
+  assert.equal(seen.has(loadoutArtifactDigest(renamed)), false)
+})
+
+test("removing a member changes the digest rather than truncating it", () => {
+  const withoutSoul = traderLoadout().filter((member) => member.kind !== "soul")
+
+  assert.notEqual(loadoutArtifactDigest(withoutSoul), LOADOUT_DIGEST)
+})
+
+test("a one-member loadout digests differently from its member", () => {
+  // The framing is not an extension of the member's own digest -- the same
+  // trap `skillEntryArtifactDigest`'s two branches document. A loadout holding
+  // one tool is not that tool.
+  assert.notEqual(
+    loadoutArtifactDigest([
+      { kind: "tool", name: "near-rpc", digest: MEMBER_NEAR_RPC },
+    ]),
+    MEMBER_NEAR_RPC
+  )
+})
+
+test("a private and a public member sharing a name still digest deterministically", () => {
+  // Member identity is unique per (source, kind, name), so this pair is
+  // representable and the material has no source field to separate it with.
+  // The value is still order-independent, which is all this function can
+  // promise; refusing the collision is composition's job.
+  const collision = [
+    { kind: "tool", name: "near-rpc", digest: MEMBER_NEAR_RPC },
+    { kind: "tool", name: "near-rpc", digest: MEMBER_RISK_TOOL },
+  ]
+
+  assert.equal(
+    loadoutArtifactDigest(collision),
+    loadoutArtifactDigest([...collision].reverse())
+  )
+})
+
+test("loadoutArtifactDigest refuses an empty member list", () => {
+  // An empty loadout cannot be published, so no install payload is ever minted
+  // for one. Digesting an empty material would hand every empty loadout the
+  // same value and make that reachable state look installable.
+  assert.throws(() => loadoutArtifactDigest([]), /at least one member/)
 })

@@ -4,6 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import {
+  IconBackpack,
   IconFilePencil,
   IconFilterOff,
   IconLayoutGrid,
@@ -78,6 +79,7 @@ const TYPE_ICONS: Record<ArtifactType, React.ComponentType<{ className?: string 
   skill: IconSparkles,
   tool: IconTool,
   soul: IconUserHeart,
+  loadout: IconBackpack,
 }
 
 /** No type selected -- every type is listed. Not itself an artifact type. */

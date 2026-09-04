@@ -2,7 +2,7 @@
 
 import React, { useRef, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { ApiError, uploadContent } from "@/features/partner/api/client"
 import {
@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/shared/utils"
 import {
   IconAlertTriangle,
+  IconBackpack,
   IconCheck,
   IconCode,
   IconCopy,
@@ -35,7 +36,14 @@ import {
   IconTool,
   IconTrash,
   IconUpload,
+  IconUserHeart,
 } from "@tabler/icons-react"
+
+import {
+  ARTIFACT_TYPES,
+  type ArtifactType,
+  isArtifactType,
+} from "@/lib/private-artifacts/artifact-types"
 
 function slugify(value: string) {
   return (
@@ -71,8 +79,15 @@ export default function NewSubmitPage() {
   const inspectBundle = useInspectBundle()
   const uploadArtifactBundle = useUploadArtifactBundle()
 
-  // High-level type selector: default to "skill" first!
-  const [type, setType] = useState<"tool" | "skill">("skill")
+  // High-level type selector: default to "skill" first, unless the caller
+  // named a type. The catalog's per-type empty state links here with one, so
+  // "add a soul" from an empty Souls list opens on the soul form rather than
+  // making the author pick the type they already picked.
+  const searchParams = useSearchParams()
+  const requestedType = searchParams.get("type")
+  const [type, setType] = useState<ArtifactType>(
+    requestedType && isArtifactType(requestedType) ? requestedType : "skill"
+  )
 
   // Common form states
   const [title, setTitle] = useState("")
@@ -95,6 +110,16 @@ export default function NewSubmitPage() {
   } | null>(null)
   const [bundleError, setBundleError] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
+
+  // Loadout specific states. A loadout has no document and no package -- it
+  // is created empty and composed afterwards, in its editor, where the member
+  // picker can show each candidate's status.
+  const [loadoutDescription, setLoadoutDescription] = useState("")
+
+  // Soul specific states
+  const [soulDescription, setSoulDescription] = useState("")
+  const [soulText, setSoulText] = useState("")
+  const [readmeText, setReadmeText] = useState("")
 
   // Skill specific states
   const [valueProp, setValueProp] = useState("")
@@ -308,11 +333,20 @@ export default function NewSubmitPage() {
       return
     }
 
+    if (type === "soul" && soulText.trim() === "") {
+      setFormError("Write the soul document before submitting.")
+      return
+    }
+
     const finalTitle =
       title ||
-      (type === "skill"
-        ? "Untitled Skill"
-        : inspectedManifest?.name || "Uploaded Tool")
+      (type === "tool"
+        ? inspectedManifest?.name || "Uploaded Tool"
+        : type === "soul"
+          ? "Untitled Soul"
+          : type === "loadout"
+            ? "Untitled Loadout"
+            : "Untitled Skill")
     const name =
       type === "tool"
         ? artifactName || slugify(finalTitle)
@@ -330,12 +364,21 @@ export default function NewSubmitPage() {
         title: finalTitle,
         version: version || "1.0.0",
         visibility,
-        description: type === "tool" ? description : valueProp,
+        description:
+          type === "tool"
+            ? description
+            : type === "soul"
+              ? soulDescription
+              : type === "loadout"
+                ? loadoutDescription
+                : valueProp,
         category: category || null,
         // Unlike edit forms (which must be able to send an explicit `null`
         // to clear an existing value), create has nothing to clear — an
-        // absent key and a stored `null` are equivalent here.
-        sourceUrl: sourceUrl.trim() || undefined,
+        // absent key and a stored `null` are equivalent here. A loadout has
+        // no repository of its own, and its form never collects one.
+        sourceUrl:
+          type === "loadout" ? undefined : sourceUrl.trim() || undefined,
       })
       createdArtifactId = artifact.id
 
@@ -357,6 +400,36 @@ export default function NewSubmitPage() {
           setUploadStatus((prev) => ({ ...prev, bundle: "error" }))
           throw uploadError
         }
+      } else if (type === "soul") {
+        setUploadStatus((prev) => ({ ...prev, soul_md: "uploading" }))
+        try {
+          await uploadContent(
+            `/api/private-artifacts/${artifact.id}/content/soul_md`,
+            new Blob([soulText], { type: "text/markdown" })
+          )
+          setUploadStatus((prev) => ({ ...prev, soul_md: "done" }))
+        } catch (uploadError) {
+          setUploadStatus((prev) => ({ ...prev, soul_md: "error" }))
+          throw uploadError
+        }
+        // Uploaded only when written. An empty readme row would be a stored
+        // file that says nothing, and the readme is optional by design.
+        if (readmeText.trim() !== "") {
+          setUploadStatus((prev) => ({ ...prev, readme_md: "uploading" }))
+          try {
+            await uploadContent(
+              `/api/private-artifacts/${artifact.id}/content/readme_md`,
+              new Blob([readmeText], { type: "text/markdown" })
+            )
+            setUploadStatus((prev) => ({ ...prev, readme_md: "done" }))
+          } catch (uploadError) {
+            setUploadStatus((prev) => ({ ...prev, readme_md: "error" }))
+            throw uploadError
+          }
+        }
+      } else if (type === "loadout") {
+        // Nothing to upload. A loadout stores no bytes of its own -- its
+        // members are rows, added from the editor this redirects to.
       } else {
         setUploadStatus((prev) => ({ ...prev, skill_md: "uploading" }))
         try {
@@ -389,7 +462,14 @@ export default function NewSubmitPage() {
           ? `${finalTitle} created`
           : `${finalTitle} created as "${artifact.name}" — "${name}" was already taken.`
       )
-      router.push("/dashboard/catalog")
+      // A loadout is not finished at creation the way the other types are:
+      // it has no members yet, and an empty one cannot be published. Send the
+      // author to the editor that can fix that rather than to a list.
+      router.push(
+        type === "loadout"
+          ? `/dashboard/manage/${artifact.id}`
+          : "/dashboard/catalog"
+      )
     } catch (error) {
       if (createdArtifactId) {
         // The artifact row was created but the content upload failed partway
@@ -432,9 +512,9 @@ export default function NewSubmitPage() {
     <div className="flex flex-col gap-6 pb-12">
       <WorkspacePageHeader
         backHref="/dashboard/catalog"
-        backLabel="Back to your catalog"
-        title="Add a skill or tool"
-        description="Create a skill from instructions you write, or upload a packaged tool as a .zip file."
+        backLabel="Back to catalog"
+        title="Add to your catalog"
+        description="Create a skill from instructions you write, upload a packaged tool as a .zip file, write a soul that gives an agent its identity, or gather them into a loadout."
       />
 
       {formError && (
@@ -451,9 +531,18 @@ export default function NewSubmitPage() {
         <FormSection
           step={1}
           title="What you are adding"
-          description="Choose whether you are creating a skill or a packaged tool."
+          description="Choose whether you are creating a skill, a packaged tool, a soul, or a loadout that gathers them."
         >
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div
+            className={cn(
+              "grid gap-3",
+              ARTIFACT_TYPES.length > 3
+                ? "sm:grid-cols-2 lg:grid-cols-4"
+                : ARTIFACT_TYPES.length > 2
+                  ? "sm:grid-cols-3"
+                  : "sm:grid-cols-2"
+            )}
+          >
             <button
               type="button"
               aria-pressed={type === "skill"}
@@ -534,6 +623,88 @@ export default function NewSubmitPage() {
                 </span>
               </span>
             </button>
+
+            <button
+              type="button"
+              aria-pressed={type === "soul"}
+              onClick={() => {
+                setType("soul")
+                setTitle("")
+                setVersion("1.0.0")
+                setActiveTab("edit")
+                setFormError(null)
+                setCategoryError(null)
+                setSourceUrlError(null)
+                resetToolBundleState()
+              }}
+              className={cn(
+                "flex items-start gap-3 rounded-xl border p-4 text-left transition-colors",
+                type === "soul"
+                  ? "border-primary bg-primary/5"
+                  : "border-[var(--ironhub-line)] bg-background/30 hover:bg-muted/30"
+              )}
+            >
+              <span
+                className={cn(
+                  "flex size-9 shrink-0 items-center justify-center rounded-lg",
+                  type === "soul"
+                    ? "bg-primary/15 text-primary"
+                    : "bg-muted text-muted-foreground"
+                )}
+              >
+                <IconUserHeart className="size-4" aria-hidden="true" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-foreground">
+                  Soul
+                </span>
+                <span className="mt-1 block text-sm leading-snug text-muted-foreground">
+                  Who the agent is: identity, tone and boundaries, read before
+                  anything else. Stays private.
+                </span>
+              </span>
+            </button>
+
+            <button
+              type="button"
+              aria-pressed={type === "loadout"}
+              onClick={() => {
+                setType("loadout")
+                setTitle("")
+                setVersion("1.0.0")
+                setActiveTab("edit")
+                setFormError(null)
+                setCategoryError(null)
+                setSourceUrlError(null)
+                resetToolBundleState()
+              }}
+              className={cn(
+                "flex items-start gap-3 rounded-xl border p-4 text-left transition-colors",
+                type === "loadout"
+                  ? "border-primary bg-primary/5"
+                  : "border-[var(--ironhub-line)] bg-background/30 hover:bg-muted/30"
+              )}
+            >
+              <span
+                className={cn(
+                  "flex size-9 shrink-0 items-center justify-center rounded-lg",
+                  type === "loadout"
+                    ? "bg-primary/15 text-primary"
+                    : "bg-muted text-muted-foreground"
+                )}
+              >
+                <IconBackpack className="size-4" aria-hidden="true" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-foreground">
+                  Loadout
+                </span>
+                <span className="mt-1 block text-sm leading-snug text-muted-foreground">
+                  Tools, skills and one soul that belong together, versioned
+                  and installed as a unit. You pick the items next.
+                </span>
+              </span>
+            </button>
           </div>
         </FormSection>
 
@@ -591,8 +762,8 @@ export default function NewSubmitPage() {
                     id="skill-version-help"
                     className="text-xs text-muted-foreground"
                   >
-                    Your own version number, for example 1.0.0. This cannot be
-                    changed later.
+                    Your own version number, for example 1.0.0. It can only
+                    move forward once you publish.
                   </p>
                 </div>
               </div>
@@ -839,6 +1010,282 @@ Describe how the agent should act...`}
                 visibility={visibility}
                 onChange={setVisibility}
               />
+            </FormSection>
+          </>
+        ) : type === "soul" ? (
+          <>
+            {/* SOUL Step 2: Basics */}
+            <FormSection
+              step={2}
+              title="Basics"
+              description="The name, version and one-line summary people see."
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="soul-name"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Soul name
+                  </label>
+                  <Input
+                    id="soul-name"
+                    aria-describedby="soul-name-help"
+                    required
+                    placeholder="e.g. Careful Analyst"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
+                  />
+                  <p
+                    id="soul-name-help"
+                    className="text-xs text-muted-foreground"
+                  >
+                    The name members see in the catalog. We create a short
+                    identifier from it automatically.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="soul-version"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Version
+                  </label>
+                  <Input
+                    id="soul-version"
+                    required
+                    placeholder="e.g. 1.0.0"
+                    value={version}
+                    onChange={(e) => setVersion(e.target.value)}
+                    className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="soul-summary"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Short description
+                </label>
+                <Input
+                  id="soul-summary"
+                  required
+                  value={soulDescription}
+                  onChange={(e) => setSoulDescription(e.target.value)}
+                  placeholder="One line describing this persona..."
+                  className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
+                />
+              </div>
+
+              <CategoryAndRepoFields
+                category={category}
+                onCategoryChange={setCategory}
+                categoryError={categoryError}
+                sourceUrl={sourceUrl}
+                onSourceUrlChange={setSourceUrl}
+                sourceUrlError={sourceUrlError}
+              />
+            </FormSection>
+
+            {/* SOUL Step 3: The soul document */}
+            <FormSection
+              step={3}
+              title="The soul (SOUL.md)"
+              description="Who the agent is, how it speaks, and what it will not do. The agent reads this before its memory and its tools."
+            >
+              <label htmlFor="soul-document" className="sr-only">
+                The soul document
+              </label>
+              <textarea
+                id="soul-document"
+                required
+                value={soulText}
+                onChange={(e) => setSoulText(e.target.value)}
+                placeholder={`# Who you are
+
+You are...
+
+# How you speak
+
+...
+
+# What you will not do
+
+...`}
+                className="flex min-h-[300px] w-full rounded-lg border border-[var(--ironhub-line)] bg-background/50 px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-none"
+              />
+            </FormSection>
+
+            {/* SOUL Step 4: Readme */}
+            <FormSection
+              step={4}
+              title="Readme (README.md)"
+              description="Notes for the people browsing this workspace. Optional."
+            >
+              <div className="flex items-start gap-2.5 rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 text-sm text-muted-foreground">
+                <IconAlertTriangle className="mt-0.5 size-5 shrink-0" />
+                <span>
+                  This readme stays in the hub. It is never sent to an agent,
+                  so put anything the agent needs to act on in the soul above.
+                </span>
+              </div>
+              <label htmlFor="soul-readme" className="sr-only">
+                Readme
+              </label>
+              <textarea
+                id="soul-readme"
+                value={readmeText}
+                onChange={(e) => setReadmeText(e.target.value)}
+                placeholder="What this persona is for, and when to reach for it."
+                className="flex min-h-[160px] w-full rounded-lg border border-[var(--ironhub-line)] bg-background/50 px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-none"
+              />
+            </FormSection>
+
+            {/* SOUL Step 5: Who can see it.
+                A soul is the one artifact type whose content *is* the
+                instruction set -- it is read as the opening of an agent's
+                system prompt, ahead of memory and tools. Publishing one is
+                therefore a different act from publishing a sandboxed tool,
+                which is why the copy says what a reader is taking on rather
+                than only who can see it. The choice itself is the author's. */}
+            <FormSection
+              step={5}
+              title="Who can see it"
+              description="Private stays inside this workspace."
+            >
+              <VisibilitySelector
+                visibility={visibility}
+                onChange={setVisibility}
+              />
+              <p className="mt-3 text-sm leading-snug text-muted-foreground">
+                A published soul is read as the opening of an installer&apos;s
+                system prompt, ahead of their memory and tools. Anyone
+                installing it sees the full text first.
+              </p>
+            </FormSection>
+          </>
+        ) : type === "loadout" ? (
+          <>
+            {/* LOADOUT Step 2: Basics.
+                A loadout is created empty and composed afterwards. Members are
+                picked in its editor, where the picker can show each
+                candidate's type and status -- which is the whole reason the
+                picker exists there rather than here (loadout-member-health
+                spec -- "Member status is visible while composing"). */}
+            <FormSection
+              step={2}
+              title="Basics"
+              description="The name, version and one-line summary people see."
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="loadout-name"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Loadout name
+                  </label>
+                  <Input
+                    id="loadout-name"
+                    aria-describedby="loadout-name-help"
+                    required
+                    placeholder="e.g. Trading Desk"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
+                  />
+                  <p
+                    id="loadout-name-help"
+                    className="text-xs text-muted-foreground"
+                  >
+                    The name members see in the catalog. We create a short
+                    identifier from it automatically.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="loadout-version"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Version
+                  </label>
+                  <Input
+                    id="loadout-version"
+                    required
+                    placeholder="e.g. 1.0.0"
+                    value={version}
+                    onChange={(e) => setVersion(e.target.value)}
+                    className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="loadout-summary"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Short description
+                </label>
+                <Input
+                  id="loadout-summary"
+                  required
+                  value={loadoutDescription}
+                  onChange={(e) => setLoadoutDescription(e.target.value)}
+                  placeholder="One line describing what this loadout is for..."
+                  className="h-10 min-h-[40px] rounded-lg bg-background/50 text-sm"
+                />
+              </div>
+
+              {/* No repository link: a loadout is composed in the hub out of
+                  items that each carry their own, so a link here would
+                  duplicate one or point at nothing (add-private-loadouts
+                  design.md -- "A loadout has no source repository"). */}
+              <CategoryAndRepoFields
+                includeSourceUrl={false}
+                category={category}
+                onCategoryChange={setCategory}
+                categoryError={categoryError}
+              />
+            </FormSection>
+
+            {/* LOADOUT Step 3: Items, which are not chosen here. */}
+            <FormSection
+              step={3}
+              title="Items"
+              description="Chosen after this loadout exists."
+            >
+              <div className="flex items-start gap-2.5 rounded-xl border border-[var(--ironhub-line)] bg-muted/40 p-4 text-sm text-muted-foreground">
+                <IconBackpack className="mt-0.5 size-5 shrink-0" />
+                <span>
+                  An empty loadout is a fine draft — it just cannot be
+                  published. Once it exists you pick its tools, skills and one
+                  soul from your own space and the verified public catalog, and
+                  each candidate shows its status as you pick.
+                </span>
+              </div>
+            </FormSection>
+
+            {/* LOADOUT Step 4: Who can see it */}
+            <FormSection
+              step={4}
+              title="Who can see it"
+              description="Private stays inside this workspace."
+            >
+              <VisibilitySelector
+                visibility={visibility}
+                onChange={setVisibility}
+              />
+              <p className="mt-3 text-sm leading-snug text-muted-foreground">
+                A loadout cannot be published more widely than its members.
+                Publishing one whose member is more private is refused, naming
+                that member.
+              </p>
             </FormSection>
           </>
         ) : (

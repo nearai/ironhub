@@ -4,6 +4,7 @@ import { use, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
+  IconBackpack,
   IconAlertTriangle,
   IconArrowRight,
   IconBook,
@@ -20,6 +21,7 @@ import {
   IconRocketOff,
   IconTool,
   IconTrash,
+  IconUserHeart,
   IconWorld,
   IconX,
 } from "@tabler/icons-react"
@@ -43,6 +45,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import {
+  type ArtifactType,
   type ContentKind,
   useArtifact,
   useArtifactChecks,
@@ -52,7 +55,10 @@ import {
   useUnpublishArtifact,
 } from "@/features/partner/api/artifacts"
 import { ApiError } from "@/features/partner/api/client"
+import { SecureInstallButton } from "@/features/marketplace/components/secure-install-button"
+import { LoadoutEditor } from "@/features/partner/components/loadout-editor"
 import { SkillEditor } from "@/features/partner/components/skill-editor"
+import { SoulEditor } from "@/features/partner/components/soul-editor"
 import { ToolEditor } from "@/features/partner/components/tool-editor"
 import { AttributeBadge } from "@/features/partner/components/ui/attribute-badge"
 import { EmptyState } from "@/features/partner/components/ui/empty-state"
@@ -61,6 +67,7 @@ import { RelativeTime } from "@/features/partner/components/ui/relative-time"
 import { StatusBadge } from "@/features/partner/components/ui/status-badge"
 import { workspaceLinkTone } from "@/features/partner/components/ui/tone"
 import { WorkspacePageHeader } from "@/features/partner/components/ui/workspace-page-header"
+import { ARTIFACT_TYPE_LABELS } from "@/lib/private-artifacts/artifact-types"
 import { useToast } from "@/features/partner/store/toast-provider"
 import { cn } from "@/lib/shared/utils"
 
@@ -69,10 +76,10 @@ interface PageProps {
 }
 
 // Only the kinds the Files section still renders, which is a skill's single
-// instructions file: a tool's stored files all come out of one uploaded
-// archive and are shown as that archive's contents in the tool editor's
-// Package step, so listing them again as separate managed files made three
-// cards out of one thing.
+// instructions file and a soul's two documents: a tool's stored files all come
+// out of one uploaded archive and are shown as that archive's contents in the
+// tool editor's Package step, so listing them again as separate managed files
+// made three cards out of one thing.
 const CONTENT_KIND_INFO: Partial<
   Record<ContentKind, { name: string; blurb: string }>
 > = {
@@ -80,6 +87,24 @@ const CONTENT_KIND_INFO: Partial<
     name: "Instructions file (SKILL.md)",
     blurb: "The written instructions the assistant follows.",
   },
+  soul_md: {
+    name: "Soul document (SOUL.md)",
+    blurb: "Read at the top of the agent's system prompt, before its memory.",
+  },
+  readme_md: {
+    name: "Readme (README.md)",
+    blurb: "Shown here only. Never sent to an agent.",
+  },
+}
+
+const TYPE_ICONS: Record<
+  ArtifactType,
+  React.ComponentType<{ className?: string }>
+> = {
+  skill: IconBook,
+  tool: IconTool,
+  soul: IconUserHeart,
+  loadout: IconBackpack,
 }
 
 function formatFileSize(bytes: number): string {
@@ -125,8 +150,8 @@ export default function ManageSubmissionPage({ params }: PageProps) {
           title="We couldn't find that item"
           description="The item you're looking for doesn't exist or you don't have access to it."
           action={
-            <Button asChild className="h-10 rounded-lg">
-              <Link href="/dashboard/catalog">Back to your catalog</Link>
+            <Button asChild variant="outline" className="h-10 rounded-lg">
+              <Link href="/dashboard/catalog">Back to catalog</Link>
             </Button>
           }
         />
@@ -140,12 +165,27 @@ export default function ManageSubmissionPage({ params }: PageProps) {
   // sync with the server table, this local gate would silently disagree
   // with the `content_complete` check the checks panel renders below it.
   const expectedKinds: ContentKind[] =
-    artifact.type === "tool" ? ["wasm", "manifest_toml"] : ["skill_md"]
+    artifact.type === "tool"
+      ? ["wasm", "manifest_toml"]
+      : artifact.type === "soul"
+        ? ["soul_md"]
+        : // A loadout stores no bytes of its own -- its substance is its member
+          // rows, and their completeness is the publish gate the checks panel
+          // reports. Listing a required file here would invent one.
+          artifact.type === "loadout"
+          ? []
+          : ["skill_md"]
   const uploadedKinds = new Set(artifact.content.map((c) => c.kind))
   const isContentComplete = expectedKinds.every((kind) =>
     uploadedKinds.has(kind)
   )
-  const displayKinds = expectedKinds.filter((kind) => kind in CONTENT_KIND_INFO)
+  // A soul's readme is optional and therefore not an expected kind, but it is
+  // one of the two files an author manages, so the Files section lists it as a
+  // card that can read "Not added yet" rather than leaving it invisible until
+  // it exists.
+  const listedKinds: ContentKind[] =
+    artifact.type === "soul" ? [...expectedKinds, "readme_md"] : expectedKinds
+  const displayKinds = listedKinds.filter((kind) => kind in CONTENT_KIND_INFO)
   const isSingleCard = displayKinds.length === 1
 
   // `?download=1` makes the content route answer with a Content-Disposition
@@ -162,6 +202,12 @@ export default function ManageSubmissionPage({ params }: PageProps) {
     checks.data && !checks.isError && !checks.data.publishable
   )
 
+  // True while the stored files are the ones the published version names, and
+  // so cannot be replaced until the version moves.
+  const isVersionFrozen =
+    artifact.status === "published" &&
+    artifact.publishedVersion === artifact.version
+
   // The one file a member is most likely to want a copy of: the package they
   // uploaded for a tool, the instructions file for a skill. Only offered when
   // it is actually stored.
@@ -172,9 +218,13 @@ export default function ManageSubmissionPage({ params }: PageProps) {
         : uploadedKinds.has("wasm")
           ? "wasm"
           : null
-      : uploadedKinds.has("skill_md")
-        ? "skill_md"
-        : null
+      : artifact.type === "soul"
+        ? uploadedKinds.has("soul_md")
+          ? "soul_md"
+          : null
+        : uploadedKinds.has("skill_md")
+          ? "skill_md"
+          : null
   const primaryDownload = primaryDownloadKind
     ? {
         kind: primaryDownloadKind,
@@ -183,7 +233,9 @@ export default function ManageSubmissionPage({ params }: PageProps) {
             ? "Download package"
             : primaryDownloadKind === "wasm"
               ? "Download program"
-              : "Download skill",
+              : primaryDownloadKind === "soul_md"
+                ? "Download soul"
+                : "Download skill",
       }
     : null
 
@@ -278,72 +330,72 @@ export default function ManageSubmissionPage({ params }: PageProps) {
     }
   }
 
+  const isLoadout = artifact.type === "loadout"
+  const primaryButton = isLoadout ? null : artifact.status ===
+    "published" ? (
+    <Button
+      type="button"
+      onClick={handleCopyInstall}
+      disabled={mintToken.isPending || !isContentComplete}
+      aria-describedby={
+        isContentComplete ? undefined : "install-blocked-reason"
+      }
+      className="h-10 w-full rounded-lg sm:w-auto"
+    >
+      {mintToken.isPending ? (
+        <IconLoader2 className="size-4 animate-spin" aria-hidden="true" />
+      ) : copiedInstall ? (
+        <IconCheck className="size-4" aria-hidden="true" />
+      ) : (
+        <IconLink className="size-4" aria-hidden="true" />
+      )}
+      <span>{copiedInstall ? "Link copied" : "Copy install link"}</span>
+    </Button>
+  ) : (
+    <Button
+      type="button"
+      onClick={handlePublish}
+      disabled={
+        publishArtifact.isPending ||
+        checks.isLoading ||
+        checks.isError ||
+        !checks.data?.publishable
+      }
+      aria-describedby={
+        isPublishBlocked ? "publish-blocked-reason" : undefined
+      }
+      className="h-10 w-full rounded-lg sm:w-auto"
+    >
+      {publishArtifact.isPending ? (
+        <IconLoader2 className="size-4 animate-spin" aria-hidden="true" />
+      ) : (
+        <IconRocket className="size-4" aria-hidden="true" />
+      )}
+      <span>Publish</span>
+    </Button>
+  )
+
+  const blockedReason = isPublishBlocked && artifact.status !== "published" && (
+    <p
+      id="publish-blocked-reason"
+      className="max-w-xs text-sm text-muted-foreground"
+    >
+      Resolve the failing checks below before publishing.
+    </p>
+  )
+
   return (
     <div className="flex flex-col gap-6">
       {/* 1. Header */}
       <WorkspacePageHeader
         backHref="/dashboard/catalog"
-        backLabel="Back to your catalog"
+        backLabel="Back to catalog"
         title={artifact.title}
         description={artifact.description ?? undefined}
         action={
-          <div className="flex w-full flex-col gap-1.5 sm:w-auto sm:items-end">
-            {/* design D6: one primary action, chosen by the item's state --
-                Publish while it is a draft, Copy install link once it is
-                published -- sharing one row with the overflow menu at every
-                width, so neither control is ever orphaned onto its own
-                line. The reason (below) is a sibling of this row, not a
-                cross-axis-stretched column-mate of the button, so it can
-                never dictate the button's width. sm:items-end right-aligns
-                both the row and the reason paragraph to whichever is wider,
-                so their right edges always coincide instead of the reason's
-                max-w-xs cap silently stretching the container past the
-                row's natural width. */}
-            <div className="flex w-full items-start gap-2 sm:w-auto">
-              <div className="flex-1 sm:flex-none">
-                {artifact.status === "published" ? (
-                  <Button
-                    type="button"
-                    onClick={handleCopyInstall}
-                    disabled={mintToken.isPending || !isContentComplete}
-                    aria-describedby={
-                      isContentComplete ? undefined : "install-blocked-reason"
-                    }
-                    className="h-10 w-full rounded-lg sm:w-auto"
-                  >
-                    {mintToken.isPending ? (
-                      <IconLoader2 className="size-4 animate-spin" aria-hidden="true" />
-                    ) : copiedInstall ? (
-                      <IconCheck className="size-4" aria-hidden="true" />
-                    ) : (
-                      <IconLink className="size-4" aria-hidden="true" />
-                    )}
-                    <span>{copiedInstall ? "Link copied" : "Copy install link"}</span>
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    onClick={handlePublish}
-                    disabled={
-                      publishArtifact.isPending ||
-                      checks.isLoading ||
-                      checks.isError ||
-                      !checks.data?.publishable
-                    }
-                    aria-describedby={
-                      isPublishBlocked ? "publish-blocked-reason" : undefined
-                    }
-                    className="h-10 w-full rounded-lg sm:w-auto"
-                  >
-                    {publishArtifact.isPending ? (
-                      <IconLoader2 className="size-4 animate-spin" aria-hidden="true" />
-                    ) : (
-                      <IconRocket className="size-4" aria-hidden="true" />
-                    )}
-                    <span>Publish</span>
-                  </Button>
-                )}
-              </div>
+          <div className="flex flex-col gap-1.5 sm:w-auto sm:items-end">
+            <div className="flex items-center gap-2">
+              {primaryButton}
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -405,16 +457,10 @@ export default function ManageSubmissionPage({ params }: PageProps) {
               </DropdownMenu>
             </div>
 
-            {/* design D6/D7: the reason lives directly beneath the
-                primary+overflow row -- never between them, and never wide
-                enough to stretch the button above it. */}
-            {isPublishBlocked && artifact.status !== "published" && (
-              <p
-                id="publish-blocked-reason"
-                className="max-w-xs text-sm text-muted-foreground"
-              >
-                Resolve the failing checks below before publishing.
-              </p>
+            {blockedReason && (
+              <div className="hidden sm:block">
+                {blockedReason}
+              </div>
             )}
 
             {/* Trigger moved into the overflow menu above (design D6); the
@@ -466,8 +512,8 @@ export default function ManageSubmissionPage({ params }: PageProps) {
               it, and a tool and a skill are managed differently enough that
               the reader should not have to infer the type from the sections
               further down. */}
-          <AttributeBadge icon={artifact.type === "tool" ? IconTool : IconBook}>
-            {artifact.type === "tool" ? "Tool" : "Skill"}
+          <AttributeBadge icon={TYPE_ICONS[artifact.type]}>
+            {ARTIFACT_TYPE_LABELS[artifact.type].singular}
           </AttributeBadge>
           <StatusBadge status={artifact.status} />
           <AttributeBadge
@@ -480,7 +526,33 @@ export default function ManageSubmissionPage({ params }: PageProps) {
               {artifact.category}
             </AttributeBadge>
           )}
-          <AttributeBadge>Version {artifact.version}</AttributeBadge>
+          {/* The version badge says what that version *means* right now, not
+              just what it is: a published version's files are frozen and a
+              bumped one's are not, and nothing else on this page distinguishes
+              the two. Without it the author meets the difference as a refused
+              upload. */}
+          <AttributeBadge
+            icon={isVersionFrozen ? IconLock : undefined}
+            title={
+              isVersionFrozen
+                ? `Published at ${artifact.version}. Change the version before replacing any of its files.`
+                : `Version ${artifact.version}. This item's files can be changed.`
+            }
+          >
+            Version {artifact.version}
+          </AttributeBadge>
+          {/* A second badge, not a longer first one: the artifact is
+              published and the author has already bumped, so two different
+              versions are true at once -- the one installers are still being
+              given, and the one being prepared. */}
+          {artifact.status === "published" && !isVersionFrozen && (
+            <AttributeBadge
+              icon={IconRocket}
+              title={`Installs still receive ${artifact.publishedVersion}. Publish again to serve ${artifact.version}.`}
+            >
+              Serving {artifact.publishedVersion}
+            </AttributeBadge>
+          )}
           {artifact.sourceUrl && (
             <Button
               asChild
@@ -554,11 +626,37 @@ export default function ManageSubmissionPage({ params }: PageProps) {
         </div>
       )}
 
+      {/* Install, for souls only.
+          Every type can be installed by copying the link above into an agent.
+          A soul additionally has to show its document before the install is
+          confirmed, and a copied link carries no disclosure -- so the one
+          install control that can gate itself is offered here instead
+          (private-soul-artifacts spec -- "A soul's text is disclosed before
+          install"). The button hides itself while the agent has no surface
+          that consumes an install deep link (isAgentInstallEnabled). */}
+      {artifact.type === "soul" && artifact.status === "published" && (
+        <FormSection
+          title="Install to your agent"
+          description="Read the soul, then send it to the agent you have connected."
+        >
+          <SecureInstallButton
+            slug={artifact.name}
+            source="private"
+            type="soul"
+            artifactId={artifact.id}
+          />
+        </FormSection>
+      )}
+
       {/* 2. Details -- the editable record, on the same page as everything
           else about this item rather than behind a separate edit route. */}
       <div id="item-details">
         {artifact.type === "skill" ? (
           <SkillEditor id={artifact.id} />
+        ) : artifact.type === "soul" ? (
+          <SoulEditor id={artifact.id} />
+        ) : artifact.type === "loadout" ? (
+          <LoadoutEditor id={artifact.id} />
         ) : (
           <ToolEditor id={artifact.id} />
         )}
@@ -567,7 +665,7 @@ export default function ManageSubmissionPage({ params }: PageProps) {
       {/* 3. Files -- a skill's one instructions file. A tool's package
           is managed in its own step above, where the archive that
           produced every stored file is also the thing you replace. */}
-      {artifact.type === "skill" && (
+      {(artifact.type === "skill" || artifact.type === "soul") && (
         <FormSection
           title="Files"
           description="What's stored for this item right now."

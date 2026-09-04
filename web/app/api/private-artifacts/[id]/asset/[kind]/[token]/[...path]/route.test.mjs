@@ -15,6 +15,7 @@ const STORED = {
 
 let verifyResult = { organizationId: "org-1", artifactId: "artifact-1" }
 let verifyThrows = null
+let loadoutMembers = []
 let missingAsset = false
 let lookups = []
 let streamedKeys = []
@@ -61,6 +62,17 @@ mock.module("@/lib/private-artifacts/token", {
       if (verifyThrows) throw verifyThrows
       return verifyResult
     },
+    // Mirrors the real rule (token.test.mjs owns the rule itself): the
+    // token's own artifact when the claims carry no loadout scope, a member
+    // of that one loadout when they do.
+    authorizeArtifactRead: async (claims, id) => {
+      const authorized = claims.loadoutId
+        ? loadoutMembers.includes(id)
+        : claims.artifactId === id
+      if (!authorized) {
+        throw new Response("Token does not match artifact", { status: 403 })
+      }
+    },
   },
 })
 
@@ -96,6 +108,7 @@ function makeParams(overrides = {}) {
 function reset() {
   verifyThrows = null
   verifyResult = { organizationId: "org-1", artifactId: "artifact-1" }
+  loadoutMembers = []
   missingAsset = false
   lookups = []
   streamedKeys = []
@@ -246,4 +259,77 @@ test("the rate limit accommodates a full install at both agent caps", async () =
     )
     assert.equal(response.status, 200, `request ${index + 1} was throttled`)
   }
+})
+
+// --- Loadout-scoped tokens (tasks 6.2, 6.3, 8.5) -----------------------------
+
+function loadoutClaims() {
+  return {
+    organizationId: "org-1",
+    artifactId: "loadout-1",
+    loadoutId: "loadout-1",
+  }
+}
+
+test("task 6.2: a loadout-scoped token reads a member's asset", async () => {
+  reset()
+  verifyResult = loadoutClaims()
+  loadoutMembers = ["artifact-1", "artifact-2"]
+
+  const response = await GET(
+    new Request("http://localhost/x"),
+    makeParams({ token: "v1.loadout-token" })
+  )
+
+  assert.equal(response.status, 200)
+  assert.deepEqual(
+    new Uint8Array(await response.arrayBuffer()),
+    STORED[`schema ${SCHEMA_PATH}`]
+  )
+})
+
+test("task 8.5: a loadout-scoped token is refused for a non-member's asset", async () => {
+  reset()
+  verifyResult = loadoutClaims()
+  loadoutMembers = ["artifact-2"]
+
+  const response = await GET(
+    new Request("http://localhost/x"),
+    makeParams({ token: "v1.loadout-token" })
+  )
+
+  assert.equal(response.status, 403)
+  assert.equal(lookups.length, 0)
+  assert.equal(streamedKeys.length, 0)
+})
+
+test("task 6.3: every member of a loadout gets the whole per-tool asset budget", async () => {
+  reset()
+  verifyResult = loadoutClaims()
+  const members = ["member-a", "member-b", "member-c"]
+  loadoutMembers = members
+
+  // The cap this route is sized from is per *tool* (32 schemas + 64 prompts),
+  // so three members at that cap is 288 requests on one token inside one
+  // minute -- which a token-keyed budget refuses and a member-keyed one
+  // serves. design.md: "Rate limits are keyed per member."
+  let served = 0
+  for (const member of members) {
+    for (let index = 0; index < 96; index += 1) {
+      const response = await GET(
+        new Request("http://localhost/x", {
+          headers: { "x-real-ip": "10.0.0.2" },
+        }),
+        makeParams({ id: member, token: "v1.loadout-token" })
+      )
+      assert.equal(
+        response.status,
+        200,
+        `${member} request ${index + 1} was throttled`
+      )
+      served += 1
+    }
+  }
+
+  assert.equal(served, 288)
 })

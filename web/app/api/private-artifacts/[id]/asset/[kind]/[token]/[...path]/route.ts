@@ -31,7 +31,10 @@ import {
   parseAssetKind,
 } from "@/lib/private-artifacts/assets"
 import { relayStoredObject } from "@/lib/private-artifacts/relay"
-import { verifyArtifactToken } from "@/lib/private-artifacts/token"
+import {
+  authorizeArtifactRead,
+  verifyArtifactToken,
+} from "@/lib/private-artifacts/token"
 
 type Params = {
   params: Promise<{ id: string; kind: string; token: string; path: string[] }>
@@ -43,7 +46,15 @@ type Params = {
 // requests through this route for a single install. The content route's 30 is
 // right for its four kinds and would abort a large install here. Doubled to
 // leave room for the agent's own retries without leaving the budget open --
-// this is still one client, one token, one minute.
+// this is still one client, one token, one artifact, one minute.
+//
+// "One artifact" is the part loadouts changed: the cap above is per *tool*, so
+// a loadout of twenty tools legitimately issues twenty times this many
+// requests through this route for one install. The budget is therefore keyed
+// on the artifact being read as well as on the token (design.md, "Rate limits
+// are keyed per member"), which keeps every member held to the same per-tool
+// ceiling the contract already justifies instead of dividing one tool's
+// allowance among twenty.
 const MAX_ASSET_DOWNLOADS_PER_INSTALL =
   MAX_TOOL_SCHEMA_ARTIFACTS + MAX_TOOL_PROMPT_ARTIFACTS
 
@@ -57,7 +68,7 @@ export async function GET(request: Request, { params }: Params) {
     const { id, kind, token, path } = await params
 
     const rateLimit = checkRateLimit(
-      `asset:${resolveClientIp(request)}:${token}`
+      `asset:${resolveClientIp(request)}:${token}:${id}`
     )
     if (!rateLimit.allowed) {
       return rateLimitExceededResponse(rateLimit.retryAfterSeconds)
@@ -70,9 +81,9 @@ export async function GET(request: Request, { params }: Params) {
     }
 
     const claims = verifyArtifactToken(token)
-    if (claims.artifactId !== id) {
-      throw new Response("Token does not match artifact", { status: 403 })
-    }
+    // Same rule as the content route, from the same function: the token's own
+    // artifact, or a member of the one loadout the token is scoped to.
+    await authorizeArtifactRead(claims, id)
 
     const asset = await getArtifactAssetMetadata(
       claims.organizationId,

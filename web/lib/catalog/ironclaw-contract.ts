@@ -49,9 +49,13 @@ export const MAX_WASM_BYTES = 16 * 1024 * 1024
 /**
  * The ceiling on the *decoded* catalog manifest document itself, and on the
  * signed envelope carrying it. `ironclaw:.../ironhub/model.rs:14-15`. These
- * scale with published asset count -- roughly 150 bytes of JSON per asset --
- * so they are a real bound once schemas and prompts are published, not a
- * theoretical one.
+ * scale with published asset count -- measured at roughly 490 bytes of JSON
+ * per asset, the token-bearing URL being most of it -- so they are a real
+ * bound once schemas and prompts are published, not a theoretical one. A
+ * loadout of twenty tools at the 32/64 asset ceilings measures 973 KiB to
+ * 1119 KiB, either side of `MAX_MANIFEST_BYTES` depending on asset path
+ * length, which is why the publish gate measures the built document rather
+ * than capping member count.
  */
 export const MAX_MANIFEST_BYTES = 1024 * 1024
 export const MAX_SIGNED_MANIFEST_BYTES = MAX_MANIFEST_BYTES * 2
@@ -145,6 +149,16 @@ function sha256DigestToken(material: string): string {
  * for equality.
  */
 export function compareAssetPaths(left: string, right: string): number {
+  return compareUtf8Bytes(left, right)
+}
+
+/**
+ * The ordering above, named for the general case. Asset paths are not the only
+ * strings the agent sorts before hashing -- loadout member names are sorted the
+ * same way -- and the reason is the same one `compareAssetPaths` documents, so
+ * both call this rather than each reaching for `localeCompare` or `<`.
+ */
+function compareUtf8Bytes(left: string, right: string): number {
   return Buffer.compare(Buffer.from(left, "utf8"), Buffer.from(right, "utf8"))
 }
 
@@ -279,6 +293,28 @@ export function skillArtifactDigest(skillMdSha256: string): string {
  * of the second formula. Choosing wrong does not degrade, it produces a digest
  * the agent never reproduces, and the install is refused as changed.
  */
+/**
+ * A soul's artifact digest.
+ *
+ * The agent has no soul formula, because it has no soul entry: a soul is
+ * published as a skill entry carrying the soul document and no `files[]`
+ * (manifest.ts), so the digest the agent recomputes is
+ * `skill_artifact_digest`'s no-bundled-files branch
+ * (`ironclaw:.../ironhub/catalog.rs:246`) over the soul document's SHA-256
+ * *string*. Named separately rather than aliased at the call site so the day
+ * the agent grows a `souls[]` array with its own formula, the value that has
+ * to change is already the one souls are digested with.
+ *
+ * The soul's README never appears here. It is not published, so the agent
+ * never sees it, and a digest taken over it would be a digest the agent
+ * cannot reproduce -- the install would be refused as changed
+ * (`skillEntryArtifactDigest`'s note on choosing the wrong branch says what
+ * that failure looks like).
+ */
+export function soulArtifactDigest(soulMdSha256: string): string {
+  return sha256DigestToken(soulMdSha256)
+}
+
 export function skillEntryArtifactDigest(entry: HubSkillEntry): string {
   const files = entry.files ?? []
   if (files.length === 0) {
@@ -292,4 +328,125 @@ export function skillEntryArtifactDigest(entry: HubSkillEntry): string {
     material += `file:${file.path}\0${file.sha256}\0`
   }
   return sha256DigestToken(material)
+}
+
+// --- Loadout digest --------------------------------------------------------
+
+/**
+ * The member kinds a loadout can hold, in the order the digest concatenates
+ * them. Exported because the order is part of the formula rather than a
+ * presentation choice, and a caller assembling members has to be able to see
+ * it -- see `loadoutArtifactDigest` on why this order is not bytewise.
+ */
+export const LOADOUT_MEMBER_KINDS = ["tool", "skill", "soul"] as const
+
+export type LoadoutMemberKind = (typeof LOADOUT_MEMBER_KINDS)[number]
+
+export type LoadoutMemberDigest = {
+  kind: LoadoutMemberKind
+  /** The member's name exactly as the entry publishing it advertises. */
+  name: string
+  /**
+   * The member's own artifact digest, as one of the functions above returns
+   * it -- the whole `sha256:<hex>` token, prefix included, because that is
+   * what the agent has after recomputing it and what it would concatenate.
+   */
+  digest: string
+}
+
+const LOADOUT_MEMBER_KIND_ORDER = new Map(
+  LOADOUT_MEMBER_KINDS.map((kind, index) => [kind, index])
+)
+
+/**
+ * UNCONFIRMED -- proposed to IronClaw, not yet pinned to an agent source line.
+ *
+ * Every other digest in this file cites the Rust it mirrors. This one cannot:
+ * the agent has no loadout formula yet. The material below is the one IronHub
+ * proposed in `kent-notes/ironclaw-loadouts-and-souls-request.md` ask 4, and
+ * task 9.1 of `add-private-loadouts` is the confirmation that turns the
+ * citation below from a request into a source line. Until it does, a value
+ * this function produces is a value no agent has ever recomputed, which is
+ * why the install path it feeds is presented as unavailable (task 7.8) rather
+ * than shipped and hoped for.
+ *
+ * Proposed source, once accepted: `ironclaw:.../ironhub/catalog.rs`, beside
+ * `skill_artifact_digest` (`:245-260`), whose with-files branch this is framed
+ * after so the two read as one family.
+ *
+ * The material is `\0`-separated in the same way the other formulas are --
+ * `\0` is a literal NUL byte, not the two characters `\` and `0`:
+ *
+ *   tool:{name}\0{tool_artifact_digest}\0     (per tool member)
+ *   skill:{name}\0{skill_artifact_digest}\0   (per skill member)
+ *   soul:{name}\0{soul_artifact_digest}\0     (the soul member, at most one)
+ *
+ * Ordering, which is where the proposal is ambiguous and the confirmation has
+ * to land. Ask 4 says "sorted bytewise by (kind, name), kinds in the order
+ * above", and those two clauses disagree: bytewise on the kind label gives
+ * skill < soul < tool, while "the order above" gives tool < skill < soul. We
+ * implement the enumerated order, for two reasons. It is what the formula
+ * block itself shows, and it is what the rest of the family already does --
+ * `tool_artifact_digest` emits every schema before every prompt even though
+ * `prompt` sorts first bytewise, so an explicit kind sequence with bytewise
+ * ordering *within* a kind is the established shape. It also matches the
+ * order of the arrays in `HubManifest`, which is what the agent walks.
+ *
+ * The soul label carries a second dependency, on ask 2. A soul publishes as a
+ * skill entry today, because the agent has no `souls[]` to put one in
+ * (`soulEntry` in private-artifacts/manifest.ts), so an agent recomputing this
+ * digest from the document it parsed cannot tell that member is a soul and
+ * would label it `skill:`. We emit `soul:` because that is what was proposed
+ * and because the hub does know the difference -- but asks 2 and 4 have to be
+ * confirmed together: if souls stay in `skills[]`, this label and this kind's
+ * sort position both become `skill`'s. That the two digests are numerically
+ * equal for a no-files entry (`soulArtifactDigest`) does not help here; only
+ * the label differs, and the label is in the material.
+ *
+ * Computed at install, never at publish, and never stored: a loadout's public
+ * members resolve live and are allowed to track upstream (design.md -- "The
+ * loadout digest is computed at install, not at publish"), so a value taken at
+ * publish would stop matching what the agent recomputes from what it actually
+ * downloaded. A stored loadout digest would therefore be a value that is right
+ * only until an upstream release, which is worse than having none.
+ */
+export function loadoutArtifactDigest(
+  members: readonly LoadoutMemberDigest[]
+): string {
+  if (members.length === 0) {
+    throw new Error(
+      "A loadout digest needs at least one member; an empty loadout cannot be published, so there is nothing to install"
+    )
+  }
+
+  let material = ""
+  for (const member of [...members].sort(compareLoadoutMembers)) {
+    material += `${member.kind}:${member.name}\0${member.digest}\0`
+  }
+  return sha256DigestToken(material)
+}
+
+/**
+ * Kind first in the declared order, then name bytewise, then digest bytewise.
+ *
+ * The digest is a tie-break rather than part of the ordering anyone intends.
+ * Member identity is unique per `(source, kind, name)` (`LoadoutMember` in
+ * schema.prisma), so a private and a public member can share a kind and a
+ * name -- and the material has no source field to separate them with. Sorting
+ * such a pair by their digests keeps the result independent of the order the
+ * rows came back in, which is the property the digest exists to have; it does
+ * not make the collision meaningful, and composition is where that is refused.
+ */
+function compareLoadoutMembers(
+  left: LoadoutMemberDigest,
+  right: LoadoutMemberDigest
+): number {
+  const byKind =
+    (LOADOUT_MEMBER_KIND_ORDER.get(left.kind) ?? 0) -
+    (LOADOUT_MEMBER_KIND_ORDER.get(right.kind) ?? 0)
+  if (byKind !== 0) {
+    return byKind
+  }
+  const byName = compareUtf8Bytes(left.name, right.name)
+  return byName !== 0 ? byName : compareUtf8Bytes(left.digest, right.digest)
 }

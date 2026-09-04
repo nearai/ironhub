@@ -30,17 +30,34 @@ import {
 import { capabilitiesStubBytes } from "@/lib/catalog/ironclaw-contract"
 import {
   CONTENT_MEDIA_TYPES,
+  HUB_ONLY_CONTENT_KINDS,
   getArtifactContentMetadata,
   parseContentKind,
 } from "@/lib/private-artifacts/content"
 import { relayBytes, relayStoredObject } from "@/lib/private-artifacts/relay"
-import { verifyArtifactToken } from "@/lib/private-artifacts/token"
+import {
+  authorizeArtifactRead,
+  verifyArtifactToken,
+} from "@/lib/private-artifacts/token"
 
 type Params = {
   params: Promise<{ id: string; kind: string; token: string }>
 }
 
-// added: public route rate limit, keyed by client IP (scoped by token)
+// Public route rate limit, keyed by client IP, token, and the artifact being
+// read -- the last of those is what makes this budget survive a loadout.
+//
+// 30 is sized for one artifact's four content kinds (design.md, "Rate limits
+// are keyed per member"): a twenty-member loadout fetches the manifest plus
+// every member's content and assets, which passes thirty requests in the first
+// minute, and a token-keyed budget would abort the install partway through
+// with a 429 that looks like a hub fault. Keying per member sizes the budget
+// to the work while leaving a single member capped exactly as it was.
+//
+// The `id` is caller-chosen and checked only after this point, so it does not
+// tighten the budget against a flood -- but neither did the token, which is
+// equally caller-chosen. The client IP is what carries that job, and the
+// limiter's own key ceiling bounds the map.
 const checkRateLimit = createRateLimiter({ limit: 30, windowMs: 60_000 })
 
 export async function GET(request: Request, { params }: Params) {
@@ -48,7 +65,7 @@ export async function GET(request: Request, { params }: Params) {
     const { id, kind, token } = await params
 
     const rateLimit = checkRateLimit(
-      `content:${resolveClientIp(request)}:${token}`
+      `content:${resolveClientIp(request)}:${token}:${id}`
     )
     if (!rateLimit.allowed) {
       return rateLimitExceededResponse(rateLimit.retryAfterSeconds)
@@ -56,10 +73,29 @@ export async function GET(request: Request, { params }: Params) {
 
     const contentKind = parseContentKind(kind)
 
-    const claims = verifyArtifactToken(token)
-    if (claims.artifactId !== id) {
-      throw new Response("Token does not match artifact", { status: 403 })
+    // A hub-only kind has no agent-facing existence, and this is the only
+    // route that would give it one. Keeping it out of the manifest is what
+    // stops an agent from *finding* a soul's README; refusing it here is what
+    // stops one from asking for it anyway. The kind is a fixed enum, so the
+    // URL is guessable by anything holding a valid install token -- "never
+    // sent to an agent" is what the workspace promises an author, and an
+    // omission the caller can route around is not that promise.
+    //
+    // 404 rather than 403: to an agent this URL names a document that does
+    // not exist on the published artifact, which is exactly what it is. A 403
+    // would report an authorization decision about a resource whose existence
+    // is not an agent's to learn.
+    if (HUB_ONLY_CONTENT_KINDS.has(contentKind)) {
+      throw new Response(`Artifact has no published content: ${kind}`, {
+        status: 404,
+      })
     }
+
+    const claims = verifyArtifactToken(token)
+    // A single-artifact token still authorizes exactly its own artifact; a
+    // loadout-scoped one authorizes the members of that one loadout, read from
+    // the member table on every request. See `authorizeArtifactRead`.
+    await authorizeArtifactRead(claims, id)
 
     let content
     try {
@@ -81,9 +117,11 @@ export async function GET(request: Request, { params }: Params) {
       // for "no such artifact in this org" alike, so a still-valid token whose
       // artifact has since been deleted gets the stub rather than a 404. That
       // is deliberate, not an oversight. The stub is a constant with nothing
-      // artifact-derived in it, the token is already scoped to one artifact in
-      // one org and has been verified above, and the manifest route 404s for a
-      // deleted artifact -- so an agent never reaches this URL for one in any
+      // artifact-derived in it, the token has already been verified and
+      // authorized for this artifact above -- as the token's own artifact, or
+      // as a member of the one loadout it is scoped to -- and the manifest
+      // route 404s for a deleted artifact, so an agent never reaches this URL
+      // for one in any
       // real flow. Distinguishing the two cases would cost an extra query on
       // every capabilities read to change nothing an attacker could not
       // already infer from the token verifying at all.

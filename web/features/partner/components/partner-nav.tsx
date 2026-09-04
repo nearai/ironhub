@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  IconBackpack,
   IconLayoutDashboard,
   IconSettings,
   IconSparkles,
@@ -35,6 +36,7 @@ const TYPE_ICONS: Record<
   skill: IconSparkles,
   tool: IconTool,
   soul: IconUserHeart,
+  loadout: IconBackpack,
 }
 
 // Derived from the supported-type tuple rather than written out, so a type the

@@ -4,8 +4,11 @@ import {
   requireCatalogOriginBaseUrl,
 } from "@/lib/catalog/catalog-origin"
 import { assertSameOriginRequest, handleApiError } from "@/lib/http/api"
-import { assertArtifactContentComplete } from "@/lib/private-artifacts/service"
-import { mintArtifactToken } from "@/lib/private-artifacts/token"
+import {
+  assertArtifactContentComplete,
+  getPrivateArtifact,
+} from "@/lib/private-artifacts/service"
+import { mintInstallTokenForArtifact } from "@/lib/private-artifacts/token"
 import { assertPrivateArtifactPublishable } from "@/lib/private-artifacts/verification"
 
 type Params = {
@@ -20,9 +23,21 @@ export async function POST(request: Request, { params }: Params) {
     const { organizationId } = await requireActiveOrganization()
     const { id } = await params
 
+    // Read before it is checked, because the token this route mints depends on
+    // what the artifact *is*: a loadout is one credential for every member,
+    // anything else is one credential for itself. Org-scoped, so a
+    // cross-organization id is a 404 here exactly as it is below.
+    const artifact = await getPrivateArtifact(organizationId, id)
+
     // Ensures the artifact exists, belongs to the active org (404
     // otherwise), and has all content required by its type — otherwise the
     // resulting manifest fetch would fail with a 409.
+    //
+    // A loadout stores no content of its own, so this gate has no question to
+    // ask of one and refuses it as an unsupported type. That refusal is
+    // correct today -- loadout install delivery is blocked on IronClaw asks 4
+    // and 5 -- and it is upstream of the mint below, so no loadout reaches it
+    // yet. When the gate learns about loadouts, the mint is already right.
     await assertArtifactContentComplete(organizationId, id)
 
     // Matches the manifest route's requirement exactly: no request-derived
@@ -37,9 +52,8 @@ export async function POST(request: Request, { params }: Params) {
     // install must not be handed out as a URL that appears to work.
     await assertPrivateArtifactPublishable(organizationId, id, { baseUrl })
 
-    const token = mintArtifactToken({
+    const token = mintInstallTokenForArtifact(artifact, {
       organizationId,
-      artifactId: id,
       ttlSeconds: MANIFEST_TOKEN_TTL_SECONDS,
     })
 
