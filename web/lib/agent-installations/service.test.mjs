@@ -2,10 +2,11 @@ import assert from "node:assert/strict"
 import { createHash } from "node:crypto"
 import { mock, test } from "node:test"
 
-// Isolates resolveInstallArtifact's private branch from the real catalog
-// filesystem scan (getMarketplaceCatalogItem walks tools/ + skills/ via
-// readTools/readSkills) -- returning null/undefined here is what routes
-// every test below into resolvePrivateInstall.
+// Isolates resolveInstallArtifact from the real catalog filesystem scan
+// (getMarketplaceCatalogItem walks tools/ + skills/ via readTools/readSkills).
+// Which branch a test takes is now decided by the request's `source`, not by
+// whether this returns a row, so the public tests below set both catalogs and
+// assert which one answered.
 let marketplaceItem = null
 mock.module("@/lib/catalog/server", {
   namedExports: {
@@ -13,29 +14,55 @@ mock.module("@/lib/catalog/server", {
   },
 })
 
-// Never reached on this path (marketplaceItem is always null below, so
-// resolveInstallArtifact takes the private branch before this would be
-// called) -- mocked anyway because manifest.server.ts's own import graph
-// uses a TS parameter-property class field the plain `node --test` strip-
-// types loader can't parse, and a static `import` evaluates the whole
-// module regardless of whether this test path calls it.
+// Mocked even for the private tests that never call it, because
+// manifest.server.ts's own import graph uses a TS parameter-property class
+// field the plain `node --test` strip-types loader can't parse, and a static
+// `import` evaluates the whole module regardless of whether the test path
+// reaches it.
+let unifiedManifest = { tools: [], skills: [] }
 mock.module("@/lib/catalog/manifest.server", {
   namedExports: {
-    buildUnifiedManifest: async () => {
-      throw new Error("buildUnifiedManifest should not be called on the private-install path")
-    },
+    buildUnifiedManifest: async () => unifiedManifest,
   },
 })
 
+const ORGANIZATION_ID = "org-1"
+const ORGANIZATION_NAME = "Acme Robotics"
+
 let findFirstResult = null
+let memberUserIds = ["user-1"]
 let storedAssets = []
 let storedObjects = new Map()
+
+/** `{ some: { userId } }` -- the membership clause, wherever it is nested. */
+const isMember = (members) => memberUserIds.includes(members?.some?.userId)
 
 mock.module("@/lib/db", {
   namedExports: {
     prisma: {
       privateArtifact: {
-        findFirst: async () => findFirstResult,
+        // Applies the parts of the `where` clause the tests turn on rather
+        // than returning the fixture unconditionally: the membership clause
+        // is the only authorization on this path, so a mock that ignored it
+        // would let the non-member test pass against a query that had
+        // dropped it. The manifest builder re-reads the same row by id while
+        // resolution reads it by name, so one fake serves both and
+        // discriminates on which key the caller sent.
+        findFirst: async ({ where }) => {
+          if (!findFirstResult) return null
+          if (where.id) {
+            return where.id === findFirstResult.id ? findFirstResult : null
+          }
+          if (where.name !== findFirstResult.name) return null
+          if (where.organizationId !== ORGANIZATION_ID) return null
+          return isMember(where.organization?.members) ? findFirstResult : null
+        },
+      },
+      organization: {
+        findFirst: async ({ where }) =>
+          where.id === ORGANIZATION_ID && isMember(where.members)
+            ? { name: ORGANIZATION_NAME }
+            : null,
       },
       privateArtifactAsset: {
         findMany: async () => storedAssets,
@@ -120,9 +147,38 @@ function asset(kind, path, sha256 = `sha-${path}`) {
   }
 }
 
+/** A public marketplace tool entry, digestible by toolEntryArtifactDigest. */
+function publicToolEntry(name, sha = "public-wasm") {
+  return {
+    name,
+    crate_name: name,
+    version: "9.9.9",
+    description: "the public one",
+    provenance: "official",
+    wasm: {
+      url: `https://hub.example/${name}.wasm`,
+      size_bytes: 4,
+      sha256: sha,
+    },
+    capabilities: {
+      url: `https://hub.example/${name}.capabilities.json`,
+      size_bytes: 2,
+      sha256: "public-capabilities",
+    },
+  }
+}
+
+/** Publishes `name` in the marketplace catalog and in the unified manifest. */
+function publishPublicTool(name) {
+  marketplaceItem = { slug: name, version: "9.9.9", kind: "tool" }
+  unifiedManifest = { tools: [publicToolEntry(name)], skills: [] }
+}
+
 /** A v3 tool declaring two schemas and one prompt, all stored. */
 function completeToolFixture() {
   marketplaceItem = null
+  unifiedManifest = { tools: [], skills: [] }
+  memberUserIds = ["user-1"]
   findFirstResult = toolArtifact(["wasm", "manifest_toml"])
   storedObjects = new Map([[MANIFEST_TOML_KEY, MANIFEST_TOML]])
   storedAssets = [
@@ -135,8 +191,10 @@ function completeToolFixture() {
 function baseInput(overrides = {}) {
   return {
     slug: "firecrawl",
+    source: "private",
+    type: "tool",
     userId: "user-1",
-    organizationId: "org-1",
+    organizationId: ORGANIZATION_ID,
     ...overrides,
   }
 }
@@ -387,14 +445,121 @@ test("a declared asset that was never stored blocks the install rather than the 
   )
 })
 
-test("throws 'not found' when no artifact matches in the organization", async () => {
+// --- Source selection -------------------------------------------------------
+
+/**
+ * Resolution refuses with a thrown `Response`, whose body is a stream and so
+ * cannot be read from `assert.rejects`'s synchronous validator. Captured here
+ * instead, as the pair every assertion below is written against.
+ */
+async function refusal(input) {
+  try {
+    await resolveInstallArtifact(input)
+  } catch (error) {
+    assert.ok(error instanceof Response, `expected a Response, got ${error}`)
+    return { status: error.status, message: await error.text() }
+  }
+  assert.fail("expected the install to be refused")
+}
+
+test("source 'public' resolves against the marketplace catalog", async () => {
+  completeToolFixture()
+  publishPublicTool("firecrawl")
+
+  const resolved = await resolveInstallArtifact(baseInput({ source: "public" }))
+
+  assert.equal(resolved.version, "9.9.9")
+  // A public install carries no manifest token: the agent fetches a public
+  // artifact from the catalog origin, not through a per-install grant.
+  assert.equal(resolved.privateManifest, undefined)
+})
+
+test("a private artifact shadowing a public name is reachable under source 'private'", async () => {
+  // The defect this change closes: both catalogs publish `firecrawl`, and
+  // resolution used to try public first and never reach the user's own item.
+  completeToolFixture()
+  publishPublicTool("firecrawl")
+
+  const resolved = await resolveInstallArtifact(
+    baseInput({ source: "private" })
+  )
+
+  assert.equal(resolved.version, "0.1.0")
+  assert.ok(
+    resolved.privateManifest?.url.includes("/api/private-artifacts/manifest/")
+  )
+})
+
+test("source 'public' does not fall back to a private artifact of the same name", async () => {
+  completeToolFixture()
   marketplaceItem = null
+
+  const { status, message } = await refusal(baseInput({ source: "public" }))
+
+  assert.equal(status, 404)
+  assert.match(message, /No public marketplace entry is named "firecrawl"/)
+})
+
+test("source 'private' does not fall back to a public entry of the same name", async () => {
+  completeToolFixture()
+  publishPublicTool("firecrawl")
   findFirstResult = null
 
-  await assert.rejects(
-    () => resolveInstallArtifact(baseInput()),
-    /Marketplace Entry not found/
+  const { status, message } = await refusal(baseInput({ source: "private" }))
+
+  assert.equal(status, 404)
+  assert.match(message, /No artifact named "firecrawl"/)
+})
+
+// --- Private resolution errors ----------------------------------------------
+
+test("a private miss names the organization that was searched", async () => {
+  completeToolFixture()
+  findFirstResult = null
+
+  const { message } = await refusal(baseInput())
+
+  assert.match(
+    message,
+    /No artifact named "firecrawl" exists in "Acme Robotics"/
   )
+})
+
+test("a non-member is refused without being told the organization's name", async () => {
+  // The membership clause matches nothing for this caller, so the refusal
+  // reads exactly like an absent name -- naming the workspace would confirm
+  // which organization the id belongs to. It is also raised before the token
+  // is minted, which is the point: resolution returns no value at all, so
+  // there is nothing signed or granted to leak.
+  completeToolFixture()
+  memberUserIds = []
+
+  const { status, message } = await refusal(baseInput())
+
+  assert.equal(status, 404)
+  assert.match(message, /your active organization/)
+  assert.ok(!message.includes(ORGANIZATION_NAME))
+})
+
+test("a session with no active organization is told no private space is selected", async () => {
+  completeToolFixture()
+
+  const { status, message } = await refusal(
+    baseInput({ organizationId: undefined })
+  )
+
+  assert.equal(status, 400)
+  assert.match(message, /No private space is selected/)
+})
+
+test("a type mismatch names both the expected and the stored type", async () => {
+  completeToolFixture()
+
+  const { status, message } = await refusal(baseInput({ type: "skill" }))
+
+  assert.equal(status, 409)
+  assert.match(message, /is a tool/)
+  assert.match(message, /not a skill/)
 })
 
 test("a private skill still resolves with the unchanged C14 formula", async () => {
@@ -417,7 +582,9 @@ test("a private skill still resolves with the unchanged C14 formula", async () =
   storedAssets = []
   storedObjects = new Map()
 
-  const resolved = await resolveInstallArtifact(baseInput({ slug: "my-skill" }))
+  const resolved = await resolveInstallArtifact(
+    baseInput({ slug: "my-skill", type: "skill" })
+  )
 
   // skill_artifact_digest with no bundled files: SHA-256 over the skill
   // document's SHA *string*, which is what the hub has always produced.
@@ -425,4 +592,138 @@ test("a private skill still resolves with the unchanged C14 formula", async () =
     resolved.digest,
     `sha256:${createHash("sha256").update("sha-skill_md", "utf8").digest("hex")}`
   )
+})
+
+// --- add-artifact-versioning task 4.3 ----------------------------------------
+
+test("an install resolved after a version bump carries the new version", async () => {
+  completeToolFixture()
+
+  const before = await resolveInstallArtifact(baseInput())
+  assert.equal(before.version, "0.1.0")
+
+  // What a bump leaves behind: one row, one version string, replaced in place.
+  // Resolution reads it live rather than from anything captured at publish, so
+  // the payload's `version` field -- which the agent compares against what it
+  // already installed -- moves with it.
+  findFirstResult = { ...findFirstResult, version: "0.2.0" }
+
+  const after = await resolveInstallArtifact(baseInput())
+
+  assert.equal(after.version, "0.2.0")
+  assert.equal(after.slug, before.slug)
+})
+
+// --- Souls ------------------------------------------------------------------
+
+test("a private soul resolves with the soul digest over its document", async () => {
+  marketplaceItem = null
+  unifiedManifest = { tools: [], skills: [] }
+  memberUserIds = ["user-1"]
+  storedObjects = new Map()
+  storedAssets = []
+  findFirstResult = {
+    id: "artifact-1",
+    name: "careful-analyst",
+    version: "1.0.0",
+    type: "soul",
+    description: "desc",
+    content: [
+      {
+        kind: "soul_md",
+        sha256: "sha-soul_md",
+        sizeBytes: 64,
+        storageKey: "private-artifacts/org-1/artifact-1/soul_md",
+      },
+      // Stored but hub-only: it must not move the digest by so much as a bit.
+      {
+        kind: "readme_md",
+        sha256: "sha-readme_md",
+        sizeBytes: 32,
+        storageKey: "private-artifacts/org-1/artifact-1/readme_md",
+      },
+    ],
+  }
+
+  const resolved = await resolveInstallArtifact(
+    baseInput({ slug: "careful-analyst", type: "soul" })
+  )
+
+  const { soulArtifactDigest } = await import(
+    "@/lib/catalog/ironclaw-contract"
+  )
+  assert.equal(resolved.digest, soulArtifactDigest("sha-soul_md"))
+  assert.equal(resolved.version, "1.0.0")
+  assert.ok(resolved.privateManifest.url.includes("/private-artifacts/manifest/"))
+})
+
+test("asking to install a soul that is really a skill is refused, naming both", async () => {
+  marketplaceItem = null
+  unifiedManifest = { tools: [], skills: [] }
+  memberUserIds = ["user-1"]
+  storedObjects = new Map()
+  storedAssets = []
+  findFirstResult = {
+    id: "artifact-1",
+    name: "careful-analyst",
+    version: "1.0.0",
+    type: "skill",
+    description: "desc",
+    content: [],
+  }
+
+  try {
+    await resolveInstallArtifact(
+      baseInput({ slug: "careful-analyst", type: "soul" })
+    )
+    assert.fail("expected the type assertion to reject")
+  } catch (error) {
+    assert.ok(error instanceof Response)
+    assert.equal(error.status, 409)
+    assert.match(await error.text(), /is a skill in this workspace, not a soul/)
+  }
+})
+
+// --- Task 6.1: the token kind an install mints ------------------------------
+
+test("task 6.1: a tool install still carries a single-artifact token", async () => {
+  completeToolFixture()
+
+  const resolved = await resolveInstallArtifact(baseInput())
+  const claims = verifyArtifactToken(resolved.privateManifest.token)
+
+  // The regression guard on the path already in production: loadouts added a
+  // second token kind, and nothing about a tool's install may have moved.
+  assert.equal(claims.artifactId, "artifact-1")
+  assert.equal(claims.loadoutId, undefined)
+})
+
+test("task 6.1: a loadout is still refused before an install token is minted", async () => {
+  // Where this workstream stops. `InstallArtifactType` has no `loadout`, so
+  // the type assertion refuses one here and install delivery stays unbuilt
+  // (blocked on IronClaw asks 4 and 5). The mint below it is already
+  // loadout-correct -- see mintInstallTokenForArtifact -- so wiring delivery
+  // is a change to the accepted types and the payload, not to the credential.
+  marketplaceItem = null
+  unifiedManifest = { tools: [], skills: [] }
+  memberUserIds = ["user-1"]
+  storedObjects = new Map()
+  storedAssets = []
+  findFirstResult = {
+    id: "loadout-1",
+    name: "trader",
+    version: "1.0.0",
+    type: "loadout",
+    description: "desc",
+    content: [],
+  }
+
+  try {
+    await resolveInstallArtifact(baseInput({ slug: "trader", type: "tool" }))
+    assert.fail("expected the type assertion to reject")
+  } catch (error) {
+    assert.ok(error instanceof Response)
+    assert.equal(error.status, 409)
+    assert.match(await error.text(), /is a loadout in this workspace, not a tool/)
+  }
 })

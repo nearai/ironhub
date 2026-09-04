@@ -21,6 +21,8 @@ import {
 import type {
   AgentInstallationInput,
   AgentInstallationView,
+  InstallArtifactType,
+  InstallSource,
 } from "@/lib/agent-installations/types"
 import {
   resolvePublicAddresses,
@@ -31,13 +33,14 @@ import {
 import { requireCatalogOriginBaseUrl } from "@/lib/catalog/catalog-origin"
 import {
   skillEntryArtifactDigest,
+  soulArtifactDigest,
   toolEntryArtifactDigest,
 } from "@/lib/catalog/ironclaw-contract"
 import { getMarketplaceCatalogItem } from "@/lib/catalog/server"
 import { buildUnifiedManifest } from "@/lib/catalog/manifest.server"
 import { prisma } from "@/lib/db"
 import { buildPrivateArtifactEntry } from "@/lib/private-artifacts/manifest"
-import { mintArtifactToken } from "@/lib/private-artifacts/token"
+import { mintInstallTokenForArtifact } from "@/lib/private-artifacts/token"
 import { assertPublishedEntryInstallable } from "@/lib/private-artifacts/verification"
 
 type AgentInstallationRow = {
@@ -211,6 +214,8 @@ export async function verifyAgentInstallation(userId: string, id: string) {
 export async function createInstallIntent(input: {
   userId: string
   slug: string
+  source: InstallSource
+  type: InstallArtifactType
   agentInstallationId?: string
   organizationId?: string
 }) {
@@ -280,50 +285,81 @@ export async function createInstallIntent(input: {
 // digest touches.
 export async function resolveInstallArtifact(input: {
   slug: string
+  source: InstallSource
+  type: InstallArtifactType
   userId: string
   organizationId?: string
 }): Promise<ResolvedInstallArtifact> {
-  const item = await getMarketplaceCatalogItem(input.slug)
-  if (item) {
-    const manifest = await buildUnifiedManifest()
-    const manifestTool = manifest.tools.find((t) => t.name === item.slug)
-    const manifestSkill = manifest.skills.find((s) => s.name === item.slug)
-    // Digested from the manifest entry itself, so the inputs are exactly the
-    // artifacts the entry publishes -- schemas and prompts included, which the
-    // previous formula ignored entirely (design.md D4 / C13). `capabilities`
-    // is typed optional on HubToolEntry but is required in practice: an entry
-    // without it fails the agent's parse of the whole manifest (C7), so
-    // toolEntryArtifactDigest throws rather than digesting around it.
-    const digest = manifestTool
-      ? toolEntryArtifactDigest(manifestTool)
-      : manifestSkill
-        ? skillEntryArtifactDigest(manifestSkill)
-        : null
-    if (!digest) {
-      throw new Error("Marketplace Entry is not in the installable manifest.")
-    }
-    return { slug: item.slug, version: item.version, digest }
-  }
-
-  if (input.organizationId) {
-    const privateTarget = await resolvePrivateInstall(
-      input.userId,
-      input.organizationId,
-      input.slug
-    )
-    if (privateTarget) {
-      return privateTarget
-    }
-  }
-
-  throw new Error("Marketplace Entry not found.")
+  // Dispatched, not chained. The two catalogs used to be tried in order --
+  // public, then private -- which made a private artifact whose name matched
+  // a public one unreachable: the user pressed Install on their own item and
+  // silently received someone else's. Neither branch falls through to the
+  // other, so a miss is reported against the catalog the caller named rather
+  // than being answered from the one it did not.
+  return input.source === "private"
+    ? resolvePrivateInstall(input)
+    : resolvePublicInstall(input.slug)
 }
 
-async function resolvePrivateInstall(
-  userId: string,
-  organizationId: string,
+async function resolvePublicInstall(
   slug: string
-): Promise<ResolvedInstallArtifact | null> {
+): Promise<ResolvedInstallArtifact> {
+  const item = await getMarketplaceCatalogItem(slug)
+  if (!item) {
+    throw new Response(`No public marketplace entry is named "${slug}".`, {
+      status: 404,
+    })
+  }
+
+  const manifest = await buildUnifiedManifest()
+  const manifestTool = manifest.tools.find((t) => t.name === item.slug)
+  const manifestSkill = manifest.skills.find((s) => s.name === item.slug)
+  // Digested from the manifest entry itself, so the inputs are exactly the
+  // artifacts the entry publishes -- schemas and prompts included, which the
+  // previous formula ignored entirely (design.md D4 / C13). `capabilities`
+  // is typed optional on HubToolEntry but is required in practice: an entry
+  // without it fails the agent's parse of the whole manifest (C7), so
+  // toolEntryArtifactDigest throws rather than digesting around it.
+  const digest = manifestTool
+    ? toolEntryArtifactDigest(manifestTool)
+    : manifestSkill
+      ? skillEntryArtifactDigest(manifestSkill)
+      : null
+  if (!digest) {
+    throw new Error("Marketplace Entry is not in the installable manifest.")
+  }
+
+  return { slug: item.slug, version: item.version, digest }
+}
+
+async function resolvePrivateInstall(input: {
+  slug: string
+  type: InstallArtifactType
+  userId: string
+  organizationId?: string
+}): Promise<ResolvedInstallArtifact> {
+  // The active organization is the whole address of a private artifact --
+  // there is no organization-less private space to search -- so a session
+  // without one is a question the hub cannot answer rather than a lookup that
+  // finds nothing. Said in terms of the org switcher, which is the control
+  // the user has to fix it.
+  if (!input.organizationId) {
+    throw new Response(
+      "No private space is selected. Pick the organization that owns this item and try again.",
+      { status: 400 }
+    )
+  }
+
+  const { organizationId, slug, userId } = input
+
+  // Keyed on `(organizationId, name)` and not on the type: that pair is what
+  // `createPrivateArtifact` keeps collision-free by suffixing a duplicate
+  // name to `-2`, so it already addresses one row. Filtering on type as well
+  // would turn a wrong-type request into "no such artifact", which is the
+  // less useful of the two errors -- the type is asserted below instead.
+  // The membership clause is the authorization: a caller with no membership
+  // matches nothing and is answered exactly as a caller whose organization
+  // holds no such name, so the miss never confirms the artifact exists.
   const artifact = await prisma.privateArtifact.findFirst({
     where: {
       name: slug,
@@ -331,10 +367,20 @@ async function resolvePrivateInstall(
       organization: { members: { some: { userId } } },
     },
     orderBy: { updatedAt: "desc" },
-    select: { id: true, name: true, version: true },
+    select: { id: true, name: true, version: true, type: true },
   })
   if (!artifact) {
-    return null
+    throw new Response(
+      `No artifact named "${slug}" exists in ${await describeSearchedOrganization(userId, organizationId)}.`,
+      { status: 404 }
+    )
+  }
+
+  if (artifact.type !== input.type) {
+    throw new Response(
+      `"${slug}" is a ${artifact.type} in this workspace, not a ${input.type}.`,
+      { status: 409 }
+    )
   }
 
   // Validated, not merely present: this URL and every artifact URL derived
@@ -348,9 +394,18 @@ async function resolvePrivateInstall(
   // the install-delivery HMAC, so it cannot be issued later; and the entry
   // whose artifacts are digested carries that same token in every URL, so it
   // cannot be built earlier.
-  const token = mintArtifactToken({
+  //
+  // Which kind of token is decided from the artifact row, not from the type
+  // the caller asked for: a loadout needs one credential that authorizes every
+  // member (design.md -- "Token claims move from an artifact to a loadout,
+  // with membership authorization"), and a single-artifact token minted for
+  // one would fetch the manifest and then 403 on the first member. Nothing
+  // reaches this line as a loadout yet -- `InstallArtifactType` has no
+  // `loadout` and the type assertion above refuses the mismatch -- so this is
+  // the prerequisite sitting ahead of install delivery rather than delivery
+  // itself, which is blocked on IronClaw asks 4 and 5.
+  const token = mintInstallTokenForArtifact(artifact, {
     organizationId,
-    artifactId: artifact.id,
     ttlSeconds: ARTIFACT_TOKEN_TTL_SECONDS,
   })
 
@@ -376,10 +431,17 @@ async function resolvePrivateInstall(
   // has already been signed and delivered.
   assertPublishedEntryInstallable(entry)
 
+  // A soul is digested with `soulArtifactDigest` even though it publishes a
+  // skill entry and the two formulas are the same value today. They are the
+  // same because a soul publishes no `files[]`, not because a soul is a
+  // skill; naming the soul formula here is what makes the day they diverge a
+  // change in ironclaw-contract.ts rather than a hunt through call sites.
   const digest =
     entry.type === "tool"
       ? toolEntryArtifactDigest(entry.tool)
-      : skillEntryArtifactDigest(entry.skill)
+      : entry.type === "soul"
+        ? soulArtifactDigest(entry.skill.skill_md.sha256)
+        : skillEntryArtifactDigest(entry.skill)
 
   const url = `${baseUrl}/api/private-artifacts/manifest/${encodeURIComponent(token)}`
 
@@ -389,6 +451,29 @@ async function resolvePrivateInstall(
     digest,
     privateManifest: { url, token },
   }
+}
+
+/**
+ * Names the workspace a private miss was searched in, because the likeliest
+ * cause of one is an org switcher left on another workspace and an error that
+ * names what it searched turns that into a self-service fix.
+ *
+ * Re-read under the membership clause rather than joined onto the lookup
+ * above: that lookup found nothing, and it found nothing either because the
+ * name is absent or because the caller is not a member. Only a member is told
+ * the workspace's name -- naming it to a stranger would confirm which
+ * organization an id belongs to.
+ */
+async function describeSearchedOrganization(
+  userId: string,
+  organizationId: string
+): Promise<string> {
+  const organization = await prisma.organization.findFirst({
+    where: { id: organizationId, members: { some: { userId } } },
+    select: { name: true },
+  })
+
+  return organization ? `"${organization.name}"` : "your active organization"
 }
 
 async function getInstallTarget(input: {

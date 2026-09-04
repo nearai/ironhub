@@ -55,7 +55,7 @@ describe("SecureInstallButton", () => {
   })
 
   it("states the click-through deadline before the install is started", () => {
-    render(<SecureInstallButton slug="firecrawl" />)
+    render(<SecureInstallButton slug="firecrawl" source="public" type="tool" />)
 
     expect(
       screen.getByText(/You have 5 minutes to approve the install/)
@@ -64,7 +64,7 @@ describe("SecureInstallButton", () => {
 
   it("shows a countdown against expiresAt that decreases", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(intentResponse())
-    render(<SecureInstallButton slug="firecrawl" />)
+    render(<SecureInstallButton slug="firecrawl" source="public" type="tool" />)
 
     await clickButton(/Install to Agent/)
 
@@ -90,7 +90,7 @@ describe("SecureInstallButton", () => {
 
   it("switches to an expired state offering a re-issue once the deadline passes", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(intentResponse(2000))
-    render(<SecureInstallButton slug="firecrawl" />)
+    render(<SecureInstallButton slug="firecrawl" source="public" type="tool" />)
 
     await clickButton(/Install to Agent/)
     await waitFor(() =>
@@ -116,7 +116,7 @@ describe("SecureInstallButton", () => {
     vi.mocked(fetch)
       .mockImplementationOnce(async () => intentResponse(2000))
       .mockImplementationOnce(async () => intentResponse())
-    render(<SecureInstallButton slug="firecrawl" />)
+    render(<SecureInstallButton slug="firecrawl" source="public" type="tool" />)
 
     await clickButton(/Install to Agent/)
     await act(async () => {
@@ -139,7 +139,7 @@ describe("SecureInstallButton", () => {
         headers: { "content-type": "application/json" },
       })
     )
-    render(<SecureInstallButton slug="firecrawl" />)
+    render(<SecureInstallButton slug="firecrawl" source="public" type="tool" />)
 
     await clickButton(/Install to Agent/)
 
@@ -158,7 +158,7 @@ describe("SecureInstallButton", () => {
         { status: 400, headers: { "content-type": "application/json" } }
       )
     )
-    render(<SecureInstallButton slug="firecrawl" />)
+    render(<SecureInstallButton slug="firecrawl" source="public" type="tool" />)
 
     await clickButton(/Install to Agent/)
 
@@ -172,9 +172,54 @@ describe("SecureInstallButton", () => {
     ).not.toBeInTheDocument()
   })
 
+  it("names the catalog and the kind it is asking the hub to resolve", async () => {
+    // A slug alone no longer addresses an artifact: the marketplace and a
+    // private workspace can both publish `firecrawl`, and the hub refuses to
+    // pick between them. The screen knows which one it is on, so it says so.
+    vi.mocked(fetch).mockResolvedValueOnce(intentResponse())
+    render(<SecureInstallButton slug="firecrawl" source="public" type="tool" />)
+
+    await clickButton(/Install to Agent/)
+
+    const [, init] = vi.mocked(fetch).mock.calls[0]
+    expect(JSON.parse(String(init?.body))).toEqual({
+      slug: "firecrawl",
+      source: "public",
+      type: "tool",
+    })
+  })
+
+  it("surfaces a plain-text resolution refusal as written", async () => {
+    // Resolution refuses with `throw new Response(message, ...)`, so the body
+    // is a sentence rather than `{ error }`. Reading only the JSON shape
+    // turned the one message that tells the user which workspace was searched
+    // into a parse error about an unexpected token.
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response('No artifact named "firecrawl" exists in "Acme Robotics".', {
+        status: 404,
+        headers: { "content-type": "text/plain" },
+      })
+    )
+    render(
+      <SecureInstallButton slug="firecrawl" source="private" type="tool" />
+    )
+
+    await clickButton(/Install to Agent/)
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          'No artifact named "firecrawl" exists in "Acme Robotics".'
+        )
+      ).toBeInTheDocument()
+    )
+  })
+
   it("does not surface the artifact download window", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(intentResponse())
-    const { container } = render(<SecureInstallButton slug="firecrawl" />)
+    const { container } = render(
+      <SecureInstallButton slug="firecrawl" source="public" type="tool" />
+    )
 
     await clickButton(/Install to Agent/)
     await waitFor(() =>
@@ -192,14 +237,18 @@ describe("SecureInstallButton", () => {
   describe("agent install flag", () => {
     it("renders nothing when isAgentInstallEnabled is off", () => {
       featureFlags.isAgentInstallEnabled = false
-      const { container } = render(<SecureInstallButton slug="firecrawl" />)
+      const { container } = render(
+        <SecureInstallButton slug="firecrawl" source="public" type="tool" />
+      )
 
       expect(container).toBeEmptyDOMElement()
     })
 
     it("renders normally when isAgentInstallEnabled is on", () => {
       featureFlags.isAgentInstallEnabled = true
-      render(<SecureInstallButton slug="firecrawl" />)
+      render(
+        <SecureInstallButton slug="firecrawl" source="public" type="tool" />
+      )
 
       expect(
         screen.getByRole("button", { name: /Install to Agent/ })

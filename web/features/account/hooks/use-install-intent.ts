@@ -4,6 +4,10 @@ import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
 
 import { INSTALL_CLICK_THROUGH_WINDOW_SECONDS } from "@/lib/agent-installations/install-timing"
+import type {
+  InstallArtifactType,
+  InstallSource,
+} from "@/lib/agent-installations/types"
 
 /**
  * A started install, held on screen so its deadline can be shown.
@@ -32,7 +36,20 @@ export type InstallIntentState = {
 
 export const INSTALL_WINDOW_SECONDS = INSTALL_CLICK_THROUGH_WINDOW_SECONDS
 
-export function useInstallIntent(slug: string | null): InstallIntentState {
+/**
+ * `source` and `type` are taken as separate scalars rather than as one target
+ * object so the request callback below keeps a stable identity across renders;
+ * a freshly built object in the dependency list would rebuild it every time.
+ *
+ * Both are required because the endpoint requires them: a slug alone does not
+ * name an artifact once the marketplace and a private workspace can publish
+ * the same name (see InstallSource).
+ */
+export function useInstallIntent(
+  slug: string | null,
+  source: InstallSource,
+  type: InstallArtifactType
+): InstallIntentState {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [isPending, setIsPending] = useState(false)
@@ -61,7 +78,7 @@ export function useInstallIntent(slug: string | null): InstallIntentState {
       const res = await fetch("/api/install-intents", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ slug }),
+        body: JSON.stringify({ slug, source, type }),
       })
 
       if (res.status === 401) {
@@ -69,17 +86,17 @@ export function useInstallIntent(slug: string | null): InstallIntentState {
         return
       }
 
-      const body = await res.json()
-
       if (!res.ok) {
-        if (body.error === "No default Agent Installation.") {
+        const message = await readErrorMessage(res)
+        if (message === "No default Agent Installation.") {
           router.push(accountSetupPath)
           return
         }
 
-        throw new Error(body.error ?? "Install intent failed.")
+        throw new Error(message)
       }
 
+      const body = await res.json()
       const expiresAt = Date.parse(body.expiresAt)
       setNow(Date.now())
       setPending({
@@ -115,7 +132,7 @@ export function useInstallIntent(slug: string | null): InstallIntentState {
     } finally {
       setIsPending(false)
     }
-  }, [router, slug])
+  }, [router, slug, source, type])
 
   const dismiss = useCallback(() => {
     setPending(null)
@@ -134,6 +151,31 @@ export function useInstallIntent(slug: string | null): InstallIntentState {
     isExpired: secondsRemaining === 0,
     startInstall,
     dismiss,
+  }
+}
+
+/**
+ * Install failures arrive in both of the shapes this app produces: the JSON
+ * `{ error }` that `handleApiError` wraps a thrown Error in, and the plain
+ * sentence of a thrown `Response` (`throw new Response("No artifact named
+ * ...", { status: 404 })`), which is how resolution reports which catalog it
+ * searched. Reading only the first shape turned the second into a JSON parse
+ * error, which is the one message on screen that tells the user nothing.
+ */
+async function readErrorMessage(response: Response): Promise<string> {
+  const fallback = "Install intent failed."
+  const body = await response.text().catch(() => "")
+  if (!body) return fallback
+
+  try {
+    const parsed = JSON.parse(body)
+    return typeof parsed?.error === "string" ? parsed.error : fallback
+  } catch {
+    // Guarded the same way features/partner/api/client.ts guards it: a proxy's
+    // HTML error page or a stack dump is not a sentence anyone wants rendered
+    // inside the install card.
+    const text = body.trim()
+    return text && text.length <= 300 && !text.startsWith("<") ? text : fallback
   }
 }
 
