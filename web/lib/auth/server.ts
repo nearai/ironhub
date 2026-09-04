@@ -4,13 +4,21 @@ import { nextCookies } from "better-auth/next-js"
 import { organization } from "better-auth/plugins"
 import { siwn } from "better-near-auth"
 import { prisma } from "../db"
+import { hasReachedOrganizationLimit } from "../orgs/limits"
 import { getInitialOrganization } from "./organization"
+
+const configuredOrigins = (process.env.TRUSTED_ORIGINS ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean)
 
 const trustedOrigins = Array.from(
   new Set(
-    [process.env.BETTER_AUTH_URL, process.env.NEXT_PUBLIC_APP_URL].filter(
-      (origin): origin is string => Boolean(origin)
-    )
+    [
+      process.env.BETTER_AUTH_URL,
+      process.env.NEXT_PUBLIC_APP_URL,
+      ...configuredOrigins,
+    ].filter((origin): origin is string => Boolean(origin))
   )
 )
 
@@ -48,9 +56,8 @@ export const auth = betterAuth({
         before: async (session) => ({
           data: {
             ...session,
-            activeOrganizationId: (
-              await getInitialOrganization(session.userId)
-            ).id,
+            activeOrganizationId: (await getInitialOrganization(session.userId))
+              .id,
           },
         }),
       },
@@ -61,7 +68,21 @@ export const auth = betterAuth({
       recipient: process.env.BETTER_AUTH_URL!,
       requireFullAccessKey: false,
     }),
-    organization(),
+    organization({
+      // Caps how many organizations one account can create. Counts owner
+      // memberships only, so being invited into other workspaces never eats
+      // into the quota. Returning `true` means "limit reached".
+      organizationLimit: async (user) =>
+        hasReachedOrganizationLimit(
+          await prisma.member.count({
+            where: { userId: user.id, role: "owner" },
+          })
+        ),
+      // In-app invitations only: no email is ever sent, invitations surface in
+      // the workspace notification bell. 7-day expiry per the org-invitations spec.
+      invitationExpiresIn: 60 * 60 * 24 * 7,
+      requireEmailVerificationOnInvitation: false,
+    }),
     nextCookies(),
   ],
 })

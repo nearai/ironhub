@@ -77,6 +77,7 @@ for dir in "$ROOT"/tools/*/; do
   version="$(grep -E '^version[[:space:]]*=' "$cargo_toml" | head -1 | sed -E 's/^version[[:space:]]*=[[:space:]]*"(.+)"[[:space:]]*$/\1/')"
 
   
+
   if "$ROOT/scripts/generate-extension-manifest.py" \
       "$caps_file" "$name" "$crate_name" "$version" > "${out_dir}/${name}.toml"; then
     echo "ok: $name"

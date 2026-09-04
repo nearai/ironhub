@@ -1,6 +1,6 @@
 ---
 name: bluesky-analytics
-version: 0.2.0
+version: 0.2.1
 description: Read-only Bluesky (AT Protocol) analytics. Browse public accounts, posts, social graph, and engagement via the unauthenticated AppView. Look up profiles with follower/post counts, read an account's feed with per-post like/repost/reply counts, walk a post's reply (comment) tree, list followers/follows and who liked/reposted a post, and search for accounts. No authentication required.
 use_cases:
   - Audit a Bluesky account's reach — follower/following/post counts and per-post engagement

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "get_schema input",
+  "type": "object",
+  "properties": {
+    "base_id": {
+      "type": "string",
+      "description": "Airtable base id (starts with 'app'). Provide this or 'base_url'."
+    },
+    "base_url": {
+      "type": "string",
+      "description": "A pasted Airtable URL; the base/table/view ids are extracted from it. Alternative to base_id+table."
+    }
+  },
+  "additionalProperties": false
+}

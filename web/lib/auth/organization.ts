@@ -9,7 +9,10 @@ type OrganizationUser = {
 }
 
 export async function createOrganization(user: OrganizationUser) {
-  const base = user.email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "-")
+  const base = user.email
+    .split("@")[0]
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "-")
   const name = user.name.trim() ? user.name : user.email.split("@")[0]
 
   return prisma.organization.create({

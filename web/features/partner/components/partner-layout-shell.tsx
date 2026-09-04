@@ -1,93 +1,49 @@
 "use client"
 
-import { IconMenu2, IconPlus } from "@tabler/icons-react"
-import Link from "next/link"
-import { useState } from "react"
-
-import { Button } from "@/components/ui/button"
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
-import { PartnerProvider } from "@/features/partner/store/partner-store"
+import { PartnerQueryProvider } from "@/features/partner/api/query-provider"
+import { OrgSwitcher } from "./org-switcher"
 import { PartnerNav } from "./partner-nav"
-import { PartnerSupportCard } from "./partner-support-card"
 
 type PartnerLayoutShellProps = {
   children: React.ReactNode
 }
 
 export function PartnerLayoutShell({ children }: PartnerLayoutShellProps) {
-  const [mobileNavOpen, setMobileNavOpen] = useState(false)
-
   return (
-    <PartnerProvider>
-      <div className="mx-auto flex max-w-7xl flex-1 items-stretch">
-        <aside className="hidden w-64 shrink-0 border-r border-[var(--ironhub-line)] bg-background/40 backdrop-blur-md lg:block">
-          <div className="sticky top-16 flex h-[calc(100vh-4rem)] flex-col gap-6 p-6">
+    <PartnerQueryProvider>
+      <div className="mx-auto flex min-h-[calc(100vh-4rem-1px)] w-full max-w-[1240px] flex-1 items-stretch px-5 sm:px-8">
+        {/* relative z-30: backdrop-blur creates a stacking context, so the
+            sidebar (and the popovers inside it) must sit above <main>. */}
+        <aside className="relative z-30 hidden w-60 shrink-0 border-r border-[var(--ironhub-line)] lg:block xl:w-64">
+          <div className="sticky top-16 flex flex-col gap-6 py-6 pr-6">
             <div>
-              <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                Private Space
+              <p className="text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+                Private space
               </p>
-              <h2 className="mt-1 text-sm font-semibold text-foreground">
-                Circle Org Space
-              </h2>
+              <OrgSwitcher className="mt-2 w-full" />
             </div>
 
+            <div className="border-t border-[var(--ironhub-line)]" />
+
             <PartnerNav />
-            <Button asChild className="w-full rounded-xl shadow-sm bg-primary text-primary-foreground hover:bg-primary/95 transition-all duration-200 mt-auto font-semibold shrink-0">
-              <Link href="/mvp/new-submit">
-                <IconPlus className="size-4 mr-1.5" />
-                Add Skill / Tool
-              </Link>
-            </Button>
-            <PartnerSupportCard />
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 px-4 py-8 sm:px-6 lg:p-8">
+        <main className="min-w-0 flex-1 pt-6 pb-24 lg:pt-8 lg:pl-8">
           <div className="mb-4 flex items-center gap-3 lg:hidden">
-            <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-              <SheetTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full"
-                  aria-label="Open partner menu"
-                >
-                  <IconMenu2 className="size-4" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-72 p-6">
-                <SheetHeader className="p-0">
-                  <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                    Private Space
-                  </p>
-                  <SheetTitle className="text-sm">Circle Org Space</SheetTitle>
-                </SheetHeader>
-                <div className="mt-6 flex h-full flex-col gap-6">
-                  <PartnerNav onNavigate={() => setMobileNavOpen(false)} />
-                  <Button asChild className="w-full rounded-xl shadow-sm bg-primary text-primary-foreground hover:bg-primary/95 transition-all duration-200 mt-auto font-semibold shrink-0">
-                    <Link href="/mvp/new-submit" onClick={() => setMobileNavOpen(false)}>
-                      <IconPlus className="size-4 mr-1.5" />
-                      Add Skill / Tool
-                    </Link>
-                  </Button>
-                  <PartnerSupportCard />
-                </div>
-              </SheetContent>
-            </Sheet>
-            <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-              Private Space
-            </span>
+            {/* design D8: below `lg` the sidebar (and its org switcher) is
+                hidden, so this row is the only place a member on a phone can
+                see or change the active organization -- a static caption
+                does not belong here. The site header's own hamburger
+                (MobileNav) already covers Catalog/Members/Settings on
+                workspace routes, so this row no longer needs a second
+                trigger of its own -- the switcher takes the full row. */}
+            <OrgSwitcher className="min-w-0 flex-1" />
           </div>
 
-          <div className="ih-fade-up max-w-5xl">{children}</div>
+          <div className="ih-fade-up">{children}</div>
         </main>
       </div>
-    </PartnerProvider>
+    </PartnerQueryProvider>
   )
 }

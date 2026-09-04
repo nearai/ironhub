@@ -1,6 +1,6 @@
 ---
 name: serper
-version: 0.2.0
+version: 0.2.1
 description: Google Search API oracle for Ironclaw via Serper.dev. Retrieves organic results, news, images, videos, local places, and shopping listings.
 use_cases:
   - Google web search for real-time web context and research

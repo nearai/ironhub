@@ -1,6 +1,6 @@
 [package]
 name = "youtube-reborn-tool"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 description = "YouTube Data API and transcript WASM extension for IronClaw Reborn"
 license = "MIT OR Apache-2.0"

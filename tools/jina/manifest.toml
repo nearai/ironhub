@@ -1,7 +1,7 @@
-schema_version = "reborn.extension_manifest.v2"
+schema_version = "reborn.extension_manifest.v3"
 id = "jina"
 name = "Jina AI"
-version = "0.2.3"
+version = "0.2.4"
 description = "Read web pages and PDFs as compact content, capture webpage screenshots, and search the web, arXiv, SSRN, or images through Jina AI. The host injects one Jina API key only for the Reader and Search API hosts."
 trust = "third_party"
 
@@ -9,13 +9,8 @@ trust = "third_party"
 kind = "wasm"
 module = "wasm/jina_reborn_tool.wasm"
 
-[[host_api]]
-id = "ironclaw.capability_provider/v1"
-section = "capability_provider.tools"
-
-[capability_provider.tools]
-
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "jina.read_url"
 description = "Read a URL and convert its content to compact Markdown."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -25,14 +20,14 @@ input_schema_ref = "schemas/jina/read_url.input.v1.json"
 output_schema_ref = "schemas/jina/output.v1.json"
 prompt_doc_ref = "prompts/jina/read_url.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "jina_runtime_key"
-source = { type = "product_auth_account", provider = "jina" }
-audience = { scheme = "https", host_pattern = "r.jina.ai" }
-target = { type = "header", name = "authorization", prefix = "Bearer " }
-required = true
+vendor = "jina"
+audience = { scheme = "https", host = "r.jina.ai" }
+injection = { type = "header", name = "authorization", prefix = "Bearer " }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "jina.capture_screenshot_url"
 description = "Create a screenshot URL for a web page."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -42,14 +37,14 @@ input_schema_ref = "schemas/jina/capture_screenshot_url.input.v1.json"
 output_schema_ref = "schemas/jina/output.v1.json"
 prompt_doc_ref = "prompts/jina/capture_screenshot_url.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "jina_runtime_key"
-source = { type = "product_auth_account", provider = "jina" }
-audience = { scheme = "https", host_pattern = "r.jina.ai" }
-target = { type = "header", name = "authorization", prefix = "Bearer " }
-required = true
+vendor = "jina"
+audience = { scheme = "https", host = "r.jina.ai" }
+injection = { type = "header", name = "authorization", prefix = "Bearer " }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "jina.search_web"
 description = "Search the web with Jina Search."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -59,14 +54,14 @@ input_schema_ref = "schemas/jina/search_web.input.v1.json"
 output_schema_ref = "schemas/jina/output.v1.json"
 prompt_doc_ref = "prompts/jina/search_web.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "jina_runtime_key"
-source = { type = "product_auth_account", provider = "jina" }
-audience = { scheme = "https", host_pattern = "svip.jina.ai" }
-target = { type = "header", name = "authorization", prefix = "Bearer " }
-required = true
+vendor = "jina"
+audience = { scheme = "https", host = "svip.jina.ai" }
+injection = { type = "header", name = "authorization", prefix = "Bearer " }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "jina.search_arxiv"
 description = "Search arXiv papers with Jina Search."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -76,14 +71,14 @@ input_schema_ref = "schemas/jina/search_arxiv.input.v1.json"
 output_schema_ref = "schemas/jina/output.v1.json"
 prompt_doc_ref = "prompts/jina/search_arxiv.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "jina_runtime_key"
-source = { type = "product_auth_account", provider = "jina" }
-audience = { scheme = "https", host_pattern = "svip.jina.ai" }
-target = { type = "header", name = "authorization", prefix = "Bearer " }
-required = true
+vendor = "jina"
+audience = { scheme = "https", host = "svip.jina.ai" }
+injection = { type = "header", name = "authorization", prefix = "Bearer " }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "jina.search_ssrn"
 description = "Search SSRN papers with Jina Search."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -93,14 +88,14 @@ input_schema_ref = "schemas/jina/search_ssrn.input.v1.json"
 output_schema_ref = "schemas/jina/output.v1.json"
 prompt_doc_ref = "prompts/jina/search_ssrn.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "jina_runtime_key"
-source = { type = "product_auth_account", provider = "jina" }
-audience = { scheme = "https", host_pattern = "svip.jina.ai" }
-target = { type = "header", name = "authorization", prefix = "Bearer " }
-required = true
+vendor = "jina"
+audience = { scheme = "https", host = "svip.jina.ai" }
+injection = { type = "header", name = "authorization", prefix = "Bearer " }
 
-[[capability_provider.tools.capabilities]]
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
 id = "jina.search_images"
 description = "Search for images with Jina Search."
 effects = ["dispatch_capability", "network", "use_secret"]
@@ -110,9 +105,15 @@ input_schema_ref = "schemas/jina/search_images.input.v1.json"
 output_schema_ref = "schemas/jina/output.v1.json"
 prompt_doc_ref = "prompts/jina/search_images.md"
 
-[[capability_provider.tools.capabilities.runtime_credentials]]
+[[tools.credentials]]
 handle = "jina_runtime_key"
-source = { type = "product_auth_account", provider = "jina" }
-audience = { scheme = "https", host_pattern = "svip.jina.ai" }
-target = { type = "header", name = "authorization", prefix = "Bearer " }
-required = true
+vendor = "jina"
+audience = { scheme = "https", host = "svip.jina.ai" }
+injection = { type = "header", name = "authorization", prefix = "Bearer " }
+
+[auth.jina]
+method = "api_key"
+display_name = "Jina API key"
+fields = [
+  { handle = "jina_runtime_key", label = "Jina API key", secret = true },
+]

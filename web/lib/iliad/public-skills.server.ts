@@ -25,7 +25,8 @@ class IliadPublicSkillsError extends Error {
 export async function fetchIliadPublicSkillsList(
   params: IliadPublicSkillsListParams = {}
 ): Promise<IliadPublicSkillsList> {
-  if (!isIliadEnabled()) throw new IliadPublicSkillsError("Iliad is disabled.", 404)
+  if (!isIliadEnabled())
+    throw new IliadPublicSkillsError("Iliad is disabled.", 404)
 
   const url = new URL(getIliadBaseUrl())
   const normalized = normalizeIliadListParams(params)
@@ -42,7 +43,8 @@ export async function fetchIliadPublicSkill(
   name: string,
   version: string
 ): Promise<IliadPublicSkill> {
-  if (!isIliadEnabled()) throw new IliadPublicSkillsError("Iliad is disabled.", 404)
+  if (!isIliadEnabled())
+    throw new IliadPublicSkillsError("Iliad is disabled.", 404)
 
   const url = new URL(
     `${getIliadBaseUrl()}/${encodeURIComponent(userId)}/${encodeURIComponent(name)}/${encodeURIComponent(version)}`

@@ -1,6 +1,6 @@
 [package]
 name = "defillama-reborn-tool"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 description = "DefiLlama API tool for IronClaw (WASM component)"
 license = "MIT OR Apache-2.0"

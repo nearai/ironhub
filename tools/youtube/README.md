@@ -1,6 +1,6 @@
 ---
 name: youtube
-version: 0.2.0
+version: 0.2.1
 description: YouTube Data API v3 integration and video transcript extraction for video metadata, comment sentiment analysis, channel analytics, channel uploads tracking, keyword search, and text transcripts.
 use_cases:
   - Fetch video statistics (views, likes, comments, duration) and metadata

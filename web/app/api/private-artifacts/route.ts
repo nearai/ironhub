@@ -35,6 +35,7 @@ export async function POST(request: Request) {
       visibility: readOptionalString(body, "visibility"),
       description: readOptionalString(body, "description"),
       sourceUrl: readOptionalString(body, "sourceUrl"),
+      category: readOptionalString(body, "category"),
     })
 
     return Response.json({ artifact }, { status: 201 })

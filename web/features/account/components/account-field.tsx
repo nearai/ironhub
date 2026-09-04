@@ -20,7 +20,7 @@ export function AccountField({
   return (
     <div
       className={cn(
-        "grid min-h-12 items-center gap-2 rounded-xl border border-[var(--ironhub-line)] bg-background/45 px-3 py-2 sm:grid-cols-[10rem_minmax(0,1fr)_auto]",
+        "grid grid-cols-1 min-h-12 items-center gap-2 rounded-xl border border-[var(--ironhub-line)] bg-background/45 px-3 py-2 sm:grid-cols-[10rem_minmax(0,1fr)_auto]",
         className
       )}
     >

@@ -75,7 +75,9 @@ function requiredSection(
   const value = sections.get(heading)?.trim() ?? ""
 
   if (!value || value === "_No response_") {
-    throw new Error(`Missing required use case value "${heading}" in ${filePath}`)
+    throw new Error(
+      `Missing required use case value "${heading}" in ${filePath}`
+    )
   }
 
   return value
@@ -85,7 +87,9 @@ function parseCategories(value: string, filePath: string): UsecaseCategory[] {
   const lines = value.split("\n").filter((line) => line.trim())
 
   if (lines.length !== USE_CASE_CATEGORIES.length) {
-    throw new Error(`Use case categories must match the template in ${filePath}`)
+    throw new Error(
+      `Use case categories must match the template in ${filePath}`
+    )
   }
 
   const selected = lines
@@ -94,7 +98,9 @@ function parseCategories(value: string, filePath: string): UsecaseCategory[] {
       const expected = USE_CASE_CATEGORIES[index]
 
       if (!expected) {
-        throw new Error(`Unexpected use case category row in ${filePath}: ${line}`)
+        throw new Error(
+          `Unexpected use case category row in ${filePath}: ${line}`
+        )
       }
 
       if (!match || match[2] !== expected) {
@@ -226,7 +232,7 @@ export async function getUseCasesCached(force = false): Promise<UseCase[]> {
     }
     return g.__useCasesCache
   }
-  
+
   if (force || !cache) {
     cache = await getUseCases()
   }
@@ -255,7 +261,7 @@ export async function queryUseCases({
   force?: boolean
 } = {}): Promise<PaginatedUseCases> {
   const allUseCases = await getUseCasesCached(force)
-  
+
   let filtered = allUseCases
 
   if (category && category !== "All") {
@@ -297,4 +303,3 @@ export async function getUseCaseById(id: string): Promise<UseCase | null> {
 export async function getUsecaseCategories() {
   return [...USE_CASE_CATEGORIES]
 }
-

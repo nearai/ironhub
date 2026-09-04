@@ -1,9 +1,4 @@
-export type Provenance =
-  | "official"
-  | "trusted"
-  | "verified"
-  | "private"
-  | "new"
+export type Provenance = "official" | "trusted" | "verified" | "private" | "new"
 
 export type HubArtifact = {
   url: string
@@ -18,7 +13,7 @@ export type HubToolEntry = {
   description: string
   provenance: Provenance
   wasm: HubArtifact
-  capabilities: HubArtifact
+  capabilities?: HubArtifact
   manifest?: HubArtifact
   schemas?: Record<string, HubArtifact>
   prompts?: Record<string, HubArtifact>

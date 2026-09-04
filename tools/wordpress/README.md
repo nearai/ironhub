@@ -1,6 +1,6 @@
 ---
 name: wordpress
-version: 0.2.0
+version: 0.2.1
 description: Typed WordPress and WooCommerce operations for one host-pinned site. Manage WordPress posts and media plus WooCommerce products, orders, and customers. Credentials are injected by IronClaw and never enter model or WASM input.
 use_cases:
   - Draft, schedule, list, and update WordPress posts

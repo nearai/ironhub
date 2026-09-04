@@ -32,8 +32,7 @@ export function parseSkillFrontmatter(text: string): SkillFrontmatter {
     useCases,
     valueTags,
     activation,
-  } =
-    parseYamlFrontmatter(text)
+  } = parseYamlFrontmatter(text)
 
   return {
     name,
@@ -44,7 +43,9 @@ export function parseSkillFrontmatter(text: string): SkillFrontmatter {
     tags,
     keywords: readYamlList(activation.keywords),
     patterns: readYamlList(activation.patterns),
-    maxContextTokens: Number(readYamlScalar(activation.max_context_tokens) ?? 0),
+    maxContextTokens: Number(
+      readYamlScalar(activation.max_context_tokens) ?? 0
+    ),
     useCases,
     valueTags,
   }
@@ -71,8 +72,7 @@ export function readCargoValue(cargo: string, key: string) {
 type YamlRecord = Record<string, unknown>
 
 function parseFrontmatterDocument(text: string) {
-  const yaml =
-    text.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/)?.[1] ?? ""
+  const yaml = text.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/)?.[1] ?? ""
 
   try {
     return {

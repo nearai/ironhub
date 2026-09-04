@@ -13,7 +13,7 @@ const steps = [
 
 export function InstallFlowSteps() {
   return (
-    <ol className="grid gap-4 sm:grid-cols-4">
+    <ol className="grid grid-cols-1 gap-4 sm:grid-cols-4">
       {steps.map(([title, body], index) => (
         <li key={title} className="relative grid gap-3 text-center">
           {index < steps.length - 1 ? (

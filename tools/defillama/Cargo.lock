@@ -49,7 +49,7 @@ dependencies = [
 
 [[package]]
 name = "defillama-reborn-tool"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "flate2",
  "serde",

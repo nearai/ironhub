@@ -18,7 +18,13 @@ export function CopyUsecaseButton({ useCase }: CopyUsecaseButtonProps) {
       .filter((s) => {
         if (!s || !s.name) return false
         const name = s.name.trim().toLowerCase()
-        return name !== "" && name !== "unknown" && name !== "na" && name !== "n/a" && name !== "none"
+        return (
+          name !== "" &&
+          name !== "unknown" &&
+          name !== "na" &&
+          name !== "n/a" &&
+          name !== "none"
+        )
       })
       .map((s) => `- ${s.name.replace(/`/g, "")}${s.url ? ` (${s.url})` : ""}`)
       .join("\n")
@@ -40,7 +46,7 @@ ${sanitizedSkills}`
   return (
     <Button
       onClick={handleCopy}
-      className="w-full sm:w-auto px-6 py-5 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/95 transition-all shadow-md flex items-center justify-center gap-2 text-sm relative z-20"
+      className="relative z-20 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-5 text-sm font-bold text-primary-foreground shadow-md transition-all hover:bg-primary/95 sm:w-auto"
     >
       {isCopied ? (
         <>

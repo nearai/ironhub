@@ -21,13 +21,19 @@ function loadSigningKey() {
   if (!encoded) {
     throw new ManifestSigningError("IRONHUB_MANIFEST_SIGNING_KEY is not set")
   }
-  const pem = Buffer.from(encoded, "base64").toString("utf8")
+  const decoded = Buffer.from(encoded, "base64")
   try {
-    return createPrivateKey(pem)
+    // Preferred format: base64 of the raw PKCS8 DER bytes.
+    return createPrivateKey({ key: decoded, format: "der", type: "pkcs8" })
   } catch {
-    throw new ManifestSigningError(
-      "IRONHUB_MANIFEST_SIGNING_KEY is not a valid base64 PKCS8 Ed25519 key"
-    )
+    // Back-compat: base64 of a PEM-encoded key.
+    try {
+      return createPrivateKey(decoded.toString("utf8"))
+    } catch {
+      throw new ManifestSigningError(
+        "IRONHUB_MANIFEST_SIGNING_KEY is not a valid base64 PKCS8 Ed25519 key"
+      )
+    }
   }
 }
 

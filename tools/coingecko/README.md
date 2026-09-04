@@ -1,6 +1,6 @@
 ---
 name: coingecko
-version: 0.2.0
+version: 0.2.1
 description: Universal cryptocurrency price and market oracle for Ironclaw via the CoinGecko API. Retrieves current prices, market tables, detailed metadata, historical charts, candles, and trending assets. Supports both free Demo and Pro API keys.
 use_cases:
   - Retrieve real-time cryptocurrency exchange rates and prices

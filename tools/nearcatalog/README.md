@@ -1,6 +1,6 @@
 ---
 name: nearcatalog
-version: 0.2.0
+version: 0.2.1
 description: Explore the NEAR ecosystem from public NEAR Catalog data. Keyword-search projects, browse and filter the catalog by status/phase, list trending projects, look up full project profiles and related projects, browse categories, find people building on NEAR, and list awesome-near OSS libraries. No authentication required.
 use_cases:
   - Keyword-search NEAR projects or surface what's trending

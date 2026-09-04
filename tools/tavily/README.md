@@ -1,6 +1,6 @@
 ---
 name: tavily
-version: 0.2.0
+version: 0.2.1
 description: Web search, URL extraction, site crawling, and site mapping for Ironclaw via the Tavily API. Returns LLM-ready structured results with AI-synthesized answers, relevance scores, and clean markdown content. The host injects the API key as a Bearer token — the tool never sees the raw secret.
 use_cases:
   - Search the web, social networks(X, Facebook, LinkedIn, Tiktok, Reddit...) for current events, research, and factual questions

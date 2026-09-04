@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 import { IconArrowUp } from "@tabler/icons-react"
 
 import { Button } from "@/components/ui/button"
@@ -10,6 +11,8 @@ const VISIBILITY_THRESHOLD = 400
 
 export function ScrollToTopButton() {
   const [isVisible, setIsVisible] = useState(false)
+  const pathname = usePathname()
+  const isDashboard = Boolean(pathname?.startsWith("/dashboard"))
 
   useEffect(() => {
     const updateVisibility = () => {
@@ -41,7 +44,8 @@ export function ScrollToTopButton() {
       aria-label="Scroll to top"
       title="Scroll to top"
       className={cn(
-        "fixed right-4 bottom-4 z-40 rounded-full shadow-lg transition-[opacity,transform] duration-200 sm:right-6 sm:bottom-6",
+        "fixed right-4 z-40 rounded-full shadow-lg transition-[opacity,transform,bottom] duration-200 sm:right-6",
+        isDashboard ? "bottom-24 sm:bottom-28" : "bottom-4 sm:bottom-6",
         isVisible
           ? "pointer-events-auto translate-y-0 opacity-100"
           : "pointer-events-none translate-y-2 opacity-0"

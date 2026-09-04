@@ -131,5 +131,26 @@ jobs:
       - name: Catalog tests
         run: pnpm --filter web test:catalog
 
+      - name: HTTP tests
+        run: pnpm --filter web test:http
+
+      - name: Private artifacts tests
+        run: pnpm --filter web test:private-artifacts
+
+      - name: Org tests
+        run: pnpm --filter web test:orgs
+
+      - name: Storage tests
+        run: pnpm --filter web test:storage
+
+      - name: Agent installation tests
+        run: pnpm --filter web test:agent-installations
+
+      - name: Discovery tests
+        run: pnpm --filter web test:discovery
+
+      - name: UI tests
+        run: pnpm --filter web test:ui
+
       - name: Signing parity
         run: pnpm --filter web signing:check

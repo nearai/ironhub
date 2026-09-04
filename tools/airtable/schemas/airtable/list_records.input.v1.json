@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "list_records input",
+  "type": "object",
+  "properties": {
+    "base_id": {
+      "type": "string",
+      "description": "Airtable base id (starts with 'app'). Provide this or 'base_url'."
+    },
+    "base_url": {
+      "type": "string",
+      "description": "A pasted Airtable URL; the base/table/view ids are extracted from it. Alternative to base_id+table."
+    },
+    "table": {
+      "type": "string",
+      "description": "Table id (starts with 'tbl') or table name. Required for record actions unless given via base_url."
+    },
+    "view": {
+      "type": "string",
+      "description": "list_records: a view id/name. Airtable applies the view's filter, sort, and hidden columns server-side. Prefer this over filter_by_formula for human-curated reads."
+    },
+    "fields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "list_records: only return these fields."
+    },
+    "filter_by_formula": {
+      "type": "string",
+      "description": "list_records: a raw Airtable formula. Power use; prefer 'filter' or 'view'. Mutually exclusive with 'filter'."
+    },
+    "filter": {
+      "type": "object",
+      "properties": {
+        "field": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "value"
+      ],
+      "description": "list_records: safe equality filter {field=value}; the value is escaped. Mutually exclusive with 'filter_by_formula'."
+    },
+    "sort": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          }
+        },
+        "required": [
+          "field"
+        ]
+      },
+      "description": "list_records: sort clauses, applied in order."
+    },
+    "page_size": {
+      "type": "integer",
+      "description": "list_records: records per page (1-100, clamped to 100).",
+      "minimum": 1
+    },
+    "max_records": {
+      "type": "integer",
+      "description": "list_records: total cap across pages.",
+      "minimum": 1
+    },
+    "offset": {
+      "type": "string",
+      "description": "list_records: pagination token from a prior list_records 'offset' to fetch the next page."
+    }
+  },
+  "additionalProperties": false
+}

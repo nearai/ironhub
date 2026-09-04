@@ -4,8 +4,7 @@ import { CatalogBrowser } from "@/features/catalog/components/catalog-browser"
 import { MarketplaceMobileToolbar } from "@/features/marketplace/components/marketplace-mobile-toolbar"
 import { MarketplaceSidebar } from "@/features/marketplace/components/marketplace-sidebar"
 import { HubLayout } from "@/features/shell/components/hub-layout"
-import { MetricGrid } from "@/features/home/components/metric-grid"
-import { PageHeader } from "@/features/shell/components/page-header"
+import { MarketplaceHeader } from "@/features/marketplace/components/marketplace-header"
 import {
   getCatalogStats,
   getCategories,
@@ -34,7 +33,7 @@ export async function MarketplaceScreen() {
         data={buildCatalogListingJsonLd(items)}
       />
       <div className="mx-auto grid max-w-7xl gap-6">
-        <PageHeader
+        <MarketplaceHeader
           eyebrow="Skill Library"
           title="Browse IronClaw Skills and Tools"
           description={
@@ -42,18 +41,9 @@ export async function MarketplaceScreen() {
               ? "Search repo-backed skills, WASM tools, and public Iliad skills from one catalog."
               : "Search repo-backed skills and WASM tools from one catalog."
           }
-        >
-          <MetricGrid
-            metrics={[
-              { label: "Total entries", value: stats.total },
-              { label: "WASM tools", value: stats.tools },
-              { label: "Prompt skills", value: stats.skills },
-              ...(isIliadEnabled
-                ? [{ label: "Iliad skills", value: stats.iliad }]
-                : []),
-            ]}
-          />
-        </PageHeader>
+          stats={stats}
+          isIliadEnabled={isIliadEnabled}
+        />
 
         <MarketplaceMobileToolbar
           categories={categoryCounts}

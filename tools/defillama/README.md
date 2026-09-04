@@ -1,6 +1,6 @@
 ---
 name: defillama
-version: 0.2.1
+version: 0.2.2
 description: DefiLlama DeFi analytics — protocol/chain TVL, token prices, stablecoin circulation, yield/APY pools, DEX volumes, and fees/revenue from the free open API. No API key, no auth setup.
 use_cases:
   - Rank protocols/chains by TVL and pull their TVL history

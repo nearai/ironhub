@@ -21,7 +21,8 @@ export function ThemeToggle() {
         <Button
           type="button"
           variant="outline"
-          size="icon"
+          size="icon-lg"
+          className="rounded-lg"
           aria-label={label}
           onClick={toggleTheme}
         >

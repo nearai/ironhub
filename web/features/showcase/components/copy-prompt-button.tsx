@@ -20,7 +20,7 @@ export function CopyPromptButton({ promptText }: CopyPromptButtonProps) {
   return (
     <Button
       onClick={handleCopy}
-      className="absolute top-4 right-4 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-4 py-2 text-xs font-semibold flex items-center gap-1.5 shadow-md transition-all active:scale-95 z-20"
+      className="absolute top-4 right-4 z-20 flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-md transition-all hover:bg-primary/90 active:scale-95"
     >
       {isCopied ? (
         <>

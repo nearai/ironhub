@@ -1,6 +1,6 @@
 ---
 name: pikespeak
-version: 0.2.0
+version: 0.2.1
 description: Pikespeak NEAR Protocol indexer and wealth portfolio tracker. Consumes live/historical NEAR protocol data, native/token balances, transactions, transfers, validator APY, and DeFi positions (RHEA Lend, Rhea DEX, NEAR Intents). Requires an API key from pikespeak.ai.
 use_cases:
   - Inspect aggregated portfolio wealth, spot tokens, and DeFi positions

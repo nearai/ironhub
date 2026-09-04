@@ -9,7 +9,7 @@ type MarketDetailAsideProps = {
 export function MarketDetailAside({ item }: MarketDetailAsideProps) {
   return (
     <aside className="hidden w-full min-w-0 content-start gap-4 lg:grid">
-      <SecureInstallButton slug={item.slug} />
+      <SecureInstallButton slug={item.slug} source="public" type={item.kind} />
       <CLIInstallBox slug={item.slug} />
     </aside>
   )

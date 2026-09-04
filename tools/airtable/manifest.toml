@@ -1,0 +1,102 @@
+schema_version = "reborn.extension_manifest.v3"
+id = "airtable"
+name = "Airtable"
+version = "0.2.1"
+description = "Read and write Airtable records (CRUD minus delete). Actions: 'list_records' (query a table with view/filter/sort/paging), 'get_record' (one record by id), 'create_records' (add up to 10), 'update_records' (partial-update up to 10 by id), and 'get_schema' (list tables and fields; needs the 'schema.bases:read' PAT scope, optional). The base id and table travel as call params — pass 'base_id'+'table' or paste an Airtable URL as 'base_url'. Authentication uses the 'airtable_pat' Personal Access Token injected by the host as a Bearer token; the tool never sees the raw value."
+trust = "third_party"
+
+[runtime]
+kind = "wasm"
+module = "wasm/airtable_reborn_tool.wasm"
+
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
+id = "airtable.list_records"
+description = "List records with filtering, sorting, fields, and pagination."
+effects = ["dispatch_capability", "network", "use_secret"]
+default_permission = "allow"
+visibility = "model"
+input_schema_ref = "schemas/airtable/list_records.input.v1.json"
+output_schema_ref = "schemas/airtable/output.v1.json"
+prompt_doc_ref = "prompts/airtable/list_records.md"
+
+[[tools.credentials]]
+handle = "airtable_pat"
+vendor = "airtable"
+audience = { scheme = "https", host = "api.airtable.com" }
+injection = { type = "header", name = "authorization", prefix = "Bearer " }
+
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
+id = "airtable.get_record"
+description = "Get one record by ID."
+effects = ["dispatch_capability", "network", "use_secret"]
+default_permission = "allow"
+visibility = "model"
+input_schema_ref = "schemas/airtable/get_record.input.v1.json"
+output_schema_ref = "schemas/airtable/output.v1.json"
+prompt_doc_ref = "prompts/airtable/get_record.md"
+
+[[tools.credentials]]
+handle = "airtable_pat"
+vendor = "airtable"
+audience = { scheme = "https", host = "api.airtable.com" }
+injection = { type = "header", name = "authorization", prefix = "Bearer " }
+
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
+id = "airtable.create_records"
+description = "Create one or more records."
+effects = ["dispatch_capability", "network", "use_secret", "external_write"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/airtable/create_records.input.v1.json"
+output_schema_ref = "schemas/airtable/output.v1.json"
+prompt_doc_ref = "prompts/airtable/create_records.md"
+
+[[tools.credentials]]
+handle = "airtable_pat"
+vendor = "airtable"
+audience = { scheme = "https", host = "api.airtable.com" }
+injection = { type = "header", name = "authorization", prefix = "Bearer " }
+
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
+id = "airtable.update_records"
+description = "Partially update one or more records."
+effects = ["dispatch_capability", "network", "use_secret", "external_write"]
+default_permission = "ask"
+visibility = "model"
+input_schema_ref = "schemas/airtable/update_records.input.v1.json"
+output_schema_ref = "schemas/airtable/output.v1.json"
+prompt_doc_ref = "prompts/airtable/update_records.md"
+
+[[tools.credentials]]
+handle = "airtable_pat"
+vendor = "airtable"
+audience = { scheme = "https", host = "api.airtable.com" }
+injection = { type = "header", name = "authorization", prefix = "Bearer " }
+
+[[tools]]
+origin_gate_matrix = { loop_run = "gated_unless_granted", product = "forbidden", automation = "forbidden" }
+id = "airtable.get_schema"
+description = "Get base table and field metadata."
+effects = ["dispatch_capability", "network", "use_secret"]
+default_permission = "allow"
+visibility = "model"
+input_schema_ref = "schemas/airtable/get_schema.input.v1.json"
+output_schema_ref = "schemas/airtable/output.v1.json"
+prompt_doc_ref = "prompts/airtable/get_schema.md"
+
+[[tools.credentials]]
+handle = "airtable_pat"
+vendor = "airtable"
+audience = { scheme = "https", host = "api.airtable.com" }
+injection = { type = "header", name = "authorization", prefix = "Bearer " }
+
+[auth.airtable]
+method = "api_key"
+display_name = "Airtable Personal Access Token"
+fields = [
+  { handle = "airtable_pat", label = "Airtable PAT", secret = true },
+]

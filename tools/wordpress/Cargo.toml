@@ -1,6 +1,6 @@
 [package]
 name = "wordpress-reborn-tool"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 description = "WordPress and WooCommerce WASM extension for IronClaw Reborn"
 license = "MIT OR Apache-2.0"
@@ -10,7 +10,7 @@ publish = false
 base64 = "0.22"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-wit-bindgen = "0.59.0"
+wit-bindgen = "0.41.0"
 
 [lib]
 crate-type = ["cdylib"]

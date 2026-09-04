@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "get_record input",
+  "type": "object",
+  "properties": {
+    "base_id": {
+      "type": "string",
+      "description": "Airtable base id (starts with 'app'). Provide this or 'base_url'."
+    },
+    "base_url": {
+      "type": "string",
+      "description": "A pasted Airtable URL; the base/table/view ids are extracted from it. Alternative to base_id+table."
+    },
+    "table": {
+      "type": "string",
+      "description": "Table id (starts with 'tbl') or table name. Required for record actions unless given via base_url."
+    },
+    "record_id": {
+      "type": "string",
+      "description": "get_record: the record id (starts with 'rec')."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "record_id"
+  ]
+}

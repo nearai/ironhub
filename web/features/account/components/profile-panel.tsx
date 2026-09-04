@@ -25,9 +25,9 @@ export function ProfilePanel({
   const { user } = session
 
   return (
-    <section className="grid gap-7 rounded-xl border border-[var(--ironhub-line)] bg-card/86 p-6 shadow-[var(--ironhub-shadow)] backdrop-blur-xl">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-5">
+    <section className="grid grid-cols-1 gap-7 rounded-xl border border-[var(--ironhub-line)] bg-card/86 p-6 shadow-[var(--ironhub-shadow)] backdrop-blur-xl">
+      <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-5">
           <UserClawAvatar
             user={user}
             size={72}
@@ -35,7 +35,11 @@ export function ProfilePanel({
             imageClassName="origin-top scale-[2] object-cover object-top p-0"
           />
           <div className="min-w-0">
-            <h2 className="truncate font-heading text-2xl font-semibold">
+            {/* Account ids (including 64-char implicit NEAR accounts) must
+                stay fully readable -- wrap instead of ellipsising, and use
+                [overflow-wrap:anywhere] since the id has no natural break
+                points for the browser to wrap on. */}
+            <h2 className="font-heading text-2xl font-semibold break-words [overflow-wrap:anywhere]">
               {user.name}
             </h2>
             <p className="truncate text-sm text-muted-foreground">

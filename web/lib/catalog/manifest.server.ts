@@ -9,9 +9,9 @@ import type {
   HubToolEntry,
   Provenance,
 } from "@/lib/catalog/manifest-types"
+import { isExtensionAssetPath } from "@/lib/catalog/ironclaw-contract"
 import {
-  isPublishableArtifactPath,
-  officialToolEntry,
+  officialToolEntries,
   type GithubArtifact,
   type GithubTool,
 } from "@/lib/catalog/official-tools"
@@ -93,9 +93,7 @@ export function decodeArtifactRef(token: string): ArtifactRef {
   throw new CatalogManifestError("Invalid artifact token.", 400)
 }
 
-function trustTierToProvenance(
-  tier: IliadAuthorTrustTier
-): Provenance | null {
+function trustTierToProvenance(tier: IliadAuthorTrustTier): Provenance | null {
   switch (tier) {
     case "trusted":
       return "trusted"
@@ -121,8 +119,11 @@ async function fetchOfficialManifest(): Promise<{
     )
   }
   const manifest = (await response.json()) as GithubManifest
-  const tools = (manifest.tools ?? []).map((tool) =>
-    officialToolEntry(tool, (url) => hubArtifactUrl(["g", url]))
+  // Drops any tool the agent would refuse -- an asset set past its caps, or a
+  // path outside the publishable grammar -- and keeps the rest. See the header
+  // of official-tools.ts for why this is an omission and not a failure.
+  const tools = officialToolEntries(manifest.tools ?? [], (url) =>
+    hubArtifactUrl(["g", url])
   )
   const skills = (manifest.skills ?? []).map((skill) => ({
     name: skill.name,
@@ -135,7 +136,12 @@ async function fetchOfficialManifest(): Promise<{
       ? {
           files: skill.files
             .filter((file) => {
-              if (isPublishableArtifactPath(file.path)) {
+              // Bundled skill files are not converged onto the tool rule
+              // above: this change scopes asset-set equality to tools (C9 is
+              // `ironhub/package.rs`, a tool path), and a skill's files feed a
+              // different agent-side assembly. Left filtering rather than
+              // omitting, deliberately and narrowly.
+              if (isExtensionAssetPath(file.path)) {
                 return true
               }
               console.error(
