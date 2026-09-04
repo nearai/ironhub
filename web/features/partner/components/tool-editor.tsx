@@ -25,6 +25,7 @@ import { formatBytes } from "@/lib/shared/format-utils"
 import { cn } from "@/lib/shared/utils"
 import {
   IconAlertTriangle,
+  IconLock,
   IconUpload,
   IconFileZip,
   IconLoader2,
@@ -47,6 +48,7 @@ export function ToolEditor({ id }: ToolEditorProps) {
 
   // Form states
   const [title, setTitle] = useState("")
+  const [version, setVersion] = useState("")
   const [description, setDescription] = useState("")
   const [visibility, setVisibility] = useState<"public" | "private">("private")
   const [category, setCategory] = useState("")
@@ -55,6 +57,7 @@ export function ToolEditor({ id }: ToolEditorProps) {
   const [formError, setFormError] = useState<string | null>(null)
   const [categoryError, setCategoryError] = useState<string | null>(null)
   const [sourceUrlError, setSourceUrlError] = useState<string | null>(null)
+  const [versionError, setVersionError] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
   // Guard so a background refetch (e.g. window focus) never clobbers an
   // in-progress edit — only reseed the form when we land on a new artifact.
@@ -63,6 +66,7 @@ export function ToolEditor({ id }: ToolEditorProps) {
     if (artifact && seededArtifactIdRef.current !== artifact.id) {
       seededArtifactIdRef.current = artifact.id
       setTitle(artifact.title)
+      setVersion(artifact.version)
       setDescription(artifact.description || "")
       setVisibility(artifact.visibility)
       setCategory(artifact.category ?? "")
@@ -97,12 +101,20 @@ export function ToolEditor({ id }: ToolEditorProps) {
         description="This item does not exist, or it is not a tool."
         action={
           <Button asChild variant="default" className="h-11 rounded-lg sm:h-10">
-            <Link href="/dashboard/catalog">Back to your catalog</Link>
+            <Link href="/dashboard/catalog">Back to catalog</Link>
           </Button>
         }
       />
     )
   }
+
+  // While a published version's package is frozen, saying so up front is the
+  // difference between an author reading the refusal as a rule and reading it
+  // as a bug. The server enforces it either way -- this only moves the news to
+  // before the upload instead of after it.
+  const isFrozen =
+    artifact.status === "published" &&
+    artifact.publishedVersion === artifact.version
 
   // The whole package is the unit of change: a tool is created from one .zip
   // and every file the hub stores for it is extracted from that archive, so
@@ -114,6 +126,12 @@ export function ToolEditor({ id }: ToolEditorProps) {
   // submit that could half-apply.
   const handleBundleUpload = async (file: File) => {
     setUploadError(null)
+    if (isFrozen) {
+      setUploadError(
+        `This tool is published at version ${artifact.version}. Change the version above and save, then upload the new package.`
+      )
+      return
+    }
     if (!file.name.toLowerCase().endsWith(".zip")) {
       setUploadError("Only .zip archives are accepted.")
       return
@@ -144,11 +162,13 @@ export function ToolEditor({ id }: ToolEditorProps) {
     if (file) void handleBundleUpload(file)
   }
 
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
     setCategoryError(null)
     setSourceUrlError(null)
+    setVersionError(null)
 
     try {
       await updateArtifact.mutateAsync({
@@ -157,6 +177,10 @@ export function ToolEditor({ id }: ToolEditorProps) {
         visibility,
         category: category || null,
         sourceUrl: sourceUrl.trim() || null,
+        // Sent only when it actually changed: the server refuses a version
+        // equal to the stored one, so including it unconditionally would turn
+        // every metadata-only save into a rejection.
+        ...(version !== artifact.version ? { version } : {}),
       })
       notify(`Changes saved for ${title}`)
     } catch (error) {
@@ -164,6 +188,7 @@ export function ToolEditor({ id }: ToolEditorProps) {
       if (described.field === "category") setCategoryError(described.message)
       else if (described.field === "sourceUrl")
         setSourceUrlError(described.message)
+      else if (described.field === "version") setVersionError(described.message)
       else setFormError(described.message)
     }
   }
@@ -211,14 +236,23 @@ export function ToolEditor({ id }: ToolEditorProps) {
               </label>
               <Input
                 id="tool-version"
-                disabled
-                aria-readonly="true"
-                value={artifact.version}
-                className="h-11 rounded-lg border-[var(--ironhub-line)] bg-muted text-muted-foreground disabled:opacity-100 sm:h-10"
+                required
+                value={version}
+                onChange={(e) => setVersion(e.target.value)}
+                aria-invalid={versionError ? true : undefined}
+                className="h-11 rounded-lg sm:h-10"
               />
-              <p className="text-sm text-muted-foreground">
-                Set when you publish an update. It cannot be changed here.
-              </p>
+              {versionError ? (
+                <p className="text-sm font-medium text-destructive">
+                  {versionError}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {isFrozen
+                    ? "This version is published. Change it before you can replace the package."
+                    : "Give every release its own version. It can only move forward."}
+                </p>
+              )}
             </div>
           </div>
 
@@ -323,16 +357,18 @@ export function ToolEditor({ id }: ToolEditorProps) {
               onDrop={handleDrop}
               className={cn(
                 "relative flex min-h-[120px] flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-colors",
-                dragOver
-                  ? "border-primary bg-primary/5"
-                  : "border-[var(--ironhub-line)] bg-background/50 hover:border-primary/50"
+                isFrozen
+                  ? "border-[var(--ironhub-line)] bg-muted/40"
+                  : dragOver
+                    ? "border-primary bg-primary/5"
+                    : "border-[var(--ironhub-line)] bg-background/50 hover:border-primary/50"
               )}
             >
               <input
                 id="bundle-upload-input"
                 type="file"
                 accept=".zip"
-                disabled={uploadBundle.isPending}
+                disabled={uploadBundle.isPending || isFrozen}
                 onChange={(e) => {
                   const file = e.target.files?.[0]
                   e.target.value = ""
@@ -340,18 +376,28 @@ export function ToolEditor({ id }: ToolEditorProps) {
                 }}
                 className="absolute inset-0 cursor-pointer opacity-0"
               />
-              <IconUpload
-                className="size-6 text-muted-foreground"
-                aria-hidden="true"
-              />
+              {isFrozen ? (
+                <IconLock
+                  className="size-6 text-muted-foreground"
+                  aria-hidden="true"
+                />
+              ) : (
+                <IconUpload
+                  className="size-6 text-muted-foreground"
+                  aria-hidden="true"
+                />
+              )}
               <span className="mt-2 block text-sm font-medium text-foreground">
-                {storedPackage
-                  ? "Drop a new .zip here to update this tool"
-                  : "Drop the .zip here, or choose one"}
+                {isFrozen
+                  ? `Version ${artifact.version} is published`
+                  : storedPackage
+                    ? "Drop a new .zip here to update this tool"
+                    : "Drop the .zip here, or choose one"}
               </span>
               <span className="mt-1 text-sm text-muted-foreground">
-                Updating replaces the whole package straight away. It does not
-                wait for Save changes.
+                {isFrozen
+                  ? "Change the version above and save first, so anyone already running this version keeps the package they were given."
+                  : "Updating replaces the whole package straight away. It does not wait for Save changes."}
               </span>
             </div>
 

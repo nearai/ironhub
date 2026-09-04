@@ -85,9 +85,32 @@ test("PATCH rejects a status field with 400 and does not touch the service", asy
   assert.equal(updateCalls.length, 0)
 })
 
-test("PATCH rejects immutable fields (name, version, type) with 400", async () => {
+test("PATCH rejects immutable fields (name, type) with 400", async () => {
   updateCalls.length = 0
   const response = await PATCH(patchRequest({ name: "renamed" }), makeParams())
+
+  assert.equal(response.status, 400)
+  assert.equal(updateCalls.length, 0)
+})
+
+test("PATCH forwards a version to the service", async () => {
+  // `version` used to sit alongside `name` and `type` in the rejection above.
+  // It is mutable now, and the ordering and grammar rules that constrain it
+  // belong to the service -- the route's job is only to hand it over as a
+  // string.
+  updateCalls.length = 0
+  const response = await PATCH(patchRequest({ version: "1.1.0" }), makeParams())
+  const json = await response.json()
+
+  assert.equal(response.status, 200)
+  assert.equal(updateCalls.length, 1)
+  assert.equal(updateCalls[0].patch.version, "1.1.0")
+  assert.equal(json.artifact.version, "1.1.0")
+})
+
+test("PATCH rejects a non-string version before reaching the service", async () => {
+  updateCalls.length = 0
+  const response = await PATCH(patchRequest({ version: 2 }), makeParams())
 
   assert.equal(response.status, 400)
   assert.equal(updateCalls.length, 0)

@@ -2,9 +2,14 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
+import type { ArtifactType } from "@/lib/private-artifacts/artifact-types"
+
 import { ApiError, fetchJson, uploadContent } from "./client"
 
-export type ArtifactType = "tool" | "skill"
+// Re-exported so the workspace's components keep importing their artifact
+// vocabulary from one module, while the list of types itself stays where the
+// server reads it from.
+export type { ArtifactType }
 export type ArtifactVisibility = "private" | "public"
 export type ArtifactStatus = "draft" | "published"
 export type ContentKind =
@@ -13,6 +18,8 @@ export type ContentKind =
   | "skill_md"
   | "manifest_toml"
   | "bundle_zip"
+  | "soul_md"
+  | "readme_md"
 
 /** Content summary as returned by the artifact list/detail read routes — never the storageKey. */
 export interface ArtifactContent {
@@ -43,6 +50,12 @@ export interface PrivateArtifact {
   version: string
   visibility: ArtifactVisibility
   status: ArtifactStatus
+  /**
+   * The version this artifact was published at, or null while it is a draft.
+   * Equal to `version` means its stored files are frozen until the version is
+   * changed; different means the author has already bumped and may edit.
+   */
+  publishedVersion: string | null
   category: string | null
   description: string | null
   sourceUrl: string | null
@@ -66,7 +79,12 @@ export interface CreateArtifactInput {
 export type UpdateArtifactInput = Partial<
   Pick<
     CreateArtifactInput,
-    "title" | "description" | "visibility" | "sourceUrl" | "category"
+    | "title"
+    | "description"
+    | "visibility"
+    | "sourceUrl"
+    | "category"
+    | "version"
   >
 >
 
@@ -375,7 +393,7 @@ export function useUnpublishArtifact(id: string) {
  * keeping this logic out of them keeps that merge mechanical.
  */
 export function describeArtifactSaveError(error: unknown): {
-  field: "category" | "sourceUrl" | null
+  field: "category" | "sourceUrl" | "version" | null
   message: string
 } {
   if (error instanceof ApiError) {
@@ -384,6 +402,15 @@ export function describeArtifactSaveError(error: unknown): {
     }
     if (/sourceUrl must be/.test(error.message)) {
       return { field: "sourceUrl", message: error.message }
+    }
+    // Every version refusal the service raises opens with the field name:
+    // the grammar message ("version must be..."), the unchanged-value one
+    // ("version is already..."), and the ordering one ("version 1.2.0 is not
+    // greater..."). The content freeze deliberately does not match — it is
+    // about the item's state rather than the field the author just typed, so
+    // it belongs at form level where an upload error would also land.
+    if (/^version /.test(error.message)) {
+      return { field: "version", message: error.message }
     }
     return {
       field: null,

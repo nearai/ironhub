@@ -24,6 +24,10 @@ import {
 
 import { prisma } from "../db"
 import { deleteObject, putObject } from "../storage"
+import {
+  PUBLISH_FREEZE_SELECT,
+  assertArtifactContentUnfrozen,
+} from "./publish-freeze"
 
 const ASSET_KINDS = ["schema", "prompt"] as const
 
@@ -100,14 +104,23 @@ function assertWithinSizeLimit(path: string, byteLength: number) {
   }
 }
 
-async function requireArtifact(organizationId: string, artifactId: string) {
+// Proves the artifact is the caller organization's, and that its files may
+// still be changed. The freeze lives in this one helper rather than at each
+// call site because storing an asset and deleting one alter what a published
+// version resolves to in exactly the same way -- there is no call site here
+// that could want a different answer.
+async function requireWritableArtifact(
+  organizationId: string,
+  artifactId: string
+) {
   const artifact = await prisma.privateArtifact.findFirst({
     where: { id: artifactId, organizationId },
-    select: { id: true },
+    select: PUBLISH_FREEZE_SELECT,
   })
   if (!artifact) {
     throw new Response("Artifact not found", { status: 404 })
   }
+  assertArtifactContentUnfrozen(artifact)
   return artifact
 }
 
@@ -206,7 +219,7 @@ export async function replaceArtifactAssets(
     }
   }
 
-  await requireArtifact(organizationId, artifactId)
+  await requireWritableArtifact(organizationId, artifactId)
 
   const stored: StoredArtifactAsset[] = []
   for (const asset of assets) {
@@ -290,6 +303,8 @@ export async function deleteArtifactAsset(
   kind: AssetKind,
   path: string
 ) {
+  await requireWritableArtifact(organizationId, artifactId)
+
   const asset = await prisma.privateArtifactAsset.findFirst({
     where: { artifactId, kind, path, artifact: { organizationId } },
     select: { id: true, storageKey: true },

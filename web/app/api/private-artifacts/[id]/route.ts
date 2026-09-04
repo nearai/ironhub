@@ -52,6 +52,7 @@ export async function PATCH(request: Request, { params }: Params) {
       visibility?: string
       sourceUrl?: string | null
       category?: string | null
+      version?: string
     } = {}
 
     if ("title" in body) patch.title = assertOptionalString(body.title, "title")
@@ -63,6 +64,8 @@ export async function PATCH(request: Request, { params }: Params) {
       patch.sourceUrl = assertNullableString(body.sourceUrl, "sourceUrl")
     if ("category" in body)
       patch.category = assertNullableString(body.category, "category")
+    if ("version" in body)
+      patch.version = assertOptionalString(body.version, "version")
 
     const artifact = await updatePrivateArtifact(organizationId, id, patch)
 

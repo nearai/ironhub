@@ -14,6 +14,7 @@ import {
   deleteArtifactContent,
   storeArtifactContent,
 } from "@/lib/private-artifacts/content"
+import { assertArtifactContentUnfrozen } from "@/lib/private-artifacts/publish-freeze"
 import { getPrivateArtifact } from "@/lib/private-artifacts/service"
 
 type Params = {
@@ -77,6 +78,12 @@ export async function PUT(request: Request, { params }: Params) {
         status: 409,
       })
     }
+    // The freeze is enforced again by every write below (content.ts,
+    // assets.ts) and that is what makes it airtight. Asserting it here as
+    // well is about the author's experience: a rejected upload should not
+    // cost them a full parse and validation pass of an archive that was
+    // never going to be stored.
+    assertArtifactContentUnfrozen(artifact)
 
     const zip = new Uint8Array(await request.arrayBuffer())
 

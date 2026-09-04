@@ -69,6 +69,7 @@ export function SkillEditor({ id }: SkillEditorProps) {
 
   // Form states
   const [title, setTitle] = useState("")
+  const [version, setVersion] = useState("")
   const [description, setDescription] = useState("")
   const [valueProp, setValueProp] = useState("")
   const [useCasesText, setUseCasesText] = useState("")
@@ -82,6 +83,7 @@ export function SkillEditor({ id }: SkillEditorProps) {
   const [formError, setFormError] = useState<string | null>(null)
   const [categoryError, setCategoryError] = useState<string | null>(null)
   const [sourceUrlError, setSourceUrlError] = useState<string | null>(null)
+  const [versionError, setVersionError] = useState<string | null>(null)
 
   // Full frontmatter map as parsed from the stored file (design.md D5). The
   // form only exposes name/version/description/value_prop/use_cases/
@@ -120,6 +122,7 @@ export function SkillEditor({ id }: SkillEditorProps) {
       seededArtifactIdRef.current = artifact.id
 
       setTitle(artifact.title)
+      setVersion(artifact.version)
 
       setVisibility(artifact.visibility)
     }
@@ -198,12 +201,20 @@ export function SkillEditor({ id }: SkillEditorProps) {
         description="This item does not exist, or it is not a skill."
         action={
           <Button asChild variant="default" className="h-11 rounded-lg sm:h-10">
-            <Link href="/dashboard/catalog">Back to your catalog</Link>
+            <Link href="/dashboard/catalog">Back to catalog</Link>
           </Button>
         }
       />
     )
   }
+
+  // While a published version's stored file is frozen, saying so up front is
+  // the difference between an author reading the refusal as a rule and reading
+  // it as a bug. The server enforces it either way -- this only moves the news
+  // to before the save instead of after it.
+  const isFrozen =
+    artifact.status === "published" &&
+    artifact.publishedVersion === artifact.version
 
   // Anything read must survive a save (design.md D5): only the fields this
   // form exposes are overwritten, everything else in baseFrontmatter passes
@@ -224,7 +235,10 @@ export function SkillEditor({ id }: SkillEditorProps) {
     const next: Record<string, unknown> = {
       ...baseFrontmatter,
       name: artifact.name,
-      version: artifact.version,
+      // The form's value, not the fetched record's: a save that bumps the
+      // version writes the file in the same pass, and reading the record here
+      // would stamp the file with the version being replaced.
+      version,
       description,
     }
 
@@ -345,7 +359,25 @@ export function SkillEditor({ id }: SkillEditorProps) {
     setFormError(null)
     setCategoryError(null)
     setSourceUrlError(null)
+    setVersionError(null)
     if (!contentReady) return
+
+    // Caught here rather than left to the upload below, which the server
+    // would refuse: by then the metadata PATCH has already committed, so the
+    // author is looking at a save that applied one half of their changes. A
+    // version typed into the form releases the freeze in the same request,
+    // which is why this only fires when the field is still untouched.
+    if (
+      isFrozen &&
+      version === artifact.version &&
+      compileSkillMarkdown() !== originalSerialized
+    ) {
+      setVersionError(
+        `This skill is published at version ${artifact.version}. Change the version to save new instructions, so anyone already running ${artifact.version} keeps the file they were given.`
+      )
+      return
+    }
+
     try {
       // `description` (not `valueProp`) is the artifact record's description:
       // both are seeded from the stored file's frontmatter, and sending
@@ -356,6 +388,12 @@ export function SkillEditor({ id }: SkillEditorProps) {
         visibility,
         category: category || null,
         sourceUrl: sourceUrl.trim() || null,
+        // Sent only when it actually changed: the server refuses a version
+        // equal to the stored one, so including it unconditionally would turn
+        // every metadata-only save into a rejection. Sent *first*, in the same
+        // call, because it is also what releases the published-content freeze
+        // the skill_md upload below would otherwise hit.
+        ...(version !== artifact.version ? { version } : {}),
       })
       // Only re-upload when the compiled file actually differs from the
       // as-loaded baseline -- otherwise a metadata-only save (title,
@@ -375,6 +413,7 @@ export function SkillEditor({ id }: SkillEditorProps) {
       if (described.field === "category") setCategoryError(described.message)
       else if (described.field === "sourceUrl")
         setSourceUrlError(described.message)
+      else if (described.field === "version") setVersionError(described.message)
       else setFormError(described.message)
     }
   }
@@ -497,14 +536,23 @@ export function SkillEditor({ id }: SkillEditorProps) {
               </label>
               <Input
                 id="skill-version"
-                disabled
-                aria-readonly="true"
-                value={artifact.version}
-                className="h-11 rounded-lg border-[var(--ironhub-line)] bg-muted text-muted-foreground disabled:opacity-100 sm:h-10"
+                required
+                value={version}
+                onChange={(e) => setVersion(e.target.value)}
+                aria-invalid={versionError ? true : undefined}
+                className="h-11 rounded-lg sm:h-10"
               />
-              <p className="text-sm text-muted-foreground">
-                Set when you publish an update. It cannot be changed here.
-              </p>
+              {versionError ? (
+                <p className="text-sm font-medium text-destructive">
+                  {versionError}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {isFrozen
+                    ? "This version is published. Change it before you can save new instructions."
+                    : "Give every release its own version. It can only move forward."}
+                </p>
+              )}
             </div>
           </div>
 

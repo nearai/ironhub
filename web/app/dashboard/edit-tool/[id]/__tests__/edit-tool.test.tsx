@@ -255,6 +255,121 @@ describe("edit-tool", () => {
     expect(screen.getByText("my_tool.wasm")).toBeInTheDocument()
   })
 
+  it("omits version from the PATCH when the field was not touched", async () => {
+    // The server refuses a version equal to the stored one, so a title-only
+    // save that sent the field back unchanged would fail for no reason.
+    const bodies: string[] = []
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      const url = String(input)
+      const method = init?.method ?? "GET"
+      if (url === "/api/private-artifacts/artifact-1" && method === "GET") {
+        return new Response(JSON.stringify({ artifact: currentArtifact }), {
+          status: 200,
+        })
+      }
+      bodies.push(String(init?.body))
+      return new Response(JSON.stringify({ artifact }), { status: 200 })
+    })
+
+    await renderEditor()
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("My Tool")).toBeInTheDocument()
+    })
+    fireEvent.change(screen.getByDisplayValue("My Tool"), {
+      target: { value: "My Renamed Tool" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: /save changes/i }))
+
+    await waitFor(() => expect(bodies.length).toBe(1))
+    expect(JSON.parse(bodies[0])).not.toHaveProperty("version")
+  })
+
+  it("sends the new version when the field is edited", async () => {
+    const bodies: string[] = []
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      const url = String(input)
+      const method = init?.method ?? "GET"
+      if (url === "/api/private-artifacts/artifact-1" && method === "GET") {
+        return new Response(JSON.stringify({ artifact: currentArtifact }), {
+          status: 200,
+        })
+      }
+      bodies.push(String(init?.body))
+      return new Response(JSON.stringify({ artifact }), { status: 200 })
+    })
+
+    await renderEditor()
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("1.0.0")).toBeInTheDocument()
+    })
+    fireEvent.change(screen.getByDisplayValue("1.0.0"), {
+      target: { value: "1.1.0" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: /save changes/i }))
+
+    await waitFor(() => expect(bodies.length).toBe(1))
+    expect(JSON.parse(bodies[0]).version).toBe("1.1.0")
+  })
+
+  it("shows a version refusal against the version field, not as a form error", async () => {
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      const url = String(input)
+      const method = init?.method ?? "GET"
+      if (url === "/api/private-artifacts/artifact-1" && method === "GET") {
+        return new Response(JSON.stringify({ artifact: currentArtifact }), {
+          status: 200,
+        })
+      }
+      return new Response(
+        "version 0.9.0 is not greater than the current version 1.0.0",
+        { status: 400 }
+      )
+    })
+
+    await renderEditor()
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("1.0.0")).toBeInTheDocument()
+    })
+    fireEvent.change(screen.getByDisplayValue("1.0.0"), {
+      target: { value: "0.9.0" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: /save changes/i }))
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/is not greater than the current version/i)
+      ).toBeInTheDocument()
+    })
+    expect(screen.getByDisplayValue("0.9.0")).toHaveAttribute(
+      "aria-invalid",
+      "true"
+    )
+  })
+
+  it("refuses a package upload while the published version is frozen", async () => {
+    currentArtifact = {
+      ...artifact,
+      status: "published",
+      publishedVersion: "1.0.0",
+    } as typeof artifact
+    trackWrites()
+
+    await renderEditor()
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("My Tool")).toBeInTheDocument()
+    })
+
+    // The freeze is stated where the upload happens, and the control is shut,
+    // so the author meets the rule instead of a rejected request.
+    expect(screen.getByText(/version 1\.0\.0 is published/i)).toBeInTheDocument()
+    const fileInput = document.querySelector('input[type="file"]')
+    expect(fileInput).toBeDisabled()
+  })
+
   it("does not ask for a package listing when no package is stored", async () => {
     trackWrites()
 

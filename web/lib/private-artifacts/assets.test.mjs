@@ -355,3 +355,81 @@ test("a storage deletion failure does not fail the request that removed the row"
   await deleteArtifactAsset("org-1", "artifact-1", "prompt", "prompts/a.md")
   assert.deepEqual(deleteCalls, ["asset-1"])
 })
+
+// --- the published-content freeze ---------------------------------------
+//
+// `artifactFindFirstResult` stands in for the artifact row every asset write
+// looks up. `reset()` restores it to a bare `{ id }`, which carries no status
+// and so reads as a draft -- these tests supply the published cases.
+
+test("replaceArtifactAssets is refused while the published version's files are frozen", async () => {
+  reset()
+  artifactFindFirstResult = {
+    status: "published",
+    version: "1.0.0",
+    publishedVersion: "1.0.0",
+  }
+
+  await assertResponseRejection(
+    () =>
+      replaceArtifactAssets("org-1", "artifact-1", [
+        { kind: "schema", path: "schemas/in.json", bytes: encode("{}") },
+      ]),
+    409,
+    /Change the version before changing its files/
+  )
+  // The previous set must survive untouched -- a refused write is not a
+  // partially applied one.
+  assert.equal(putObjectCalls.length, 0)
+  assert.equal(upsertCalls.length, 0)
+})
+
+test("replaceArtifactAssets is accepted once the version has been bumped", async () => {
+  reset()
+  artifactFindFirstResult = {
+    status: "published",
+    version: "1.1.0",
+    publishedVersion: "1.0.0",
+  }
+
+  const stored = await replaceArtifactAssets("org-1", "artifact-1", [
+    { kind: "schema", path: "schemas/in.json", bytes: encode("{}") },
+  ])
+
+  assert.equal(stored.length, 1)
+})
+
+test("replaceArtifactAssets leaves a draft artifact unguarded", async () => {
+  reset()
+  artifactFindFirstResult = {
+    status: "draft",
+    version: "1.0.0",
+    publishedVersion: null,
+  }
+
+  const stored = await replaceArtifactAssets("org-1", "artifact-1", [
+    { kind: "prompt", path: "prompts/a.md", bytes: encode("hi") },
+  ])
+
+  assert.equal(stored.length, 1)
+})
+
+test("deleteArtifactAsset answers to the same freeze a write does", async () => {
+  reset()
+  existingAssets = [
+    { id: "asset-1", kind: "prompt", path: "prompts/a.md", storageKey: "k1" },
+  ]
+  artifactFindFirstResult = {
+    status: "published",
+    version: "3.0.0",
+    publishedVersion: "3.0.0",
+  }
+
+  await assertResponseRejection(
+    () => deleteArtifactAsset("org-1", "artifact-1", "prompt", "prompts/a.md"),
+    409,
+    /Change the version before changing its files/
+  )
+  assert.deepEqual(deleteCalls, [])
+  assert.deepEqual(deleteObjectCalls, [])
+})
